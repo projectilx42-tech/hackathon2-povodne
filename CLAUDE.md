@@ -5,6 +5,7 @@ Systém, který pro zvolenou oblast (AOI) a datum povodně ze satelitních dat o
 **1) kde udeřila povodeň, 2) co je poškozené, 3) kdo je odříznutý.**
 AI komponenta: **flood segmentation model** (voda/debris ze Sentinel-1/2), trénovaný na Kuro Siwo,
 ověřený na himálajských scénách, které model neviděl. Case study: Trishuli flood 26. 8. 2026 vs. EMSR927.
+**Deadline: 14. 10. 2026 20:45 SELČ** (15. 10. 00:15 IST). Priorita: funkční end-to-end MVP dřív než vylepšování.
 
 Podrobnosti (načítají se automaticky):
 @docs/TASK.md
@@ -29,6 +30,8 @@ síť: networkx, AI: PyTorch + segmentation-models-pytorch. Detaily a otevřené
 - Kód, komentáře, README, report a dashboard **anglicky**; interní docs (`CLAUDE.md`, `docs/*.md`) česky.
 - Rozhraní mezi moduly = soubory v run adresáři podle `docs/ARCHITECTURE.md`. **Neměň rozhraní bez zápisu do `docs/DECISIONS.md`** (a úpravy ARCHITECTURE.md ve stejném commitu).
 - Žádná data, modely ani velké rastry v gitu (`data/`, `runs/`, `models/` jsou v `.gitignore`). Do gitu jen kód, konfigurace, docs a malé ukázkové výstupy (< ~5 MB).
+- **Přiznání AI (pravidlo Devpostu):** README musí mít sekci *AI assistance* (které části vznikly s Claude Code) — při přidání modulu ji doplň.
+  Autor musí umět kód vysvětlit porotě → piš srozumitelně, netriviální volby zapisuj do DECISIONS.md.
 - Žádné secrets v repu. Přihlašovací údaje (CDSE apod.) jen přes proměnné prostředí cloud environmentu.
 
 ## Workflow (cloudové sessions, vše přes GitHub)

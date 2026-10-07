@@ -13,13 +13,25 @@ Online originál Track B: https://drive.google.com/file/d/1u1ayqUuG0W18uP_7GOptQ
 | Délka | 15 dní |
 | Tým | až 4 členové |
 | Hodnocení | **live, na oblastech a datech, které porotci zvolí v den hodnocení** |
-| Organizátor | pravděpodobně KamandPrompt (IIT Mandi) + Augli.ai, PurpleRain Tech, LDV Labs (dle webového vyhledávání, neověřeno) |
-| Vývoj | **30. 9. – 14. 10. 2026 (EOD)** — dle internshala listingu, sedí s „15 dní“; **NEOVĚŘENO z Devpostu, potvrdit čas a časové pásmo** |
-| Deadline odevzdání | **pravděpodobně 14. 10. 2026 EOD** (judging 15.–20. 10. 2026) — potvrdit na Devpostu |
+| Organizátor | KamandPrompt (programovací klub IIT Mandi) + Augli.ai, PurpleRain Tech, LDV Labs |
+| Termíny | registrace od 22. 9.; zadání 30. 9.; **vývoj 30. 9. – 14. 10. 2026 EOD**; judging 15.–20. 10.; finále a vyhlášení 21. 10. 2026 |
+| **DEADLINE** | **15. 10. 2026 00:15 IST = 14. 10. 2026 20:45 SELČ (18:45 UTC)** — ověřeno z Devpostu 2026-10-07 |
+| Ceny | ₹100 000 celkem; Track B: 1. místo ₹15 000, 2. místo ₹10 000 |
+| Účast | 14+, primárně studenti VŠ; tým 1–4 lidi; jeden tým = jen jeden track; člověk jen v jednom týmu |
+| Komunikace | další info na oficiálním Discordu (https://discord.gg/UD8EVcdcq) po registraci |
 | Náš AI komponent | **Flood segmentation model** (rozhodnuto, viz DECISIONS D-001) |
 
 Ostatní tracky (jen pro kontext, neřešíme): A – kardiovaskulární riziko + 3D vizualizace; C – kontrastivní analýza řeči;
-D – personalizovaný tutor. Prize pool a obecné submission guidelines jsou na Devpostu (nemáme je staženy).
+D – personalizovaný tutor.
+
+### Pravidla Devpostu — AI nástroje (DŮLEŽITÉ)
+Doslovně: *"AI coding assistants are allowed with no restrictions. You may use Cursor, Claude Code, Copilot, ChatGPT, v0, or any
+similar tool. You must disclose it: list the AI tools you used in Built With and note in your README which parts of the project
+were AI-assisted. Undisclosed use is treated as misrepresentation. You are responsible for everything you submit and must be able
+to explain how your code works if a judge asks."*
+→ V README musí být sekce **AI assistance** (které části byly s AI) a v Devpost formuláři **Built With: Claude Code**.
+→ Autor musí umět vysvětlit kód v Q&A → držet kód srozumitelný, rozhodnutí zapisovat do DECISIONS.md.
+Judging criteria: podle dokumentu zadání (viz níže). Submission requirements: v dokumentu zadání.
 
 ---
 
