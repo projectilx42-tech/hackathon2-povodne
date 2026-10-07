@@ -68,6 +68,14 @@ pipeline pro novou AOI (statické HTML samo nestačí).
 Minimální plocha pro „flood_detected“ je konfigurovatelná (šum v horách vždy něco vyprodukuje). Sitrep i dashboard verdikt zobrazují.
 (Doplnění schématu `stats.json` — ARCHITECTURE.md upraveno ve stejném commitu.)
 
+## D-014 | 2026-10-07 | přijato (rozhodnutí uživatele)
+**Žádná baseline change detection bez AI.** Vodu detekuje AI model (M3); suť/bahno řeší samostatný algoritmus (M3d).
+Modul M3a „baseline“ z architektury odstraněn (`baseline_mask.tif` zrušen, přidán `debris_mask.tif`).
+
+## D-015 | 2026-10-07 | přijato (rozhodnutí uživatele)
+**Pořadí práce určuje uživatel; první je UI (webová stránka)**, pak ostatní moduly. UI se vyvíjí proti kontraktu run adresáře
+(ARCHITECTURE.md), dokud pipeline neexistuje, může zobrazovat ukázková/mock data.
+
 ---
 
 # Otevřené otázky (k rozhodnutí)

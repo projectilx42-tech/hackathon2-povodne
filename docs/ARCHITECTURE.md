@@ -14,8 +14,8 @@ CRS, tříd nebo schématu = **zápis do `docs/DECISIONS.md` + úprava tohoto so
             ▼
  [M2 preprocess] ──► aligned/ (vše na jedné mřížce: UTM, 10 m) + masks/ (layover/shadow, slope, HAND, S2 clouds)
             │
-            ├──► [M3a baseline change detection] ─┐
-            └──► [M3b AI segmentation (inference)] ┴─► flood/ (flood_mask.tif, flood_prob.tif, flood_polygons.geojson)
+            ├──► [M3 AI segmentation – voda] ─┐
+            └──► [M3d algoritmus suť/bahno]  ─┴─► flood/ (flood_mask.tif, flood_prob.tif, flood_polygons.geojson)
                                                          │
             ┌────────────────────────────────────────────┤
             ▼                                            ▼
@@ -28,7 +28,7 @@ CRS, tříd nebo schématu = **zápis do `docs/DECISIONS.md` + úprava tohoto so
  [M6 report + stats] ──► stats.json, report/sitrep_en.md|pdf
             │
             ▼
- [M8 dashboard]  (čte jen hotový run adresář)
+ [M8 dashboard / webové UI]  (výběr AOI + data, spuštění pipeline, zobrazení run adresáře)
 
  [M9 AI training]  — offline, mimo pipeline: data/training → models/<name>/ (váhy + model_card.json)
  [M10 validation]  — offline, mimo pipeline: run adresář + EMSR927 → validation/results/ (metriky, mapy)
@@ -68,8 +68,8 @@ runs/<run_id>/
   flood/
     flood_mask.tif               # uint8 třídy (viz níže) — FINÁLNÍ maska použitá dál
     flood_prob.tif               # float32 0–1, pravděpodobnost "zasaženo" (voda ∪ debris)
-    baseline_mask.tif            # uint8, výstup M3a (pro srovnání)
-    ai_mask.tif ai_prob.tif      # výstup M3b
+    ai_mask.tif ai_prob.tif      # výstup M3 (voda)
+    debris_mask.tif              # uint8 1 = suť/bahno, výstup M3d
     flood_polygons.geojson       # EPSG:4326, polygonizace flood_mask (třídy 2,3), atributy: class, area_m2
   osm/
     buildings.gpkg roads.gpkg bridges.gpkg settlements.gpkg facilities.gpkg   # UTM, čisté vrstvy (schéma níže)
@@ -104,12 +104,12 @@ runs/<run_id>/
     "s2": {"pre": [...], "post": [...], "max_cloud_pct": 40},
     "dem": {"source": "...", "product": "COP-DEM GLO-30"}
   },
-  "flood": {"method": "ai|baseline|fusion", "model": "models/<name>", "params": {}},
+  "flood": {"method": "ai", "model": "models/<name>", "params": {}},
   "warnings": ["S2 post scene >80 % cloud – S1 only", "..."]
 }
 ```
 
-## Třídy flood masky (`flood_mask.tif`, `baseline_mask.tif`, `ai_mask.tif`)
+## Třídy flood masky (`flood_mask.tif`, `ai_mask.tif`)
 | hodnota | význam |
 |---|---|
 | 0 | nodata / nevyhodnoceno (mimo AOI, layover/shadow, chybí data) |
@@ -173,8 +173,8 @@ Sitrep, dashboard i případný copilot berou čísla **výhradně odsud** (žá
 | 0 | Skeleton, CLI, config, run.json helpery | `src/povodne/{__main__,cli,config,io,grid}.py`, `pyproject.toml` | `feat/skeleton` | — | run.json |
 | M1 | Acquire (S1, S2, DEM, OSM) | `src/povodne/acquire/` | `feat/acquire` | AOI, datum | `raw/` |
 | M2 | Preprocess / coregistrace | `src/povodne/preprocess/` | `feat/preprocess` | `raw/` | `aligned/`, `masks/` |
-| M3a | Baseline change detection | `src/povodne/flood/baseline.py` | `feat/flood-baseline` | `aligned/`, `masks/` | `flood/baseline_*` |
-| M3b | AI inference + fúze | `src/povodne/flood/ai.py`, `fusion.py` | `feat/ai-model` | `aligned/`, `masks/`, `models/` | `flood/ai_*`, `flood/flood_*` |
+| M3 | AI inference (voda) + složení finální masky | `src/povodne/flood/ai.py`, `combine.py` | `feat/ai-model` | `aligned/`, `masks/`, `models/`, `flood/debris_mask.tif` | `flood/ai_*`, `flood/flood_*` |
+| M3d | Algoritmus suť/bahno | `src/povodne/flood/debris.py` | `feat/debris` | `aligned/`, `masks/` | `flood/debris_mask.tif` |
 | M9 | AI trénink | `training/` | `feat/ai-model` | Kuro Siwo, Sen1Floods11 | `models/<name>/` |
 | M4 | Damage overlay | `src/povodne/damage/` | `feat/damage` | `flood/`, `osm/` | `damage/` |
 | M5 | Road network / cut-off | `src/povodne/network/` | `feat/network` | `osm/`, `damage/` | `network/` |
@@ -192,7 +192,7 @@ Pravidla:
 - Moduly musí jít testovat izolovaně na malém ukázkovém run adresáři (`tests/fixtures/`, malé AOI).
 - `validation/` **nikdy** neimportuje pipeline a pipeline **nikdy** neimportuje `validation/`.
 
-## AI model (M9 → M3b) kontrakt
+## AI model (M9 → M3) kontrakt
 - `models/<name>/model.pt` (nebo `.onnx`) + `models/<name>/model_card.json`:
   `{"arch": "Unet", "encoder": "...", "inputs": ["s1_pre_vv","s1_pre_vh","s1_post_vv","s1_post_vh","dem","slope"],
     "input_units": "dB", "normalization": {"mean": [...], "std": [...]}, "classes": {"0":"no water","1":"flood","2":"permanent water"},

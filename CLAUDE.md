@@ -5,7 +5,7 @@ Systém, který pro zvolenou oblast (AOI) a datum povodně ze satelitních dat o
 **1) kde udeřila povodeň, 2) co je poškozené, 3) kdo je odříznutý.**
 AI komponenta: **flood segmentation model** (voda/debris ze Sentinel-1/2), trénovaný na Kuro Siwo,
 ověřený na himálajských scénách, které model neviděl. Case study: Trishuli flood 26. 8. 2026 vs. EMSR927.
-**Deadline: 14. 10. 2026 20:45 SELČ** (15. 10. 00:15 IST). Priorita: funkční end-to-end MVP dřív než vylepšování.
+**Deadline: 14. 10. 2026 20:45 SELČ** (15. 10. 00:15 IST).
 
 Podrobnosti (načítají se automaticky):
 @docs/TASK.md
@@ -41,3 +41,4 @@ síť: networkx, AI: PyTorch + segmentation-models-pytorch. Detaily a otevřené
 - Na začátku session: `git fetch origin main && git merge origin/main` (ať máš aktuální rozhraní a PROGRESS).
 - **Na konci každé session aktualizuj `docs/PROGRESS.md`** (co je hotové, co rozbité, co dál) a commitni + pushni.
 - Rozhodnutí s dopadem na ostatní moduly nebo report → zápis do `docs/DECISIONS.md`.
+- **Dělej jen to, co uživatel zadal.** Nepřidávej vlastní úkoly, moduly, harmonogramy ani pořadí práce; nápady navrhni v chatu a zapiš je až po souhlasu.

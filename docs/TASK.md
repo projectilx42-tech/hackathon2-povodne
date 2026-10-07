@@ -137,15 +137,15 @@ in demos or reports. Systems built here are educational prototypes, not operatio
 - Debris flow ≠ jen voda: bahno/kamení může mít v SAR **vyšší** backscatter (drsnost) a v S2 vypadá jako holá půda.
   Rozlišujeme třídy *flood water* a *debris* (viz ARCHITECTURE).
 - AI komponent (25 %): musíme ukázat **metriky na himálajských scénách, které model neviděl** (held-out test) — ne jen
-  validaci na Kuro Siwo. Porovnání s baseline (prahování/change detection) je silný argument.
+  validaci na Kuro Siwo.
 - Cut-off analýza (20 %): settlement → nejbližší town/hospital přes silniční graf před a po (odstranění zasažených úseků a mostů).
 - Honesty about limitations (součást 15 %): průběžně si zapisovat omezení do `docs/DECISIONS.md` / PROGRESS, ať je report snadný.
 
-## Produktová vize (jak to uvidí uživatel / porota) — schváleno uživatelem 2026-10-07
+## Produktová vize (jak to popsal uživatel 2026-10-07)
 1. **Webová aplikace s mapou.** Uživatel na mapě vybere oblast (obdélník/polygon) a zadá **datum povodně**
    (volitelně vlastní okna „před“ a „po“; jinak je systém zvolí sám, např. pre = posledních 12–24 dní před, post = prvních 12 dní po).
 2. Systém sám najde a stáhne **surová** satelitní data (S1 radar, S2 optika, DEM) + OSM před událostí — ne screenshoty.
-3. Pipeline: předzpracování → **AI model + change detection** → mapa vody a suti/bahna → zasažené budovy/silnice/mosty
+3. Pipeline: předzpracování → **AI model** (voda) + algoritmus na suť/bahno → mapa vody a suti/bahna → zasažené budovy/silnice/mosty
    → odříznutá sídla (silniční graf před vs. po).
 4. Výsledek v mapě (vrstvy: nová voda, suť/bahno, zasažené budovy, přerušené silnice/mosty, sídla zelená/červená)
    + souhrnná čísla + **jednostránkový sitrep** ke stažení.
