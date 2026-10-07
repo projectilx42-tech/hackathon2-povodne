@@ -47,6 +47,16 @@ Pozn.: Kuro Siwo nemá třídu debris → debris pravděpodobně z change detect
 Persistentní kontext = `CLAUDE.md` + `docs/` v gitu. Každá session na konci aktualizuje `docs/PROGRESS.md` a pushne.
 Claude Code Stop hook (`.claude/hooks/check-uncommitted.sh`) připomíná necommitnuté/nepushnuté změny.
 
+## D-010 | 2026-10-07 | přijato
+**Trénink AI modelu na Kaggle (GPU notebook)**, ne v cloud session (ta nemá GPU).
+Důsledky: kód tréninku v `training/` musí jít spustit jako Kaggle notebook (data stažená/připojená v Kaggle, ne v cloud kontejneru).
+Výstup (`model.pt` + `model_card.json`) se nahraje mimo git (GitHub Release nebo HF Hub — rozhodne session M9) a pipeline si ho stáhne.
+Inference musí běžet na CPU. Kaggle limity (GPU hodiny/týden, 20 GB output) brát v úvahu při volbě velikosti modelu.
+
+## D-011 | 2026-10-07 | přijato
+**Účty a přihlašovací údaje (CDSE, Kaggle, HF…) si zakládá uživatel až v příslušné modulové session**, ne v master session.
+Session, která účet potřebuje, má uživatele vyzvat a údaje převzít přes proměnné prostředí cloud environmentu (nikdy do repa).
+
 ---
 
 # Otevřené otázky (k rozhodnutí)
@@ -59,9 +69,7 @@ flattening / CARD4L backscatter) — oficiální zdroj ze zadání, potřebuje r
 Hlediska: RTC (radiometric terrain correction) je v Himálaji zásadní; rychlost pro live demo; dostupnost dat ze srpna 2026.
 Návrh: abstraktní `acquire` s backendy, primárně ten, který dá RTC nejrychleji; CDSE jako fallback. **Blokováno síťovou politikou cloud prostředí** (viz PROGRESS).
 
-## O-002 | otevřené — Kde trénovat model
-Cloud session nemá GPU (4 CPU, 15 GB RAM, ~30 GB disk). Kuro Siwo je velký dataset. Varianty: Colab/Kaggle GPU (notebook v `training/`,
-váhy nahrát do GitHub Release / HF Hub), nebo malý model na CPU s podvzorkem dat. Rozhodnout s uživatelem.
+## O-002 | uzavřeno → D-010
 
 ## O-003 | otevřené — Technologie dashboardu
 Varianty: Streamlit + leafmap/folium (rychlé, umí i spustit pipeline pro novou AOI — vhodné pro live hodnocení), nebo statické

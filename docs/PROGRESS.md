@@ -6,12 +6,12 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 ## Stav modulů
 | Modul | Stav | Větev | Poznámka |
 |---|---|---|---|
-| Repo init, docs, workflow | ✅ | `claude/gallant-keller-vftpi2` | CLAUDE.md, docs/, Stop hook |
+| Repo init, docs, workflow | ✅ | `main` | CLAUDE.md, docs/, Stop hook |
 | 0 Skeleton (pyproject, CLI, config, io/grid) | ⬜ | `feat/skeleton` | **dělat první** — ostatní moduly na něm stojí |
-| M1 Acquire (S1/S2/DEM/OSM) | ⬜ | `feat/acquire` | síť OK; CDSE účet zatím chybí |
+| M1 Acquire (S1/S2/DEM/OSM) | ⬜ | `feat/acquire` | síť OK; CDSE účet založit v této session (D-011) |
 | M2 Preprocess | ⬜ | `feat/preprocess` | |
 | M3a Baseline change detection | ⬜ | `feat/flood-baseline` | |
-| M9 AI trénink | 🟥 | `feat/ai-model` | chybí GPU (O-002); dataset už stáhnout jde |
+| M9 AI trénink | ⬜ | `feat/ai-model` | trénink na **Kaggle** (D-010) |
 | M3b AI inference + fúze | ⬜ | `feat/ai-model` | |
 | M4 Damage | ⬜ | `feat/damage` | |
 | M5 Network / cut-off | ⬜ | `feat/network` | |
@@ -24,9 +24,9 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 ## Blokery / známé problémy
 1. ~~Síťová politika blokuje datové zdroje~~ **VYŘEŠENO 2026-10-07**: prostředí přepnuto na Network access = Full. Ověřeno:
    ohsome, dataspace.copernicus.eu, Planetary Computer, Hugging Face, Zenodo, EMS mapping, Devpost — vše dosažitelné.
-2. **Žádná GPU v cloud session** (4 CPU, 15 GB RAM, ~30 GB volného disku). Trénink → O-002. Disk nestačí na celý Kuro Siwo.
+2. **Žádná GPU v cloud session** (4 CPU, 15 GB RAM, ~30 GB volného disku) → trénink na Kaggle (D-010). Disk nestačí na celý Kuro Siwo.
 3. **DEADLINE: 14. 10. 2026 20:45 SELČ** (15. 10. 00:15 IST, ověřeno z Devpostu) → na práci je ~7 dní, prioritizovat MVP end-to-end.
-4. CDSE přihlašovací údaje zatím nejsou (potřeba registrace na dataspace.copernicus.eu; dát jako env proměnné prostředí, ne do repa).
+4. Účty (CDSE, Kaggle…) zakládá uživatel až v modulových sessions (D-011); údaje jen jako env proměnné prostředí, nikdy do repa.
 
 ## Doporučené pořadí práce
 1. **Skeleton** (pyproject, CLI, config, run.json, grid helpery, test fixture s malou AOI) → merge do `main`.
@@ -42,4 +42,5 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
   Stop hook připomínající commit/push.
 - Zjištěno: síť blokuje datové zdroje, žádná GPU (viz Blokery).
 - Síť přepnuta na Full (vyřešeno). Deadline ověřen z Devpostu: 14. 10. 2026 20:45 SELČ. Pravidlo: povinné přiznání AI nástrojů v README.
-- Další krok: CDSE účet (env `CDSE_USERNAME`/`CDSE_PASSWORD`), vytvořit `main`, pak session **Skeleton**.
+- Vytvořena větev `main` (= stav po inicializaci). Trénink na Kaggle (D-010), účty až v modulových sessions (D-011).
+- Další krok: session **Skeleton** na větvi `feat/skeleton` z `main`.
