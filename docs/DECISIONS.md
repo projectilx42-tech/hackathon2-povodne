@@ -57,6 +57,17 @@ Inference musí běžet na CPU. Kaggle limity (GPU hodiny/týden, 20 GB output) 
 **Účty a přihlašovací údaje (CDSE, Kaggle, HF…) si zakládá uživatel až v příslušné modulové session**, ne v master session.
 Session, která účet potřebuje, má uživatele vyzvat a údaje převzít přes proměnné prostředí cloud environmentu (nikdy do repa).
 
+## D-012 | 2026-10-07 | přijato
+**Hlavní rozhraní = interaktivní webová aplikace**: výběr AOI na mapě + datum události (volitelně vlastní pre/post okna) → spuštění
+pipeline → výsledky v mapě + sitrep. Viz „Produktová vize“ v TASK.md. Konkrétní technologie zůstává v O-003, ale musí umět spustit
+pipeline pro novou AOI (statické HTML samo nestačí).
+
+## D-013 | 2026-10-07 | přijato
+**Explicitní výstup „nic nenalezeno“ / „nedostatek dat“.** `stats.json` dostane pole `verdict`:
+`flood_detected` / `no_significant_flooding` / `insufficient_data`, plus `coverage` (podíl platných pixelů S1, oblačnost S2) a důvody.
+Minimální plocha pro „flood_detected“ je konfigurovatelná (šum v horách vždy něco vyprodukuje). Sitrep i dashboard verdikt zobrazují.
+(Doplnění schématu `stats.json` — ARCHITECTURE.md upraveno ve stejném commitu.)
+
 ---
 
 # Otevřené otázky (k rozhodnutí)
@@ -82,3 +93,7 @@ nárůst holé půdy/BSI) když je jasno, omezení na údolní dno (HAND/slope).
 ## O-005 | otevřené — Held-out himálajské scény pro evaluaci AI
 Potřebujeme ručně/poloautomaticky označené himálajské scény, které nejsou v tréninku (a nejsou z EMS!). Možnosti: vlastní anotace
 z S2 při jasné obloze (voda viditelná opticky) jako „pseudo-ground-truth“, Kuro Siwo eventy z Asie vynechané z tréninku, apod.
+
+## O-006 | otevřené — Kde poběží aplikace při live hodnocení
+Porota volí AOI a datum v den hodnocení (15.–20. 10.). Varianty: Hugging Face Spaces (CPU, zdarma, Docker/Streamlit), vlastní notebook
+spuštěný během hodnocení, malý VPS. Ovlivňuje O-003 a požadavky na rychlost (CPU inference). Rozhodnout do ~12. 10.

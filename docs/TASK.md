@@ -140,3 +140,16 @@ in demos or reports. Systems built here are educational prototypes, not operatio
   validaci na Kuro Siwo. Porovnání s baseline (prahování/change detection) je silný argument.
 - Cut-off analýza (20 %): settlement → nejbližší town/hospital přes silniční graf před a po (odstranění zasažených úseků a mostů).
 - Honesty about limitations (součást 15 %): průběžně si zapisovat omezení do `docs/DECISIONS.md` / PROGRESS, ať je report snadný.
+
+## Produktová vize (jak to uvidí uživatel / porota) — schváleno uživatelem 2026-10-07
+1. **Webová aplikace s mapou.** Uživatel na mapě vybere oblast (obdélník/polygon) a zadá **datum povodně**
+   (volitelně vlastní okna „před“ a „po“; jinak je systém zvolí sám, např. pre = posledních 12–24 dní před, post = prvních 12 dní po).
+2. Systém sám najde a stáhne **surová** satelitní data (S1 radar, S2 optika, DEM) + OSM před událostí — ne screenshoty.
+3. Pipeline: předzpracování → **AI model + change detection** → mapa vody a suti/bahna → zasažené budovy/silnice/mosty
+   → odříznutá sídla (silniční graf před vs. po).
+4. Výsledek v mapě (vrstvy: nová voda, suť/bahno, zasažené budovy, přerušené silnice/mosty, sídla zelená/červená)
+   + souhrnná čísla + **jednostránkový sitrep** ke stažení.
+5. **Když povodeň není nalezena**, systém to jasně řekne („no significant flooding detected“) — ale vždy s kontextem:
+   jaká data byla k dispozici, jaké pokrytí (např. % plochy v radarovém stínu, oblačnost S2), aby „nic“ neznamenalo „nemáme data“.
+   Pokud chybí scény (např. žádný S1 pár ze stejného tracku), musí to říct taky — ne tiše vrátit prázdnou mapu.
+6. Porota zkouší **live** na vlastní oblasti a datu → aplikace musí běžet někde dostupně (hosting řešit, viz O-006) a doběhnout v rozumném čase.

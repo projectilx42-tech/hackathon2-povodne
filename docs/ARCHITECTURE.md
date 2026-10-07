@@ -154,6 +154,9 @@ Sitrep, dashboard i případný copilot berou čísla **výhradně odsud** (žá
 ```json
 {
   "run_id": "...", "event_date": "...", "aoi_area_km2": 0,
+  "verdict": "flood_detected|no_significant_flooding|insufficient_data",   // D-013
+  "verdict_reasons": ["..."],
+  "coverage": {"s1_valid_pct": 0, "s2_pre_clear_pct": null, "s2_post_clear_pct": null},
   "scenes": {"s1_pre": "...", "s1_post": "...", "s2_pre": "...|null", "s2_post": "...|null"},
   "flood": {"flooded_water_km2": 0, "debris_km2": 0, "affected_km2": 0, "nodata_pct": 0, "method": "ai"},
   "damage": {"buildings_total": 0, "buildings_hit": 0, "roads_total_km": 0, "roads_hit_km": 0,
