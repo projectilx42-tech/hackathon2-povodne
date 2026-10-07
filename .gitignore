@@ -1,0 +1,40 @@
+# Data, runs and models are never committed (see CLAUDE.md)
+data/
+runs/
+models/
+validation/data/
+*.tif
+*.tiff
+*.nc
+*.zarr/
+*.SAFE/
+*.zip
+*.pt
+*.pth
+*.onnx
+*.ckpt
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+build/
+dist/
+
+# Secrets
+.env
+*.netrc
+
+# OS / editors
+.DS_Store
+.vscode/
+.idea/
+
+# Claude Code local settings
+.claude/settings.local.json

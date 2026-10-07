@@ -1,0 +1,198 @@
+# ARCHITECTURE — rozhraní mezi moduly
+
+Tento soubor je **kontrakt**. Každý modul čte a zapisuje přesně soubory popsané níže. Změna formátu, názvu souboru,
+CRS, tříd nebo schématu = **zápis do `docs/DECISIONS.md` + úprava tohoto souboru ve stejném commitu**, a info do PROGRESS.
+
+## Přehled toku dat
+
+```
+ AOI (GeoJSON/bbox, WGS84) + event_date
+            │
+            ▼
+ [M1 acquire] ──► raw/ (S1 pre/post, S2 pre/post, DEM, OSM snapshot)
+            │
+            ▼
+ [M2 preprocess] ──► aligned/ (vše na jedné mřížce: UTM, 10 m) + masks/ (layover/shadow, slope, HAND, S2 clouds)
+            │
+            ├──► [M3a baseline change detection] ─┐
+            └──► [M3b AI segmentation (inference)] ┴─► flood/ (flood_mask.tif, flood_prob.tif, flood_polygons.geojson)
+                                                         │
+            ┌────────────────────────────────────────────┤
+            ▼                                            ▼
+ [M4 damage] ──► damage/ (zasažené budovy, silnice, mosty)     [M7 floodpath, bonus] ──► floodpath/
+            │
+            ▼
+ [M5 network] ──► network/ (odříznutá sídla, přerušené úseky)
+            │
+            ▼
+ [M6 report + stats] ──► stats.json, report/sitrep_en.md|pdf
+            │
+            ▼
+ [M8 dashboard]  (čte jen hotový run adresář)
+
+ [M9 AI training]  — offline, mimo pipeline: data/training → models/<name>/ (váhy + model_card.json)
+ [M10 validation]  — offline, mimo pipeline: run adresář + EMSR927 → validation/results/ (metriky, mapy)
+```
+
+## Souřadnicové systémy a mřížka
+- **Vstup AOI:** EPSG:4326 (lon/lat), GeoJSON Polygon/MultiPolygon nebo bbox `[minlon, minlat, maxlon, maxlat]`.
+- **Zpracování (rastry i vektorová analytika):** lokální **UTM zóna podle centroidu AOI** (WGS84 / UTM, EPSG:326xx sever,
+  327xx jih). Pro Trishuli: **EPSG:32645 (UTM 45N)**. Délky v metrech, plochy v m².
+- **Referenční mřížka:** 10 m, zarovnaná na násobky 10 m v UTM, rozsah = AOI bbox v UTM (+ buffer 0). Definuje ji M2 a ukládá
+  do `aligned/grid.json`. Všechny rastry ve `aligned/`, `masks/`, `flood/` mají **identický** CRS, transform, shape.
+- **Výstupy pro dashboard/export:** vektory jako GeoJSON v **EPSG:4326** (`*.geojson`), interní vektory jako GeoPackage
+  v UTM (`*.gpkg`). Rastry GeoTIFF (ideálně COG, deflate) v UTM; dashboard si je přeprojektuje / použije PNG overlay.
+- Časy v UTC, ISO 8601. Datum události `event_date` = `YYYY-MM-DD`.
+
+## Run adresář (sdílený kontrakt)
+Každé spuštění pipeline = adresář `runs/<run_id>/` (není v gitu). `run_id` např. `trishuli_2026-08-26` nebo hash AOI+datum.
+
+```
+runs/<run_id>/
+  run.json                       # M1 zakládá, ostatní moduly připisují do svých sekcí
+  raw/
+    s1/pre_*.tif, post_*.tif     # S1 GRD/RTC, VV a VH, lineární gamma0/sigma0 (ne dB)
+    s2/pre_*.tif, post_*.tif     # S2 L2A, pásma B02,B03,B04,B08,B11,B12 + SCL
+    dem/dem.tif                  # Copernicus DEM GLO-30
+    osm/osm_raw.gpkg             # ohsome extrakt, snapshot < event_date
+  aligned/
+    grid.json                    # {"crs":"EPSG:32645","transform":[...],"width":..,"height":..,"res":10}
+    s1_pre_vv.tif  s1_pre_vh.tif  s1_post_vv.tif  s1_post_vh.tif     # float32, linear, NaN = nodata
+    s2_pre.tif  s2_post.tif      # float32 reflectance 0–1, band order: B02,B03,B04,B08,B11,B12 (chybí-li scéna, soubor neexistuje)
+    dem.tif                      # float32, m
+  masks/
+    s1_layover_shadow.tif        # uint8 1 = layover/shadow (nepoužitelné)
+    slope.tif                    # float32, stupně
+    hand.tif                     # float32, Height Above Nearest Drainage, m
+    s2_pre_valid.tif s2_post_valid.tif   # uint8 1 = čistý pixel (bez mraků/stínů/sněhu dle SCL)
+  flood/
+    flood_mask.tif               # uint8 třídy (viz níže) — FINÁLNÍ maska použitá dál
+    flood_prob.tif               # float32 0–1, pravděpodobnost "zasaženo" (voda ∪ debris)
+    baseline_mask.tif            # uint8, výstup M3a (pro srovnání)
+    ai_mask.tif ai_prob.tif      # výstup M3b
+    flood_polygons.geojson       # EPSG:4326, polygonizace flood_mask (třídy 2,3), atributy: class, area_m2
+  osm/
+    buildings.gpkg roads.gpkg bridges.gpkg settlements.gpkg facilities.gpkg   # UTM, čisté vrstvy (schéma níže)
+  damage/
+    buildings_damage.geojson roads_damage.geojson bridges_damage.geojson      # EPSG:4326
+  network/
+    settlements_access.geojson   # EPSG:4326, stav dostupnosti každého sídla
+    road_cuts.geojson            # EPSG:4326, přerušené úseky silnic
+    graph_stats.json
+  floodpath/                     # bonus M7
+    path.geojson settlements_on_path.geojson
+  stats.json                     # M6 — VŠECHNA čísla pro sitrep/dashboard (jediný zdroj čísel)
+  report/
+    sitrep_en.md sitrep_en.pdf   # 1 strana; volitelně sitrep_ne.*
+  logs/pipeline.log
+```
+
+### `run.json`
+```json
+{
+  "run_id": "trishuli_2026-08-26",
+  "aoi": {"type": "Polygon", "coordinates": [...]},          // EPSG:4326
+  "event_date": "2026-08-26",
+  "osm_snapshot_date": "2026-07-27",                          // vždy < event_date
+  "crs": "EPSG:32645",
+  "created_utc": "...",
+  "code_version": "<git sha>",
+  "acquire": {
+    "s1": {"relative_orbit": 0, "orbit_direction": "ASCENDING|DESCENDING",
+            "pre":  [{"id": "S1A_IW_GRDH_...", "datetime": "..."}],
+            "post": [{"id": "...", "datetime": "..."}], "source": "CDSE|PC|..."},
+    "s2": {"pre": [...], "post": [...], "max_cloud_pct": 40},
+    "dem": {"source": "...", "product": "COP-DEM GLO-30"}
+  },
+  "flood": {"method": "ai|baseline|fusion", "model": "models/<name>", "params": {}},
+  "warnings": ["S2 post scene >80 % cloud – S1 only", "..."]
+}
+```
+
+## Třídy flood masky (`flood_mask.tif`, `baseline_mask.tif`, `ai_mask.tif`)
+| hodnota | význam |
+|---|---|
+| 0 | nodata / nevyhodnoceno (mimo AOI, layover/shadow, chybí data) |
+| 1 | nezasaženo |
+| 2 | **flood water** — nová voda (nebyla před událostí) |
+| 3 | **debris / mud** — nánosy bahna a kamení, eroze koryta |
+| 4 | permanentní voda (voda už před událostí) — **nepočítá se jako zasažené** |
+
+"Zasaženo" (pro M4/M5) = třídy **2 ∪ 3**. Nodata = 255 se nepoužívá; nodata je 0.
+
+## Schémata OSM vrstev (`osm/*.gpkg`, UTM)
+Zdroj: **ohsome API** `elements/geometry` s `time=<osm_snapshot_date>`. Nikdy Overpass/aktuální OSM.
+- `buildings.gpkg`: `osm_id`, `building`, `geometry` (Polygon)
+- `roads.gpkg`: `osm_id`, `highway`, `name`, `bridge` (bool), `tunnel` (bool), `geometry` (LineString). Filtr: motorway…track, bez footway/path (konfigurovatelné).
+- `bridges.gpkg`: `osm_id`, `highway`, `name`, `geometry` — silnice s `bridge=yes` (+ `man_made=bridge` polygony).
+- `settlements.gpkg`: `osm_id`, `name`, `place` (city/town/village/hamlet/locality), `population` (může chybět), `geometry` (Point).
+- `facilities.gpkg`: `osm_id`, `name`, `kind` (`hospital`/`clinic`/`health_post`/`town`), `geometry` (Point; polygony → centroid).
+
+## Výstupy M4 damage
+Každý prvek zasažený, pokud jeho geometrie (budova: polygon; silnice/most: linie s bufferem `road_buffer_m`, default 10 m)
+překrývá zasažené pixely. Atributy:
+- `osm_id`, `kind` (`building`/`road`/`bridge`), `name`, `hit` (bool), `hit_fraction` (0–1, podíl plochy/délky v zasažené zóně),
+  `hit_class` (`water`/`debris`/`both`), `mean_prob` (průměr `flood_prob` přes prvek), `confidence` (`high`/`medium`/`low`).
+- Mosty: `hit=true`, pokud zasažen most nebo jeho nájezdy (buffer 30 m) — most přes zasažené koryto je **podezřelý**, ne jistě zničený;
+  zapsat jako `confidence`.
+
+## Výstupy M5 network
+Graf: uzly = křižovatky/konce silnic z `roads.gpkg`, hrany = úseky s délkou (m) a `travel_time_s` (rychlost podle `highway`).
+Post-event graf = pre-event graf **bez hran** s `roads_damage.hit=true` (konfigurovatelný práh `hit_fraction`) a bez zasažených mostů.
+Cíle ("destinations"): `facilities.kind ∈ {hospital, town}` (town = place=city/town). Sídla se přichytí na nejbližší uzel (max 500 m, jinak `unreachable_snap`).
+
+`settlements_access.geojson` (EPSG:4326), jeden prvek na sídlo:
+`osm_id`, `name`, `place`, `population`, `status` (`connected` / `cut_off` / `degraded` / `no_road_pre_event`),
+`nearest_dest_pre` (name), `dist_pre_m`, `time_pre_s`, `nearest_dest_post`, `dist_post_m`, `time_post_s`
+(null, pokud nedostupné), `detour_factor`, `blocking_cuts` (seznam `osm_id` přerušených úseků na původní trase).
+`degraded` = dostupné, ale objížďka > 2× (konfigurovatelné).
+
+`road_cuts.geojson`: přerušené úseky (`osm_id`, `highway`, `name`, `is_bridge`, `length_m`, `n_settlements_cut` – kolik sídel kvůli úseku ztratilo spojení).
+
+## `stats.json` (M6) — jediný zdroj čísel
+Sitrep, dashboard i případný copilot berou čísla **výhradně odsud** (žádná čísla vymyšlená textem).
+```json
+{
+  "run_id": "...", "event_date": "...", "aoi_area_km2": 0,
+  "scenes": {"s1_pre": "...", "s1_post": "...", "s2_pre": "...|null", "s2_post": "...|null"},
+  "flood": {"flooded_water_km2": 0, "debris_km2": 0, "affected_km2": 0, "nodata_pct": 0, "method": "ai"},
+  "damage": {"buildings_total": 0, "buildings_hit": 0, "roads_total_km": 0, "roads_hit_km": 0,
+             "bridges_total": 0, "bridges_hit": 0},
+  "access": {"settlements_total": 0, "cut_off": 0, "degraded": 0, "connected": 0,
+             "cut_off_list": [{"name": "...", "place": "...", "population": null}]},
+  "warnings": []
+}
+```
+
+## Moduly — vlastnictví souborů (kvůli paralelním session)
+| # | Modul | Kód | Větev (návrh) | Čte | Píše |
+|---|---|---|---|---|---|
+| 0 | Skeleton, CLI, config, run.json helpery | `src/povodne/{__main__,cli,config,io,grid}.py`, `pyproject.toml` | `feat/skeleton` | — | run.json |
+| M1 | Acquire (S1, S2, DEM, OSM) | `src/povodne/acquire/` | `feat/acquire` | AOI, datum | `raw/` |
+| M2 | Preprocess / coregistrace | `src/povodne/preprocess/` | `feat/preprocess` | `raw/` | `aligned/`, `masks/` |
+| M3a | Baseline change detection | `src/povodne/flood/baseline.py` | `feat/flood-baseline` | `aligned/`, `masks/` | `flood/baseline_*` |
+| M3b | AI inference + fúze | `src/povodne/flood/ai.py`, `fusion.py` | `feat/ai-model` | `aligned/`, `masks/`, `models/` | `flood/ai_*`, `flood/flood_*` |
+| M9 | AI trénink | `training/` | `feat/ai-model` | Kuro Siwo, Sen1Floods11 | `models/<name>/` |
+| M4 | Damage overlay | `src/povodne/damage/` | `feat/damage` | `flood/`, `osm/` | `damage/` |
+| M5 | Road network / cut-off | `src/povodne/network/` | `feat/network` | `osm/`, `damage/` | `network/` |
+| M6 | Stats + sitrep | `src/povodne/report/` | `feat/report` | vše | `stats.json`, `report/` |
+| M7 | Flood path (bonus) | `src/povodne/floodpath/` | `feat/floodpath` | `aligned/dem.tif`, `osm/` | `floodpath/` |
+| M8 | Dashboard | `dashboard/` | `feat/dashboard` | run adresář | — |
+| M10 | Validace vs EMSR927 | `validation/` | `feat/validation` | run adresář + EMS | `validation/results/` |
+| — | Report (6 stran), video | `deliverables/` | `docs/report` | — | — |
+
+Pravidla:
+- `src/povodne/osm` extrakce patří do M1 (acquire), čištění vrstev do `osm/*.gpkg` taky M1.
+- Sdílené utility (`io.py`, `grid.py`, `config.py`) mění jen skeleton; ostatní moduly v nich jen přidávají funkce, nemění signatury.
+- Každý modul má vstupní bod `run(run_dir: Path, cfg: Config) -> None` a CLI subpříkaz `python -m povodne <modul> <run_dir>`;
+  `python -m povodne run --aoi <geojson|bbox> --event-date YYYY-MM-DD [--out runs/<id>]` spustí vše.
+- Moduly musí jít testovat izolovaně na malém ukázkovém run adresáři (`tests/fixtures/`, malé AOI).
+- `validation/` **nikdy** neimportuje pipeline a pipeline **nikdy** neimportuje `validation/`.
+
+## AI model (M9 → M3b) kontrakt
+- `models/<name>/model.pt` (nebo `.onnx`) + `models/<name>/model_card.json`:
+  `{"arch": "Unet", "encoder": "...", "inputs": ["s1_pre_vv","s1_pre_vh","s1_post_vv","s1_post_vh","dem","slope"],
+    "input_units": "dB", "normalization": {"mean": [...], "std": [...]}, "classes": {"0":"no water","1":"flood","2":"permanent water"},
+    "tile_size": 256, "trained_on": ["KuroSiwo"], "metrics": {...}, "license_notes": "..."}`
+- Inference běží na CPU (pipeline musí jít spustit bez GPU), dlaždicově s překryvem.
+- Váhy nejsou v gitu → stahují se z release/HF (rozhodnout, D-0xx) nebo z cesty v configu.
