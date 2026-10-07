@@ -41,4 +41,6 @@ síť: networkx, AI: PyTorch + segmentation-models-pytorch. Detaily a otevřené
 - Na začátku session: `git fetch origin main && git merge origin/main` (ať máš aktuální rozhraní a PROGRESS).
 - **Na konci každé session aktualizuj `docs/PROGRESS.md`** (co je hotové, co rozbité, co dál) a commitni + pushni.
 - Rozhodnutí s dopadem na ostatní moduly nebo report → zápis do `docs/DECISIONS.md`.
-- **Dělej jen to, co uživatel zadal.** Nepřidávej vlastní úkoly, moduly, harmonogramy ani pořadí práce; nápady navrhni v chatu a zapiš je až po souhlasu.
+- **Dělej jen to, co uživatel výslovně zadal.** Do souborů nepiš nic, co uživatel neřekl (žádné vlastní úkoly, moduly, harmonogramy,
+  pořadí). Nápady a návrhy patří **jen do chatu** jako otázka; zapsat až když uživatel výslovně řekne.
+- Plán v `docs/PROGRESS.md` je orientační — uživatel může postupovat úplně jinak. Řiď se tím, co zadá v dané session.

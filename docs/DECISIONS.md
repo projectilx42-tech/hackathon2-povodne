@@ -73,7 +73,7 @@ Minimální plocha pro „flood_detected“ je konfigurovatelná (šum v horách
 Modul M3a „baseline“ z architektury odstraněn (`baseline_mask.tif` zrušen, přidán `debris_mask.tif`).
 
 ## D-015 | 2026-10-07 | přijato (rozhodnutí uživatele)
-**Pořadí práce určuje uživatel; první je UI (webová stránka)**, pak ostatní moduly. UI se vyvíjí proti kontraktu run adresáře
+**Pořadí práce určuje uživatel; nejdřív průzkum satelitů a dat, pak UI (webová stránka)**, pak ostatní moduly (plán v PROGRESS.md je orientační). UI se vyvíjí proti kontraktu run adresáře
 (ARCHITECTURE.md), dokud pipeline neexistuje, může zobrazovat ukázková/mock data.
 
 ---

@@ -3,8 +3,18 @@
 **Aktualizuj na konci každé session** (stav modulů + záznam do logu) a commitni + pushni.
 Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno · ✅ hotovo · 🟥 rozbité/blokované.
 
-**Pořadí práce určuje uživatel.** Sessions nepřidávají vlastní úkoly, harmonogramy ani pořadí — dělají to, co uživatel zadá.
-Aktuálně: **nejdřív UI (stránka)**, pak ostatní.
+> ⚠️ **Plán níže je orientační. Je dost možné, že se práce nebude dělat podle něj** — pořadí i obsah může uživatel kdykoli změnit
+> a postupovat jinak. Sessions se tomu nemají divit: rozhoduje to, co uživatel zadá v dané session, ne tento soubor.
+
+## Plán (pořadí práce)
+1. Zjistit informace o satelitech (S1/S2, DEM) a najít data a zdroje (úkoly 3, 4).
+2. **UI / webová stránka** (M8) — zatím s ukázkovými daty podle kontraktu v ARCHITECTURE.md.
+3. Skeleton (pyproject, CLI, config, run.json, grid helpery, testovací malá AOI).
+4. Paralelně: M1 acquire · M9 trénink na Kaggle · M5 network (stačí OSM, jde vyvíjet na syntetické masce).
+5. M2 preprocess → M3 AI inference (voda) + M3d suť/bahno.
+6. M4 damage → M6 stats/sitrep → napojení na UI.
+7. M10 validace vs EMSR927, M7 bonus.
+8. Report, README, video; zkouška na jiné AOI/datu.
 
 ## Úkoly (ruční plán uživatele, foto `docs/source/task_plan_handwritten.jpg`)
 Obtížnost a čas = odhad uživatele.
@@ -19,7 +29,7 @@ Obtížnost a čas = odhad uživatele.
 | 7 | Algoritmus na suť a bahno | 8 | 4 h | M3d | ⬜ |
 | 8 | Škody | 3 | 2 h | M4 | ⬜ |
 | 9 | Odříznuté obce | 3 | 2,5 h | M5 | ⬜ |
-| 10 | Stránka a UI | 4–5 | 3–4 h | M8 | ⬜ ← **první na řadě** |
+| 10 | Stránka a UI | 4–5 | 3–4 h | M8 | ⬜ |
 | 11 | Testy a propojení | 4–5 | 2–3 h | — | ⬜ |
 | 12 | „POZISH/POLISH“ (význam neověřen) | 3 | 2 h | — | ⬜ |
 | 13 | Byrokracie (video, report, …) | 4 | 4 h | — | ⬜ |
@@ -28,7 +38,7 @@ Obtížnost a čas = odhad uživatele.
 | Modul | Stav | Větev | Poznámka |
 |---|---|---|---|
 | Repo init, docs, workflow | ✅ | `main` | CLAUDE.md, docs/, Stop hook |
-| M8 Dashboard / webové UI | ⬜ | `feat/dashboard` | první na řadě; technologie O-003 |
+| M8 Dashboard / webové UI | ⬜ | `feat/dashboard` | technologie O-003 |
 | 0 Skeleton (pyproject, CLI, config, io/grid) | ⬜ | `feat/skeleton` | |
 | M1 Acquire (S1/S2/DEM/OSM) | ⬜ | `feat/acquire` | |
 | M2 Preprocess | ⬜ | `feat/preprocess` | |
@@ -54,4 +64,4 @@ Obtížnost a čas = odhad uživatele.
 - Síť přepnuta na Full. Deadline ověřen z Devpostu. Pravidlo Devpostu: povinné přiznání AI nástrojů v README.
 - Zapsán ruční plán úkolů uživatele. Rozhodnutí: trénink na Kaggle (D-010), účty až v sessions (D-011), webové UI (D-012),
   verdikt „nic nenalezeno / málo dat“ (D-013), žádná baseline bez AI (D-014), UI první (D-015).
-- Další krok: session na **UI** (`feat/dashboard`).
+- Další krok: zjistit info o satelitech a datech, pak session na **UI** (`feat/dashboard`).
