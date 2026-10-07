@@ -26,8 +26,11 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
    `planetarycomputer.microsoft.com`, `multimodal-ai-hackathon-2026-7.devpost.com` → 403 od proxy. PyPI funguje.
    Řešení: v nastavení cloud environmentu (Edit → Network access) přidat domény do Allowed domains (seznam níže) nebo zvolit širší přístup.
    Docs: https://code.claude.com/docs/en/cloud-environments#network-access
+   Dosažitelné (2026-10-07): `pypi.org`, `files.pythonhosted.org`, `registry.npmjs.org`, `conda.anaconda.org`, `github.com`, `api.github.com`,
+   `raw.githubusercontent.com`, **`copernicus-dem-30m.s3.amazonaws.com` (Copernicus DEM — funguje!)**.
+   Blokované: mj. `huggingface.co`, `zenodo.org`, `download.pytorch.org` (PyTorch jde z PyPI), Wikipedie, Google. WebFetch nefunguje vůbec; WebSearch ano.
 2. **Žádná GPU v cloud session** (4 CPU, 15 GB RAM, ~30 GB volného disku). Trénink → O-002. Disk nestačí na celý Kuro Siwo.
-3. **Deadline hackathonu neznámý** (Devpost z cloudu blokovaný) — doplnit do `docs/TASK.md`.
+3. **Deadline pravděpodobně 14. 10. 2026 EOD** (web search, neověřeno z Devpostu) → na práci je cca týden, prioritizovat MVP end-to-end.
 4. CDSE přihlašovací údaje zatím nejsou (potřeba registrace na dataspace.copernicus.eu; dát jako env proměnné prostředí, ne do repa).
 
 ### Domény k povolení (návrh)

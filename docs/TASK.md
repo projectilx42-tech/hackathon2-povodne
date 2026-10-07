@@ -13,7 +13,9 @@ Online originál Track B: https://drive.google.com/file/d/1u1ayqUuG0W18uP_7GOptQ
 | Délka | 15 dní |
 | Tým | až 4 členové |
 | Hodnocení | **live, na oblastech a datech, které porotci zvolí v den hodnocení** |
-| Deadline odevzdání | **NEZNÁMÝ — doplnit z Devpostu** (z cloudu je Devpost blokovaný) |
+| Organizátor | pravděpodobně KamandPrompt (IIT Mandi) + Augli.ai, PurpleRain Tech, LDV Labs (dle webového vyhledávání, neověřeno) |
+| Vývoj | **30. 9. – 14. 10. 2026 (EOD)** — dle internshala listingu, sedí s „15 dní“; **NEOVĚŘENO z Devpostu, potvrdit čas a časové pásmo** |
+| Deadline odevzdání | **pravděpodobně 14. 10. 2026 EOD** (judging 15.–20. 10. 2026) — potvrdit na Devpostu |
 | Náš AI komponent | **Flood segmentation model** (rozhodnuto, viz DECISIONS D-001) |
 
 Ostatní tracky (jen pro kontext, neřešíme): A – kardiovaskulární riziko + 3D vizualizace; C – kontrastivní analýza řeči;
