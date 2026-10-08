@@ -12,6 +12,7 @@ Podrobnosti (načítají se automaticky):
 @docs/ARCHITECTURE.md
 @docs/PROGRESS.md
 @docs/DECISIONS.md
+@docs/QUESTIONS.md
 
 ## Datová pravidla — porušení = DISKVALIFIKACE
 - **Povolené vstupy:** Sentinel-1, Sentinel-2, Copernicus DEM (GLO-30), OpenStreetMap **jen jako stav před událostí**, tréninková data Kuro Siwo / Sen1Floods11.
@@ -33,6 +34,17 @@ síť: networkx, AI: PyTorch + segmentation-models-pytorch. Detaily a otevřené
 - **Přiznání AI (pravidlo Devpostu):** README musí mít sekci *AI assistance* (které části vznikly s Claude Code) — při přidání modulu ji doplň.
   Autor musí umět kód vysvětlit porotě → piš srozumitelně, netriviální volby zapisuj do DECISIONS.md.
 - Žádné secrets v repu. Přihlašovací údaje (CDSE apod.) jen přes proměnné prostředí cloud environmentu.
+
+## Koordinace sessions (proti nesouladu mezi větvemi)
+- Paralelní sessions na různých větvích se rozjíždějí, když nevidí změny ostatních. Proto:
+- **Před prací a před každým zápisem do `docs/`:** `git fetch origin main && git merge origin/main`. SessionStart hook hlásí, když je větev pozadu.
+- **Přečti „📢 Oznámení pro všechny sessions“ nahoře v `docs/PROGRESS.md`** a řiď se jím.
+- **Nová rozhodnutí/otázky číslovat se zkratkou svého modulu** (`D-M1-NN`, `D-M9-NN`, `O-M8-NN`, master `D-X-NN`; viz začátek `docs/DECISIONS.md`). Nikdy holé „další číslo“.
+- **Cizí rozhodnutí a kontrakt jiného modulu nepřepisuj.** Když ti nesedí, napiš to uživateli (návrh v chatu) — sjednocení dělá master session.
+- **Změna kontraktu** (cokoli v `docs/ARCHITECTURE.md`, co čte jiný modul): zápis do DECISIONS + ARCHITECTURE ve stejném commitu, push,
+  řádek do „📢 Oznámení“ v PROGRESS a **řekni uživateli, ať dá vědět master session** (ta sloučí do `main` a upozorní ostatní).
+- Otázky na organizátory jen v `docs/QUESTIONS.md`.
+- `python tools/check_docs.py` hlídá duplicitní čísla, odkazy na neexistující rozhodnutí a konfliktní značky; Stop hook nepustí konec session, dokud neprojde.
 
 ## Workflow (cloudové sessions, vše přes GitHub)
 - Všechno běží v cloud sessions; jediný sdílený stav je **GitHub repo** `projectilx42-tech/hackathon2-povodne`. Co není pushnuté, neexistuje (kontejner se maže).

@@ -2,6 +2,9 @@
 
 Formát: `D-XXX | datum | stav (přijato / otevřené / nahrazeno D-YYY)` + kontext, rozhodnutí, důsledky.
 Slouží i jako podklad pro report (sekce metodika a limitace). Nové záznamy přidávej na konec, čísla nerecykluj.
+**Číslování od D-035 dál (D-035):** nová rozhodnutí a otázky mají **zkratku modulu**: `D-M1-NN`, `D-M8-NN`, `D-M9-NN`, `O-M3d-NN`… (NN = 01, 02, …);
+`X` = master / meziodvětvové (`D-X-NN`). Zkratka = modul z tabulky v ARCHITECTURE.md, na kterém session pracuje. Tím paralelní sessions nemůžou vytvořit stejné číslo.
+Staré záznamy D-001–D-035 a O-001–O-011 zůstávají beze změny.
 
 ---
 
@@ -224,7 +227,7 @@ Ověřeno (dokumentace Sentinel Hub + `configs/grd_preprocessing.xml` Kuro Siwo)
 - **Velikost požadavku:** Process API max ~2500×2500 px (údaj uživatele; v dokumentaci, kterou jsem četl, není) → oblast dlaždicovat.
 - **Přihlášení:** Sentinel Hub vyžaduje OAuth klienta (CDSE Dashboard → User Settings → OAuth clients; client id + secret, token přes `client_credentials`, token znovu používat do `exp`).
   Katalog (OData/STAC) je dostupný bez přihlášení. **Porotce si zadá vlastní klíč** (README + nastavení v UI); naše klíče nejsou v repu. Bez klíče aplikace
-  jasně řekne, co chybí (ne tichá chyba). Potvrzení od organizátorů: O-009 otázka 5.
+  jasně řekne, co chybí (ne tichá chyba). Potvrzení od organizátorů: `docs/QUESTIONS.md` otázka 3; způsob zadání klíče viz D-035.
 - **Ladění (D-006):** prahy masky, HAND a sklonu se neladí podle EMSR927 ani opakovaným porovnáním Trishuli s EMS; práh modelu z Kuro Siwo val (kalibrace M9),
   HAND/sklon z literatury nebo z himálajské sady s popisky ze S2 (O-005). S EMSR927 se porovná hotový výsledek jednou na konci.
 
@@ -267,6 +270,22 @@ Kontrakt (ARCHITECTURE.md: `s1_alt_*`, `acquire.s1_alt`) upraven ve stejném com
   globální mapování povodní s maskou svahů > 10°). Prahy jsou fyzikální odhad, **neladí se na EMSR927** (D-006);
   případné doladění jen na Kuro Siwo val. Suť/bahno (M3d) se těmito pravidly neřídí.
 - Hodnoty jsou výchozí a budou ověřeny na himálajské evaluační sadě (O-005).
+
+## D-035 | 2026-10-08 | přijato (master; uživatel schválil sjednocení po kontrole kompatibility)
+**Sjednocení modelu (M9/M3), satelitů (M1/M2) a UI (M8) + pojistky proti dalším nesrovnalostem.**
+1. **Dvě dráhy S1:** hlavní + `s1_alt` (opačný směr přeletu) přesně podle D-033; třetí dráha se nezpracovává. Nahrazuje bod 5 D-030
+   („více drah“) a rozpočet 3 drah v D-031: 2 dráhy × 3 snímky, 30×30 km ≈ 550 PU/běh → ~18 běhů/měsíc (odhad, změřit).
+2. **CDSE klíč porotce:** proměnné prostředí `CDSE_CLIENT_ID` a `CDSE_CLIENT_SECRET` (OAuth klient z CDSE Dashboard), návod v README.
+   Žádné pole v UI. Bez klíče skončí krok `acquire` jako `failed` se srozumitelnou zprávou v `run.json.progress` — UI ji ukáže
+   ve stepperu (už umí). Nahrazuje „nastavení v UI“ v D-031. Naše klíče nikdy v repu.
+3. **Sklon:** M2 počítá `masks/slope.tif` funkcí `training/floodseg/features.slope_from_dem` z DEM převzorkovaného na 10 m mřížku
+   (stejně jako trénink, D-032); model dostává hodnoty zaokrouhlené na celé stupně.
+4. **Formát S1:** M1 smí stahovat S1 ze Sentinel Hubu jako UINT16 dB (úspora PU, D-031); M2 převede na `aligned/` = float32 lineární sigma0.
+5. **`flood/flood_polygons.geojson`:** `class` ∈ {`"water"`, `"debris"`} (text, ne číslo), `area_m2` — tak to čte UI.
+6. **Otázky na organizátory jen v `docs/QUESTIONS.md`** (5 odesláno 2026-10-08). O-009 zrušena.
+7. **Pojistky:** číslování se zkratkou modulu (viz začátek souboru), sekce *Koordinace sessions* v CLAUDE.md, oznámení v PROGRESS,
+   kontrola `tools/check_docs.py` (spouští ji SessionStart a Stop hook), SessionStart hook hlásí, když je větev pozadu za `main`.
+Kontrakt (ARCHITECTURE.md) upraven ve stejném commitu.
 
 ---
 

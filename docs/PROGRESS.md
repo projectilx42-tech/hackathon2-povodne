@@ -6,6 +6,18 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 > ⚠️ **Plán níže je orientační. Je dost možné, že se práce nebude dělat podle něj** — pořadí i obsah může uživatel kdykoli změnit
 > a postupovat jinak. Sessions se tomu nemají divit: rozhoduje to, co uživatel zadá v dané session, ne tento soubor.
 
+## 📢 Oznámení pro všechny sessions
+*(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-08 — sjednocení (master, D-035), platí pro všechny:**
+  1. Všechny větve jsou sloučené v `main` → **`git fetch origin main && git merge origin/main`**.
+  2. **Přečíslováno:** modelová D-026/027/028 → **D-032/033/034**, O-010 (váhy) → **O-011**; satelity D-031 beze změny; O-009 a O-010 zrušeny.
+  3. **Nová rozhodnutí číslovat se zkratkou modulu** (`D-M1-NN`, `D-M9-NN`, `D-M8-NN` …) — viz začátek DECISIONS.md.
+  4. **S1: dvě dráhy** — hlavní + `s1_alt` (opačný směr přeletu, D-033); třetí dráha ne.
+  5. **CDSE klíč:** env `CDSE_CLIENT_ID` / `CDSE_CLIENT_SECRET` + README; žádné pole v UI; bez klíče `acquire` = `failed` se srozumitelnou zprávou.
+  6. **Sklon:** M2 počítá `features.slope_from_dem` na 10 m mřížce (jako trénink). **S1 může přijít jako UINT16 dB**, M2 převede na float32 lineární.
+  7. `flood_polygons.geojson`: `class` = `"water"` / `"debris"` (text).
+  8. **Otázky na organizátory jen v `docs/QUESTIONS.md`** (5 odesláno, čeká se). Do odpovědi: ImageNet nechat, Sentinel Hub nechat, **JRC nepoužívat**.
+
 ## Plán (pořadí práce)
 1. Zjistit informace o satelitech (S1/S2, DEM) a najít data a zdroje (úkoly 3, 4).
 2. **UI / webová stránka** (M8) — zatím s ukázkovými daty podle kontraktu v ARCHITECTURE.md.
@@ -58,6 +70,10 @@ Obtížnost a čas = odhad uživatele.
 4. Účty (CDSE, Kaggle…) zakládá uživatel až v příslušných sessions (D-011); údaje jen jako env proměnné prostředí, nikdy do repa.
 
 ## Log sessions
+### 2026-10-08 — master: kontrola kompatibility a sjednocení — `claude/gallant-keller-vftpi2`
+- Sloučeny `claude/relaxed-johnson-wwj9s8` (M9) a `claude/nice-fermi-i7qzk8` (M1/M2) do `main`; přečíslování a sjednocení viz D-035 a Oznámení.
+- `docs/QUESTIONS.md` = jediný seznam otázek (5 odesláno). Pojistky: číslování se zkratkou modulu, sekce Koordinace v CLAUDE.md,
+  `tools/check_docs.py`, SessionStart hook (hlásí zpoždění za `main`), Stop hook (blokuje nekonzistentní docs).
 ### 2026-10-08 (2) — satelity po sloučení main — `claude/nice-fermi-i7qzk8`
 - Sloučen main (D-029 = naše dřívější D-020, D-030 sladění). Ověřeno v dokumentaci: Sentinel Hub „LEE“ ≠ Lee Sigma, `shadowMask` jen s RTC, rozpočet PU (D-031).
 - Neprovedeno: test shody zpracování s Kuro Siwo (potřebuje CDSE OAuth klíč, koordinace s M9). Čeká na souhlas uživatele: metoda kontroly čistoty „před“, pojmenování souborů a `run.json` pro více drah.

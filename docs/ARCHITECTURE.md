@@ -51,7 +51,8 @@ Každé spuštění pipeline = adresář `runs/<run_id>/` (není v gitu). `run_i
 runs/<run_id>/
   run.json                       # M1 zakládá, ostatní moduly připisují do svých sekcí
   raw/
-    s1/pre_*.tif, post_*.tif     # S1 GRD, VV a VH, lineární sigma0 (ne dB, ne gamma0/RTC), Lee 3×3 — D-020, D-030
+    s1/pre_*.tif, post_*.tif     # S1 GRD, VV a VH, sigma0 (ne gamma0/RTC), Lee 3×3; smí být UINT16 dB ze Sentinel Hubu — D-020, D-035
+    s1_alt/pre_*.tif, post_*.tif # totéž pro druhý směr přeletu (D-033)
     s2/pre_*.tif, post_*.tif     # S2 L2A, pásma B02,B03,B04,B08,B11,B12 + SCL
     dem/dem.tif                  # Copernicus DEM GLO-30
     osm/osm_raw.gpkg             # ohsome extrakt, snapshot < event_date
@@ -64,7 +65,7 @@ runs/<run_id>/
   masks/
     s1_layover_shadow.tif        # uint8 1 = layover/shadow (nepoužitelné) pro hlavní track
     s1_alt_layover_shadow.tif    # totéž pro druhý směr (jen pokud existuje s1_alt_*)
-    slope.tif                    # float32, stupně
+    slope.tif                    # float32, stupně — `features.slope_from_dem` z DEM na 10 m mřížce (D-035)
     hand.tif                     # float32, Height Above Nearest Drainage, m
     s2_pre_valid.tif s2_post_valid.tif   # uint8 1 = čistý pixel (bez mraků/stínů/sněhu dle SCL)
   flood/
@@ -72,7 +73,7 @@ runs/<run_id>/
     flood_prob.tif               # float32 0–1, pravděpodobnost "zasaženo" (voda ∪ debris)
     ai_mask.tif ai_prob.tif      # výstup M3 (voda)
     debris_mask.tif              # uint8 1 = suť/bahno, výstup M3d
-    flood_polygons.geojson       # EPSG:4326, polygonizace flood_mask (třídy 2,3), atributy: class, area_m2
+    flood_polygons.geojson       # EPSG:4326, polygonizace flood_mask (třídy 2,3), atributy: class ("water" | "debris"), area_m2 (D-035)
   osm/
     buildings.gpkg roads.gpkg bridges.gpkg settlements.gpkg facilities.gpkg   # UTM, čisté vrstvy (schéma níže)
   damage/

@@ -1,56 +1,43 @@
 # QUESTIONS — dotazy na organizátory
 
-Otázky, na které z dokumentů zadání (`docs/TASK.md`, PDF v `docs/source/`, Devpost) nejde odpovědět a je lepší se zeptat
-organizátorů (Discord: https://discord.gg/UD8EVcdcq). Každá má anglický text připravený ke zkopírování.
-Po odpovědi: zapsat odpověď sem, přesunout do „Zodpovězeno“ a podle ní upravit `docs/DECISIONS.md`.
+Jediné místo pro otázky na organizátory (Discord: https://discord.gg/UD8EVcdcq). Ptá se uživatel; sessions sem nové otázky
+jen **navrhují** (v chatu), zapisují až po souhlasu. Po odpovědi: zapsat odpověď sem, přesunout do „Zodpovězeno“
+a podle ní upravit `docs/DECISIONS.md`.
 
-Priorita: 🔴 může ovlivnit diskvalifikaci / hodnocení · 🟡 ovlivní práci · 🟢 jen pro jistotu.
+## Odesláno 2026-10-08 — čeká na odpověď
+Odeslaná zpráva (doslovně):
+```
+hey, few questions about track B if someone has a minute 🙏
 
-## Otevřené
+1) for the segmentation model, is it ok to start from imagenet pretrained weights (like a resnet34 encoder) and then train it on kuro siwo + sen1floods11? no other flood data used
 
-### Q-1 🔴 Smí model používat předtrénované váhy (ImageNet)? — O-009
-Kontext: zadání říká „train a model … using the listed training data“. Náš model (U-Net) startuje z encoderu předtrénovaného
-na ImageNet (běžné obrázky, žádná satelitní data ani mapy povodní) a celý se pak trénuje na Kuro Siwo + Sen1Floods11.
-Když to nepůjde, natrénujeme ho od nuly (`train.py --no-pretrained`), jen to bude o něco horší.
-> Hi! For the Track B flood segmentation model: is it OK to initialise the network with a generic ImageNet-pretrained encoder
-> (e.g. ResNet34 from torchvision/timm) and then train it fully on Kuro Siwo and Sen1Floods11? No other flood or
-> satellite datasets are used. Thanks!
+2) we get the sentinel-1 data through sentinel hub on copernicus data space, so it comes already terrain corrected (with copernicus dem) and cropped to our area. does that still count as "raw data" or do we have to process the original GRD files ourselves?
 
-### Q-2 🔴 Můžeme si pro himálajskou evaluaci vyrobit vlastní popisky vody ze Sentinelu-2? — O-005
-Kontext: zadání chce ukázat, jak model funguje „on Himalayan scenes it has never seen“. Kuro Siwo ani Sen1Floods11 žádnou
-himálajskou povodeň nemají. Chceme vzít minulé himálajské povodně (např. Chamoli 2021, Melamchi 2021, Sikkim 2023) a popisky
-vody udělat sami z jasných snímků Sentinel-2. EMS ani jiné publikované mapy nepoužijeme.
-> For the "Himalayan scenes the model has never seen" evaluation: since neither Kuro Siwo nor Sen1Floods11 contains Himalayan
-> events, may we create our own water labels for a few past Himalayan floods (e.g. Chamoli 2021, Melamchi 2021, Sikkim 2023)
-> from clear-sky Sentinel-2 imagery, and use them only for evaluation? We would not use Copernicus EMS or any other published
-> maps. Do the evaluation scenes have to be from 2026, or are past events fine?
+3) the data download needs a free copernicus data space account. for the live judging is it fine if judges just make a free account and paste the key into the app?
 
-### Q-3 🟡 Smíme model doučit na neoznačených himálajských snímcích Sentinel-1 (self-training)?
-Kontext: model by si sám označil radarové snímky z hor (mimo Trishuli a mimo naši testovací sadu) a z jistých pixelů se doučil.
-Používá jen Sentinel-1 (povolený vstup), žádné cizí mapy. Nevíme, jestli to spadá pod „using the listed training data“.
-> Would it be acceptable to fine-tune the model with self-training (pseudo-labels produced by our own model) on unlabelled
-> Sentinel-1 scenes from Himalayan valleys (not the Trishuli event and not our evaluation scenes)? Only Sentinel-1 data,
-> no external maps or labels.
+4) can we use a global water map like JRC global surface water to tell normal rivers/lakes apart from flood water? or should we stick to pre-event sentinel + OSM only?
 
-### Q-4 🟡 Jak přesně bude probíhat živé hodnocení? — D-016, O-006
-Kontext: rozhodli jsme, že aplikaci si porota spustí sama lokálně (D-016). Potřebujeme vědět, jestli to porota očekává a kolik
-času na jeden běh má.
-> How will the live evaluation work in practice: will judges run our system themselves on their own machines (we provide a
-> README with install + run instructions), or should it be hosted online? Is there a time limit per area/date, and can we
-> assume an internet connection to download the satellite data during the run?
+5) i registered on devpost, do i also need to register on unstop?
 
-### Q-5 🟡 Přihlašovací údaje k datům při živém hodnocení
-Kontext: Copernicus Data Space (oficiální zdroj ze zadání) vyžaduje bezplatný účet. Pokud pipeline poběží u poroty, musí
-mít porota vlastní účet, nebo použije náš? (Naše údaje do repa dát nesmíme.)
-> Our pipeline downloads Sentinel data from the Copernicus Data Space Ecosystem, which requires a free account. For live judging,
-> is it acceptable that the judges enter their own (free) CDSE credentials, or would you prefer another arrangement?
+thanks!
+```
 
-### Q-6 🟢 Kuro Siwo vychází z aktivací Copernicus EMS — je to v pořádku?
-Kontext: povodně v Kuro Siwo autoři vybrali z aktivací Copernicus EMS a popisky nakreslili ručně. Kuro Siwo je ale výslovně
-doporučený tréninkový dataset a EMSR927 v něm není. Jen pro jistotu.
-> Just to confirm: Kuro Siwo's events were selected from past Copernicus EMS activations (with their own manual labels).
-> Since Kuro Siwo is the recommended training set, we assume training on it is fine and does not count as using EMS maps
-> as input. EMSR927 is of course not part of it. Is that correct?
+| # | O co jde | Jak postupovat, dokud nepřijde odpověď |
+|---|---|---|
+| 1 | ImageNet váhy encoderu (D-021) | nechat ImageNet; při „ne“ přetrénovat `train.py --no-pretrained` |
+| 2 | Je S1 zpracovaný Sentinel Hubem „raw data“? | dál Sentinel Hub (D-031); při „ne“ vlastní zpracování GRD |
+| 3 | Porotce si založí bezplatný CDSE účet a zadá klíč | klíč přes env `CDSE_CLIENT_ID` / `CDSE_CLIENT_SECRET` (D-035) |
+| 4 | Globální mapa vody (JRC) jako vstup | **JRC nepoužívat**; trvalá voda jen ze snímku „před“ a z OSM před událostí |
+| 5 | Registrace i na Unstopu | řeší uživatel |
+
+Pozn.: otázka na přihlášení porotců (3) je v textu „paste the key into the app“; technicky jde o proměnné prostředí podle README (D-035).
+
+## Neptáme se (rozhodnutí uživatele 2026-10-08)
+- **Vlastní popisky vody ze S2 pro himálajskou evaluaci** — neptat se, postupuje se podle O-005.
+- **EMSR927 na výpočet metrik** — pravidla to dovolují („only to check your results“); dělá se otevřeně a uvede se v reportu. Nikdy na ladění (D-006).
+- **Self-training na neoznačených himálajských snímcích** — nedělat.
+- **Průběh živého hodnocení, HW, velikost oblasti, váhy přes GitHub Release, výsledek „insufficient data“, ohsome pro jiné povodně,
+  Kuro Siwo z aktivací EMS, Planetary Computer RTC** — neptat se (zbytečné nebo jasné z pravidel; váhy viz O-011).
 
 ## Zodpovězeno
 _(zatím nic)_
