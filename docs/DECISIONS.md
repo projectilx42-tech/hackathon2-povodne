@@ -255,4 +255,4 @@ odkaz: GitHub Release tohoto repa, nebo HF Hub (potřebuje HF účet/token). Roz
 
 ## O-009 | otevřené — Smí model používat předtrénované váhy (ImageNet)?
 Zadání říká „train a model … using the listed training data“; o předtrénovaných vahách encoderu mlčí. Používáme ImageNet
-encoder (D-021). Doporučený dotaz organizátorům na Discordu; pokud by to nebylo povoleno, `train.py --no-pretrained`.
+encoder (D-021). Dotaz organizátorům: `docs/QUESTIONS.md` Q-1; pokud by to nebylo povoleno, `train.py --no-pretrained`.
