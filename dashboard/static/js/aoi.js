@@ -13,8 +13,8 @@ export function createAoi(map, { onChange, onToolChange }) {
   const draw = new TerraDraw({
     adapter: new TerraDrawMapLibreGLAdapter({ map, lib: maplibregl }),
     modes: [
-      new TerraDrawRectangleMode({ styles: drawStyle }),
-      new TerraDrawFreehandMode({ styles: { ...drawStyle, closingPointColor: ACCENT, closingPointOutlineColor: '#04202e' } }),
+      new TerraDrawRectangleMode({ drawInteraction: 'click-move-or-drag', styles: drawStyle }),
+      new TerraDrawFreehandMode({ drawInteraction: 'click-move-or-drag', styles: { ...drawStyle, closingPointColor: ACCENT, closingPointOutlineColor: '#04202e' } }),
       new TerraDrawSelectMode({
         flags: {
           rectangle: { feature: { draggable: true, coordinates: { resizable: 'opposite' } } },
