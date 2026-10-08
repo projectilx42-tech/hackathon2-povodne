@@ -28,6 +28,7 @@ python training/run_ai.py runs/<run_id>     # aligned/ + masks/ -> flood/ai_mask
 `run_ai.py` is the interim M3 step (until `src/povodne/flood/ai.py` exists): per-track inference, layover/shadow -> nodata,
 water suppressed on steep slopes / high HAND, both pass directions averaged (D-034). Model v0.1 = `r3_r34_slope_tb4_s1f11`
 (test flood F1 0.779, D-M9-01); later versions keep the same files and interface.
+Speed: a 30 × 30 km area (3000 × 3000 px) takes ~30 s per pass direction on 4 CPU cores with ~2 GB RAM.
 
 ## Files
 | file | purpose |
