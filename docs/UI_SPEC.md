@@ -20,7 +20,7 @@ Texty v UI jsou **anglicky** (D-007). Téma: **jen tmavé**. Cíl: intuitivní, 
 ## Horní lišta
 - **Výběr oblasti:** nástroje *Pan* (výchozí, mapa se normálně posouvá) / *Rectangle* / *Shape* (volné kreslení myší, D-019) / *Edit*. Kreslí se stiskem-tažením-puštěním (nebo dvěma kliky); po nakreslení se přepne na Edit, Esc nebo opětovný klik na nástroj vrací Pan. (Změna oproti D-019: výchozí nástroj už není Rectangle — kreslení blokovalo posouvání mapy; obdélník zůstává výchozím *tvarem*.) Po nakreslení: plocha v km², tahy pro úpravu, tlačítko smazat.
   Limit velikosti konfigurovatelný, výchozí cíl ~30×30 km (900 km²): nad limit varování s vysvětlením (dlouhý běh).
-- **Date** (datum povodně, `YYYY-MM-DD`, jediné povinné datum — zadání: „an area and a flood date“) + tlačítko **Before / after: Auto|Custom** (rozbalovací): vlastní okna pre/post; prázdné = systém zvolí sám (TASK.md, produktová vize).
+- **Date** (datum povodně, `YYYY-MM-DD`) + **Advanced** (rozbalovací): vlastní okna pre/post; prázdné = systém zvolí sám (TASK.md, produktová vize).
 - **Examples:** presety (např. „Trishuli 2026-08-26“) — pouze předvyplní AOI a datum; pipeline pak běží normálně, nic není natvrdo.
 - **History:** seznam běhů z `runs/` (název, datum, verdikt, plocha); otevření hotového výsledku bez přepočtu.
 - **Search:** hledání místa (Nominatim) nebo zadání souřadnic; po Enteru posune mapu. Nikdy nevstupuje do pipeline.

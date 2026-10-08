@@ -105,7 +105,7 @@ function validateWindows() {
   else if (d && w.pre && w.pre[1] >= d) msg = 'The “before” window should end before the flood date.';
   else if (d && w.post && w.post[0] < d) msg = 'The “after” window should not start before the flood date.';
   warn.textContent = msg; warn.hidden = !msg;
-  $('adv-state').textContent = w.any ? 'Custom' : 'Auto';
+  $('adv-dot').hidden = !w.any;
   return { hard: !w.complete || /ends before it starts/.test(msg) };
 }
 winIds.forEach(i => $(i).addEventListener('input', validateWindows));
