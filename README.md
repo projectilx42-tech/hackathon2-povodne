@@ -15,11 +15,20 @@ Case study: the 26 August 2026 Bhote Koshi–Trishuli flood (Nepal), compared ag
 > This is an educational prototype, not an operational tool.
 
 ## How to run
+**Dashboard (web UI, runs locally on `127.0.0.1`):**
+```bash
+pip install -r dashboard/requirements.txt
+python -m dashboard            # then open http://127.0.0.1:8000
+```
+The bundled *sample run* in History is **synthetic demo data** (`dashboard/tools/make_sample_run.py`), not a real analysis.
+
+**Pipeline CLI:**
 _TBD_ — planned: `python -m povodne run --aoi <aoi.geojson | minlon,minlat,maxlon,maxlat> --event-date YYYY-MM-DD`
 
 ## AI assistance
 This project was developed with the help of **Claude Code** (Anthropic), used as a coding assistant for project scaffolding,
-documentation and implementation. Per-module notes on which parts were AI-assisted will be listed here as modules land.
+documentation and implementation. Per-module notes on which parts were AI-assisted:
+- **Dashboard (`dashboard/`)**: backend, frontend, synthetic sample-run generator and UI design discussion were developed with Claude Code.
 
 ## Data attributions
 - Contains modified Copernicus Sentinel data 2026.
@@ -28,4 +37,5 @@ documentation and implementation. Per-module notes on which parts were AI-assist
 - © OpenStreetMap contributors (ODbL), pre-event snapshot via the ohsome API.
 - Training data: Kuro Siwo — Bountos et al., 2024 (NeurIPS Datasets and Benchmarks). _Sen1Floods11 — Bonafilia et al., CVPR
   Workshops 2020 (if used)._
+- Base maps in the dashboard (display only): © OpenStreetMap contributors; OpenTopoMap (CC-BY-SA); EOxCloudless by EOX IT Services GmbH (contains modified Copernicus Sentinel data).
 - Validation only (never used as input): European Union, Copernicus Emergency Management Service data (EMSR927).

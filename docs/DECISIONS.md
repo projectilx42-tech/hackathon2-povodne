@@ -121,6 +121,13 @@ Podklady v UI nyní: Dark (OSM invertované), OSM, OpenTopoMap, EOX Sentinel-2 c
 Dopad: OSM tile policy je třeba dodržet (lehké použití, atribuce) — porota spouští lokálně, takže nízký provoz.
 Pozn.: jména v OSM dlaždicích jsou místní (nepálsky/čínsky), ne anglicky.
 
+## D-022 | 2026-10-08 | přijato
+**Doplnění kontraktu kvůli UI** (ARCHITECTURE.md upraveno ve stejném commitu): `run.json.pre_window/post_window/progress/mock`, `aoi.geojson`,
+`overlays/index.json`, CLI flagy `--pre-window FROM,TO` a `--post-window FROM,TO` u `povodne run`, `damage/*_damage.geojson` obsahují všechny prvky.
+Ukázkový run `dashboard/sample_run/` je **syntetický** (generuje `dashboard/tools/make_sample_run.py`), `run.json.mock = true`, v UI štítek „SAMPLE DATA“.
+Důvod: UI se vyvíjí a ukazuje před existencí pipeline; syntetická data nesmí být zaměnitelná za výsledek (viz limity v reportu).
+Otevřené: renderer PNG překryvů z GeoTIFF (M8 backend) zatím neexistuje; `python -m povodne serve` doplní skeleton.
+
 ---
 
 # Otevřené otázky (k rozhodnutí)

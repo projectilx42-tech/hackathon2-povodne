@@ -82,6 +82,23 @@ export function createAoi(map, { onChange, onToolChange }) {
       onChange(null);
     },
     hasArea: () => currentId !== null,
+    /** Show an existing polygon (preset / opened run) as the current AOI. */
+    setPolygon(polygon, mode = 'freehand') {
+      draw.clear();
+      const res = draw.addFeatures([{ type: 'Feature', geometry: polygon, properties: { mode } }]);
+      if (!res[0]?.valid) { currentId = null; onChange(null); return false; }
+      currentId = res[0].id;
+      draw.setMode('select');
+      draw.selectFeature(currentId);
+      setTool('edit');
+      onChange(polygonOf(currentId));
+      return true;
+    },
+    /** Suspend drawing (while another tool such as measuring owns the mouse). */
+    pause() { draw.setMode('static'); },
+    resume() {
+      if (tool === 'edit' && currentId) { draw.setMode('select'); draw.selectFeature(currentId); } else draw.setMode(MODE[tool === 'edit' ? 'rectangle' : tool]);
+    },
     fit(polygon) {
       const xs = polygon.coordinates[0].map(c => c[0]);
       const ys = polygon.coordinates[0].map(c => c[1]);

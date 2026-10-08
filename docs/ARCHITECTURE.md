@@ -85,9 +85,10 @@ runs/<run_id>/
   report/
     sitrep_en.md sitrep_en.pdf   # 1 strana; volitelně sitrep_ne.*
   logs/pipeline.log
-  overlays/*.png                 # cache PNG překryvů pro dashboard (píše jen M8 backend, viz HTTP API)
+  aoi.geojson                    # GeoJSON Feature (Polygon) — AOI předaná CLI přes --aoi (píše M8 backend při spuštění z UI)
+  overlays/*.png, index.json     # PNG překryvy pro dashboard + {"<name>": {"bounds": [w,s,e,n]}} (EPSG:4326); píše M8 backend / renderer
 ```
-`run.json` navíc obsahuje `progress` (průběh kroků pro UI) a u ukázkového runu `"mock": true` — viz sekce *HTTP API*.
+`run.json` navíc obsahuje `pre_window` / `post_window` (`[from, to]` nebo `null` = automaticky), `progress` (průběh kroků pro UI) a u ukázkového runu `"mock": true` — viz sekce *HTTP API*.
 
 ### `run.json`
 ```json
@@ -183,9 +184,15 @@ Pipeline spouští jako podproces `python -m povodne run ...`; průběh čte z `
 | `GET /api/runs/{run_id}/files/{path}` | soubor z run adresáře (GeoJSON, `stats.json`, `report/sitrep_en.*`, GeoTIFF ke stažení) |
 | `GET /api/runs/{run_id}/overlays` | `[{"name","url","bounds"}]` — PNG překryvy rastrů pro mapu (EPSG:4326 bounds `[w,s,e,n]`) |
 
-- **Překryvy** (`overlays/*.png`) renderuje backend na vyžádání z rastrů v `flood/`, `masks/`, `aligned/` a cachuje v `runs/<run_id>/overlays/`
-  (nová složka run adresáře, píše ji jen dashboard backend; pipeline ji nečte). Jména: `water`, `debris`, `flood_prob`, `permanent_water`,
-  `layover_shadow`, `s2_pre`, `s2_post`, `s1_pre`, `s1_post`.
+- **Překryvy** (`overlays/*.png` + `overlays/index.json` s `bounds`) jsou PNG pro mapu. `GET .../overlays` vrací jen ty, které v `index.json` jsou.
+  **Zatím je renderer z GeoTIFF (flood/, masks/, aligned/) nenapsán** — hotový run je musí mít předrenderované (ukázkový run je má).
+  Jména: `flood_prob` (R kanál = pravděpodobnost 0–255, A = 255), `s2_pre`, `s2_post` (před/po slider), `layover_shadow`; vodu a suť UI kreslí
+  z `flood/flood_polygons.geojson` (třídy `water`, `debris`), ne z PNG.
+- **Spuštění z UI:** `POST /api/runs` založí `runs/run_<date>_<hash6>/` s `run.json` (`aoi`, `event_date`, `pre_window`, `post_window`,
+  `progress.state=queued`) a `aoi.geojson`, pak spustí `python -m povodne run --aoi <run>/aoi.geojson --event-date D --out <run>
+  [--pre-window FROM,TO] [--post-window FROM,TO]`; stdout/stderr jde do `logs/pipeline.log`. Pipeline aktualizuje `run.json.progress`.
+  Když podproces skončí s chybou, `status` vrací `failed` + poslední řádek logu (nebo srozumitelnou hlášku, pokud modul `povodne` neexistuje).
+- Soubory pro UI: `damage/*_damage.geojson` obsahují **všechny** prvky (i `hit=false`), UI z nich kreslí silnice, mosty i budovy.
 - **`run.json.progress`** (píše pipeline/CLI, čte dashboard):
   `{"state": "queued|running|done|failed|cancelled", "steps": [{"name": "acquire|preprocess|flood_ai|debris|damage|network|report",
   "state": "pending|running|done|skipped|failed", "message": "..."}]}`.

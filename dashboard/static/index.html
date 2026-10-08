@@ -27,7 +27,7 @@
         <span class="label">Area</span>
         <div class="segmented" id="tool-group">
           <button type="button" data-tool="rectangle" class="active" title="Draw a rectangle (click two corners)">Rectangle</button>
-          <button type="button" data-tool="shape" title="Draw a free shape (click, drag, click to finish)">Shape</button>
+          <button type="button" data-tool="shape" title="Draw a free shape (click, move the mouse around the area, click to finish)">Shape</button>
           <button type="button" data-tool="edit" title="Move or resize the selected area" disabled>Edit</button>
         </div>
         <button type="button" class="icon-btn" id="clear-aoi" title="Clear area" aria-label="Clear area" disabled>&times;</button>
@@ -37,17 +37,62 @@
       <div class="group">
         <label class="label" for="event-date">Flood date</label>
         <input type="date" id="event-date" class="field">
+        <div class="pop-wrap">
+          <button type="button" class="btn ghost" id="adv-btn" aria-haspopup="true" aria-expanded="false">Advanced<span class="dot" id="adv-dot" hidden></span></button>
+          <div class="popover" id="adv-pop" hidden>
+            <h3>Before / after windows</h3>
+            <p class="muted">Leave empty and the system chooses suitable satellite windows itself.</p>
+            <div class="win"><span>Before</span><input type="date" class="field" id="pre-from" aria-label="Before window from"><span>–</span><input type="date" class="field" id="pre-to" aria-label="Before window to"></div>
+            <div class="win"><span>After</span><input type="date" class="field" id="post-from" aria-label="After window from"><span>–</span><input type="date" class="field" id="post-to" aria-label="After window to"></div>
+            <p class="notice warn" id="adv-warn" hidden></p>
+            <button type="button" class="linklike" id="adv-reset">Reset to automatic</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="pop-wrap">
+          <button type="button" class="btn ghost" id="ex-btn" aria-haspopup="true" aria-expanded="false">Examples</button>
+          <div class="popover" id="ex-pop" hidden></div>
+        </div>
+        <div class="pop-wrap">
+          <button type="button" class="btn ghost" id="hist-btn" aria-haspopup="true" aria-expanded="false">History</button>
+          <div class="popover wide" id="hist-pop" hidden></div>
+        </div>
       </div>
 
       <div class="spacer"></div>
-
       <button type="button" class="btn primary" id="run-btn" disabled title="Select an area and a date first">&#9654; Run</button>
     </header>
 
     <main class="main">
-      <section class="map-wrap">
+      <section class="map-wrap" id="map-wrap">
         <div id="map" aria-label="Map"></div>
+        <div id="map2" aria-hidden="true"></div>
+        <div class="cmp-handle" id="cmp-handle" hidden><span></span></div>
+        <div class="cmp-tags" id="cmp-tags" hidden><b>Before</b><b>After</b></div>
+
+        <form class="search" id="search-form" role="search" autocomplete="off">
+          <input type="search" id="search-input" placeholder="Search a place or enter lat, lon" aria-label="Search a place or coordinates">
+          <ul class="results" id="search-results" hidden></ul>
+        </form>
         <div class="basemaps" id="basemaps" role="group" aria-label="Base map"></div>
+
+        <div class="layers-card" id="layers-card" hidden>
+          <button type="button" class="lc-head" id="layers-toggle" aria-expanded="true"><span>Layers</span><span class="chev">▾</span></button>
+          <div id="layers-panel"></div>
+          <div class="lc-foot">
+            <button type="button" class="btn small block" id="cmp-btn" disabled title="Needs a before and an after optical image">Before / after slider</button>
+          </div>
+        </div>
+
+        <div class="tools">
+          <button type="button" class="map-btn" id="measure-btn" title="Measure distance and area" aria-pressed="false" aria-label="Measure">
+            <svg viewBox="0 0 24 24" width="18" height="18"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 17 17 3l4 4L7 21z M7 13l2 2 M10 10l2 2 M13 7l2 2"/></svg>
+          </button>
+        </div>
+        <div class="measure-readout" id="measure-readout" hidden></div>
+        <div class="legend" id="legend" hidden></div>
         <div class="coords" id="coords">&nbsp;</div>
         <div class="toast" id="toast" role="status" hidden></div>
       </section>
@@ -69,11 +114,13 @@
             <button type="button" class="icon-btn small" id="tip-close" aria-label="Hide tip" title="Hide">&times;</button>
           </div>
           <ol class="steps">
-            <li>Draw an area on the map.</li>
+            <li>Draw an area on the map (or pick an example).</li>
             <li>Pick the date of the flood.</li>
             <li>Press <strong>Run</strong> &mdash; satellite data is fetched and analysed automatically.</li>
           </ol>
         </section>
+
+        <div id="state"></div>
       </aside>
     </main>
 
@@ -81,9 +128,16 @@
       <span>Contains modified Copernicus Sentinel data 2026.</span>
       <span>Produced using Copernicus WorldDEM-30 &copy; DLR e.V. 2010&ndash;2014 and &copy; Airbus Defence and Space GmbH 2014&ndash;2018 provided under COPERNICUS by the European Union and ESA; all rights reserved.</span>
       <span>&copy; OpenStreetMap contributors.</span>
+      <span>Training data: Kuro Siwo (Bountos et al., 2024).</span>
       <span>Educational prototype &mdash; not an operational tool.</span>
+      <button type="button" class="linklike" id="methods-btn">Methods &amp; Limitations</button>
     </footer>
   </div>
+
+  <dialog id="methods-modal" class="modal">
+    <form method="dialog" class="modal-head"><h2>Methods &amp; Limitations</h2><button class="icon-btn" aria-label="Close">&times;</button></form>
+    <div class="modal-body" id="methods-body"></div>
+  </dialog>
   <script type="module" src="js/main.js"></script>
 </body>
 </html>
