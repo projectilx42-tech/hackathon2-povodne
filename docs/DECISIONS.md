@@ -291,7 +291,8 @@ Kontrakt (ARCHITECTURE.md) upraven ve stejném commitu.
 **Časová řada podílu vody v nízkém rozlišení → snímek „před“ = poslední průlet před začátkem nárůstu vody.**
 1. Z katalogu (bez přihlášení) všechny průlety **hlavní dráhy** za ~60 dní před `event_date`.
 2. Stáhnout v nízkém rozlišení (~60 m, jen VV) — cíl ~1 PU/datum (odhad, změřit).
-3. Pro každé datum podíl tmavých pixelů (voda) v nížinách u řeky (HAND, bez layover/shadow).
+3. Pro každé datum podíl tmavých pixelů (voda) v nížinách u řeky (nízký HAND). **Pixely v layover/shadow se do výpočtu nezapočítají**
+   (vyloučit je; stín je tmavý na všech datech a zředil by nárůst). Pořadí v `acquire`: DEM → HAND + maska stínu → řada → výběr snímků.
 4. Začátek nárůstu = první datum, kdy podíl vyskočí výrazně nad kolísání předchozích dat; práh **relativní k dané AOI**,
    nikdy neladěný na EMS ani na Trishuli (D-006).
 5. Pre = poslední průlet před začátkem nárůstu (+ druhý pre z téže dráhy před ním, D-030). Pokud nárůst začal už před začátkem
