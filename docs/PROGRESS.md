@@ -86,6 +86,12 @@ Obtížnost a čas = odhad uživatele.
 - Zjištění: u Rio Grande do Sul (2024-05-02) není v katalogu CDSE pro AOI žádný S1 produkt od ledna do 8. 5. 2024 → žádný pár pre/post; plán to hlásí varováním (verdikt `insufficient_data`, D-013).
   Katalog občas vrátí krátké HTTP 403 po sérii dotazů → opakování s čekáním. Závislosti modulu: `requests`, `shapely`.
 - Nerozhodnuto: hlavní dráha = nejdřívější post (D-029) vs. méně layover/shadow (D-033) — kód má zatím první, přepínač `prefer`.
+- **Sentinel Hub na CDSE vyzkoušen s klíčem uživatele (2026-10-08)**, výřez u Trishuli, snímek 2026-08-28 (`SIGMA0_ELLIPSOID`, ortorektifikace, `COPERNICUS_30`, Lee 3×3, UINT16 dB):
+  přihlášení funguje (token platí 30 min); **naměřená cena 2,77 PU na výřez 5×5 km, 10 m, VV+VH** = shoda s odhadem (ortorektifikace ×2 a filtr ×2 se násobí);
+  bez filtru 1,38 PU; **série pro kontrolu čistoty „před“: 30×30 km při 60 m, jen VV = 0,64 PU bez filtru / 1,27 PU s filtrem** (cíl ~1 PU splněn).
+  Dotaz s hranicemi v UTM (EPSG:32645) vrací přesně 10m mřížku v UTM, takže M2 nemusí převzorkovávat.
+- **Neověřeno:** shoda hodnot s tréninkovými daty. Hory u Trishuli: VV medián −4 dB, VH −11 dB; trénink má střední hodnoty VV −10 dB, VH −17 dB (`DEFAULT_NORM`).
+  Rozdíl může být terénem (sigma0 bez terénní korekce, strmé svahy, zástavba), ne chybou kalibrace — rozhodne až srovnání s dlaždicí Kuro Siwo (potřebuje M9).
 
 ### 2026-10-08 — master: sloučení sessions do `main` — `claude/gallant-keller-vftpi2`
 - Sloučeny větve `claude/relaxed-johnson-wwj9s8` (M9), `ccr-d89d3cfb-ywooc4` (M8 UI), `claude/nice-fermi-i7qzk8` (satelity) do `main`.
