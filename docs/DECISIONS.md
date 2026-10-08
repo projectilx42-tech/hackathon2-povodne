@@ -76,6 +76,18 @@ Modul M3a „baseline“ z architektury odstraněn (`baseline_mask.tif` zrušen,
 **Pořadí práce určuje uživatel; nejdřív průzkum satelitů a dat, pak UI (webová stránka)**, pak ostatní moduly (plán v PROGRESS.md je orientační). UI se vyvíjí proti kontraktu run adresáře
 (ARCHITECTURE.md), dokud pipeline neexistuje, může zobrazovat ukázková/mock data.
 
+## D-016 | 2026-10-08 | přijato (rozhodnutí uživatele)
+**Webová aplikace (ne desktopová), spouštěná porotou lokálně na localhostu.** Uživatel aplikaci nehostuje; porota si ji spustí
+sama na svém počítači a model dostane s sebou. Tím je v podstatě zodpovězena i O-006 (hosting).
+Důsledky: model musí běžet na CPU, aplikace musí jít zprovoznit na cizím počítači podle README.
+
+## D-017 | 2026-10-08 | přijato (rozhodnutí uživatele)
+**Instalace přes seznam knihoven (`requirements.txt` / `pyproject.toml`) + návod v README** (požadovaná verze Pythonu, jeden příkaz
+na instalaci, jeden na spuštění). Docker ani `uv` nejsou potřeba.
+
+## D-018 | 2026-10-08 | přijato (rozhodnutí uživatele)
+**Satelitní data se stahují jen jako výřez zvolené oblasti**, nikdy celé scény (Sentinel-1 scéna má 1–2 GB).
+
 ---
 
 # Otevřené otázky (k rozhodnutí)
