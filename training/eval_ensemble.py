@@ -35,6 +35,8 @@ def main() -> None:
     ap.add_argument("--workers", type=int, default=2)
     ap.add_argument("--max-water-slope", type=float, nargs="*", default=[],
                     help="also report the pipeline rule 'no water on slopes steeper than X deg' (D-034) for each X")
+    ap.add_argument("--flood-thresholds", type=float, nargs="*", default=[],
+                    help="also report 'flood if P(flood) >= t, else argmax of the other classes' for each t")
     args = ap.parse_args()
 
     members = []
@@ -50,6 +52,7 @@ def main() -> None:
 
     conf = Confusion(IGNORE)
     rule_conf = {x: Confusion(IGNORE) for x in args.max_water_slope}
+    thr_conf = {t: Confusion(IGNORE) for t in args.flood_thresholds}
     for sar, label, slope, act, terrain in dl:
         sar, label, slope = sar.to(args.device), label.to(args.device), slope.to(args.device)
         probs, y = 0.0, None
@@ -64,6 +67,10 @@ def main() -> None:
         conf.update(pred, y, groups)
         for thr, c in rule_conf.items():
             c.update(torch.where(slope.float() > thr, torch.zeros_like(pred), pred), y, groups)
+        p = probs / probs.sum(1, keepdim=True)
+        other = p[:, :2].argmax(1)
+        for t, c in thr_conf.items():
+            c.update(torch.where(p[:, 2] >= t, torch.full_like(pred, 2), other), y, groups)
     rep = name_terrain(conf.report())
     rep["val_score" if args.split == "val" else "macro_score"] = macro_score(rep)
     rep["models"] = [str(p) for p in args.models]
@@ -75,6 +82,13 @@ def main() -> None:
         m = r.get("per_terrain", {}).get("mountainous (>200 m)", {}).get("flood", {})
         print(f"  slope>{thr:g}deg -> no water: score {r['score']:.4f} flood F1 {r['overall']['flood']['f1']:.4f} "
               f"mtn flood prec {m.get('precision')} recall {m.get('recall')}", flush=True)
+    rep["flood_threshold"] = {}
+    for t, c in thr_conf.items():
+        r = name_terrain(c.report())
+        r["score"] = macro_score(r)
+        rep["flood_threshold"][str(t)] = r
+        print(f"  flood if P>={t:g}: score {r['score']:.4f} flood F1 {r['overall']['flood']['f1']:.4f} "
+              f"prec {r['overall']['flood']['precision']:.3f} recall {r['overall']['flood']['recall']:.3f}", flush=True)
     args.out.write_text(json.dumps(rep, indent=1))
     o = rep["overall"]
     mtn = rep.get("per_terrain", {}).get("mountainous (>200 m)", {}).get("flood", {})
