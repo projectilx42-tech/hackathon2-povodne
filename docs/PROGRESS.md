@@ -38,7 +38,7 @@ Obtížnost a čas = odhad uživatele.
 | Modul | Stav | Větev | Poznámka |
 |---|---|---|---|
 | Repo init, docs, workflow | ✅ | `main` | CLAUDE.md, docs/, Stop hook |
-| M8 Dashboard / webové UI | 🟨 | `feat/dashboard` | návrh hotový (D-020, `docs/UI_SPEC.md`, HTTP API v ARCHITECTURE.md); kód zatím ne |
+| M8 Dashboard / webové UI | 🟨 | `feat/dashboard` | krok 1 hotový: kostra (`dashboard/`), mapa + 4 podklady, kreslení AOI, datum, Run (placeholder); spuštění `python -m dashboard` (alias `povodne serve` až se skeletonem) |
 | 0 Skeleton (pyproject, CLI, config, io/grid) | ⬜ | `feat/skeleton` | |
 | M1 Acquire (S1/S2/DEM/OSM) | ⬜ | `feat/acquire` | |
 | M2 Preprocess | ⬜ | `feat/preprocess` | |
@@ -58,6 +58,13 @@ Obtížnost a čas = odhad uživatele.
 4. Účty (CDSE, Kaggle…) zakládá uživatel až v příslušných sessions (D-011); údaje jen jako env proměnné prostředí, nikdy do repa.
 
 ## Log sessions
+### 2026-10-08 — M8 krok 1: kostra UI — `ccr-d89d3cfb-ywooc4`
+- Hotovo: `dashboard/` (FastAPI `server.py`: `/api/health`, `/api/runs`, statika), frontend bez build kroku (`dashboard/static/`), vendorovaný MapLibre 6.13 + terra-draw 1.37.
+  Mapa se 4 podklady, kreslení obdélníku / tvaru / úprava, plocha v km² s varováním > 900 km², datum, tlačítko Run (zatím jen toast), pravý panel (výběr + tip), patička s atribucemi.
+  Ověřeno headless Chromiem (kreslení obdélníku i tvaru, clear, přepnutí podkladu).
+- Zjištění: CARTO Dark Matter vyžaduje API klíč → D-021 (Dark = OSM s inverzí).
+- Spuštění zatím `pip install -r dashboard/requirements.txt && python -m dashboard` (port 8000). `python -m povodne serve` doplní skeleton (volá `dashboard.server.main`).
+- Další krok: horní lišta (Advanced okna, Examples, History, Search), ukázkový run (`dashboard/sample_run/`) a pravý panel s výsledky, pak vrstvy/nástroje, stepper/modály.
 ### 2026-10-08 — návrh UI (M8) — `ccr-d89d3cfb-ywooc4`
 - Dohodnut návrh UI: FastAPI + MapLibre + čisté JS, jen tmavé téma, podklady CARTO Dark Matter (výchozí) / OSM / OpenTopoMap / EOX S2 cloudless,
   seznam features (bez sdíleného odkazu). Zapsáno: `D-020`, `docs/UI_SPEC.md`, sekce *HTTP API* a `run.json.progress` v `ARCHITECTURE.md`; O-003 uzavřeno.

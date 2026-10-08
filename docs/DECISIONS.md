@@ -97,7 +97,7 @@ na instalaci, jeden na spuštění). Docker ani `uv` nejsou potřeba.
   + **terra-draw** (obdélník + volné kreslení, D-019) + **čisté JS (ES moduly) a CSS bez build kroku** (D-017: jen `pip install` + jeden příkaz).
   Streamlit zamítnut (slabší vzhled, klik na obec/panely přes reruny); React/Vite zamítnut (potřebuje Node build).
 - **Téma:** jen tmavé.
-- **Podkladové mapy** (přepínač): **CARTO Dark Matter (výchozí)**, OpenStreetMap standard, OpenTopoMap, EOX Sentinel-2 cloudless (satelit,
+- **Podkladové mapy** (přepínač): **CARTO Dark Matter (výchozí; nahrazeno D-021)**, OpenStreetMap standard, OpenTopoMap, EOX Sentinel-2 cloudless (satelit,
   CC BY-NC-SA 4.0, atribuce „EOxCloudless … Contains modified Copernicus Sentinel data [rok]“). Esri World Imagery vynecháno
   (Esri Master License Agreement + vyžaduje API klíč). Pokud je Dark Matter pod vrstvami špatně čitelný, změníme výchozí (jedna řádka v configu).
   Licence CARTO a OpenTopoMap ověřit při implementaci.
@@ -113,6 +113,13 @@ na instalaci, jeden na spuštění). Docker ani `uv` nejsou potřeba.
   jsou viditelné a zašedlé s popiskem. Ukázkový run je v UI vždy viditelně označen „SAMPLE DATA“.
 - **Porovnání s EMSR927 v UI nebude** (D-006 — validace zůstává oddělená v `validation/`).
 - **Dopad na kontrakt:** nové HTTP API a `run.json.progress` — zapsáno v ARCHITECTURE.md.
+
+## D-021 | 2026-10-08 | přijato
+**Výchozí podklad „Dark“ = OSM standardní dlaždice s inverzí barev (MapLibre `raster-brightness`/`hue-rotate`), ne CARTO Dark Matter.**
+Důvod: při testu v prohlížeči CARTO dlaždice vracejí vodoznak „API KEY REQUIRED“ (HTTP 200, takže to curl neodhalí) — vyžaduje klíč.
+Podklady v UI nyní: Dark (OSM invertované), OSM, OpenTopoMap, EOX Sentinel-2 cloudless 2024 (satelit). Všechny ověřeny v Chromiu.
+Dopad: OSM tile policy je třeba dodržet (lehké použití, atribuce) — porota spouští lokálně, takže nízký provoz.
+Pozn.: jména v OSM dlaždicích jsou místní (nepálsky/čínsky), ne anglicky.
 
 ---
 

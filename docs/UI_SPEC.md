@@ -27,7 +27,7 @@ Texty v UI jsou **anglicky** (D-007). Téma: **jen tmavé**. Cíl: intuitivní, 
 - **Run:** spustí pipeline; za běhu se mění na **Cancel**. Neaktivní, dokud není AOI + datum.
 
 ## Mapa
-- **Podklady** (přepínač): CARTO Dark Matter (výchozí) · OpenStreetMap · OpenTopoMap · EOX Sentinel-2 cloudless (satelit).
+- **Podklady** (přepínač): Dark (OSM s inverzí barev, výchozí, viz D-021) · OpenStreetMap · OpenTopoMap · EOX Sentinel-2 cloudless 2024 (satelit).
 - **Panel vrstev:** zapnout/vypnout, průhlednost, pořadí. Vrstvy:
   | Vrstva | Zdroj | Stav |
   |---|---|---|
@@ -45,7 +45,7 @@ Texty v UI jsou **anglicky** (D-007). Téma: **jen tmavé**. Cíl: intuitivní, 
 - **Nástroje:** měřítko, souřadnice kurzoru, měření vzdálenosti/plochy, legenda.
 - **Značky obcí (barva + tvar kvůli barvosleposti):** ● zelený kruh = connected, ▲ oranžový trojúhelník = degraded, ✕ červený křížek/kosočtverec = cut off.
 - Barvy vrstev: voda modrá, suť/bahno hnědá, zasažené budovy červená, přerušené silnice červená čára, zasažené mosty ✕ — přesné odstíny
-  ladit proti Dark Matter při implementaci (čitelnost pod vrstvami).
+  ladit proti Dark podkladu při implementaci (čitelnost pod vrstvami).
 
 ## Pravý panel — stavy
 1. **Idle / úvod:** krátký tip „1. Draw an area · 2. Pick the flood date · 3. Run“ (zavíratelný, pamatuje si volbu).
@@ -68,7 +68,7 @@ V UI je vždy viditelný štítek **SAMPLE DATA**. Kontrakt se kvůli mocku nem�
 
 ## Patička a modály
 - **Atribuce** (doslovně z TASK.md): „Contains modified Copernicus Sentinel data 2026.“ · WorldDEM-30 věta · „© OpenStreetMap contributors.“ ·
-  atribuce aktivního podkladu (CARTO / OpenTopoMap / EOX) · citace tréninkových dat (Kuro Siwo: Bountos et al., 2024).
+  atribuce aktivního podkladu (OSM / OpenTopoMap / EOX) · citace tréninkových dat (Kuro Siwo: Bountos et al., 2024).
 - **Methods & Limitations:** stručný popis metody a omezení (zdroje čísel, revisit S1/S2, layover/shadow, debris vs. voda, nejistota modelu);
   podklad pro sekci limitací v reportu. Text vzniká průběžně z `DECISIONS.md`.
 

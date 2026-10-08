@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flood Damage Mapper</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%234cc2ff' d='M2 15c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2v3c-2.5 0-2.5-2-5-2s-2.5 2-5 2-2.5-2-5-2-2.5 2-5 2zm0-6c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2v3c-2.5 0-2.5-2-5-2s-2.5 2-5 2-2.5-2-5-2-2.5 2-5 2z'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="vendor/maplibre-gl/maplibre-gl.css">
+  <link rel="stylesheet" href="css/app.css">
+  <script type="importmap">
+  {"imports": {
+    "maplibre-gl": "./vendor/maplibre-gl/maplibre-gl.mjs",
+    "terra-draw": "./vendor/terra-draw/terra-draw.module.js",
+    "terra-draw-maplibre-gl-adapter": "./vendor/terra-draw/terra-draw-maplibre-gl-adapter.module.js"
+  }}
+  </script>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M2 15c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2v3c-2.5 0-2.5-2-5-2s-2.5 2-5 2-2.5-2-5-2-2.5 2-5 2zm0-6c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2v3c-2.5 0-2.5-2-5-2s-2.5 2-5 2-2.5-2-5-2-2.5 2-5 2z"/></svg>
+        <span>Flood Damage Mapper</span>
+      </div>
+
+      <div class="group" role="group" aria-label="Area selection">
+        <span class="label">Area</span>
+        <div class="segmented" id="tool-group">
+          <button type="button" data-tool="rectangle" class="active" title="Draw a rectangle (click two corners)">Rectangle</button>
+          <button type="button" data-tool="shape" title="Draw a free shape (click, drag, click to finish)">Shape</button>
+          <button type="button" data-tool="edit" title="Move or resize the selected area" disabled>Edit</button>
+        </div>
+        <button type="button" class="icon-btn" id="clear-aoi" title="Clear area" aria-label="Clear area" disabled>&times;</button>
+        <span class="chip" id="aoi-chip" hidden></span>
+      </div>
+
+      <div class="group">
+        <label class="label" for="event-date">Flood date</label>
+        <input type="date" id="event-date" class="field">
+      </div>
+
+      <div class="spacer"></div>
+
+      <button type="button" class="btn primary" id="run-btn" disabled title="Select an area and a date first">&#9654; Run</button>
+    </header>
+
+    <main class="main">
+      <section class="map-wrap">
+        <div id="map" aria-label="Map"></div>
+        <div class="basemaps" id="basemaps" role="group" aria-label="Base map"></div>
+        <div class="coords" id="coords">&nbsp;</div>
+        <div class="toast" id="toast" role="status" hidden></div>
+      </section>
+
+      <aside class="panel" id="panel">
+        <section class="card" id="selection-card">
+          <h2>Selected area</h2>
+          <p class="muted" id="selection-empty">No area selected yet.</p>
+          <dl class="kv" id="selection-info" hidden>
+            <dt>Area</dt><dd id="sel-area"></dd>
+            <dt>Extent</dt><dd id="sel-bbox"></dd>
+          </dl>
+          <p class="notice warn" id="selection-warn" hidden></p>
+        </section>
+
+        <section class="card tip" id="tip-card">
+          <div class="card-head">
+            <h2>How it works</h2>
+            <button type="button" class="icon-btn small" id="tip-close" aria-label="Hide tip" title="Hide">&times;</button>
+          </div>
+          <ol class="steps">
+            <li>Draw an area on the map.</li>
+            <li>Pick the date of the flood.</li>
+            <li>Press <strong>Run</strong> &mdash; satellite data is fetched and analysed automatically.</li>
+          </ol>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="footer">
+      <span>Contains modified Copernicus Sentinel data 2026.</span>
+      <span>Produced using Copernicus WorldDEM-30 &copy; DLR e.V. 2010&ndash;2014 and &copy; Airbus Defence and Space GmbH 2014&ndash;2018 provided under COPERNICUS by the European Union and ESA; all rights reserved.</span>
+      <span>&copy; OpenStreetMap contributors.</span>
+      <span>Educational prototype &mdash; not an operational tool.</span>
+    </footer>
+  </div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
