@@ -8,7 +8,8 @@ se na něj. Dokud odpověď nepřijde, finální model v pipeline zůstává z h
 ```
 Jsi spin-off session modelu M9 (AI segmentace povodní). Přečti docs/SPINOFF_SSL4EO.md (tohle zadání),
 CLAUDE.md, docs/PROGRESS.md (oznámení nahoře) a v docs/DECISIONS.md D-020 až D-025, D-032 až D-034 a D-M9-01.
-Pracuj na větvi spinoff/ssl4eo (vytvoř ji z aktuálního main). Cíl: zjistit, jestli encoder předtrénovaný
+Pracuj na větvi spinoff/ssl4eo: vytvoř ji z origin/claude/relaxed-johnson-wwj9s8 (hlavní linie M9; až bude
+sloučená do main, stačí main) a průběžně merguj main. Cíl: zjistit, jestli encoder předtrénovaný
 na radaru Sentinel-1 (SSL4EO-S12) dá lepší model než současný ImageNet ResNet34, hlavně v horách.
 Dodržuj pravidla ze sekce „Pravidla spin-offu“ v tom souboru. Na konci každého kroku commit + push
 a krátký lidský report uživateli (čísla vs. hlavní linie).
