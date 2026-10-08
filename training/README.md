@@ -8,8 +8,8 @@ Input: seven channels — Sentinel-1 GRD sigma0 in dB before and after the event
 (post − pre), and terrain slope from the DEM. Output per pixel: *no water*, *permanent water* or *flood*.
 Architecture: U-Net with an ImageNet-pretrained ResNet34 encoder (`segmentation-models-pytorch`).
 Training data: Kuro Siwo (official train events) plus Sen1Floods11 hand-labelled chips (post image only; the Sri Lanka
-event is excluded because it is a Kuro Siwo test flood). Loss: cross-entropy + Dice. Sampling balances flood events and
-over-samples mountainous tiles. Augmentations: choice of pre image, calibration offsets, speckle, rescaling, rotations.
+event is excluded because it is a Kuro Siwo test flood). Loss: cross-entropy + Lovasz-Softmax (a direct IoU surrogate).
+Sampling balances flood events. Augmentations: choice of pre image, calibration offsets, speckle, rescaling, rotations.
 The checkpoint is chosen on validation events by the mean per-event IoU; probabilities are temperature-calibrated.
 Data splits are by flood event (the official Kuro Siwo benchmark split), so test scores come from floods the model has
 never seen. Inference runs on CPU in overlapping tiles (~25 s for a 30 × 30 km valley).
@@ -22,12 +22,12 @@ high above the river (HAND), and can combine both satellite pass directions (D-0
 
 ## Use the current model (integration testing)
 ```bash
-python training/fetch_model.py              # -> models/floodseg_v0.1/ (needs KAGGLE_API_TOKEN in the environment)
+python training/fetch_model.py              # -> models/floodseg_v0.2/ (needs KAGGLE_API_TOKEN in the environment)
 python training/run_ai.py runs/<run_id>     # aligned/ + masks/ -> flood/ai_mask.tif, flood/ai_prob.tif, run.json "flood"
 ```
 `run_ai.py` is the interim M3 step (until `src/povodne/flood/ai.py` exists): per-track inference, layover/shadow -> nodata,
-water suppressed on steep slopes / high HAND, both pass directions averaged (D-034). Model v0.1 = `r3_r34_slope_tb4_s1f11`
-(test flood F1 0.779, D-M9-01); later versions keep the same files and interface.
+water suppressed on steep slopes / high HAND, both pass directions averaged (D-034). Model v0.2 = `r6_r34_lovasz`
+(test flood F1 0.775, mountainous tiles 0.53; D-M9-04); later versions keep the same files and interface.
 Speed: a 30 × 30 km area (3000 × 3000 px) takes ~30 s per pass direction on 4 CPU cores with ~2 GB RAM.
 
 ## Files

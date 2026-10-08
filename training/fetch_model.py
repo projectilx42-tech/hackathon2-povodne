@@ -1,6 +1,6 @@
 """Download the current flood segmentation model into models/<name>/.
 
-  python training/fetch_model.py                 # -> models/floodseg_v0.1/{model.pt, model_card.json}
+  python training/fetch_model.py                 # -> models/floodseg_v0.2/{model.pt, model_card.json}
 
 The weights are not in git (too large). Until the final hosting is decided (docs/DECISIONS.md, O-011) they live in the
 private Kaggle dataset `krataihalfmaster/floodseg-model`; downloading needs the Kaggle API token in the environment
@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dataset", default="krataihalfmaster/floodseg-model")
-    ap.add_argument("--out", type=Path, default=ROOT / "models" / "floodseg_v0.1")
+    ap.add_argument("--out", type=Path, default=ROOT / "models" / "floodseg_v0.2")
     args = ap.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     for name in ("model.pt", "model_card.json", "README.md"):  # per file: whole-dataset zips can lag behind uploads

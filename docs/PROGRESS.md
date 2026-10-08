@@ -20,6 +20,8 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
   7. `flood_polygons.geojson`: `class` = `"water"` / `"debris"` (text).
   8. **Otázky na organizátory jen v `docs/QUESTIONS.md`** (5 odesláno, čeká se). Do odpovědi: ImageNet nechat, Sentinel Hub nechat, **JRC nepoužívat**.
 
+- **2026-10-08 (noc) — M9: model v0.2 (D-M9-04)** nahradil v0.1: stejné rozhraní, `fetch_model.py` → `models/floodseg_v0.2/`,
+  `run_ai.py` ho bere jako výchozí. Lepší v horách (test F1 0,53 vs 0,49), celkově stejný (F1 0,775).
 - **2026-10-08 — M9: model v0.1 k dispozici pro propojení:** `python training/fetch_model.py` → `models/floodseg_v0.1/`
   (Kaggle dataset `krataihalfmaster/floodseg-model`, potřebuje `KAGGLE_API_TOKEN` v prostředí; finální hosting O-011).
   `python training/run_ai.py runs/<id>` = dočasný krok M3: `aligned/` + `masks/` → `flood/ai_mask.tif`, `flood/ai_prob.tif` dle kontraktu.

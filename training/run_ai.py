@@ -1,6 +1,6 @@
 """AI water segmentation step of the pipeline (M3, interim location until src/povodne/ exists).
 
-  python training/run_ai.py runs/<run_id> [--model models/floodseg_v0.1/model.pt]
+  python training/run_ai.py runs/<run_id> [--model models/floodseg_v0.2/model.pt]
 
 Reads (docs/ARCHITECTURE.md): aligned/s1_{pre,post}_{vv,vh}.tif (linear sigma0, NaN = nodata), optional second pass
 direction aligned/s1_alt_*.tif, masks/slope.tif, optional masks/hand.tif and masks/s1[_alt]_layover_shadow.tif.
@@ -29,7 +29,7 @@ from floodseg.features import build_features, linear_to_db  # noqa: E402
 from floodseg.infer import load_model, predict_probs  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_MODEL = ROOT / "models" / "floodseg_v0.1" / "model.pt"
+DEFAULT_MODEL = ROOT / "models" / "floodseg_v0.2" / "model.pt"
 
 
 def _read(path: Path) -> tuple[np.ndarray, dict] | tuple[None, None]:

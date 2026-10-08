@@ -356,6 +356,17 @@ Nesmíme skončit s modelem postaveným na něčem, co pak nepovolí, ani s hoto
   na suché zemi 0,00–0,03 %, ale úzké divoké horské řeky radar jako vodu nevidí (VV medián −10 dB ≈ okolní terén) → recall
   vody 0–17 %. Fyzikální limit SAR, uvést v limitacích; suť/bahno řeší M3d. Finální čísla až se vstupem z M1/M2.
 
+## D-M9-04 | 2026-10-08 | přijato (M9) — model v0.2, SSL4EO bez přínosu
+- **Kolo 6 (val):** R34 + sklon + Sen1Floods11 + **Lovász loss** (`r6_r34_lovasz`): val score 0,612 (≈ dosavadních 0,614,
+  rozdíl v šumu), ale nejlepší F1 povodně 0,713 (vs 0,691), F1 vody 0,801 a precision povodně v horách 0,20 (vs 0,12).
+  Primární metrika remízuje → rozhodly sekundární (F1 povodně, hory) → **v0.2 = `r6_r34_lovasz`**.
+  Terrain boost vypuštěn (kolo 4: bez přínosu). UNet++ (kolo 5): 0,604, 2× pomalejší → ne.
+- **SSL4EO-S12 R50** (radarový encoder): val score 0,606, rychlejší rozjezd, ale nižší maximum → **bez přínosu**; dotaz
+  na organizátory kvůli SSL4EO není potřeba, záloha `training/recipes/ssl4eo.json` zůstává (D-M9-02).
+- **Test v0.2 (jednorázově):** F1 povodně 0,775 (v0.1: 0,779 — v šumu), hory F1 0,53 / precision 0,55 (v0.1: 0,49 / 0,49).
+- **Himálaj (předběžně, proxy vstup):** recall vody Teesta 0,20 / Marsyangdi 0,15 (v0.1: 0,17 / 0,12), falešné povodně 0 %.
+- v0.2 v Kaggle datasetu `floodseg-model` (nová verze), `fetch_model.py` a `run_ai.py` výchozí `models/floodseg_v0.2/`.
+
 ---
 
 # Otevřené otázky (k rozhodnutí)
