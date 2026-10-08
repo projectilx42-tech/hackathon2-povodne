@@ -30,6 +30,10 @@ def main() -> None:
     code = find("train.py")
     shutil.copytree(code, WORK / "code", dirs_exist_ok=True)
     exps = EXPS
+    help_text = subprocess.run([sys.executable, str(WORK / "code/train.py"), "--help"], capture_output=True, text=True).stdout
+    unknown = sorted({a for e in exps for a in e["args"] if a.startswith("--") and a not in help_text})
+    if unknown:  # stale code dataset mounted: fail fast instead of wasting GPU time
+        raise SystemExit(f"train.py in the mounted code dataset does not know {unknown}")
     # One shared, memory-mapped copy of the train/val tiles for all experiments (RAM: two in-memory copies
     # of ~50k tiles do not fit into Kaggle's 31 GB).
     cache = Path("/tmp/floodseg_cache")

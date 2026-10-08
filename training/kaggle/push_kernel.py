@@ -31,6 +31,31 @@ def push_code(message: str, code_dataset: str = "floodseg-code") -> None:
         cmd = (["kaggle", "datasets", "version", "-p", str(dst), "-m", message, "-r", "zip"] if exists
                else ["kaggle", "datasets", "create", "-p", str(dst), "-r", "zip"])
         subprocess.run(cmd, check=True)
+    wait_for_code(code_dataset)
+
+
+def wait_for_code(code_dataset: str, timeout_s: int = 900) -> None:
+    """Block until Kaggle serves the new code version (train.py of the same size as ours).
+
+    A kernel pushed right after a dataset version can otherwise mount the previous version (it happened in round 5:
+    two runs failed on options the old train.py did not know).
+    """
+    import re
+    import time
+    want = (ROOT / "train.py").stat().st_size
+    t0 = time.time()
+    while time.time() - t0 < timeout_s:
+        out = subprocess.run(["kaggle", "datasets", "files", f"{USER}/{code_dataset}", "--page-size", "200"],
+                             capture_output=True, text=True).stdout
+        status = subprocess.run(["kaggle", "datasets", "status", f"{USER}/{code_dataset}"],
+                                capture_output=True, text=True).stdout.strip()
+        m = re.search(r"^train\.py\s+(\d+)", out, re.M)
+        if m and int(m.group(1)) == want and status == "ready":
+            time.sleep(60)  # the listing can update before kernels mount the new version
+            print(f"code dataset {code_dataset} is up to date ({int(time.time() - t0)} s)")
+            return
+        time.sleep(20)
+    raise SystemExit(f"code dataset {code_dataset} not updated after {timeout_s} s - not pushing the kernel")
 
 
 def main() -> None:
