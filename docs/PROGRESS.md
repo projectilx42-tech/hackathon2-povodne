@@ -25,7 +25,7 @@ Obtížnost a čas = odhad uživatele.
 | 3 | Pochopit satelity a data | 2–3 | 30 min | — | ⬜ |
 | 4 | Najít zdroje, stránky atd. | 3 | 1–2 h | — | ⬜ |
 | 5 | Stahování dat ze satelitu | ~7 | ~4 h | M1, M2 | ⬜ |
-| 6 | Natrénovat AI (Kaggle) | 7 | 4 h + běh tréninku | M9, M3 | 🟨 kolo 3 běží na Kaggle |
+| 6 | Natrénovat AI (Kaggle) | 7 | 4 h + běh tréninku | M9, M3 | 🟨 kandidát hotový (kolo 3), běží test + kolo 4 |
 | 7 | Algoritmus na suť a bahno | 8 | 4 h | M3d | ⬜ |
 | 8 | Škody | 3 | 2 h | M4 | ⬜ |
 | 9 | Odříznuté obce | 3 | 2,5 h | M5 | ⬜ |
@@ -40,10 +40,10 @@ Obtížnost a čas = odhad uživatele.
 | Repo init, docs, workflow | ✅ | `main` | CLAUDE.md, docs/, Stop hook |
 | M8 Dashboard / webové UI | ⬜ | `feat/dashboard` | technologie O-003 |
 | 0 Skeleton (pyproject, CLI, config, io/grid) | ⬜ | `feat/skeleton` | |
-| M1 Acquire (S1/S2/DEM/OSM) | ⬜ | `feat/acquire` | |
-| M2 Preprocess | ⬜ | `feat/preprocess` | |
-| M9 AI trénink | 🟨 | `claude/relaxed-johnson-wwj9s8` | Unet > SiamUnet (kolo 1); kolo 3 (`floodseg-r3`): sklon, terrain boost, Sen1Floods11 |
-| M3 AI inference (voda) | ⬜ | `feat/ai-model` | dlaždicová inference hotová v `training/floodseg/infer.py` |
+| M1 Acquire (S1/S2/DEM/OSM) | ⬜ | `feat/acquire` | požadavky z M9: D-020, D-027 (sigma0+Lee, oba směry přeletu) |
+| M2 Preprocess | ⬜ | `feat/preprocess` | požadavky z M9: D-027 (layover/shadow maska pro oba tracky, slope, HAND) |
+| M9 AI trénink | 🟨 | `claude/relaxed-johnson-wwj9s8` | kandidát `r3_r34_slope_tb4_s1f11` (val F1 povodně 0,69); test + kolo 4 běží; slabina hory (D-026) |
+| M3 AI inference (voda) | ⬜ | `feat/ai-model` | dlaždicová inference + kalibrace v `training/floodseg/infer.py`; pravidla skládání D-028 |
 | M3d Suť a bahno | ⬜ | `feat/debris` | |
 | M4 Damage | ⬜ | `feat/damage` | |
 | M5 Network / cut-off | ⬜ | `feat/network` | |
@@ -75,6 +75,13 @@ Obtížnost a čas = odhad uživatele.
   plná val (2 825 dlaždic) F1 povodně 0,65; **hory (převýšení > 200 m): precision povodně 0,06** = radarový stín jako voda;
   přeučení od 4. epochy. Val je z 85 % event 279 → výběr modelu teď průměrem přes eventy.
 - Opravy: sdílená memmap cache (`training/build_cache.py`), sklon jako uint8 stupně, `--terrain-boost`, 10 epoch.
+- Kolo 3 (všechny 4 doběhly): sklon terénu pomáhá nejvíc (hory: precision povodně 0,07 → 0,24); vítěz podle val
+  `r3_r34_slope_tb4_s1f11` (val score 0,614, F1 povodně 0,69). V horách pořád > 75 % falešných → masky nutné (D-026).
+- Na pokyn uživatele zapsány požadavky na M1/M2 (D-027: oba směry přeletu, layover/shadow, slope, HAND) a pravidla M3 (D-028).
+  ARCHITECTURE: `s1_alt_*`, `acquire.s1_alt`, kontrakt modelu (7 kanálů, temperature). O-010: kam uložit váhy.
+- Běží: test vítěze na Kuro Siwo test eventech (lokálně CPU, `training/evaluate.py --tta`) + kolo 4 na Kaggle (`floodseg-r4`:
+  sklon+S1F11 bez boostu, R50). Váhy: `kaggle kernels output krataihalfmaster/floodseg-r3 -p models/round3` (nejsou v gitu).
+- Zbývá M9: finální výběr podle val → test → model card do README/reportu; himálajská sada (O-005, čeká na M1/M2).
 - (Původní plán) Další krok: uživatel uloží `KAGGLE_USERNAME` + `KAGGLE_KEY` do environmentu → **nová session**: znovu připravit data
   (`prepare_kurosiwo.py`, ~1 h, data v kontejneru nepřežijí), nahrát jako Kaggle dataset, spustit trénink + ablaci se sklonem.
   Pak himálajská evaluační sada (O-005, závisí na M1/M2).

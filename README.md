@@ -29,6 +29,6 @@ documentation and implementation. Per-module notes on which parts were AI-assist
 - Produced using Copernicus WorldDEM-30 © DLR e.V. 2010–2014 and © Airbus Defence and Space GmbH 2014–2018 provided under
   COPERNICUS by the European Union and ESA; all rights reserved.
 - © OpenStreetMap contributors (ODbL), pre-event snapshot via the ohsome API.
-- Training data: Kuro Siwo — Bountos et al., 2024 (NeurIPS Datasets and Benchmarks). _Sen1Floods11 — Bonafilia et al., CVPR
-  Workshops 2020 (if used)._
+- Training data: Kuro Siwo — Bountos et al., 2024 (NeurIPS Datasets and Benchmarks). Sen1Floods11 — Bonafilia et al., CVPR
+  Workshops 2020.
 - Validation only (never used as input): European Union, Copernicus Emergency Management Service data (EMSR927).

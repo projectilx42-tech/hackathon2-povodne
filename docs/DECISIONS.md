@@ -158,6 +158,32 @@ jen ~190 dlaždic (hlavně event 279) → čísla pro hory jsou hrubá. I nejlep
 povodní → **masky layover/shadow, sklon a HAND v M2/M3 jsou nutné** (model sám to nevyřeší). Kolo 4 ověřuje sklon+S1F11
 bez boostu a ResNet50; finální model se vybere podle val score.
 
+## D-027 | 2026-10-08 | přijato (uživatel: „dej tam všechno, co potřebuješ“) — požadavky M9 na M1/M2
+Kontext: v horách model plete radarový stín a tmavé svahy s vodou (D-026). RTC jen srovná jas svahů; data ve stínu ani
+v layoveru nedopočítá (žádný / smíchaný signál) — umí jen říct, kde neplatí. Co reálně pomáhá: druhý směr přeletu a masky.
+**M1 (acquire):**
+- S1 dodat jako **sigma0, geokódováno s DEM, Lee 3×3, 10 m, lineárně** (D-020) — tj. stejně jako tréninková data.
+- Najít páry pre/post pro **oba směry přeletu** (ASCENDING i DESCENDING), každý pár ze stejného relativního orbitu. Hlavní track
+  = ten s lepším pokrytím AOI (méně layover/shadow); druhý jde do `raw/s1_alt/` a `run.json` → `acquire.s1_alt`. Když
+  druhý směr pro dané datum není, `s1_alt` = null + warning (ne chyba).
+- Pre okno: 1–2 scény ze stejného tracku (model umí 1 i 2, průměruje je).
+**M2 (preprocess):**
+- `aligned/s1_*` (+ `s1_alt_*`) na společnou 10 m mřížku.
+- `masks/s1_layover_shadow.tif` (+ `s1_alt_layover_shadow.tif`) z DEM a geometrie satelitu (úhel dopadu, směr pohledu dle
+  orbitu) — vlastní výpočet nebo maska ze zdroje, pokud ji poskytuje.
+- `masks/slope.tif` ve stupních (vstup modelu, D-026) a `masks/hand.tif` (pro pravidla v M3, D-028).
+Kontrakt (ARCHITECTURE.md: `s1_alt_*`, `acquire.s1_alt`) upraven ve stejném commitu.
+
+## D-028 | 2026-10-08 | přijato (M9/M3)
+**Složení AI masky v M3: dva tracky + fyzikální pravidla terénu.**
+- Model se pustí zvlášť na každý track (pre/post vždy ze stejného tracku). Platnost pixelu = není layover/shadow v daném tracku.
+  Oba platné → `ai_prob` = průměr; jeden → ten; žádný → nodata (0).
+- Voda (třídy 2 a 4) se nastaví na 1 (nezasaženo), kde sklon > 15° nebo HAND > 30 m (oba prahy konfigurovatelné).
+  Důvod: voda nemůže stát na strmém svahu ani vysoko nad řekou; podobná pravidla používají provozní systémy (např. GFM,
+  globální mapování povodní s maskou svahů > 10°). Prahy jsou fyzikální odhad, **neladí se na EMSR927** (D-006);
+  případné doladění jen na Kuro Siwo val. Suť/bahno (M3d) se těmito pravidly neřídí.
+- Hodnoty jsou výchozí a budou ověřeny na himálajské evaluační sadě (O-005).
+
 ---
 
 # Otevřené otázky (k rozhodnutí)
@@ -222,6 +248,10 @@ počet a délka blokovaných cest, zasažené mosty. Problém: obec je v OSM jen
 každé budovy nejbližší obci (Voronoi), případně kruhem kolem bodu. Vyžadovalo by nová pole v `settlements_access.geojson`
 (`buildings_total`, `buildings_hit`, `flooded_area_km2`, `roads_blocked_count`, `roads_blocked_km`, `bridges_hit`) —
 **kontrakt v ARCHITECTURE.md se zatím NEMĚNÍ.**
+
+## O-010 | otevřené — Kam uložit finální váhy modelu (D-010)
+Váhy (~100 MB) teď existují jen jako výstupy Kaggle kernelů a v dočasném kontejneru. Pro porotu (D-016) potřebujeme stabilní
+odkaz: GitHub Release tohoto repa, nebo HF Hub (potřebuje HF účet/token). Rozhodnout, až bude finální model.
 
 ## O-009 | otevřené — Smí model používat předtrénované váhy (ImageNet)?
 Zadání říká „train a model … using the listed training data“; o předtrénovaných vahách encoderu mlčí. Používáme ImageNet
