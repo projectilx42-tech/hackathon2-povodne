@@ -345,6 +345,17 @@ Nesmíme skončit s modelem postaveným na něčem, co pak nepovolí, ani s hoto
   známo, kolik by přechod přinesl. Spin-off session (`docs/SPINOFF_SSL4EO.md`) se teď nespouští.
 - Bez kladné odpovědi organizátorů se SSL4EO model nestane finálním modelem pipeline.
 
+## D-M9-03 | 2026-10-08 | přijato (M9) — noční vyhodnocení: ensemble, pravidlo svahu, práh, Himálaj
+- **Ensemble** 2–3 nejlepších modelů: val F1 povodně 0,691 → 0,702, val score beze změny (0,614) → za 2–3× CPU se nevyplatí;
+  ponechán jako volba (`eval_ensemble.py`, `infer.predict_ensemble`).
+- **Pravidlo „žádná voda na svahu > X°“ (D-034) změřeno na val:** 10–15° nejlepší (score 0,614 → 0,617, F1 0,691 → 0,701,
+  precision povodně v horách 0,12 → 0,18 bez ztráty recallu) → výchozích 15° potvrzeno (na val, ne na EMS).
+- **Práh P(povodeň):** nižší práh zvedá val score, ale snižuje F1 (víc falešných) → ponechán argmax.
+- **Himálajská sada (O-005)** připravena ze Sentinel-2 (`training/himalaya/`, bez EMS): Chamoli 2021, Teesta 2023, kontrola
+  bez povodně Marsyangdi 2024. **Předběžně** (radar z Planetary Computer RTC, přibližně převedený na sigma0): falešné povodně
+  na suché zemi 0,00–0,03 %, ale úzké divoké horské řeky radar jako vodu nevidí (VV medián −10 dB ≈ okolní terén) → recall
+  vody 0–17 %. Fyzikální limit SAR, uvést v limitacích; suť/bahno řeší M3d. Finální čísla až se vstupem z M1/M2.
+
 ---
 
 # Otevřené otázky (k rozhodnutí)
