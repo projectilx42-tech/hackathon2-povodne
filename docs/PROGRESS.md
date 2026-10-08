@@ -57,7 +57,7 @@ Obtížnost a čas = odhad uživatele.
 | Repo init, docs, workflow | ✅ | `main` | CLAUDE.md, docs/, Stop hook |
 | M8 Dashboard / webové UI | 🟨 | `feat/dashboard` | UI hotové nad ukázkovým runem (kroky 1–5 z UI_SPEC); spouští pipeline přes `python -m povodne run`, která zatím neexistuje; chybí renderer PNG překryvů z GeoTIFF; spuštění `python -m dashboard` |
 | 0 Skeleton (pyproject, CLI, config, io/grid) | ⬜ | `feat/skeleton` | |
-| M1 Acquire (S1/S2/DEM/OSM) | 🟨 | `claude/nice-fermi-i7qzk8` | hotový výběr S1 z katalogu + volba hlavní dráhy podle D-X-01 (`acquire/catalog.py`, `acquire/terrain.py`); chybí stahování S1/S2/OSM a výběr pre (D-M1-01) |
+| M1 Acquire (S1/S2/DEM/OSM) | 🟨 | `claude/nice-fermi-i7qzk8` | celý krok hotový (`python -m povodne.acquire`): katalog, hlavní dráha (D-X-01), DEM, kontrola čistoty pre (D-M1-01), S1 obě dráhy kalibrované (D-M1-02), S2, OSM; **OSM neotestováno (ohsome v údržbě)** |
 | M2 Preprocess | ⬜ | `feat/preprocess` | požadavky z M9: D-033 (layover/shadow maska pro oba tracky, slope, HAND) |
 | M9 AI trénink | 🟨 | `claude/relaxed-johnson-wwj9s8` | kandidát `r3_r34_slope_tb4_s1f11` (val F1 povodně 0,69); test + kolo 4 běží; slabina hory (D-032) |
 | M3 AI inference (voda) | ⬜ | `feat/ai-model` | dlaždicová inference + kalibrace v `training/floodseg/infer.py`; pravidla skládání D-034 |
@@ -101,6 +101,12 @@ Obtížnost a čas = odhad uživatele.
 - **DEM ze zdroje AWS Open Data** (veřejné COG dlaždice Copernicus DEM GLO-30, bez přihlášení, čte se jen výřez). Planetary Computer pro DEM vrací HTTP 403.
 - Pozor: pysheds 0.5 volá `np.in1d` (odstraněno v NumPy 2.4) → v `terrain.hand` je náhrada `np.isin`. Testy: 21 offline (`tests/test_acquire_*.py`).
 - Chyba nalezená testem a opravená: výřez scény S1 je napříč dráhou delší (~250 km) než podél (~170 km) → směr letu se určuje podle hran nejblíž sever–jih, ne podle délky.
+- **Kalibrace S1 vůči Kuro Siwo (D-M1-02):** 28 dlaždic, 7 povodní → LEE 7×7 + průměr 3×3 = bez posunu (0,00 dB), šum 0,96× Kuro Siwo. Skripty a čísla `tools/s1_calibration/`.
+- **Celý krok stahování** (`src/povodne/acquire/pipeline.py`, `python -m povodne.acquire --bbox … --event-date … --out runs/…`): test Trishuli 8×9 km: 3,6 min, 44 PU;
+  opakovaný běh používá stažené soubory (1 PU). S2 z AWS (pre 12. 8. 98 % jasno, post 27. 8. 61 %). Výstup na 10m UTM mřížce, scales/offsets v GeoTIFF.
+- **ohsome API je v údržbě (HTTP 503, „Down For Maintenance“)** → OSM vrstvy zatím neotestované; krok to ohlásí varováním a pokračuje. Riziko pro den hodnocení.
+- **Zjištění:** na dně údolí u Trishuli (malý výřez) je podíl tmavé vody ~0 % i na snímku po povodni (60/30/20 m: 0,1/0,2/0,3 %) → povodeň se tu
+  na radaru neprojevuje jako voda, spíš suť/bahno (důležité pro M3d); kontrola čistoty „před“ tu nic nevidí a jemnější rozlišení nepomůže (ponecháno 60 m).
 
 ### 2026-10-08 — master: sloučení sessions do `main` — `claude/gallant-keller-vftpi2`
 - Sloučeny větve `claude/relaxed-johnson-wwj9s8` (M9), `ccr-d89d3cfb-ywooc4` (M8 UI), `claude/nice-fermi-i7qzk8` (satelity) do `main`.
