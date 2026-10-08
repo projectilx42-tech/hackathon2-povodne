@@ -29,9 +29,9 @@ export function createAoi(map, { onChange, onToolChange }) {
     ],
   });
 
-  const MODE = { rectangle: 'rectangle', shape: 'freehand', edit: 'select' };
+  const MODE = { pan: 'static', rectangle: 'rectangle', shape: 'freehand', edit: 'select' };
   let currentId = null;
-  let tool = 'rectangle';
+  let tool = 'pan'; // map can be dragged normally until a draw tool is chosen
 
   const polygonOf = id => {
     const f = draw.getSnapshot().find(x => x.id === id);
@@ -61,9 +61,10 @@ export function createAoi(map, { onChange, onToolChange }) {
   });
 
   draw.start();
-  draw.setMode(MODE.rectangle);
+  draw.setMode(MODE.pan);
+  window.addEventListener('keydown', e => { if (e.key === 'Escape' && (tool === 'rectangle' || tool === 'shape')) api.setTool('pan'); });
 
-  return {
+  const api = {
     setTool(t) {
       if (t === 'edit') {
         if (!currentId) return;
@@ -77,8 +78,8 @@ export function createAoi(map, { onChange, onToolChange }) {
     clear() {
       draw.clear();
       currentId = null;
-      draw.setMode(MODE[tool === 'edit' ? 'rectangle' : tool]);
-      if (tool === 'edit') setTool('rectangle');
+      draw.setMode(MODE.pan);
+      setTool('pan');
       onChange(null);
     },
     hasArea: () => currentId !== null,
@@ -97,7 +98,7 @@ export function createAoi(map, { onChange, onToolChange }) {
     /** Suspend drawing (while another tool such as measuring owns the mouse). */
     pause() { draw.setMode('static'); },
     resume() {
-      if (tool === 'edit' && currentId) { draw.setMode('select'); draw.selectFeature(currentId); } else draw.setMode(MODE[tool === 'edit' ? 'rectangle' : tool]);
+      if (tool === 'edit' && currentId) { draw.setMode('select'); draw.selectFeature(currentId); } else draw.setMode(MODE[tool === 'edit' ? 'pan' : tool]);
     },
     fit(polygon) {
       const xs = polygon.coordinates[0].map(c => c[0]);
@@ -105,4 +106,5 @@ export function createAoi(map, { onChange, onToolChange }) {
       map.fitBounds([[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)]], { padding: 80, duration: 500 });
     },
   };
+  return api;
 }

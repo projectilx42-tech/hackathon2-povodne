@@ -51,7 +51,12 @@ map.on('mousemove', e => { $('coords').textContent = `${e.lngLat.lat.toFixed(4)}
 // ---------- area drawing ----------
 const toolButtons = [...document.querySelectorAll('#tool-group button')];
 const showTool = t => toolButtons.forEach(b => b.classList.toggle('active', b.dataset.tool === t));
-toolButtons.forEach(b => b.addEventListener('click', () => { if (measure?.active) measure.off(); areaTool?.setTool(b.dataset.tool); }));
+toolButtons.forEach(b => b.addEventListener('click', () => {
+  if (measure?.active) measure.off();
+  // clicking the active draw tool again cancels drawing and returns to panning
+  const t = b.dataset.tool;
+  areaTool?.setTool(b.classList.contains('active') && (t === 'rectangle' || t === 'shape') ? 'pan' : t);
+}));
 $('clear-aoi').addEventListener('click', () => areaTool?.clear());
 
 const fmtArea = km2 => (km2 >= 100 ? km2.toFixed(0) : km2.toFixed(1)) + ' km²';
