@@ -181,6 +181,29 @@ Pozn.: jména v OSM dlaždicích jsou místní (nepálsky/čínsky), ne anglicky
 Ukázkový run `dashboard/sample_run/` je **syntetický** (generuje `dashboard/tools/make_sample_run.py`), `run.json.mock = true`, v UI štítek „SAMPLE DATA“.
 Důvod: UI se vyvíjí a ukazuje před existencí pipeline; syntetická data nesmí být zaměnitelná za výsledek (viz limity v reportu).
 Otevřené: renderer PNG překryvů z GeoTIFF (M8 backend) zatím neexistuje; `python -m povodne serve` doplní skeleton.
+## D-029 | 2026-10-08 | přijato (rozhodnutí uživatele)
+**Systém musí fungovat pro libovolné místo na světě, ne jen pro Nepál. Snímek „před“ musí být ověřený jako nezasažený povodní.**
+- Žádná logika svázaná s Himálajem/Trishuli: relativní dráhy, UTM zóna, časy průletů se zjišťují z katalogu pro zadanou AOI a datum.
+- **Snímek „před“ může být sám zasažený povodní** (povodeň začala dřív než zadané datum, pomalá/dlouhá povodeň, uživatel zadal pozdní datum).
+  Pipeline proto nesmí slepě vzít poslední snímek před datem: musí zjistit, zda už povodeň neobsahuje, a pokud ano, vzít starší snímek
+  **stejné relativní dráhy** (o 12 dní dříve, případně dál), dokud nenajde čistý. Zvolený snímek a důvod výběru zapsat do `run.json`
+  (`warnings`) a do stats; pokud čistý snímek neexistuje, jasně to říct (viz D-013), ne tiše počítat s kontaminovaným. Metoda ověření zatím není určena.
+- Snímek „po“ = první dostupný po události; „před“ musí být ze stejné relativní dráhy jako „po“.
+- Satelitní data se stahují jen jako výřez (D-018). Registraci na CDSE uživatel provede (viz D-011).
+- Používat každou hotovou zkratku (knihovny, hotové služby), která je v souladu s datovými pravidly; legálnost ověřit před použitím.
+
+## D-030 | 2026-10-08 | přijato (master session; uživatel: „urovnej konflikty mezi sessions“)
+**Sladění paralelních sessions (M9 model, M8 UI, M1/M2 satelity).**
+1. **Číslování:** M9 ponechává D-020–D-025; UI D-020/021/022 → **D-026/027/028**; satelity D-020 → **D-029**. Dvě O-009 sloučeny
+   do jedné (otázky na Discord). Každá session před zápisem do DECISIONS udělá `git merge origin/main` a vezme další volné číslo.
+2. **Vstupy modelu:** platí kontrakt M9 (D-020, D-021, sekce *AI model kontrakt* v ARCHITECTURE.md): snímky před/po VV+VH a jejich
+   rozdíl v dB, volitelně sklon. **Absolutní výška z DEM do modelu nejde**; DEM slouží jen pro terénní masky (stín/layover, sklon, HAND).
+3. **Radar z M1/M2 = sigma0** (ne gamma0/RTC), geokódování s Copernicus DEM, Lee 3×3, 10 m — jako Kuro Siwo (D-020). ARCHITECTURE upraveno.
+4. **Snímky „před“:** Kuro Siwo má 2 pre + 1 post (ověřeno M9). Model zvládá 1 i 2 pre (průměr v lineární škále, `features.combine_pre_db`).
+   M1 dodává až 2 čisté pre snímky ze stejné dráhy jako post (kontrola čistoty D-029).
+5. **Více drah:** M1/M2 smí zpracovat více drah, každou zvlášť. Kvůli UI (slider, překryvy) a M3 zůstávají
+   `aligned/s1_{pre,post}_{vv,vh}.tif` = **primární dráha** (pre = průměr pre scén). Data dalších drah a jednotlivých pre scén jsou navíc;
+   pojmenování určí M1/M2 v ARCHITECTURE.md se zápisem do DECISIONS. Spojení drah do `flood/` viz O-010.
 
 ---
 
@@ -247,6 +270,17 @@ každé budovy nejbližší obci (Voronoi), případně kruhem kolem bodu. Vyža
 (`buildings_total`, `buildings_hit`, `flooded_area_km2`, `roads_blocked_count`, `roads_blocked_km`, `bridges_hit`) —
 **kontrakt v ARCHITECTURE.md se zatím NEMĚNÍ.**
 
-## O-009 | otevřené — Smí model používat předtrénované váhy (ImageNet)?
-Zadání říká „train a model … using the listed training data“; o předtrénovaných vahách encoderu mlčí. Používáme ImageNet
-encoder (D-021). Doporučený dotaz organizátorům na Discordu; pokud by to nebylo povoleno, `train.py --no-pretrained`.
+## O-009 | otevřené — Otázky pro organizátory na Discordu
+Z dokumentů nejde poznat; zeptat se (anglicky, ke zkopírování):
+1. "May we use Sentinel-1 data already terrain-corrected (RTC) by a data provider, e.g. Microsoft Planetary Computer `sentinel-1-rtc` (processed with PlanetDEM)? Or must terrain correction use Copernicus DEM only (e.g. Sentinel Hub on CDSE)?"
+2. "May we start our own training from pretrained weights (ImageNet encoders, foundation models such as Prithvi, published Kuro Siwo checkpoints)?"
+   (Model teď používá ImageNet encoder, D-021; pokud by to nebylo povoleno: `train.py --no-pretrained`. Sloučeno z původní O-009 session M9.)
+3. "May we use global water layers (JRC Global Surface Water, ESA WorldCover) to mask permanent water, or only water derived from Sentinel imagery before the event?"
+4. "May EMSR927 be used to compute validation metrics for the AI model on Himalayan scenes (checking only, never training or threshold tuning)? Or should held-out evaluation use other labels?"
+5. "On judging day, will judges run the app themselves on their own machine with internet access? Is it acceptable that they register a free CDSE account?"
+6. "Judges choose area and date live: may the chosen event have no Sentinel-1 post-event pass yet? Is an explicit 'insufficient data' result acceptable?"
+7. "For events other than the Trishuli case, is the ohsome snapshot before the event date the expected OSM source?"
+
+## O-010 | otevřené — Jak spojit výsledky z více drah S1 (vlastník M3)
+Každá dráha se vyhodnotí zvlášť (D-030). Neurčeno: pravidlo při neshodě drah, různá data snímků „po“ (voda mezitím opadává),
+jak u každé plochy uložit dráhu a datum a ukázat je v UI/sitrepu.

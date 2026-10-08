@@ -51,13 +51,14 @@ Každé spuštění pipeline = adresář `runs/<run_id>/` (není v gitu). `run_i
 runs/<run_id>/
   run.json                       # M1 zakládá, ostatní moduly připisují do svých sekcí
   raw/
-    s1/pre_*.tif, post_*.tif     # S1 GRD/RTC, VV a VH, lineární gamma0/sigma0 (ne dB)
+    s1/pre_*.tif, post_*.tif     # S1 GRD, VV a VH, lineární sigma0 (ne dB, ne gamma0/RTC), Lee 3×3 — D-020, D-030
     s2/pre_*.tif, post_*.tif     # S2 L2A, pásma B02,B03,B04,B08,B11,B12 + SCL
     dem/dem.tif                  # Copernicus DEM GLO-30
     osm/osm_raw.gpkg             # ohsome extrakt, snapshot < event_date
   aligned/
     grid.json                    # {"crs":"EPSG:32645","transform":[...],"width":..,"height":..,"res":10}
     s1_pre_vv.tif  s1_pre_vh.tif  s1_post_vv.tif  s1_post_vh.tif     # float32, linear, NaN = nodata
+                                 # = primární dráha, pre = průměr pre scén; další dráhy navíc (D-030)
     s2_pre.tif  s2_post.tif      # float32 reflectance 0–1, band order: B02,B03,B04,B08,B11,B12 (chybí-li scéna, soubor neexistuje)
     dem.tif                      # float32, m
   masks/
