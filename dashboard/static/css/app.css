@@ -235,3 +235,5 @@ input[type=checkbox] { accent-color: var(--accent); }
 .footer .linklike { margin-left: auto; font-size: 11px; }
 .card h2 + .card-body { margin-top: 6px; }
 @media (max-width: 900px) { .search { width: 60%; } .layers-card { max-height: 40%; } .popover, .popover.wide { width: min(340px, 90vw); } }
+
+#adv-state { font-weight: 600; color: var(--accent); }

@@ -39,10 +39,10 @@
         <label class="label" for="event-date">Flood date</label>
         <input type="date" id="event-date" class="field">
         <div class="pop-wrap">
-          <button type="button" class="btn ghost" id="adv-btn" aria-haspopup="true" aria-expanded="false">Advanced<span class="dot" id="adv-dot" hidden></span></button>
+          <button type="button" class="btn ghost" id="adv-btn" aria-haspopup="true" aria-expanded="false">Before / after: <b id="adv-state">Auto</b></button>
           <div class="popover" id="adv-pop" hidden>
-            <h3>Before / after windows</h3>
-            <p class="muted">Leave empty and the system chooses suitable satellite windows itself.</p>
+            <h3>Before / after satellite windows</h3>
+            <p class="muted">Optional. By default (Auto) the system picks the last radar scene before the flood and the first after it from the same orbit. Set windows to choose yourself.</p>
             <div class="win"><span>Before</span><input type="date" class="field" id="pre-from" aria-label="Before window from"><span>–</span><input type="date" class="field" id="pre-to" aria-label="Before window to"></div>
             <div class="win"><span>After</span><input type="date" class="field" id="post-from" aria-label="After window from"><span>–</span><input type="date" class="field" id="post-to" aria-label="After window to"></div>
             <p class="notice warn" id="adv-warn" hidden></p>
