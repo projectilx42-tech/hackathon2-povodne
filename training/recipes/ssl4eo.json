@@ -1,0 +1,4 @@
+[
+ {"name": "final_ssl4eo", "args": ["--arch", "Unet", "--encoder", "resnet50", "--encoder-weights", "ssl4eo_s1",
+  "--epochs", "10", "--slope", "--sen1floods11", "--terrain-boost", "4", "--tta"]}
+]
