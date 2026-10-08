@@ -31,7 +31,7 @@ Obtížnost a čas = odhad uživatele.
 | 9 | Odříznuté obce | 3 | 2,5 h | M5 | ⬜ |
 | 10 | Stránka a UI | 4–5 | 3–4 h | M8 | ⬜ |
 | 11 | Testy a propojení | 4–5 | 2–3 h | — | ⬜ |
-| 12 | „POZISH/POLISH“ (význam neověřen) | 3 | 2 h | — | ⬜ |
+| 12 | Polish = dokončení, začištění a propojení (propojuje se i průběžně během práce) | 3 | 2 h | — | ⬜ |
 | 13 | Byrokracie (video, report, …) | 4 | 4 h | — | ⬜ |
 
 ## Stav modulů

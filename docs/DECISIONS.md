@@ -88,6 +88,9 @@ na instalaci, jeden na spuštění). Docker ani `uv` nejsou potřeba.
 ## D-018 | 2026-10-08 | přijato (rozhodnutí uživatele)
 **Satelitní data se stahují jen jako výřez zvolené oblasti**, nikdy celé scény (Sentinel-1 scéna má 1–2 GB).
 
+## D-019 | 2026-10-08 | přijato (rozhodnutí uživatele)
+**Výběr oblasti na mapě má dva režimy: obdélník a kreslení vlastního tvaru myší** (kolečko, „brambora“ apod.). **Výchozí je obdélník.**
+
 ---
 
 # Otevřené otázky (k rozhodnutí)
@@ -141,7 +144,7 @@ Rozložení: nahoře lišta (výběr oblasti na mapě, datum povodně, tlačítk
   před a po povodni (vzdálenost, čas), blokující úseky (`blocking_cuts`) + tlačítko „ukázat blokující úseky na mapě“, tlačítko zpět.
   Tato data už kontrakt `settlements_access.geojson` obsahuje.
 - Všechna čísla v panelu ze `stats.json` / výstupních GeoJSON (žádná čísla mimo ně).
-- Tvar výběru oblasti (obdélník / mnohoúhelník) zatím **nerozhodnut**.
+- Tvar výběru oblasti: viz D-019.
 
 ## O-008 | do budoucna (uživatel 2026-10-08: teď nedělat) — Úroveň zasažení obce
 Nápad rozšířit detail obce o „jak moc je obec zasažena“: zasažené budovy obce / celkem, zaplavená plocha v okolí,
