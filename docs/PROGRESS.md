@@ -8,6 +8,7 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-08 — `requirements.txt` v kořeni repa (M1):** seznam knihoven pipeline (`requests`, `shapely`, `rasterio`, `pyproj`, `scipy`, `pysheds`, `torch`, `segmentation-models-pytorch`); každý modul si sem přidá své; skeleton ho převezme do `pyproject.toml`.
 - **2026-10-08 — nové pravidlo v `CLAUDE.md` (Jak mluvit s uživatelem):** uživateli nepsat interní označení (čísla rozhodnutí, zkratky modulů) ani odborné pojmy bez vysvětlení; v souborech smí zůstat.
 - **2026-10-08 — hlavní dráha (D-X-01):** nejdřívější post; výjimka, když druhá dráha má post ≤ 3 dny později a dno údolí vidí o ≥ 10 p. b. líp. Nová pole `acquire.s1.primary_reason`, `valley_visibility`.
 - **2026-10-08 — výběr snímku „před“ (D-M1-01):** časová řada podílu vody v ~60 m → pre = poslední průlet před nárůstem vody; nové pole `run.json.acquire.s1.pre_selection` (UI ho může ukázat, M6 do sitrepu varování).
@@ -55,7 +56,7 @@ Obtížnost a čas = odhad uživatele.
 | Repo init, docs, workflow | ✅ | `main` | CLAUDE.md, docs/, Stop hook |
 | M8 Dashboard / webové UI | 🟨 | `feat/dashboard` | UI hotové nad ukázkovým runem (kroky 1–5 z UI_SPEC); spouští pipeline přes `python -m povodne run`, která zatím neexistuje; chybí renderer PNG překryvů z GeoTIFF; spuštění `python -m dashboard` |
 | 0 Skeleton (pyproject, CLI, config, io/grid) | ⬜ | `feat/skeleton` | |
-| M1 Acquire (S1/S2/DEM/OSM) | 🟨 | `claude/nice-fermi-i7qzk8` | hotový výběr S1 z katalogu (`acquire/catalog.py`); požadavky z M9: D-020, D-033 (sigma0+Lee, oba směry přeletu) |
+| M1 Acquire (S1/S2/DEM/OSM) | 🟨 | `claude/nice-fermi-i7qzk8` | hotový výběr S1 z katalogu + volba hlavní dráhy podle D-X-01 (`acquire/catalog.py`, `acquire/terrain.py`); chybí stahování S1/S2/OSM a výběr pre (D-M1-01) |
 | M2 Preprocess | ⬜ | `feat/preprocess` | požadavky z M9: D-033 (layover/shadow maska pro oba tracky, slope, HAND) |
 | M9 AI trénink | 🟨 | `claude/relaxed-johnson-wwj9s8` | kandidát `r3_r34_slope_tb4_s1f11` (val F1 povodně 0,69); test + kolo 4 běží; slabina hory (D-032) |
 | M3 AI inference (voda) | ⬜ | `feat/ai-model` | dlaždicová inference + kalibrace v `training/floodseg/infer.py`; pravidla skládání D-034 |
@@ -92,6 +93,13 @@ Obtížnost a čas = odhad uživatele.
   Dotaz s hranicemi v UTM (EPSG:32645) vrací přesně 10m mřížku v UTM, takže M2 nemusí převzorkovávat.
 - **Neověřeno:** shoda hodnot s tréninkovými daty. Hory u Trishuli: VV medián −4 dB, VH −11 dB; trénink má střední hodnoty VV −10 dB, VH −17 dB (`DEFAULT_NORM`).
   Rozdíl může být terénem (sigma0 bez terénní korekce, strmé svahy, zástavba), ne chybou kalibrace — rozhodne až srovnání s dlaždicí Kuro Siwo (potřebuje M9).
+- **Hlavní dráha podle D-X-01 implementována** (`choose_main`, přepínač `prefer` zrušen): viditelnost dna údolí z DEM + geometrie dráhy z obrysu scény
+  (`acquire/terrain.py`: DEM, HAND přes pysheds, sklon, layover/shadow paprskem podél směru pohledu; `track_geometry`: směr letu, směr pohledu, úhel dopadu).
+  Dno údolí = HAND ≤ 30 m a sklon ≤ 15° (výchozí hodnoty D-034). Výstup pro `run.json`: `acquire_json()` (`primary_reason`, `valley_visibility`).
+  Živě: Trishuli hlavní 85 ASC (post 28. 8.), viditelnost 81 % vs 74 % (19 DESC); Derna 90/90 %; Česko 89/90 % → všude „earliest post“. Čas 15–50 s podle velikosti oblasti.
+- **DEM ze zdroje AWS Open Data** (veřejné COG dlaždice Copernicus DEM GLO-30, bez přihlášení, čte se jen výřez). Planetary Computer pro DEM vrací HTTP 403.
+- Pozor: pysheds 0.5 volá `np.in1d` (odstraněno v NumPy 2.4) → v `terrain.hand` je náhrada `np.isin`. Testy: 21 offline (`tests/test_acquire_*.py`).
+- Chyba nalezená testem a opravená: výřez scény S1 je napříč dráhou delší (~250 km) než podél (~170 km) → směr letu se určuje podle hran nejblíž sever–jih, ne podle délky.
 
 ### 2026-10-08 — master: sloučení sessions do `main` — `claude/gallant-keller-vftpi2`
 - Sloučeny větve `claude/relaxed-johnson-wwj9s8` (M9), `ccr-d89d3cfb-ywooc4` (M8 UI), `claude/nice-fermi-i7qzk8` (satelity) do `main`.

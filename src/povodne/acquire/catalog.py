@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import time
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
@@ -28,6 +29,8 @@ PRODUCT_TYPE = "IW_GRDH_1S"  # IW GRD high resolution; the *-COG duplicates have
 PAGE_SIZE = 100
 # Slices of one pass start ~25 s apart; anything within this gap belongs to the same acquisition.
 SAME_PASS_GAP = timedelta(minutes=3)
+# Incidence angle range of the IW swath (near to far range), used to estimate the angle at the AOI.
+IW_INCIDENCE_NEAR, IW_INCIDENCE_FAR = 29.1, 46.0
 
 
 @dataclass(frozen=True)
@@ -78,6 +81,44 @@ class Plan:
     alt: TrackPlan | None
     tracks: list[TrackPlan]
     warnings: list[str] = field(default_factory=list)
+    primary_reason: str = ""
+    valley_visibility: dict[tuple[int, str], float | None] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class TrackGeometry:
+    heading_deg: float  # flight direction, clockwise from north
+    look_azimuth_deg: float  # direction the radar looks (S1 is right-looking: heading + 90)
+    incidence_deg: float  # estimated incidence angle at the AOI centre
+
+
+def track_geometry(footprint: BaseGeometry, direction: str, point) -> TrackGeometry:
+    """Flight heading, look direction and incidence angle at `point`, estimated from a slice footprint.
+
+    The footprint is (close to) a rectangle. A slice is ~250 km across the swath but only ~170 km along it, so edge
+    length does not tell the flight direction; orientation does: S1 flies a near-polar orbit, so the two edges closest
+    to north-south run along the flight path (true except very close to the poles). These two edges are also the
+    near- and far-range sides of the swath, between which the IW incidence angle grows roughly linearly.
+    """
+    corners = list(footprint.minimum_rotated_rectangle.exterior.coords)[:4]
+    lat0 = math.radians(point.y)
+
+    def xy(c):  # local metres around the point
+        return ((c[0] - point.x) * 111_320 * math.cos(lat0), (c[1] - point.y) * 111_320)
+
+    pts = [xy(c) for c in corners]
+    edges = [(pts[i], pts[(i + 1) % 4]) for i in range(4)]
+    along = sorted(edges, key=lambda e: abs(e[1][0] - e[0][0]) / max(math.dist(*e), 1e-9))[:2]
+    (ax, ay), (bx, by) = along[0]
+    dx, dy = bx - ax, by - ay
+    if (dy < 0) == (direction == "ASCENDING"):  # ascending flies north, descending south
+        dx, dy = -dx, -dy
+    heading = math.degrees(math.atan2(dx, dy)) % 360
+    look = (heading + 90) % 360
+    lx, ly = math.sin(math.radians(look)), math.cos(math.radians(look))
+    proj = sorted(((e[0][0] + e[1][0]) / 2 * lx + (e[0][1] + e[1][1]) / 2 * ly) for e in along)
+    frac = min(max((0.0 - proj[0]) / (proj[1] - proj[0]), 0.0), 1.0) if proj[1] > proj[0] else 0.5
+    return TrackGeometry(heading, look, IW_INCIDENCE_NEAR + frac * (IW_INCIDENCE_FAR - IW_INCIDENCE_NEAR))
 
 
 def aoi_to_geometry(aoi) -> BaseGeometry:
@@ -160,13 +201,12 @@ def group_acquisitions(scenes: list[S1Scene], aoi: BaseGeometry) -> list[Acquisi
     return sorted(out, key=lambda a: a.start)
 
 
-def plan_tracks(acqs: list[Acquisition], event_date: date, lookback_days: int = 60, min_coverage: float = 0.9,
-                prefer: str = "earliest_post") -> Plan:
+def plan_tracks(acqs: list[Acquisition], event_date: date, lookback_days: int = 60, min_coverage: float = 0.9) -> Plan:
     """Per track: first acquisition after the event day (post) and earlier ones (pre candidates).
 
     Acquisitions on the event day itself are not used as post: the catalogue gives no flood time, so they may
-    precede the flood. `prefer` picks the main track: "earliest_post" (earliest post, then best coverage).
-    D-033 would rather pick the track with the least layover/shadow, which needs the DEM and is decided later.
+    precede the flood. The main track is the one with the earliest post (then best coverage); the alt track is the
+    earliest one from the opposite flight direction. `choose_main` may swap them based on valley-floor visibility.
     """
     warnings: list[str] = []
     window_start = datetime.combine(event_date - timedelta(days=lookback_days), datetime.min.time(), timezone.utc)
@@ -188,19 +228,64 @@ def plan_tracks(acqs: list[Acquisition], event_date: date, lookback_days: int = 
             warnings.append(f"Track {t.relative_orbit} {t.direction}: post-event {post}, "
                             f"{len(t.pre_candidates)} earlier acquisition(s) in the last {lookback_days} days.")
         return Plan(None, None, tracks, warnings)
-    if prefer != "earliest_post":
-        raise ValueError(f"unknown policy: {prefer}")
     usable.sort(key=lambda t: (t.post.start, -t.post.coverage))
     main = usable[0]
     opposite = [t for t in usable if t.direction != main.direction]
     alt = opposite[0] if opposite else None
     if alt is None:
         warnings.append("No acquisition from the opposite flight direction: s1_alt is null.")
-    return Plan(main, alt, tracks, warnings)
+    return Plan(main, alt, tracks, warnings, primary_reason="earliest post")
 
 
-def find_plan(aoi, event_date: date, lookback_days: int = 60, post_horizon_days: int = 20, min_coverage: float = 0.9) -> Plan:
-    """Search the catalogue and plan tracks. `aoi` is GeoJSON or bbox in EPSG:4326."""
+def choose_main(plan: Plan, visibility: dict[tuple[int, str], float | None], max_delay_days: float = 3.0,
+                min_gain: float = 0.10) -> Plan:
+    """Main track rule (D-X-01): earliest post, unless the other track's post is at most `max_delay_days` later
+    and its valley-floor visibility is at least `min_gain` (share, 0.10 = 10 points) better. Thresholds are
+    physical/practical defaults, never tuned on EMS maps (D-006)."""
+    plan.valley_visibility = dict(visibility)
+    if plan.main is None:
+        return plan
+    vm = visibility.get(plan.main.key)
+    if plan.alt is None:
+        plan.primary_reason = "earliest post (no track from the opposite direction)"
+        return plan
+    va = visibility.get(plan.alt.key)
+    if vm is None or va is None:
+        plan.primary_reason = "earliest post (valley-floor visibility not available)"
+        return plan
+    delay_days = (plan.alt.post.start - plan.main.post.start).total_seconds() / 86400
+    if delay_days <= max_delay_days and va - vm >= min_gain:
+        plan.main, plan.alt = plan.alt, plan.main
+        plan.primary_reason = (f"better valley-floor visibility ({va:.0%} vs {vm:.0%}), "
+                               f"post +{delay_days:.1f} days")
+    else:
+        plan.primary_reason = f"earliest post (valley-floor visibility {vm:.0%} vs {va:.0%} for the other track)"
+    return plan
+
+
+def compute_valley_visibility(plan: Plan, aoi: BaseGeometry, dem=None) -> dict[tuple[int, str], float | None]:
+    """Valley-floor visibility of the main and alt candidates from the Copernicus DEM and track geometry (no images)."""
+    from . import terrain
+
+    dem = dem or terrain.fetch_dem(aoi)
+    hand = terrain.hand(dem)
+    floor = terrain.valley_floor(hand, terrain.slope_deg(dem.data, dem.res)) & terrain.aoi_mask(aoi, dem)
+    out: dict[tuple[int, str], float | None] = {}
+    for t in (plan.main, plan.alt):
+        if t is None:
+            continue
+        scene = next((s for s in t.post.scenes if s.footprint.contains(aoi.centroid)), t.post.scenes[0])
+        g = track_geometry(scene.footprint, t.direction, aoi.centroid)
+        lay, sh = terrain.layover_shadow(dem.data, dem.res, g.look_azimuth_deg, g.incidence_deg)
+        out[t.key] = terrain.valley_visibility(floor, lay, sh)
+    return out
+
+
+def find_plan(aoi, event_date: date, lookback_days: int = 60, post_horizon_days: int = 20, min_coverage: float = 0.9,
+              visibility: bool = True) -> Plan:
+    """Search the catalogue and plan tracks. `aoi` is GeoJSON or bbox in EPSG:4326.
+
+    With `visibility` the main track is chosen by D-X-01 (downloads the DEM for the AOI, no satellite images)."""
     geom = aoi_to_geometry(aoi)
     start = datetime.combine(event_date - timedelta(days=lookback_days + 1), datetime.min.time())
     end = datetime.combine(event_date + timedelta(days=post_horizon_days + 1), datetime.min.time())
@@ -208,7 +293,27 @@ def find_plan(aoi, event_date: date, lookback_days: int = 60, post_horizon_days:
     plan = plan_tracks(acqs, event_date, lookback_days, min_coverage)
     if not any(t.post for t in plan.tracks):
         plan.warnings.append(f"No post-event S1 acquisition in the catalogue within {post_horizon_days} days after {event_date}.")
+    if visibility and plan.main is not None:
+        try:
+            plan = choose_main(plan, compute_valley_visibility(plan, geom))
+        except Exception as exc:  # DEM unavailable: keep earliest post, but say so
+            plan.warnings.append(f"Valley-floor visibility could not be computed ({exc}); main track = earliest post.")
+            plan = choose_main(plan, {})
     return plan
+
+
+def acquire_json(plan: Plan) -> dict:
+    """`acquire.s1` / `acquire.s1_alt` blocks for run.json (pre is filled later by the pre-scene selection, D-M1-01)."""
+    def block(t: TrackPlan | None, primary: bool):
+        if t is None:
+            return None
+        b = {"relative_orbit": t.relative_orbit, "orbit_direction": t.direction, "pre": [],
+             "post": [t.post.to_json()] if t.post else [], "source": "CDSE",
+             "valley_visibility": plan.valley_visibility.get(t.key)}
+        if primary:
+            b["primary_reason"] = plan.primary_reason
+        return b
+    return {"s1": block(plan.main, True), "s1_alt": block(plan.alt, False)}
 
 
 def _describe(t: TrackPlan | None) -> dict | None:
@@ -222,9 +327,11 @@ def main() -> None:
     p = argparse.ArgumentParser(description="Show the S1 tracks and scenes the pipeline would use (no download).")
     p.add_argument("--bbox", nargs=4, type=float, required=True, metavar=("MINLON", "MINLAT", "MAXLON", "MAXLAT"))
     p.add_argument("--event-date", required=True, help="YYYY-MM-DD")
+    p.add_argument("--no-visibility", action="store_true", help="skip the DEM-based valley-floor visibility")
     args = p.parse_args()
-    plan = find_plan(args.bbox, date.fromisoformat(args.event_date))
-    print(json.dumps({"main": _describe(plan.main), "alt": _describe(plan.alt),
+    plan = find_plan(args.bbox, date.fromisoformat(args.event_date), visibility=not args.no_visibility)
+    print(json.dumps({"main": _describe(plan.main), "alt": _describe(plan.alt), "primary_reason": plan.primary_reason,
+                      "valley_visibility": {f"{k[0]} {k[1]}": v for k, v in plan.valley_visibility.items()},
                       "other_tracks": [_describe(t) for t in plan.tracks if t not in (plan.main, plan.alt)],
                       "warnings": plan.warnings}, indent=2))
 
