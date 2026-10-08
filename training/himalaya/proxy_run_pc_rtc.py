@@ -47,10 +47,15 @@ def main() -> None:
     ap.add_argument("--labels", type=Path, required=True)
     ap.add_argument("--runs", type=Path, required=True)
     ap.add_argument("--model", type=Path, default=None)
+    ap.add_argument("--both-tracks", action="store_true", help="also use the opposite pass direction (s1_alt, D-034)")
+    ap.add_argument("--only", nargs="*", default=None, help="event ids to (re)run")
     args = ap.parse_args()
     cat = Client.open("https://planetarycomputer.microsoft.com/api/stac/v1", modifier=pc.sign_inplace)
-    summary = {}
+    summary_path = args.runs / "summary.json"
+    summary = json.loads(summary_path.read_text()) if summary_path.exists() else {}
     for ev in json.loads((HERE / "events.json").read_text())["events"]:
+        if args.only and ev["id"] not in args.only:
+            continue
         lab = args.labels / ev["id"]
         grid = json.loads((lab / "grid.json").read_text())
         run = args.runs / ev["id"]
@@ -58,14 +63,16 @@ def main() -> None:
         (run / "masks").mkdir(exist_ok=True)
         prof = dict(driver="GTiff", height=grid["height"], width=grid["width"], count=1, dtype="float32",
                     crs=grid["crs"], transform=rasterio.Affine(*grid["transform"]), compress="deflate", nodata=np.nan)
-        for when in ("pre", "post"):
-            d = ev["s1"][when]
-            items = [i for i in cat.search(collections=["sentinel-1-rtc"], bbox=ev["aoi_bbox"], datetime=f"{d}/{d}").items()
-                     if i.properties.get("sat:relative_orbit") == ev["s1"]["relative_orbit"]]
-            for pol in ("vv", "vh"):
-                sigma0 = lee_filter(mosaic(items, pol, grid) * COS_INC)
-                with rasterio.open(run / "aligned" / f"s1_{when}_{pol}.tif", "w", **prof) as w:
-                    w.write(sigma0.astype(np.float32), 1)
+        tracks = [("s1", ev["s1"])] + ([("s1_alt", ev["s1_alt"])] if args.both_tracks and ev.get("s1_alt") else [])
+        for prefix, trk in tracks:
+            for when in ("pre", "post"):
+                d = trk[when]
+                items = [i for i in cat.search(collections=["sentinel-1-rtc"], bbox=ev["aoi_bbox"], datetime=f"{d}/{d}").items()
+                         if i.properties.get("sat:relative_orbit") == trk["relative_orbit"]]
+                for pol in ("vv", "vh"):
+                    sigma0 = lee_filter(mosaic(items, pol, grid) * COS_INC)
+                    with rasterio.open(run / "aligned" / f"{prefix}_{when}_{pol}.tif", "w", **prof) as w:
+                        w.write(sigma0.astype(np.float32), 1)
         with rasterio.open(lab / "slope.tif") as r, rasterio.open(run / "masks" / "slope.tif", "w", **prof) as w:
             w.write(r.read(1), 1)
         (run / "run.json").write_text(json.dumps({"run_id": ev["id"], "event_date": ev["event_date"],
@@ -76,7 +83,7 @@ def main() -> None:
                         "--out", str(run / "himalaya_eval.json")], check=True, stdout=subprocess.DEVNULL)
         summary[ev["id"]] = json.loads((run / "himalaya_eval.json").read_text())
         print(ev["id"], json.dumps(summary[ev["id"]]), flush=True)
-    (args.runs / "summary.json").write_text(json.dumps(summary, indent=1))
+        summary_path.write_text(json.dumps(summary, indent=1))  # after every event, so a timeout keeps finished ones
 
 
 if __name__ == "__main__":

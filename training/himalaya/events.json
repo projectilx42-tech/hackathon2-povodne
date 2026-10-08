@@ -22,7 +22,13 @@
     "date": "2021-02-10",
     "mgrs_tile": "44RLU"
    },
-   "label_max_elev_m": 3000
+   "label_max_elev_m": 3000,
+   "s1_alt": {
+    "orbit_state": "descending",
+    "relative_orbit": 63,
+    "pre": "2021-01-30",
+    "post": "2021-02-11"
+   }
   },
   {
    "id": "teesta_2023",
@@ -45,7 +51,13 @@
     "date": "2023-10-16",
     "mgrs_tile": "45RXK"
    },
-   "label_max_elev_m": 2500
+   "label_max_elev_m": 2500,
+   "s1_alt": {
+    "orbit_state": "descending",
+    "relative_orbit": 48,
+    "pre": "2023-09-28",
+    "post": "2023-10-10"
+   }
   },
   {
    "id": "marsyangdi_2024_noflood",
@@ -68,7 +80,13 @@
     "date": "2024-01-20",
     "mgrs_tile": "45RTM"
    },
-   "label_max_elev_m": 2500
+   "label_max_elev_m": 2500,
+   "s1_alt": {
+    "orbit_state": "descending",
+    "relative_orbit": 19,
+    "pre": "2024-01-24",
+    "post": "2024-02-05"
+   }
   }
  ]
 }
