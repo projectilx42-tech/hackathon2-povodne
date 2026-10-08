@@ -303,6 +303,10 @@ Z dokumentů nejde poznat; zeptat se (anglicky, ke zkopírování):
 5. "On judging day, will judges run the app themselves on their own machine with internet access? Is it acceptable that they register a free CDSE account?"
 6. "Judges choose area and date live: may the chosen event have no Sentinel-1 post-event pass yet? Is an explicit 'insufficient data' result acceptable?"
 7. "For events other than the Trishuli case, is the ohsome snapshot before the event date the expected OSM source?"
+8. "The task says the system must run from raw satellite data. Is server-side processed Sentinel-1 acceptable (Copernicus Data Space Sentinel Hub: orthorectification with Copernicus DEM, speckle filter, cropped to our area), or must we process the original GRD products ourselves?"
+9. "Which hardware should we assume on judging day (CPU only? RAM? runtime limit per run)? Our model runs on CPU."
+10. "How large an area will judges typically pick? Free Sentinel Hub access has a monthly processing quota, so a 30x30 km area allows roughly a dozen runs per month per account."
+11. "May trained model weights be distributed through a GitHub Release or Hugging Face instead of inside the repository?"
 
 ## O-010 | otevřené — Jak spojit výsledky z více drah S1 (vlastník M3)
 Každá dráha se vyhodnotí zvlášť (D-030). Neurčeno: pravidlo při neshodě drah, různá data snímků „po“ (voda mezitím opadává),
