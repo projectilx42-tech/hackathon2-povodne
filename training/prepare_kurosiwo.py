@@ -32,6 +32,7 @@ from pathlib import Path
 
 import numpy as np
 import requests
+import urllib3
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from floodseg.features import SAR_BANDS, db_to_uint8, linear_to_db  # noqa: E402
@@ -173,7 +174,17 @@ def main() -> None:
     ap.add_argument("--min-valid", type=float, default=0.05, help="drop tiles with fewer valid labelled pixels")
     args = ap.parse_args()
     for shard in args.shards:
-        process_shard(args.split, shard, args.out, args.max_samples, args.min_valid)
+        for attempt in range(1, 4):  # long HTTP streams sometimes break; redo the whole shard
+            try:
+                process_shard(args.split, shard, args.out, args.max_samples, args.min_valid)
+                break
+            except (requests.RequestException, urllib3.exceptions.HTTPError, OSError, tarfile.TarError) as e:
+                print(f"[{args.split}/{shard}] attempt {attempt} failed: {e!r}", flush=True)
+                for f in (args.out / args.split).glob(f"{shard:05d}_*.npz"):
+                    f.unlink()
+                time.sleep(10 * attempt)
+        else:
+            sys.exit(f"[{args.split}/{shard}] failed 3 times")
 
 
 if __name__ == "__main__":

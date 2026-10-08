@@ -103,6 +103,35 @@ def build_features(
     return np.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
 
 
+def _box_mean(a: np.ndarray, size: int) -> np.ndarray:
+    r = size // 2
+    p = np.pad(a, r, mode="reflect")
+    out = np.zeros_like(a)
+    for di in range(size):
+        for dj in range(size):
+            out += p[di:di + a.shape[0], dj:dj + a.shape[1]]
+    return out / (size * size)
+
+
+def lee_filter(lin: np.ndarray, size: int = 3, looks: float = 4.4) -> np.ndarray:
+    """Classic Lee speckle filter on linear power (NaN = nodata stays NaN).
+
+    Used to bring unfiltered Sentinel-1 data (e.g. Sen1Floods11) closer to Kuro Siwo, which used
+    SNAP's Lee Sigma 3x3. looks=4.4 is the equivalent number of looks of S1 IW GRDH.
+    """
+    lin = np.asarray(lin, np.float32)
+    nan = ~np.isfinite(lin)
+    x = np.where(nan, np.nanmean(lin) if (~nan).any() else 0.0, lin)
+    m = _box_mean(x, size)
+    v = np.maximum(_box_mean(x * x, size) - m * m, 0)
+    cu2 = 1.0 / looks
+    ci2 = v / np.maximum(m * m, 1e-12)
+    w = np.clip((1 - cu2 / np.maximum(ci2, 1e-12)) / (1 + cu2), 0, 1)
+    out = m + w * (x - m)
+    out[nan] = np.nan
+    return out
+
+
 def slope_from_dem(dem: np.ndarray, pixel_m: float = 10.0) -> np.ndarray:
     """Slope in degrees from a DEM on a square grid (central differences). NaN-safe-ish."""
     dem = np.asarray(dem, np.float32)
