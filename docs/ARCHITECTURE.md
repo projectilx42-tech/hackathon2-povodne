@@ -57,12 +57,13 @@ runs/<run_id>/
     osm/osm_raw.gpkg             # ohsome extrakt, snapshot < event_date
   aligned/
     grid.json                    # {"crs":"EPSG:32645","transform":[...],"width":..,"height":..,"res":10}
-    s1_pre_vv.tif  s1_pre_vh.tif  s1_post_vv.tif  s1_post_vh.tif     # float32, linear, NaN = nodata
-                                 # = primární dráha, pre = průměr pre scén; další dráhy navíc (D-030)
+    s1_pre_vv.tif  s1_pre_vh.tif  s1_post_vv.tif  s1_post_vh.tif     # float32, linear sigma0 (D-020), NaN = nodata; hlavní dráha, pre = průměr pre scén (D-030)
+    s1_alt_pre_vv.tif ... s1_alt_post_vh.tif   # volitelně: druhý směr přeletu (opačný ASC/DESC, D-033, D-035); chybí-li pár, soubory neexistují
     s2_pre.tif  s2_post.tif      # float32 reflectance 0–1, band order: B02,B03,B04,B08,B11,B12 (chybí-li scéna, soubor neexistuje)
     dem.tif                      # float32, m
   masks/
-    s1_layover_shadow.tif        # uint8 1 = layover/shadow (nepoužitelné)
+    s1_layover_shadow.tif        # uint8 1 = layover/shadow (nepoužitelné) pro hlavní track
+    s1_alt_layover_shadow.tif    # totéž pro druhý směr (jen pokud existuje s1_alt_*)
     slope.tif                    # float32, stupně
     hand.tif                     # float32, Height Above Nearest Drainage, m
     s2_pre_valid.tif s2_post_valid.tif   # uint8 1 = čistý pixel (bez mraků/stínů/sněhu dle SCL)
@@ -102,6 +103,7 @@ runs/<run_id>/
   "created_utc": "...",
   "code_version": "<git sha>",
   "acquire": {
+    "s1_alt": {...stejné schéma jako "s1", druhý směr přeletu; null když pár neexistuje...},   // D-033
     "s1": {"relative_orbit": 0, "orbit_direction": "ASCENDING|DESCENDING",
             "pre":  [{"id": "S1A_IW_GRDH_...", "datetime": "..."}],
             "post": [{"id": "...", "datetime": "..."}], "source": "CDSE|PC|..."},
@@ -229,14 +231,21 @@ Pravidla:
 (D-020, D-021) Kód: `training/floodseg/` — `features.py` (jediná definice vstupů), `infer.py` (načtení modelu, dlaždicová
 inference), `model.py`. M3 tento kód **používá, nereimplementuje** (po vzniku skeletonu se přesune/importuje do `src/povodne/flood/`).
 - `models/<name>/model.pt` (`{"state_dict", "config"}`, PyTorch) + `models/<name>/model_card.json`:
-  `{"arch": "Unet", "encoder": "resnet34", "in_channels": 6, "inputs": ["pre_vv","pre_vh","post_vv","post_vh","diff_vv","diff_vh"] (+ "slope"),
+  `{"arch": "Unet", "encoder": "resnet34", "in_channels": 7, "inputs": ["pre_vv","pre_vh","post_vv","post_vh","diff_vv","diff_vh","slope"],
     "input_units": "dB of S1 GRD sigma0, Lee Sigma 3x3", "normalization": {"pre_vv": [mean, std], ...}, "db_clip": [-35, 5],
     "classes": {"0":"no water","1":"permanent water","2":"flood"}, "tile_size": 224, "trained_on": [...],
     "split_events": {...}, "val_metrics": {...}, "test_metrics": {...}, "license_notes": "..."}`
 - **Vstup z M2:** `aligned/s1_{pre,post}_{vv,vh}.tif` = **sigma0** (ne gamma0/RTC), lineárně, terrain-corrected (geokódováno s DEM)
   na 10 m, speckle filtr **Lee Sigma 3×3** — stejně jako Kuro Siwo (D-020). Více pre scén ze stejného tracku se průměruje
   (`features.combine_pre_db`).
+- **Sklon** (kanál `slope`, D-032) = `masks/slope.tif` ve stupních (z DEM na mřížce 10 m); v tréninku zaokrouhlen na celé stupně.
+- `model_card.json` obsahuje `temperature` (kalibrace z val): pravděpodobnosti = softmax(logits / T) — `infer.predict_probs(..., temperature=T)`.
 - Mapování na třídy masky (M3): model 2 flood → `ai_mask` 2, model 1 permanent water → 4, model 0 → 1; nodata/layover/shadow → 0.
+- **Terénní pravidla a spojení dvou tracků v M3 (D-034):** model se pustí zvlášť na hlavní a na `alt` track (každý pre/post ze
+  stejného tracku); pixel platí v tracku, kde není layover/shadow; kde platí oba, `ai_prob` = průměr, kde jeden, ten jeden.
+  Voda (2, 4) se potlačí na 1, kde `slope` > `max_water_slope_deg` (default 15) nebo `hand` > `max_water_hand_m` (default 30).
+  Pixel bez platného tracku → 0 (nodata).
   `ai_prob` = P(flood).
 - Inference běží na CPU (pipeline musí jít spustit bez GPU), dlaždice 512 px s překryvem 64 px a váženým prolnutím.
-- Váhy nejsou v gitu → stahují se z release/HF (rozhodnout, D-0xx) nebo z cesty v configu.
+- Váhy nejsou v gitu → stahují se z release/HF (rozhodnout, D-0xx) nebo z cesty v configu. Zatím leží jako výstupy Kaggle
+  kernelů (`kaggle kernels output krataihalfmaster/floodseg-r3 -p models/round3`), viz PROGRESS.

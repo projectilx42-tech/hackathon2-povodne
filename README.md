@@ -32,14 +32,14 @@ documentation and implementation. Per-module notes on which parts were AI-assist
 - **Dashboard (`dashboard/`)**: backend, frontend, synthetic sample-run generator and UI design discussion were developed with Claude Code.
 
 - **Flood segmentation model (`training/`)** — dataset analysis, model design, data preparation, training, inference and
-  evaluation code were written with Claude Code; design choices are documented in `docs/DECISIONS.md` (D-020 – D-023).
+  evaluation code were written with Claude Code; design choices are documented in `docs/DECISIONS.md` (D-020 – D-025, D-032 – D-034).
 
 ## Data attributions
 - Contains modified Copernicus Sentinel data 2026.
 - Produced using Copernicus WorldDEM-30 © DLR e.V. 2010–2014 and © Airbus Defence and Space GmbH 2014–2018 provided under
   COPERNICUS by the European Union and ESA; all rights reserved.
 - © OpenStreetMap contributors (ODbL), pre-event snapshot via the ohsome API.
-- Training data: Kuro Siwo — Bountos et al., 2024 (NeurIPS Datasets and Benchmarks). _Sen1Floods11 — Bonafilia et al., CVPR
-  Workshops 2020 (if used)._
+- Training data: Kuro Siwo — Bountos et al., 2024 (NeurIPS Datasets and Benchmarks). Sen1Floods11 — Bonafilia et al., CVPR
+  Workshops 2020.
 - Base maps in the dashboard (display only): © OpenStreetMap contributors; OpenTopoMap (CC-BY-SA); EOxCloudless by EOX IT Services GmbH (contains modified Copernicus Sentinel data).
 - Validation only (never used as input): European Union, Copernicus Emergency Management Service data (EMSR927).

@@ -205,6 +205,46 @@ Otevřené: renderer PNG překryvů z GeoTIFF (M8 backend) zatím neexistuje; `p
    `aligned/s1_{pre,post}_{vv,vh}.tif` = **primární dráha** (pre = průměr pre scén). Data dalších drah a jednotlivých pre scén jsou navíc;
    pojmenování určí M1/M2 v ARCHITECTURE.md se zápisem do DECISIONS. Spojení drah do `flood/` viz O-010.
 
+## D-032 | 2026-10-08 | přijato (M9, výsledky kola 3)
+**Sklon terénu jako 7. vstupní kanál + Sen1Floods11 + častější vzorkování hornatých dlaždic (terrain boost 4).**
+Kolo 3 (Unet R34, 10 epoch, val = 2 825 dlaždic, výběr podle průměru přes eventy):
+| varianta | val score | F1 povodeň | precision povodně – hory (>200 m) |
+|---|---|---|---|
+| základ | 0,586 | 0,649 | 0,07 |
+| + sklon | 0,593 | 0,686 | 0,24 |
+| + sklon + terrain boost 4 | 0,610 | 0,683 | 0,14 |
+| + sklon + boost + Sen1Floods11 | **0,614** | **0,691** | 0,12 |
+Sklon pomáhá nejvíc (hlavně v horách); Sen1Floods11 přidává mírné zlepšení na rovině a v kopcích. Hornatý podtest val má
+jen ~190 dlaždic (hlavně event 279) → čísla pro hory jsou hrubá. I nejlepší varianta má v horách přes 75 % falešných
+povodní → **masky layover/shadow, sklon a HAND v M2/M3 jsou nutné** (model sám to nevyřeší). Kolo 4 ověřuje sklon+S1F11
+bez boostu a ResNet50; finální model se vybere podle val score.
+
+## D-033 | 2026-10-08 | přijato (uživatel: „dej tam všechno, co potřebuješ“) — požadavky M9 na M1/M2
+Kontext: v horách model plete radarový stín a tmavé svahy s vodou (D-032). RTC jen srovná jas svahů; data ve stínu ani
+v layoveru nedopočítá (žádný / smíchaný signál) — umí jen říct, kde neplatí. Co reálně pomáhá: druhý směr přeletu a masky.
+**M1 (acquire):**
+- S1 dodat jako **sigma0, geokódováno s DEM, Lee 3×3, 10 m, lineárně** (D-020) — tj. stejně jako tréninková data.
+- Najít páry pre/post pro **oba směry přeletu** (ASCENDING i DESCENDING), každý pár ze stejného relativního orbitu. Hlavní track
+  = ten s lepším pokrytím AOI (méně layover/shadow); druhý jde do `raw/s1_alt/` a `run.json` → `acquire.s1_alt`. Když
+  druhý směr pro dané datum není, `s1_alt` = null + warning (ne chyba).
+- Pre okno: 1–2 scény ze stejného tracku (model umí 1 i 2, průměruje je).
+**M2 (preprocess):**
+- `aligned/s1_*` (+ `s1_alt_*`) na společnou 10 m mřížku.
+- `masks/s1_layover_shadow.tif` (+ `s1_alt_layover_shadow.tif`) z DEM a geometrie satelitu (úhel dopadu, směr pohledu dle
+  orbitu) — vlastní výpočet nebo maska ze zdroje, pokud ji poskytuje.
+- `masks/slope.tif` ve stupních (vstup modelu, D-032) a `masks/hand.tif` (pro pravidla v M3, D-034).
+Kontrakt (ARCHITECTURE.md: `s1_alt_*`, `acquire.s1_alt`) upraven ve stejném commitu.
+
+## D-034 | 2026-10-08 | přijato (M9/M3)
+**Složení AI masky v M3: dva tracky + fyzikální pravidla terénu.**
+- Model se pustí zvlášť na každý track (pre/post vždy ze stejného tracku). Platnost pixelu = není layover/shadow v daném tracku.
+  Oba platné → `ai_prob` = průměr; jeden → ten; žádný → nodata (0).
+- Voda (třídy 2 a 4) se nastaví na 1 (nezasaženo), kde sklon > 15° nebo HAND > 30 m (oba prahy konfigurovatelné).
+  Důvod: voda nemůže stát na strmém svahu ani vysoko nad řekou; podobná pravidla používají provozní systémy (např. GFM,
+  globální mapování povodní s maskou svahů > 10°). Prahy jsou fyzikální odhad, **neladí se na EMSR927** (D-006);
+  případné doladění jen na Kuro Siwo val. Suť/bahno (M3d) se těmito pravidly neřídí.
+- Hodnoty jsou výchozí a budou ověřeny na himálajské evaluační sadě (O-005).
+
 ---
 
 # Otevřené otázky (k rozhodnutí)
@@ -270,17 +310,12 @@ každé budovy nejbližší obci (Voronoi), případně kruhem kolem bodu. Vyža
 (`buildings_total`, `buildings_hit`, `flooded_area_km2`, `roads_blocked_count`, `roads_blocked_km`, `bridges_hit`) —
 **kontrakt v ARCHITECTURE.md se zatím NEMĚNÍ.**
 
-## O-009 | otevřené — Otázky pro organizátory na Discordu
-Z dokumentů nejde poznat; zeptat se (anglicky, ke zkopírování):
-1. "May we use Sentinel-1 data already terrain-corrected (RTC) by a data provider, e.g. Microsoft Planetary Computer `sentinel-1-rtc` (processed with PlanetDEM)? Or must terrain correction use Copernicus DEM only (e.g. Sentinel Hub on CDSE)?"
-2. "May we start our own training from pretrained weights (ImageNet encoders, foundation models such as Prithvi, published Kuro Siwo checkpoints)?"
-   (Model teď používá ImageNet encoder, D-021; pokud by to nebylo povoleno: `train.py --no-pretrained`. Sloučeno z původní O-009 session M9.)
-3. "May we use global water layers (JRC Global Surface Water, ESA WorldCover) to mask permanent water, or only water derived from Sentinel imagery before the event?"
-4. "May EMSR927 be used to compute validation metrics for the AI model on Himalayan scenes (checking only, never training or threshold tuning)? Or should held-out evaluation use other labels?"
-5. "On judging day, will judges run the app themselves on their own machine with internet access? Is it acceptable that they register a free CDSE account?"
-6. "Judges choose area and date live: may the chosen event have no Sentinel-1 post-event pass yet? Is an explicit 'insufficient data' result acceptable?"
-7. "For events other than the Trishuli case, is the ohsome snapshot before the event date the expected OSM source?"
+## O-009 | přesunuto → `docs/QUESTIONS.md`
+Všechny otázky na organizátory jsou jen v `docs/QUESTIONS.md` (D-035).
 
-## O-010 | otevřené — Jak spojit výsledky z více drah S1 (vlastník M3)
-Každá dráha se vyhodnotí zvlášť (D-030). Neurčeno: pravidlo při neshodě drah, různá data snímků „po“ (voda mezitím opadává),
-jak u každé plochy uložit dráhu a datum a ukázat je v UI/sitrepu.
+## O-010 | uzavřeno → D-034 — Jak spojit výsledky z více drah S1
+
+## O-011 | otevřené — Kam uložit finální váhy modelu (D-010)
+Váhy (~100 MB) teď existují jen jako výstupy Kaggle kernelů a v dočasném kontejneru. Pro porotu (D-016) potřebujeme stabilní
+odkaz: GitHub Release tohoto repa, nebo HF Hub (potřebuje HF účet/token). GitHub nepřijme soubor > 100 MB přímo do repa.
+Rozhodnout, až bude finální model.
