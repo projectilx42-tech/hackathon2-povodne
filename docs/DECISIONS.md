@@ -381,6 +381,11 @@ Stejný recept (v0.2: R34 + sklon + Sen1Floods11 + Lovász) se 3 seedy (42, 1, 2
 opakovaně jasné zlepšení byl sklon terénu (kolo 3). Pro report: uvádět čísla jako ± šum, nepřeceňovat drobné rozdíly.
 v0.2 (seed 42) vyšel na val nejlíp z trojice; test (0,775) to nijak nezvýhodňuje (vybíralo se jen podle val).
 
+## D-M9-07 | 2026-10-09 | přijato (M9) — v0.3 (train+val) nenasazen podle pravidla D-M9-05
+Test v0.3: F1 povodně 0,781 (v0.2: 0,775; pravidlo ≥ 0,765 ✓), ale F1 povodně na horských dlaždicích **0,507** (v0.2: 0,530;
+pravidlo ≥ 0,51 ✗). Rozdíly jsou v rozsahu šumu (D-M9-06), ale pravidlo bylo dané předem → **finální model zůstává v0.2**.
+v0.3 je uložený jako výstup kernelu `floodseg-r8` (není publikovaný v `floodseg-model`).
+
 ---
 
 # Otevřené otázky (k rozhodnutí)
