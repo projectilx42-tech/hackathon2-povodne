@@ -53,7 +53,7 @@ Obtížnost a čas = odhad uživatele.
 | Repo init, docs, workflow | ✅ | `main` | CLAUDE.md, docs/, Stop hook |
 | M8 Dashboard / webové UI | 🟨 | `feat/dashboard` | UI hotové nad ukázkovým runem (kroky 1–5 z UI_SPEC); spouští pipeline přes `python -m povodne run`, která zatím neexistuje; chybí renderer PNG překryvů z GeoTIFF; spuštění `python -m dashboard` |
 | 0 Skeleton (pyproject, CLI, config, io/grid) | ⬜ | `feat/skeleton` | |
-| M1 Acquire (S1/S2/DEM/OSM) | ⬜ | `feat/acquire` | požadavky z M9: D-020, D-033 (sigma0+Lee, oba směry přeletu) |
+| M1 Acquire (S1/S2/DEM/OSM) | 🟨 | `claude/nice-fermi-i7qzk8` | hotový výběr S1 z katalogu (`acquire/catalog.py`); požadavky z M9: D-020, D-033 (sigma0+Lee, oba směry přeletu) |
 | M2 Preprocess | ⬜ | `feat/preprocess` | požadavky z M9: D-033 (layover/shadow maska pro oba tracky, slope, HAND) |
 | M9 AI trénink | 🟨 | `claude/relaxed-johnson-wwj9s8` | kandidát `r3_r34_slope_tb4_s1f11` (val F1 povodně 0,69); test + kolo 4 běží; slabina hory (D-032) |
 | M3 AI inference (voda) | ⬜ | `feat/ai-model` | dlaždicová inference + kalibrace v `training/floodseg/infer.py`; pravidla skládání D-034 |
@@ -77,7 +77,13 @@ Obtížnost a čas = odhad uživatele.
   `tools/check_docs.py`, SessionStart hook (hlásí zpoždění za `main`), Stop hook (blokuje nekonzistentní docs).
 ### 2026-10-08 (2) — satelity po sloučení main — `claude/nice-fermi-i7qzk8`
 - Sloučen main (D-029 = naše dřívější D-020, D-030 sladění). Ověřeno v dokumentaci: Sentinel Hub „LEE“ ≠ Lee Sigma, `shadowMask` jen s RTC, rozpočet PU (D-031).
-- Neprovedeno: test shody zpracování s Kuro Siwo (potřebuje CDSE OAuth klíč, koordinace s M9). Čeká na souhlas uživatele: metoda kontroly čistoty „před“, pojmenování souborů a `run.json` pro více drah.
+- Neprovedeno: test shody zpracování s Kuro Siwo (potřebuje CDSE OAuth klíč, koordinace s M9). Metoda kontroly čistoty „před“ je D-M1-01, pojmenování drah D-033/D-035.
+- Hotovo: `src/povodne/acquire/catalog.py` — výběr S1 z katalogu CDSE (bez přihlášení) pro libovolné AOI a datum: dráhy podle relativního orbitu + směru,
+  první průlet po události = post (průlet ve dnu události se nepoužije), starší průlety téže dráhy za 60 dní = kandidáti na pre (výběr podle D-M1-01 zatím není),
+  hlavní dráha = nejdřívější post, `s1_alt` = opačný směr. Testy `tests/test_acquire_catalog.py` (offline, 9). Vyzkoušeno živě: Trishuli, Derna 2023, Česko 2024, Rio Grande do Sul 2024.
+- Zjištění: u Rio Grande do Sul (2024-05-02) není v katalogu CDSE pro AOI žádný S1 produkt od ledna do 8. 5. 2024 → žádný pár pre/post; plán to hlásí varováním (verdikt `insufficient_data`, D-013).
+  Katalog občas vrátí krátké HTTP 403 po sérii dotazů → opakování s čekáním. Závislosti modulu: `requests`, `shapely`.
+- Nerozhodnuto: hlavní dráha = nejdřívější post (D-029) vs. méně layover/shadow (D-033) — kód má zatím první, přepínač `prefer`.
 
 ### 2026-10-08 — master: sloučení sessions do `main` — `claude/gallant-keller-vftpi2`
 - Sloučeny větve `claude/relaxed-johnson-wwj9s8` (M9), `ccr-d89d3cfb-ywooc4` (M8 UI), `claude/nice-fermi-i7qzk8` (satelity) do `main`.
