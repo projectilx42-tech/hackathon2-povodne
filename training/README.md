@@ -20,6 +20,15 @@ In steep terrain radar shadow and dark back-slopes look like water. On mountaino
 predicted flood pixels are false. The pipeline therefore masks layover/shadow and suppresses water on steep slopes and
 high above the river (HAND), and can combine both satellite pass directions (D-033, D-034).
 
+## Use the current model (integration testing)
+```bash
+python training/fetch_model.py              # -> models/floodseg_v0.1/ (needs KAGGLE_API_TOKEN in the environment)
+python training/run_ai.py runs/<run_id>     # aligned/ + masks/ -> flood/ai_mask.tif, flood/ai_prob.tif, run.json "flood"
+```
+`run_ai.py` is the interim M3 step (until `src/povodne/flood/ai.py` exists): per-track inference, layover/shadow -> nodata,
+water suppressed on steep slopes / high HAND, both pass directions averaged (D-034). Model v0.1 = `r3_r34_slope_tb4_s1f11`
+(test flood F1 0.779, D-M9-01); later versions keep the same files and interface.
+
 ## Files
 | file | purpose |
 |---|---|
@@ -30,6 +39,8 @@ high above the river (HAND), and can combine both satellite pass directions (D-0
 | `floodseg/metrics.py` | IoU / precision / recall / F1 overall and per flood event |
 | `floodseg/infer.py` | load a checkpoint, sliding-window prediction over a whole area |
 | `train.py` | training loop, checkpoint selection on validation events, test evaluation, `model_card.json` |
+| `fetch_model.py` | downloads the current model weights (not in git) |
+| `run_ai.py` | pipeline step M3 (interim): run directory -> `flood/ai_mask.tif`, `flood/ai_prob.tif` |
 | `evaluate.py` | one-off evaluation of a checkpoint on the held-out test events (optionally with flip TTA) |
 | `prepare_sen1floods11.py` | converts Sen1Floods11 chips to the same compact tile format |
 | `build_cache.py` | memory-mapped tile cache shared by parallel training runs |

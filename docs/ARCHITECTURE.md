@@ -253,4 +253,4 @@ inference), `model.py`. M3 tento kód **používá, nereimplementuje** (po vznik
   `ai_prob` = P(flood).
 - Inference běží na CPU (pipeline musí jít spustit bez GPU), dlaždice 512 px s překryvem 64 px a váženým prolnutím.
 - Váhy nejsou v gitu → stahují se z release/HF (rozhodnout, D-0xx) nebo z cesty v configu. Zatím leží jako výstupy Kaggle
-  kernelů (`kaggle kernels output krataihalfmaster/floodseg-r3 -p models/round3`), viz PROGRESS.
+  kernelů a v Kaggle datasetu `krataihalfmaster/floodseg-model` (`python training/fetch_model.py` → `models/floodseg_v0.1/`), viz PROGRESS.

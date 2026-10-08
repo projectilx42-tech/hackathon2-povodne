@@ -20,6 +20,9 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
   7. `flood_polygons.geojson`: `class` = `"water"` / `"debris"` (text).
   8. **Otázky na organizátory jen v `docs/QUESTIONS.md`** (5 odesláno, čeká se). Do odpovědi: ImageNet nechat, Sentinel Hub nechat, **JRC nepoužívat**.
 
+- **2026-10-08 — M9: model v0.1 k dispozici pro propojení:** `python training/fetch_model.py` → `models/floodseg_v0.1/`
+  (Kaggle dataset `krataihalfmaster/floodseg-model`, potřebuje `KAGGLE_API_TOKEN` v prostředí; finální hosting O-011).
+  `python training/run_ai.py runs/<id>` = dočasný krok M3: `aligned/` + `masks/` → `flood/ai_mask.tif`, `flood/ai_prob.tif` dle kontraktu.
 - **2026-10-08 — M9: SSL4EO jen jako záloha (D-M9-02)** — hlavní model zůstává ImageNet; vylepšení nezávislá na encoderu;
   přepnutí na SSL4EO = 1 změna v receptu + 1 trénink, jen při souhlasu organizátorů. Spin-off (`docs/SPINOFF_SSL4EO.md`) pozastaven.
 
