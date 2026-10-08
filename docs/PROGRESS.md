@@ -25,7 +25,7 @@ Obtížnost a čas = odhad uživatele.
 | 3 | Pochopit satelity a data | 2–3 | 30 min | — | ⬜ |
 | 4 | Najít zdroje, stránky atd. | 3 | 1–2 h | — | ⬜ |
 | 5 | Stahování dat ze satelitu | ~7 | ~4 h | M1, M2 | ⬜ |
-| 6 | Natrénovat AI (Kaggle) | 7 | 4 h + běh tréninku | M9, M3 | 🟨 kód hotový, čeká na Kaggle token |
+| 6 | Natrénovat AI (Kaggle) | 7 | 4 h + běh tréninku | M9, M3 | 🟨 trénink běží na Kaggle (kolo 1) |
 | 7 | Algoritmus na suť a bahno | 8 | 4 h | M3d | ⬜ |
 | 8 | Škody | 3 | 2 h | M4 | ⬜ |
 | 9 | Odříznuté obce | 3 | 2,5 h | M5 | ⬜ |
@@ -42,7 +42,7 @@ Obtížnost a čas = odhad uživatele.
 | 0 Skeleton (pyproject, CLI, config, io/grid) | ⬜ | `feat/skeleton` | |
 | M1 Acquire (S1/S2/DEM/OSM) | ⬜ | `feat/acquire` | |
 | M2 Preprocess | ⬜ | `feat/preprocess` | |
-| M9 AI trénink | 🟨 | `claude/relaxed-johnson-wwj9s8` | kód v `training/`, otestováno na CPU; trénink na Kaggle čeká na token (D-023) |
+| M9 AI trénink | 🟨 | `claude/relaxed-johnson-wwj9s8` | data na Kaggle (`floodseg-*` datasety), kolo 1 běží (`floodseg-r1`: Unet vs SiamUnet r34) |
 | M3 AI inference (voda) | ⬜ | `feat/ai-model` | dlaždicová inference hotová v `training/floodseg/infer.py` |
 | M3d Suť a bahno | ⬜ | `feat/debris` | |
 | M4 Damage | ⬜ | `feat/damage` | |
@@ -65,7 +65,12 @@ Obtížnost a čas = odhad uživatele.
   (features, dataset, U-Net+CE/Dice, metriky, dlaždicová inference), `training/train.py`. Inference ~1–2 min / 30×30 km na CPU.
 - Rozhodnutí D-020 – D-023, otevřené O-009 (ImageNet váhy – dotaz organizátorům), O-005 doplněno. ARCHITECTURE: kontrakt modelu.
 - **Požadavek na M1/M2:** S1 jako sigma0 + Lee 3×3 (D-020).
-- Další krok: uživatel uloží `KAGGLE_USERNAME` + `KAGGLE_KEY` do environmentu → **nová session**: znovu připravit data
+- Pokračování (stejná session): Kaggle token funguje (účet `krataihalfmaster`, 2× T4). Data nahrána jako soukromé datasety
+  `floodseg-kurosiwo-train`, `floodseg-kurosiwo-test`, `floodseg-sen1floods11`, kód `floodseg-code`
+  (`training/kaggle/push_kernel.py`). Přidáno: SiamUnet, vyvážení eventů, augmentace, terénní metriky, TTA, EMA, kalibrace
+  teploty, Sen1Floods11 (D-024, bez Srí Lanky), protokol experimentů (D-025). Průzkum literatury: cíl F1 povodně ~80 %
+  (Kuro Siwo UNet-R50). Kolo 1 (`floodseg-r1`) běží; další: vítěz + R50 / sklon / Sen1Floods11, pak finální test.
+- (Původní plán) Další krok: uživatel uloží `KAGGLE_USERNAME` + `KAGGLE_KEY` do environmentu → **nová session**: znovu připravit data
   (`prepare_kurosiwo.py`, ~1 h, data v kontejneru nepřežijí), nahrát jako Kaggle dataset, spustit trénink + ablaci se sklonem.
   Pak himálajská evaluační sada (O-005, závisí na M1/M2).
 ### 2026-10-07 — master session (init) — `claude/gallant-keller-vftpi2`
