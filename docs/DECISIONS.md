@@ -367,6 +367,13 @@ Nesmíme skončit s modelem postaveným na něčem, co pak nepovolí, ani s hoto
 - **Himálaj (předběžně, proxy vstup):** recall vody Teesta 0,20 / Marsyangdi 0,15 (v0.1: 0,17 / 0,12), falešné povodně 0 %.
 - v0.2 v Kaggle datasetu `floodseg-model` (nová verze), `fetch_model.py` a `run_ai.py` výchozí `models/floodseg_v0.2/`.
 
+## D-M9-05 | 2026-10-08 | přijato (M9) — finální refit na train+val, pravidlo stanovené PŘED testem
+Po výběru konfigurace (v0.2, D-M9-04) se tentýž recept přetrénuje i na validačních eventech (+5 povodní, mj. kopcovitý
+event 279 se stovkami horských dlaždic) = v0.3 (`train.py --trainval`, 7 epoch ≈ nejlepší epocha v0.2 + 1, poslední epocha,
+teplota převzatá z v0.2 = 0.9634, protože val už je v tréninku). Výběr se tím nedělá — konfigurace je pevná.
+**Pravidlo nasazení (stanoveno před testem v0.3):** v0.3 nahradí v0.2, pokud na test eventech platí
+F1 povodně ≥ 0,765 (v0.2 − 0,01) **a** F1 povodně na horských dlaždicích ≥ 0,51 (v0.2 − 0,02); jinak zůstává v0.2.
+
 ---
 
 # Otevřené otázky (k rozhodnutí)

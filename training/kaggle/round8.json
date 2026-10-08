@@ -1,0 +1,3 @@
+[
+ {"name": "r8_r34_lovasz_trainval", "args": ["--arch", "Unet", "--encoder", "resnet34", "--epochs", "7", "--no-test", "--slope", "--sen1floods11", "--loss", "lovasz", "--trainval", "--temperature", "0.9634"]}
+]

@@ -63,6 +63,10 @@ def parse_args():
                     help="memory-mapped tile cache from build_cache.py (shared between parallel runs)")
     ap.add_argument("--ema", type=float, default=0.999,
                     help="decay of the exponential moving average of weights used for evaluation (0 = off)")
+    ap.add_argument("--trainval", action="store_true",
+                    help="final refit: also train on the validation events, keep the LAST epoch (val is then only a log)")
+    ap.add_argument("--temperature", type=float, default=None,
+                    help="fixed softmax temperature instead of fitting it on val (use with --trainval)")
     ap.add_argument("--sen1floods11", action="store_true",
                     help="add Sen1Floods11 tiles (post image only, binary water) to the training split")
     ap.add_argument("--min-water", type=float, default=0.0,
@@ -75,9 +79,10 @@ def parse_args():
     return ap.parse_args()
 
 
-def split_index(index, split: str, max_tiles: int | None, seed: int, sen1floods11: bool = False):
+def split_index(index, split: str, max_tiles: int | None, seed: int, sen1floods11: bool = False,
+                trainval: bool = False):
     acts = index["actid"]
-    sel = acts.isin(SPLIT_ACTS[split])
+    sel = acts.isin(SPLIT_ACTS[split] + (SPLIT_ACTS["val"] if split == "train" and trainval else []))
     if split == "train" and sen1floods11:
         sel |= acts >= SEN1FLOODS11_ACT_BASE
     df = index[sel]
@@ -191,7 +196,7 @@ def main():
     else:
         index = load_index(args.data)
     print(f"index: {len(index)} tiles, events: {sorted(int(a) for a in index['actid'].unique())}")
-    tr_idx = split_index(index, "train", args.max_tiles, args.seed, args.sen1floods11)
+    tr_idx = split_index(index, "train", args.max_tiles, args.seed, args.sen1floods11, args.trainval)
     if args.min_water > 0:
         tr_idx = tr_idx[(tr_idx["perm_frac"] + tr_idx["flood_frac"]) >= args.min_water].reset_index(drop=True)
     va_idx = split_index(index, "val", args.max_tiles, args.seed)
@@ -266,7 +271,7 @@ def main():
                "val_miou": val["mIoU"], "lr": sched.get_last_lr()[0], "sec": round(time.time() - t0)}
         history.append(row)
         print(json.dumps(row), flush=True)
-        key = score
+        key = float(epoch) if args.trainval else score  # trainval: val was trained on, so just keep the last epoch
         if key > best:
             best = key
             torch.save({"state_dict": eval_model.state_dict(), "config": config, "epoch": epoch}, args.out / "model.pt")
@@ -274,7 +279,8 @@ def main():
     # Temperature scaling on the validation events: makes softmax probabilities calibrated (used as flood_prob).
     ckpt = torch.load(args.out / "model.pt", map_location=device, weights_only=False)
     eval_model.load_state_dict(ckpt["state_dict"])
-    config["temperature"] = fit_temperature(eval_model, va_dl, device, norm, args.slope)
+    config["temperature"] = (args.temperature if args.temperature is not None
+                             else fit_temperature(eval_model, va_dl, device, norm, args.slope))
     ckpt["config"] = config
     torch.save(ckpt, args.out / "model.pt")
     print("temperature:", config["temperature"])
