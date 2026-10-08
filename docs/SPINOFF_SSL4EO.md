@@ -1,5 +1,8 @@
 # SPIN-OFF — model s radarovým encoderem SSL4EO-S12
 
+> **Pozastaveno (D-M9-02):** SSL4EO se zatím měří v hlavní linii jako záloha; spin-off session se nespouští.
+> Soubor zůstává pro případ, že by se později hodila samostatná linie.
+
 Zadání pro samostatnou session (na pokyn uživatele 2026-10-08). **Hlavní linie modelu (M9) běží dál beze změny**;
 spin-off zkouší jednu odbočku a porovná se s ní. Když bude lepší **a organizátoři dovolí předtrénované váhy**, přejde
 se na něj. Dokud odpověď nepřijde, finální model v pipeline zůstává z hlavní linie.

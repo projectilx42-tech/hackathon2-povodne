@@ -190,7 +190,7 @@ Otevřené: renderer PNG překryvů z GeoTIFF (M8 backend) zatím neexistuje; `p
 - **Snímek „před“ může být sám zasažený povodní** (povodeň začala dřív než zadané datum, pomalá/dlouhá povodeň, uživatel zadal pozdní datum).
   Pipeline proto nesmí slepě vzít poslední snímek před datem: musí zjistit, zda už povodeň neobsahuje, a pokud ano, vzít starší snímek
   **stejné relativní dráhy** (o 12 dní dříve, případně dál), dokud nenajde čistý. Zvolený snímek a důvod výběru zapsat do `run.json`
-  (`warnings`) a do stats; pokud čistý snímek neexistuje, jasně to říct (viz D-013), ne tiše počítat s kontaminovaným. Metoda ověření zatím není určena.
+  (`warnings`) a do stats; pokud čistý snímek neexistuje, jasně to říct (viz D-013), ne tiše počítat s kontaminovaným. Metoda ověření: D-M1-01.
 - Snímek „po“ = první dostupný po události; „před“ musí být ze stejné relativní dráhy jako „po“.
 - Satelitní data se stahují jen jako výřez (D-018). Registraci na CDSE uživatel provede (viz D-011).
 - Používat každou hotovou zkratku (knihovny, hotové služby), která je v souladu s datovými pravidly; legálnost ověřit před použitím.
@@ -287,6 +287,38 @@ Kontrakt (ARCHITECTURE.md: `s1_alt_*`, `acquire.s1_alt`) upraven ve stejném com
    kontrola `tools/check_docs.py` (spouští ji SessionStart a Stop hook), SessionStart hook hlásí, když je větev pozadu za `main`.
 Kontrakt (ARCHITECTURE.md) upraven ve stejném commitu.
 
+## D-M1-01 | 2026-10-08 | přijato (rozhodnutí uživatele; navrhla master session) — Výběr čistého snímku „před“ (metoda pro D-029)
+**Časová řada podílu vody v nízkém rozlišení → snímek „před“ = poslední průlet před začátkem nárůstu vody.**
+1. Z katalogu (bez přihlášení) všechny průlety **hlavní dráhy** za ~60 dní před `event_date`.
+2. Stáhnout v nízkém rozlišení (~60 m, jen VV) — cíl ~1 PU/datum (odhad, změřit).
+3. Pro každé datum podíl tmavých pixelů (voda) v nížinách u řeky (nízký HAND). **Pixely v layover/shadow se do výpočtu nezapočítají**
+   (vyloučit je; stín je tmavý na všech datech a zředil by nárůst). Pořadí v `acquire`: DEM → HAND + maska stínu → řada → výběr snímků.
+4. Začátek nárůstu = první datum, kdy podíl vyskočí výrazně nad kolísání předchozích dat; práh **relativní k dané AOI**,
+   nikdy neladěný na EMS ani na Trishuli (D-006).
+5. Pre = poslední průlet před začátkem nárůstu (+ druhý pre z téže dráhy před ním, D-030). Pokud nárůst začal už před začátkem
+   okna → warning „pre může obsahovat povodeň, zaplavená plocha může být podhodnocená“ do `run.json.warnings` a stats.
+6. `s1_alt`: stejná data jako hlavní dráha, pokud existují, jinak nejbližší průlet před začátkem nárůstu.
+7. Vlastní okno „před“ z UI (Advanced, `pre_window`): kontrola proběhne a jen varuje, výběr nemění.
+8. Výsledek do `run.json.acquire.s1.pre_selection` (schéma v ARCHITECTURE.md).
+Proč ne model na dvojici snímků (původní návrh M1): u dlouhé povodně jsou zatopené oba snímky a změnu neuvidí; monzunový sezónní
+nárůst by výběr posouval zbytečně dozadu; stojí ~90 PU na kandidáta; kalibrace z Kuro Siwo (pre měsíce od sebe) nesedí na 12 dní.
+Proč ne porovnání s vodou z OSM: řeky jsou v OSM často jen čáry, plochu vody z nich spočítat nejde.
+Starší pre modelu nevadí — v Kuro Siwo byly pre často měsíce před povodní (D-020). Je to pravidlo pro **výběr snímku**, ne detekce
+povodně (tu dělá dál model, D-014). Pravidla: jen Sentinel-1 + Copernicus DEM (HAND), bez EMS.
+
+## D-X-01 | 2026-10-08 | přijato (master; uživatel: „rozhodni“) — Která dráha je hlavní
+Rozpor: D-029 (post = první dostupný po události) vs D-033 (hlavní = ta s lepším pokrytím). Obě pravidla platí **uvnitř každé dráhy**
+(každá má svůj první post a pre ze stejné dráhy); tohle rozhoduje jen, která ze dvou je **hlavní** (`aligned/s1_*`, slider v UI,
+výběr pre podle D-M1-01; druhá je `s1_alt`).
+1. Spočítat pro obě dráhy **viditelnost dna údolí** = podíl pixelů s nízkým HAND (kde voda může být, D-034), které nejsou v layover/shadow.
+   Počítá se z DEM a geometrie dráhy z katalogu — bez stahování snímků.
+2. **Hlavní = dráha s nejdřívějším post** (záchranáři potřebují co nejdřívější obraz, voda opadává).
+3. **Výjimka:** druhá dráha se stane hlavní, když má post nejvýš o 3 dny později **a** viditelnost dna údolí aspoň o 10 procentních bodů lepší.
+   Prahy jsou konfigurovatelné, fyzikální/praktický odhad, **neladí se na EMS ani Trishuli** (D-006).
+4. Důvod volby zapsat do `run.json.acquire.s1.primary_reason` (např. „earliest post“ / „better valley-floor visibility, post +2 days“)
+   a obě viditelnosti do `run.json.acquire.s1.valley_visibility` a `acquire.s1_alt.valley_visibility`.
+Proč dno údolí a ne celá AOI: na strmých svazích voda stát nemůže (D-034), stín tam nevadí; důležité je, jestli je vidět koryto a niva.
+
 ## D-M9-01 | 2026-10-08 | přijato (M9) — výsledky testu a kola 4
 **Test (jednorázově) kandidáta `r3_r34_slope_tb4_s1f11` na 10 test eventech Kuro Siwo** (15 896 dlaždic, i bez vody, pixely sečtené):
 | | IoU | precision | recall | F1 |
@@ -300,6 +332,18 @@ Flip TTA: +0,001 F1 (zanedbatelné; na CPU 3× pomalejší → v pipeline volite
 205 (Srí Lanka, 0,64). Hory na testu: polovina predikované povodně falešná → pravidla D-034 zůstávají nutná.
 **Kolo 4:** ResNet50 i terrain boost bez přínosu (val score 0,610–0,614 = šum) → základ dál R34 + sklon + Sen1Floods11.
 Kolo 5 (SSL4EO-S12 S1 encoder, Lovász loss, UNet++) běží; finální výběr / ensemble podle val.
+
+## D-M9-02 | 2026-10-08 | přijato (rozhodnutí uživatele)
+**Hlavní linie = ImageNet encoder; SSL4EO-S12 (Sentinel-1 předtrénovaný encoder) jen jako připravená záloha.**
+Kontext: SSL4EO může být lepší, ale organizátoři zatím neodpověděli, jestli jsou předtrénované váhy povolené (`docs/QUESTIONS.md`).
+Nesmíme skončit s modelem postaveným na něčem, co pak nepovolí, ani s hotovým modelem a zjištěním, že šlo udělat víc.
+- Všechna vylepšení se dělají **nezávisle na encoderu** (data, augmentace, loss, kalibrace, EMA, ensemble/TTA, nejistota, pravidla M3).
+- Finální trénink = jeden **recept** (`training/recipes/*.json`); encoder je v něm jen hodnota `--encoder-weights`
+  (imagenet | ssl4eo_s1, u SSL4EO navíc `--encoder resnet50`). Přepnutí = 1 běh na Kaggle (~1,5 h GPU) + test.
+- Pipeline (M3) čte architekturu i encoder z `model_card.json` → přepnutí modelu nemění kód pipeline.
+- Trénuje a ladí se jen hlavní linie; SSL4EO se měří jen kontrolně (kolo 5 a jednou s finálním receptem), aby bylo
+  známo, kolik by přechod přinesl. Spin-off session (`docs/SPINOFF_SSL4EO.md`) se teď nespouští.
+- Bez kladné odpovědi organizátorů se SSL4EO model nestane finálním modelem pipeline.
 
 ---
 

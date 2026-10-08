@@ -8,6 +8,8 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-08 — hlavní dráha (D-X-01):** nejdřívější post; výjimka, když druhá dráha má post ≤ 3 dny později a dno údolí vidí o ≥ 10 p. b. líp. Nová pole `acquire.s1.primary_reason`, `valley_visibility`.
+- **2026-10-08 — výběr snímku „před“ (D-M1-01):** časová řada podílu vody v ~60 m → pre = poslední průlet před nárůstem vody; nové pole `run.json.acquire.s1.pre_selection` (UI ho může ukázat, M6 do sitrepu varování).
 - **2026-10-08 — sjednocení (master, D-035), platí pro všechny:**
   1. Všechny větve jsou sloučené v `main` → **`git fetch origin main && git merge origin/main`**.
   2. **Přečíslováno:** modelová D-026/027/028 → **D-032/033/034**, O-010 (váhy) → **O-011**; satelity D-031 beze změny; O-009 a O-010 zrušeny.
@@ -18,8 +20,8 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
   7. `flood_polygons.geojson`: `class` = `"water"` / `"debris"` (text).
   8. **Otázky na organizátory jen v `docs/QUESTIONS.md`** (5 odesláno, čeká se). Do odpovědi: ImageNet nechat, Sentinel Hub nechat, **JRC nepoužívat**.
 
-- **2026-10-08 — M9: spin-off SSL4EO** (uživatel): zadání pro samostatnou session v `docs/SPINOFF_SSL4EO.md` (větev `spinoff/ssl4eo`,
-  vlastní Kaggle kód `floodseg-code-ssl4eo`, rozhodnutí `D-M9S-NN`). Hlavní linie M9 pokračuje beze změny.
+- **2026-10-08 — M9: SSL4EO jen jako záloha (D-M9-02)** — hlavní model zůstává ImageNet; vylepšení nezávislá na encoderu;
+  přepnutí na SSL4EO = 1 změna v receptu + 1 trénink, jen při souhlasu organizátorů. Spin-off (`docs/SPINOFF_SSL4EO.md`) pozastaven.
 
 ## Plán (pořadí práce)
 1. Zjistit informace o satelitech (S1/S2, DEM) a najít data a zdroje (úkoly 3, 4).

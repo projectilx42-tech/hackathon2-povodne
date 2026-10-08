@@ -108,6 +108,10 @@ runs/<run_id>/
     "s1": {"relative_orbit": 0, "orbit_direction": "ASCENDING|DESCENDING",
             "pre":  [{"id": "S1A_IW_GRDH_...", "datetime": "..."}],
             "post": [{"id": "...", "datetime": "..."}], "source": "CDSE|PC|..."},
+    // acquire.s1.primary_reason + acquire.s1.valley_visibility / acquire.s1_alt.valley_visibility (0–1) — volba hlavní dráhy (D-X-01)
+    // acquire.s1.pre_selection (D-M1-01): {"method": "water_fraction_series", "lookback_days": 60, "resolution_m": 60,
+    //   "series": [{"date": "YYYY-MM-DD", "water_frac": 0.0}], "onset_date": "YYYY-MM-DD|null",
+    //   "chosen_pre": ["YYYY-MM-DD", ...], "reason": "...", "user_window": false}
     "s2": {"pre": [...], "post": [...], "max_cloud_pct": 40},
     "dem": {"source": "...", "product": "COP-DEM GLO-30"}
   },
