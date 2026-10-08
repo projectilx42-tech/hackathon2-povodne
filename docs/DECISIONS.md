@@ -365,6 +365,8 @@ Nesmíme skončit s modelem postaveným na něčem, co pak nepovolí, ani s hoto
   na organizátory kvůli SSL4EO není potřeba, záloha `training/recipes/ssl4eo.json` zůstává (D-M9-02).
 - **Test v0.2 (jednorázově):** F1 povodně 0,775 (v0.1: 0,779 — v šumu), hory F1 0,53 / precision 0,55 (v0.1: 0,49 / 0,49).
 - **Himálaj (předběžně, proxy vstup):** recall vody Teesta 0,20 / Marsyangdi 0,15 (v0.1: 0,17 / 0,12), falešné povodně 0 %.
+  S oběma směry přeletu (D-034): Marsyangdi recall 0,38 (IoU 0,15 → 0,32), Teesta +16 % vyhodnotitelné plochy, falešné povodně 0 %
+  (`training/himalaya/README.md`) → spojení dvou drah potvrzeno i na horských datech.
 - v0.2 v Kaggle datasetu `floodseg-model` (nová verze), `fetch_model.py` a `run_ai.py` výchozí `models/floodseg_v0.2/`.
 
 ## D-M9-05 | 2026-10-08 | přijato (M9) — finální refit na train+val, pravidlo stanovené PŘED testem

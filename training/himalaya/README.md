@@ -39,3 +39,17 @@ water (< −18 dB), because the surface is rough and channels are only 2–6 pix
 not something more training data fixes; the debris/mud step (M3d) and Sentinel-2 (when clear) must cover it.
 The slope input trades recall for fewer false alarms (Marsyangdi: recall 12 % with slope vs 39 % with slope set to 0,
 false alarms 0.00 % vs 0.91 %).
+
+## Model v0.2, one vs. both pass directions (2026-10-09, PROXY radar input)
+`results/himalaya_proxy_v0.2.json` (main track) and `results/himalaya_proxy_v0.2_2tracks.json` (+ opposite direction, D-034):
+
+| scene | tracks | area evaluated (km²) | water precision | water recall | false flood on dry land |
+|---|---|---|---|---|---|
+| Teesta 2023 | 1 | 178 | 0.84 | 0.20 | 0.00 % |
+| Teesta 2023 | 2 | 206 | 0.88 | 0.18 | 0.00 % |
+| Marsyangdi 2024 (no flood) | 1 | 460 | 0.94 | 0.15 | 0.00 % |
+| Marsyangdi 2024 (no flood) | 2 | 460 | 0.70 | 0.38 | 0.00 % |
+| Chamoli 2021 | 1 / 2 | 105 | – | 0.00 | 0.00 % |
+
+The second pass direction sees slopes hidden from the first (Teesta: +16 % usable area) and more than doubles the river
+pixels found in Marsyangdi, with no false flood. Chamoli's turbid, narrow debris-flood channel stays invisible to radar.

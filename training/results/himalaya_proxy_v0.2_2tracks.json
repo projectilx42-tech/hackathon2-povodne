@@ -1,0 +1,35 @@
+{
+ "teesta_2023": {
+  "evaluated_km2": 206.1412,
+  "label_water_km2": 1.4841,
+  "pred_water_km2": 0.2954,
+  "water_iou": 0.1715715320297584,
+  "water_precision": 0.8821936357481381,
+  "water_recall": 0.17559463648002155,
+  "pred_flood_km2_all": 0.0,
+  "pred_flood_km2_on_label_dry_land": 0.0,
+  "false_alarm_rate_dry_land": 0.0
+ },
+ "chamoli_2021": {
+  "evaluated_km2": 105.0169,
+  "label_water_km2": 0.20850000000000002,
+  "pred_water_km2": 0.0,
+  "water_iou": 0.0,
+  "water_precision": null,
+  "water_recall": 0.0,
+  "pred_flood_km2_all": 0.0,
+  "pred_flood_km2_on_label_dry_land": 0.0,
+  "false_alarm_rate_dry_land": 0.0
+ },
+ "marsyangdi_2024_noflood": {
+  "evaluated_km2": 459.97040000000004,
+  "label_water_km2": 0.3397,
+  "pred_water_km2": 0.1827,
+  "water_iou": 0.32286654849328944,
+  "water_precision": 0.6978653530377669,
+  "water_recall": 0.37533117456579335,
+  "pred_flood_km2_all": 0.0,
+  "pred_flood_km2_on_label_dry_land": 0.0,
+  "false_alarm_rate_dry_land": 0.0
+ }
+}
