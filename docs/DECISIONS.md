@@ -374,6 +374,13 @@ teplota převzatá z v0.2 = 0.9634, protože val už je v tréninku). Výběr se
 **Pravidlo nasazení (stanoveno před testem v0.3):** v0.3 nahradí v0.2, pokud na test eventech platí
 F1 povodně ≥ 0,765 (v0.2 − 0,01) **a** F1 povodně na horských dlaždicích ≥ 0,51 (v0.2 − 0,02); jinak zůstává v0.2.
 
+## D-M9-06 | 2026-10-09 | přijato (M9) — šum mezi seedy
+Stejný recept (v0.2: R34 + sklon + Sen1Floods11 + Lovász) se 3 seedy (42, 1, 2): val score 0,612 / 0,603 / 0,600
+(průměr 0,605, sm. odch. 0,007), F1 povodně 0,713 / 0,691 / 0,684 (sm. odch. 0,015), precision povodně v horách
+0,20 / 0,28 / 0,26 (sm. odch. 0,04). **Rozdíly mezi konfiguracemi od kola 3 (0,600–0,614) jsou v rozsahu šumu**; jediné
+opakovaně jasné zlepšení byl sklon terénu (kolo 3). Pro report: uvádět čísla jako ± šum, nepřeceňovat drobné rozdíly.
+v0.2 (seed 42) vyšel na val nejlíp z trojice; test (0,775) to nijak nezvýhodňuje (vybíralo se jen podle val).
+
 ---
 
 # Otevřené otázky (k rozhodnutí)
