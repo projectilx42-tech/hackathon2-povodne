@@ -306,6 +306,19 @@ Proč ne porovnání s vodou z OSM: řeky jsou v OSM často jen čáry, plochu v
 Starší pre modelu nevadí — v Kuro Siwo byly pre často měsíce před povodní (D-020). Je to pravidlo pro **výběr snímku**, ne detekce
 povodně (tu dělá dál model, D-014). Pravidla: jen Sentinel-1 + Copernicus DEM (HAND), bez EMS.
 
+## D-X-01 | 2026-10-08 | přijato (master; uživatel: „rozhodni“) — Která dráha je hlavní
+Rozpor: D-029 (post = první dostupný po události) vs D-033 (hlavní = ta s lepším pokrytím). Obě pravidla platí **uvnitř každé dráhy**
+(každá má svůj první post a pre ze stejné dráhy); tohle rozhoduje jen, která ze dvou je **hlavní** (`aligned/s1_*`, slider v UI,
+výběr pre podle D-M1-01; druhá je `s1_alt`).
+1. Spočítat pro obě dráhy **viditelnost dna údolí** = podíl pixelů s nízkým HAND (kde voda může být, D-034), které nejsou v layover/shadow.
+   Počítá se z DEM a geometrie dráhy z katalogu — bez stahování snímků.
+2. **Hlavní = dráha s nejdřívějším post** (záchranáři potřebují co nejdřívější obraz, voda opadává).
+3. **Výjimka:** druhá dráha se stane hlavní, když má post nejvýš o 3 dny později **a** viditelnost dna údolí aspoň o 10 procentních bodů lepší.
+   Prahy jsou konfigurovatelné, fyzikální/praktický odhad, **neladí se na EMS ani Trishuli** (D-006).
+4. Důvod volby zapsat do `run.json.acquire.s1.primary_reason` (např. „earliest post“ / „better valley-floor visibility, post +2 days“)
+   a obě viditelnosti do `run.json.acquire.s1.valley_visibility` a `acquire.s1_alt.valley_visibility`.
+Proč dno údolí a ne celá AOI: na strmých svazích voda stát nemůže (D-034), stín tam nevadí; důležité je, jestli je vidět koryto a niva.
+
 ---
 
 # Otevřené otázky (k rozhodnutí)
