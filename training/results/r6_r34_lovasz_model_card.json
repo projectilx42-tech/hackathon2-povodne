@@ -1,0 +1,144 @@
+{
+ "arch": "Unet",
+ "encoder": "resnet34",
+ "in_channels": 7,
+ "inputs": [
+  "pre_vv",
+  "pre_vh",
+  "post_vv",
+  "post_vh",
+  "diff_vv",
+  "diff_vh",
+  "slope"
+ ],
+ "normalization": {
+  "pre_vv": [
+   -11.0351,
+   3.8641
+  ],
+  "pre_vh": [
+   -18.2527,
+   4.5427
+  ],
+  "post_vv": [
+   -10.6541,
+   4.2875
+  ],
+  "post_vh": [
+   -17.7242,
+   4.8866
+  ],
+  "diff_vv": [
+   0.3552,
+   3.9906
+  ],
+  "diff_vh": [
+   0.4878,
+   3.7987
+  ]
+ },
+ "db_clip": [
+  -35.0,
+  5.0
+ ],
+ "slope_scale_deg": 30.0,
+ "classes": {
+  "0": "no water",
+  "1": "permanent water",
+  "2": "flood"
+ },
+ "temperature": 0.9634,
+ "input_units": "dB of Sentinel-1 GRD sigma0 (linear -> 10*log10), Lee Sigma 3x3 speckle filter",
+ "tile_size": 224,
+ "trained_on": [
+  "KuroSiwo GRD (official train events)",
+  "Sen1Floods11 hand-labelled (without Sri Lanka = Kuro Siwo test event 205)"
+ ],
+ "split_events": {
+  "train": [
+   130,
+   470,
+   555,
+   118,
+   174,
+   324,
+   421,
+   554,
+   427,
+   518,
+   502,
+   498,
+   497,
+   496,
+   492,
+   147,
+   267,
+   273,
+   275,
+   417,
+   567,
+   1111011,
+   1111004,
+   1111009,
+   1111010,
+   1111006,
+   1111005
+  ],
+  "val": [
+   514,
+   559,
+   279,
+   520,
+   437,
+   1111003,
+   1111008
+  ],
+  "test": [
+   321,
+   561,
+   445,
+   562,
+   411,
+   1111002,
+   277,
+   1111007,
+   205,
+   1111013
+  ]
+ },
+ "val_metrics": {
+  "no water": {
+   "iou": 0.9881593191338726,
+   "precision": 0.9947123182565635,
+   "recall": 0.9933773788925271,
+   "f1": 0.9940444003897606,
+   "support": 132005438
+  },
+  "permanent water": {
+   "iou": 0.6270051755542758,
+   "precision": 0.7312306005420254,
+   "recall": 0.8147797665885639,
+   "f1": 0.7707476103641433,
+   "support": 2051142
+  },
+  "flood": {
+   "iou": 0.5538343110916168,
+   "precision": 0.7245614780061882,
+   "recall": 0.7015333278514743,
+   "f1": 0.7128614771063088,
+   "support": 1799876
+  },
+  "water (perm+flood)": {
+   "iou": 0.6674691655873564,
+   "precision": 0.7829731287675259,
+   "recall": 0.8189917575041197,
+   "f1": 0.8005775211468384,
+   "support": 3851018
+  },
+  "mIoU": 0.7229996019265883,
+  "pixel_accuracy": 0.9868144801304106,
+  "n_pixels": 135856456
+ },
+ "created_utc": "2026-10-08T22:06:48+00:00",
+ "license_notes": "Kuro Siwo (Bountos et al., 2024, CC BY 4.0); Sen1Floods11 (Bonafilia et al., 2020). ImageNet-pretrained encoder."
+}
