@@ -144,6 +144,20 @@ Kompaktní data se připraví v cloud session a nahrají jako soukromý Kaggle d
 s převýšením > 200 m (z DEM) — náhrada za Himálaj, dokud nebude himálajská sada (O-005). Příznaky a augmentace se počítají
 dávkově na GPU (`floodseg/gpu_features.py`), shoda s numpy verzí pro inferenci je hlídaná testem `training/tests/test_features.py`.
 
+## D-026 | 2026-10-08 | přijato (M9, výsledky kola 3)
+**Sklon terénu jako 7. vstupní kanál + Sen1Floods11 + častější vzorkování hornatých dlaždic (terrain boost 4).**
+Kolo 3 (Unet R34, 10 epoch, val = 2 825 dlaždic, výběr podle průměru přes eventy):
+| varianta | val score | F1 povodeň | precision povodně – hory (>200 m) |
+|---|---|---|---|
+| základ | 0,586 | 0,649 | 0,07 |
+| + sklon | 0,593 | 0,686 | 0,24 |
+| + sklon + terrain boost 4 | 0,610 | 0,683 | 0,14 |
+| + sklon + boost + Sen1Floods11 | **0,614** | **0,691** | 0,12 |
+Sklon pomáhá nejvíc (hlavně v horách); Sen1Floods11 přidává mírné zlepšení na rovině a v kopcích. Hornatý podtest val má
+jen ~190 dlaždic (hlavně event 279) → čísla pro hory jsou hrubá. I nejlepší varianta má v horách přes 75 % falešných
+povodní → **masky layover/shadow, sklon a HAND v M2/M3 jsou nutné** (model sám to nevyřeší). Kolo 4 ověřuje sklon+S1F11
+bez boostu a ResNet50; finální model se vybere podle val score.
+
 ---
 
 # Otevřené otázky (k rozhodnutí)

@@ -1,0 +1,4 @@
+[
+ {"name": "r4_r34_slope_s1f11", "args": ["--arch", "Unet", "--encoder", "resnet34", "--epochs", "10", "--no-test", "--slope", "--sen1floods11"]},
+ {"name": "r4_r50_slope_tb4_s1f11", "args": ["--arch", "Unet", "--encoder", "resnet50", "--epochs", "8", "--no-test", "--slope", "--terrain-boost", "4", "--sen1floods11"]}
+]
