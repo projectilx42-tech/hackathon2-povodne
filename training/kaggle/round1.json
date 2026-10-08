@@ -1,0 +1,4 @@
+[
+ {"name": "r1_unet_r34", "args": ["--arch", "Unet", "--encoder", "resnet34", "--epochs", "30", "--no-test"]},
+ {"name": "r1_siam_r34", "args": ["--arch", "SiamUnet", "--encoder", "resnet34", "--epochs", "30", "--no-test"]}
+]

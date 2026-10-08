@@ -7,6 +7,7 @@ in two splits.
 
 from __future__ import annotations
 
+import os
 import warnings
 from pathlib import Path
 
@@ -34,7 +35,9 @@ def load_index(root: Path) -> pd.DataFrame:
     where each part is a separate dataset under /kaggle/input.
     """
     frames = []
-    for csv in sorted(Path(root).rglob("index_*.csv")):
+    csvs = sorted(Path(d) / f for d, _, files in os.walk(root, followlinks=True)
+                  for f in files if f.startswith("index_") and f.endswith(".csv"))
+    for csv in csvs:
         df = pd.read_csv(csv)
         df["path"] = [str(csv.parent / f) for f in df["file"]]
         frames.append(df)
