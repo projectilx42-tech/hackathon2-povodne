@@ -18,6 +18,9 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
   7. `flood_polygons.geojson`: `class` = `"water"` / `"debris"` (text).
   8. **Otázky na organizátory jen v `docs/QUESTIONS.md`** (5 odesláno, čeká se). Do odpovědi: ImageNet nechat, Sentinel Hub nechat, **JRC nepoužívat**.
 
+- **2026-10-08 — M9: spin-off SSL4EO** (uživatel): zadání pro samostatnou session v `docs/SPINOFF_SSL4EO.md` (větev `spinoff/ssl4eo`,
+  vlastní Kaggle kód `floodseg-code-ssl4eo`, rozhodnutí `D-M9S-NN`). Hlavní linie M9 pokračuje beze změny.
+
 ## Plán (pořadí práce)
 1. Zjistit informace o satelitech (S1/S2, DEM) a najít data a zdroje (úkoly 3, 4).
 2. **UI / webová stránka** (M8) — zatím s ukázkovými daty podle kontraktu v ARCHITECTURE.md.

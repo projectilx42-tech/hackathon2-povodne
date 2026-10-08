@@ -20,13 +20,13 @@ USER = "krataihalfmaster"
 DATASETS = ["floodseg-code", "floodseg-kurosiwo-train", "floodseg-kurosiwo-test", "floodseg-sen1floods11"]
 
 
-def push_code(message: str) -> None:
+def push_code(message: str, code_dataset: str = "floodseg-code") -> None:
     with tempfile.TemporaryDirectory() as tmp:
         dst = Path(tmp) / "code"
         shutil.copytree(ROOT, dst, ignore=shutil.ignore_patterns("__pycache__", "kaggle", "*.pyc"))
-        meta = {"title": "floodseg-code", "id": f"{USER}/floodseg-code", "licenses": [{"name": "other"}]}
+        meta = {"title": code_dataset, "id": f"{USER}/{code_dataset}", "licenses": [{"name": "other"}]}
         (dst / "dataset-metadata.json").write_text(json.dumps(meta))
-        exists = subprocess.run(["kaggle", "datasets", "status", f"{USER}/floodseg-code"],
+        exists = subprocess.run(["kaggle", "datasets", "status", f"{USER}/{code_dataset}"],
                                 capture_output=True, text=True).returncode == 0
         cmd = (["kaggle", "datasets", "version", "-p", str(dst), "-m", message, "-r", "zip"] if exists
                else ["kaggle", "datasets", "create", "-p", str(dst), "-r", "zip"])
@@ -39,10 +39,12 @@ def main() -> None:
     ap.add_argument("--exps", type=Path, required=True)
     ap.add_argument("--datasets", nargs="+", default=DATASETS)
     ap.add_argument("--skip-code", action="store_true")
+    ap.add_argument("--code-dataset", default="floodseg-code",
+                    help="Kaggle dataset holding the training code (a spin-off uses its own, so lines do not overwrite each other)")
     args = ap.parse_args()
 
     if not args.skip_code:
-        push_code(f"code for {args.slug}")
+        push_code(f"code for {args.slug}", args.code_dataset)
     exps = json.loads(args.exps.read_text())
     src = (ROOT / "kaggle/run_kaggle.py").read_text().replace("EXPS = []", "EXPS = " + json.dumps(exps), 1)
     with tempfile.TemporaryDirectory() as tmp:
@@ -50,7 +52,8 @@ def main() -> None:
         meta = {
             "id": f"{USER}/{args.slug}", "title": args.slug, "code_file": "run.py", "language": "python",
             "kernel_type": "script", "is_private": "true", "enable_gpu": "true", "enable_internet": "true",
-            "machine_shape": "NvidiaTeslaT4", "dataset_sources": [f"{USER}/{d}" for d in args.datasets],
+            "machine_shape": "NvidiaTeslaT4",
+            "dataset_sources": [f"{USER}/{d}" for d in args.datasets if d != "floodseg-code"] + [f"{USER}/{args.code_dataset}"],
             "competition_sources": [], "kernel_sources": [], "model_sources": [],
         }
         (Path(tmp) / "kernel-metadata.json").write_text(json.dumps(meta, indent=1))
