@@ -30,6 +30,11 @@ def main() -> None:
     code = find("train.py")
     shutil.copytree(code, WORK / "code", dirs_exist_ok=True)
     exps = EXPS
+    # One shared, memory-mapped copy of the train/val tiles for all experiments (RAM: two in-memory copies
+    # of ~50k tiles do not fit into Kaggle's 31 GB).
+    cache = Path("/tmp/floodseg_cache")
+    subprocess.run([sys.executable, str(WORK / "code/build_cache.py"), "--data", str(INPUT), "--out", str(cache)], check=True)
+    subprocess.run("df -h /tmp; free -g", shell=True)
     n_gpu = int(subprocess.run(["nvidia-smi", "-L"], capture_output=True, text=True).stdout.count("GPU "))
     print(f"{len(exps)} experiments on {n_gpu} GPU(s)", flush=True)
 
@@ -41,7 +46,7 @@ def main() -> None:
             out = WORK / exp["name"]
             out.mkdir(parents=True, exist_ok=True)
             cmd = [sys.executable, str(WORK / "code/train.py"), "--data", str(INPUT), "--out", str(out),
-                   "--device", "cuda", "--workers", str(max(1, 4 // max(n_gpu, 1)))] + exp["args"]
+                   "--device", "cuda", "--workers", str(max(1, 4 // max(n_gpu, 1))), "--cache", str(cache)] + exp["args"]
             env = dict(os.environ, CUDA_VISIBLE_DEVICES=str(gpu), PYTHONUNBUFFERED="1")
             log = open(out / "train.log", "w")
             print(f"start {exp['name']} on GPU {gpu}: {' '.join(cmd)}", flush=True)

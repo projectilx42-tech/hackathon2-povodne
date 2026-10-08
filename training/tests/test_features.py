@@ -9,6 +9,7 @@ import torch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from floodseg import features as npf  # noqa: E402
 from floodseg import gpu_features as tf  # noqa: E402
+from floodseg.data import tile_slope_u8  # noqa: E402
 
 
 def _random_tiles(n=3, size=64, seed=0):
@@ -24,15 +25,18 @@ def _random_tiles(n=3, size=64, seed=0):
 def test_features_match():
     sar, dem = _random_tiles()
     norm = npf.DEFAULT_NORM
+    slope = tile_slope_u8(dem)  # training stores slope as whole degrees
     x_t, _ = tf.make_batch(torch.from_numpy(sar), torch.zeros(sar.shape[0], 64, 64, dtype=torch.uint8),
-                           torch.from_numpy(dem), norm, augment=False)
+                           torch.from_numpy(slope), norm, augment=False)
     for i in range(sar.shape[0]):
         db = npf.uint8_to_db(sar[i])
         d = dem[i].astype(np.float32)
         d[d == -32768] = np.nan
         x_n = npf.build_features(npf.combine_pre_db(db[2], db[4]), npf.combine_pre_db(db[3], db[5]),
                                  db[0], db[1], npf.slope_from_dem(d), norm)
-        np.testing.assert_allclose(x_t[i].numpy(), x_n, atol=1e-3)
+        # SAR channels identical; slope differs only by the rounding to whole degrees (<= 0.5 deg)
+        np.testing.assert_allclose(x_t[i, :6].numpy(), x_n[:6], atol=1e-3)
+        np.testing.assert_allclose(x_t[i, 6].numpy(), x_n[6], atol=0.5 / npf.SLOPE_SCALE_DEG + 1e-4)
 
 
 def test_augment_shapes_and_labels():

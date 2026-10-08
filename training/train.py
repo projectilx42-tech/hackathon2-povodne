@@ -27,8 +27,8 @@ import numpy as np
 import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from floodseg.data import (IGNORE, SEN1FLOODS11_ACT_BASE, SPLIT_ACTS, KuroSiwoDataset, compute_norm_stats, event_balanced_weights,  # noqa: E402
-                           load_arrays, load_index)
+from floodseg.data import (IGNORE, SEN1FLOODS11_ACT_BASE, SPLIT_ACTS, KuroSiwoDataset, compute_norm_stats,  # noqa: E402
+                           event_balanced_weights, load_arrays, load_index, open_cache, terrain_boost_weights)
 from floodseg.features import CHANNELS, DB_MAX, DB_MIN, SLOPE_SCALE_DEG  # noqa: E402
 from floodseg.gpu_features import make_batch  # noqa: E402
 from floodseg.metrics import RELIEF_BINS, Confusion  # noqa: E402
@@ -43,7 +43,7 @@ def parse_args():
     ap.add_argument("--encoder", default="resnet34")
     ap.add_argument("--no-pretrained", action="store_true")
     ap.add_argument("--slope", action="store_true", help="add slope (from DEM) as an input channel")
-    ap.add_argument("--epochs", type=int, default=30)
+    ap.add_argument("--epochs", type=int, default=10)
     ap.add_argument("--batch-size", type=int, default=32)
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--weight-decay", type=float, default=1e-4)
@@ -54,6 +54,10 @@ def parse_args():
     ap.add_argument("--event-balance", type=float, default=0.5,
                     help="0 = uniform tile sampling, 1 = every flood event equally often")
     ap.add_argument("--tta", action="store_true", help="flip test-time augmentation for the final test")
+    ap.add_argument("--terrain-boost", type=float, default=1.0,
+                    help="sample mountainous tiles this many times more often (hilly: sqrt)")
+    ap.add_argument("--cache", type=Path, default=None,
+                    help="memory-mapped tile cache from build_cache.py (shared between parallel runs)")
     ap.add_argument("--ema", type=float, default=0.999,
                     help="decay of the exponential moving average of weights used for evaluation (0 = off)")
     ap.add_argument("--sen1floods11", action="store_true",
@@ -80,10 +84,10 @@ def split_index(index, split: str, max_tiles: int | None, seed: int, sen1floods1
 
 
 def to_device(batch, device, use_slope):
-    sar, label, dem, act, terrain = batch
+    sar, label, slope, act, terrain = batch
     sar, label = sar.to(device, non_blocking=True), label.to(device, non_blocking=True)
-    dem = dem.to(device, non_blocking=True) if use_slope else None
-    return sar, label, dem, act.to(device), terrain.to(device)
+    slope = slope.to(device, non_blocking=True) if use_slope else None
+    return sar, label, slope, act.to(device), terrain.to(device)
 
 
 @torch.no_grad()
@@ -151,6 +155,20 @@ def make_loader(ds, batch_size, shuffle, workers, weights=None):
     )
 
 
+def macro_score(report: dict, min_support: int = 10_000) -> float:
+    """Model-selection score: mean over validation events of (flood IoU + water IoU) / 2.
+
+    A pixel-pooled IoU is dominated by the largest event (event 279 is ~85 % of validation pixels);
+    averaging per event rewards models that work across different floods.
+    """
+    vals = []
+    for ev in report.get("per_event", {}).values():
+        f, w = ev["flood"], ev["water (perm+flood)"]
+        if f["support"] >= min_support and f["iou"] is not None and w["iou"] is not None:
+            vals.append((f["iou"] + w["iou"]) / 2)
+    return float(np.mean(vals)) if vals else 0.0
+
+
 def name_terrain(report: dict) -> dict:
     if "per_terrain" in report:
         report["per_terrain"] = {RELIEF_BINS[int(k)][2]: v for k, v in report["per_terrain"].items()}
@@ -164,25 +182,37 @@ def main():
     args.out.mkdir(parents=True, exist_ok=True)
     device = args.device
 
-    index = load_index(args.data)
-    print(f"index: {len(index)} tiles, events: {sorted(index['actid'].unique())}")
+    t0 = time.time()
+    if args.cache is not None:
+        index, cache = open_cache(args.cache)
+    else:
+        index = load_index(args.data)
+    print(f"index: {len(index)} tiles, events: {sorted(int(a) for a in index['actid'].unique())}")
     tr_idx = split_index(index, "train", args.max_tiles, args.seed, args.sen1floods11)
     if args.min_water > 0:
         tr_idx = tr_idx[(tr_idx["perm_frac"] + tr_idx["flood_frac"]) >= args.min_water].reset_index(drop=True)
     va_idx = split_index(index, "val", args.max_tiles, args.seed)
     print(f"train {len(tr_idx)} tiles / val {len(va_idx)} tiles")
-
-    t0 = time.time()
-    tr_arr, va_arr = load_arrays(tr_idx, args.slope), load_arrays(va_idx, args.slope)
-    print(f"loaded arrays in {time.time() - t0:.0f}s")
-    norm = compute_norm_stats(tr_arr)
+    if args.cache is not None:
+        tr_arr = va_arr = cache
+        tr_rows, va_rows = tr_idx["cache_row"].to_numpy(), va_idx["cache_row"].to_numpy()
+    else:
+        tr_arr, va_arr = load_arrays(tr_idx, args.slope), load_arrays(va_idx, args.slope)
+        tr_rows = va_rows = None
+    print(f"data ready in {time.time() - t0:.0f}s")
+    pick = np.random.default_rng(args.seed).choice(len(tr_idx), size=min(2000, len(tr_idx)), replace=False)
+    pick = np.sort(tr_rows[pick] if tr_rows is not None else pick)
+    norm = compute_norm_stats({"sar": tr_arr["sar"][pick]})  # random subset of training tiles
     print("normalisation (dB mean, std):", norm)
 
     in_ch = len(CHANNELS) + (1 if args.slope else 0)
-    tr_ds = KuroSiwoDataset(tr_idx, tr_arr, args.slope)
-    va_ds = KuroSiwoDataset(va_idx, va_arr, args.slope)
+    tr_ds = KuroSiwoDataset(tr_idx, tr_arr, args.slope, tr_rows)
+    va_ds = KuroSiwoDataset(va_idx, va_arr, args.slope, va_rows)
     gen = torch.Generator(device=device).manual_seed(args.seed)
     weights = event_balanced_weights(tr_ds.acts, args.event_balance) if args.event_balance > 0 else None
+    if args.terrain_boost != 1.0:
+        weights = (weights if weights is not None else np.ones(len(tr_ds))) * terrain_boost_weights(tr_ds.terrain, args.terrain_boost)
+        weights = weights / weights.sum()
     tr_dl = make_loader(tr_ds, args.batch_size, True, args.workers, weights)
     va_dl = make_loader(va_ds, args.batch_size * 2, False, args.workers)
 
@@ -227,12 +257,13 @@ def main():
                 tot, n = tot + loss.item(), n + 1
         val_report = name_terrain(evaluate(eval_model, va_dl, device, norm, args.slope).report())
         val = val_report["overall"]
-        row = {"epoch": epoch, "train_loss": tot / max(n, 1), "val_flood_iou": val["flood"]["iou"],
+        score = macro_score(val_report)
+        row = {"epoch": epoch, "train_loss": tot / max(n, 1), "val_score": score, "val_flood_iou": val["flood"]["iou"],
                "val_perm_iou": val["permanent water"]["iou"], "val_water_iou": val["water (perm+flood)"]["iou"],
                "val_miou": val["mIoU"], "lr": sched.get_last_lr()[0], "sec": round(time.time() - t0)}
         history.append(row)
         print(json.dumps(row), flush=True)
-        key = row["val_flood_iou"] or 0.0
+        key = score
         if key > best:
             best = key
             torch.save({"state_dict": eval_model.state_dict(), "config": config, "epoch": epoch}, args.out / "model.pt")
@@ -264,8 +295,9 @@ def main():
     }
 
     if not args.no_test:
-        del tr_arr, tr_ds, tr_dl
-        te_idx = split_index(index, "test", args.max_tiles, args.seed)
+        del tr_arr, va_arr, tr_ds, tr_dl
+        full_index = load_index(args.data)  # the cache holds train/val only; test tiles come from the npz parts
+        te_idx = split_index(full_index, "test", args.max_tiles, args.seed)
         te_ds = KuroSiwoDataset(te_idx, load_arrays(te_idx, args.slope), args.slope)
         model = eval_model
         te_dl = make_loader(te_ds, args.batch_size * 2, False, args.workers)

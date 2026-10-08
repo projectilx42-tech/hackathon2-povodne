@@ -1,0 +1,88 @@
+{
+ "r2_unet_r34": {
+  "args": [
+   "--arch",
+   "Unet",
+   "--encoder",
+   "resnet34",
+   "--epochs",
+   "20",
+   "--no-test"
+  ],
+  "val": null,
+  "test": null
+ },
+ "r2_unet_r34_slope": {
+  "args": [
+   "--arch",
+   "Unet",
+   "--encoder",
+   "resnet34",
+   "--epochs",
+   "20",
+   "--no-test",
+   "--slope"
+  ],
+  "val": null,
+  "test": null
+ },
+ "r2_unet_r34_s1f11": {
+  "args": [
+   "--arch",
+   "Unet",
+   "--encoder",
+   "resnet34",
+   "--epochs",
+   "20",
+   "--no-test",
+   "--sen1floods11"
+  ],
+  "val": null,
+  "test": null
+ },
+ "r2_unet_r50": {
+  "args": [
+   "--arch",
+   "Unet",
+   "--encoder",
+   "resnet50",
+   "--epochs",
+   "20",
+   "--no-test"
+  ],
+  "val": {
+   "no water": {
+    "iou": 0.9859602288676227,
+    "precision": 0.993972854681058,
+    "recall": 0.9918903037918786,
+    "f1": 0.9929304872633916,
+    "support": 132005438
+   },
+   "permanent water": {
+    "iou": 0.6165055119810737,
+    "precision": 0.7600840993138731,
+    "recall": 0.7654613868761889,
+    "f1": 0.7627632660844176,
+    "support": 2051142
+   },
+   "flood": {
+    "iou": 0.4819714305888565,
+    "precision": 0.6091118073270804,
+    "recall": 0.6977991817214074,
+    "f1": 0.6504463185195773,
+    "support": 1799876
+   },
+   "water (perm+flood)": {
+    "iou": 0.6211608069178318,
+    "precision": 0.7406420642732944,
+    "recall": 0.7938339940244372,
+    "f1": 0.7663160918611022,
+    "support": 3851018
+   },
+   "mIoU": 0.6948123904791843,
+   "pixel_accuracy": 0.9845754845835225,
+   "n_pixels": 135856456
+  },
+  "test": null
+ }
+}

@@ -52,10 +52,10 @@ def slope_from_dem(dem: torch.Tensor, pixel_m: float = 10.0) -> torch.Tensor:
 
 
 @torch.no_grad()
-def make_batch(sar_u8: torch.Tensor, label: torch.Tensor, dem: torch.Tensor | None, norm: dict,
+def make_batch(sar_u8: torch.Tensor, label: torch.Tensor, slope_u8: torch.Tensor | None, norm: dict,
                augment: bool, gain_db: float = 0.5, speckle_p: float = 0.3, scale_p: float = 0.3,
                gen: torch.Generator | None = None):
-    """sar_u8 [B,6,H,W] uint8 (post vv/vh, pre1 vv/vh, pre2 vv/vh), label [B,H,W], dem [B,H,W] int16 or None.
+    """sar_u8 [B,6,H,W] uint8 (post vv/vh, pre1 vv/vh, pre2 vv/vh), label [B,H,W], slope_u8 [B,H,W] degrees or None.
 
     Returns x [B,C,H,W] float32, y [B,H,W] int64. Augmentations as described in data.KuroSiwoDataset.
     """
@@ -98,10 +98,7 @@ def make_batch(sar_u8: torch.Tensor, label: torch.Tensor, dem: torch.Tensor | No
     else:
         pre_vv, pre_vh = pre_mean_vv, pre_mean_vh
 
-    slope = None
-    if dem is not None:
-        d = dem.float().masked_fill(dem == -32768, float("nan"))
-        slope = slope_from_dem(d)
+    slope = slope_u8.float() if slope_u8 is not None and slope_u8.numel() else None
     x = build_features(pre_vv, pre_vh, post_vv, post_vh, slope, norm)
 
     if augment:

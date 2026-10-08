@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 import torch
 
-from .features import combine_pre_db, uint8_to_db
+from .features import combine_pre_db, slope_from_dem, uint8_to_db
 from .metrics import relief_bucket
 
 TRAIN_ACTS = [130, 470, 555, 118, 174, 324, 421, 554, 427, 518, 502, 498, 497, 496, 492, 147, 267, 273,
@@ -52,22 +52,33 @@ def load_index(root: Path) -> pd.DataFrame:
     return df
 
 
-def load_arrays(index: pd.DataFrame, keep_dem: bool = True) -> dict[str, np.ndarray]:
-    """Load sar/label (+ dem) for the rows of `index`, in index order.
+def tile_slope_u8(dem: np.ndarray) -> np.ndarray:
+    """Slope in whole degrees (uint8) for a batch of DEM tiles [N,H,W] int16 (-32768 = nodata)."""
+    out = np.zeros(dem.shape, np.uint8)
+    for i, d in enumerate(dem):
+        d = d.astype(np.float32)
+        d[d == -32768] = np.nan
+        out[i] = np.clip(np.round(slope_from_dem(d)), 0, 90).astype(np.uint8)
+    return out
 
-    Always adds `relief` (m, per tile, from the DEM) for terrain-stratified metrics; the DEM itself is
-    only kept when needed (slope channel), which saves ~100 kB of RAM per tile.
-    """
+
+def _read_part(path: str, rows: np.ndarray, with_slope: bool) -> dict[str, np.ndarray]:
+    with np.load(path) as z:
+        dem = z["dem"][rows]
+        parts = {"sar": z["sar"][rows], "label": z["label"][rows], "relief": tile_relief(dem).astype(np.float32)}
+    if with_slope:
+        parts["slope"] = tile_slope_u8(dem)
+    return parts
+
+
+def load_arrays(index: pd.DataFrame, with_slope: bool = True) -> dict[str, np.ndarray]:
+    """Load sar / label / relief (+ slope in degrees) for the rows of `index` into RAM, in index order."""
     n = len(index)
-    keys = ("sar", "dem", "label") if keep_dem else ("sar", "label")
     out = None
     pos = np.arange(n)
     for path, grp in index.groupby("path", sort=False):
-        rows = grp["row"].to_numpy()
         dest = pos[index.index.get_indexer(grp.index)]
-        with np.load(path) as z:
-            parts = {k: z[k][rows] for k in keys}
-            parts["relief"] = tile_relief(z["dem"][rows]).astype(np.float32)
+        parts = _read_part(path, grp["row"].to_numpy(), with_slope)
         if out is None:
             out = {k: np.empty((n, *v.shape[1:]), v.dtype) for k, v in parts.items()}
         for k, v in parts.items():
@@ -75,9 +86,41 @@ def load_arrays(index: pd.DataFrame, keep_dem: bool = True) -> dict[str, np.ndar
     return out
 
 
-class KuroSiwoDataset(torch.utils.data.Dataset):
-    """Returns raw tiles: (sar uint8 [6,H,W], label uint8 [H,W], dem int16 [H,W] or empty, act_id, terrain).
+CACHE_KEYS = {"sar": ((6, 224, 224), np.uint8), "label": ((224, 224), np.uint8),
+              "slope": ((224, 224), np.uint8), "relief": ((), np.float32)}
 
+
+def build_cache(index: pd.DataFrame, out_dir: Path) -> None:
+    """Decompress the tiles of `index` once into uncompressed .npy files on disk.
+
+    Several training processes then memory-map the same files, so the OS page cache holds the data
+    once instead of each process keeping its own copy in RAM (two copies did not fit on Kaggle).
+    """
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    index = index.reset_index(drop=True)
+    n = len(index)
+    mm = {k: np.lib.format.open_memmap(out_dir / f"{k}.npy", mode="w+", dtype=dt, shape=(n, *shp))
+          for k, (shp, dt) in CACHE_KEYS.items()}
+    for path, grp in index.groupby("path", sort=False):
+        parts = _read_part(path, grp["row"].to_numpy(), with_slope=True)
+        for k, v in parts.items():
+            mm[k][grp.index.to_numpy()] = v
+    for m in mm.values():
+        m.flush()
+    index.assign(cache_row=np.arange(n)).to_csv(out_dir / "index.csv", index=False)  # written last = complete
+
+
+def open_cache(cache_dir: Path) -> tuple[pd.DataFrame, dict[str, np.ndarray]]:
+    cache_dir = Path(cache_dir)
+    index = pd.read_csv(cache_dir / "index.csv")
+    return index, {k: np.load(cache_dir / f"{k}.npy", mmap_mode="r") for k in CACHE_KEYS}
+
+
+class KuroSiwoDataset(torch.utils.data.Dataset):
+    """Returns raw tiles: (sar uint8 [6,H,W], label uint8 [H,W], slope uint8 [H,W] or empty, act_id, terrain).
+
+    `rows` maps dataset items to rows of `arrays` (in-RAM arrays or memory-mapped cache).
     Features and training augmentations are computed batch-wise on the GPU by
     gpu_features.make_batch (same maths as features.build_features), so the CPU only copies bytes:
       - pre-event image: pre1, pre2 or their mean (the pipeline may have one or two pre scenes),
@@ -88,20 +131,24 @@ class KuroSiwoDataset(torch.utils.data.Dataset):
       - random 90 degree rotations and flips (any orbit direction / valley orientation).
     """
 
-    def __init__(self, index: pd.DataFrame, arrays: dict[str, np.ndarray], use_slope: bool = False):
+    def __init__(self, index: pd.DataFrame, arrays: dict[str, np.ndarray], use_slope: bool = False,
+                 rows: np.ndarray | None = None):
         self.index = index.reset_index(drop=True)
         self.a = arrays
         self.use_slope = use_slope
+        self.rows = np.arange(len(self.index)) if rows is None else np.asarray(rows)
         self.acts = self.index["actid"].to_numpy()
-        self.terrain = np.array([relief_bucket(r) for r in arrays["relief"]], np.int64)
-        self.empty = torch.zeros(0, dtype=torch.int16)
+        self.relief = np.asarray(arrays["relief"][self.rows], np.float32)
+        self.terrain = np.array([relief_bucket(r) for r in self.relief], np.int64)
+        self.empty = torch.zeros(0, dtype=torch.uint8)
 
     def __len__(self) -> int:
         return len(self.index)
 
     def __getitem__(self, i: int):
-        dem = torch.from_numpy(self.a["dem"][i]) if self.use_slope else self.empty
-        return (torch.from_numpy(self.a["sar"][i]), torch.from_numpy(self.a["label"][i]), dem,
+        r = self.rows[i]
+        slope = torch.from_numpy(np.array(self.a["slope"][r])) if self.use_slope else self.empty
+        return (torch.from_numpy(np.array(self.a["sar"][r])), torch.from_numpy(np.array(self.a["label"][r])), slope,
                 int(self.acts[i]), int(self.terrain[i]))
 
 
@@ -113,6 +160,14 @@ def tile_relief(dem: np.ndarray) -> np.ndarray:
         warnings.simplefilter("ignore", RuntimeWarning)
         r = np.nanpercentile(d, 98, axis=(1, 2)) - np.nanpercentile(d, 2, axis=(1, 2))
     return np.nan_to_num(r, nan=0.0)
+
+
+def terrain_boost_weights(terrain: np.ndarray, boost: float) -> np.ndarray:
+    """Multiplier per tile: hilly tiles x sqrt(boost), mountainous x boost (1 = no change).
+
+    Mountain tiles are rare in Kuro Siwo but are where radar shadow gets mistaken for water.
+    """
+    return np.choose(terrain, [1.0, boost ** 0.5, boost])
 
 
 def event_balanced_weights(acts: np.ndarray, power: float = 0.5) -> np.ndarray:

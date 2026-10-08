@@ -1,0 +1,6 @@
+[
+ {"name": "r3_r34", "args": ["--arch", "Unet", "--encoder", "resnet34", "--epochs", "10", "--no-test"]},
+ {"name": "r3_r34_slope", "args": ["--arch", "Unet", "--encoder", "resnet34", "--epochs", "10", "--no-test", "--slope"]},
+ {"name": "r3_r34_slope_tb4", "args": ["--arch", "Unet", "--encoder", "resnet34", "--epochs", "10", "--no-test", "--slope", "--terrain-boost", "4"]},
+ {"name": "r3_r34_slope_tb4_s1f11", "args": ["--arch", "Unet", "--encoder", "resnet34", "--epochs", "10", "--no-test", "--slope", "--terrain-boost", "4", "--sen1floods11"]}
+]
