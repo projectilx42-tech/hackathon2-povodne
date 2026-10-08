@@ -22,7 +22,7 @@ This project was developed with the help of **Claude Code** (Anthropic), used as
 documentation and implementation. Per-module notes on which parts were AI-assisted will be listed here as modules land.
 
 - **Flood segmentation model (`training/`)** — dataset analysis, model design, data preparation, training, inference and
-  evaluation code were written with Claude Code; design choices are documented in `docs/DECISIONS.md` (D-020 – D-023).
+  evaluation code were written with Claude Code; design choices are documented in `docs/DECISIONS.md` (D-020 – D-028).
 
 ## Data attributions
 - Contains modified Copernicus Sentinel data 2026.
