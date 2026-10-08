@@ -21,6 +21,9 @@ _TBD_ — planned: `python -m povodne run --aoi <aoi.geojson | minlon,minlat,max
 This project was developed with the help of **Claude Code** (Anthropic), used as a coding assistant for project scaffolding,
 documentation and implementation. Per-module notes on which parts were AI-assisted will be listed here as modules land.
 
+- **Flood segmentation model (`training/`)** — dataset analysis, model design, data preparation, training, inference and
+  evaluation code were written with Claude Code; design choices are documented in `docs/DECISIONS.md` (D-020 – D-023).
+
 ## Data attributions
 - Contains modified Copernicus Sentinel data 2026.
 - Produced using Copernicus WorldDEM-30 © DLR e.V. 2010–2014 and © Airbus Defence and Space GmbH 2014–2018 provided under

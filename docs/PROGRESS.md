@@ -25,7 +25,7 @@ Obtížnost a čas = odhad uživatele.
 | 3 | Pochopit satelity a data | 2–3 | 30 min | — | ⬜ |
 | 4 | Najít zdroje, stránky atd. | 3 | 1–2 h | — | ⬜ |
 | 5 | Stahování dat ze satelitu | ~7 | ~4 h | M1, M2 | ⬜ |
-| 6 | Natrénovat AI (Kaggle) | 7 | 4 h + běh tréninku | M9, M3 | ⬜ |
+| 6 | Natrénovat AI (Kaggle) | 7 | 4 h + běh tréninku | M9, M3 | 🟨 kód hotový, čeká na Kaggle token |
 | 7 | Algoritmus na suť a bahno | 8 | 4 h | M3d | ⬜ |
 | 8 | Škody | 3 | 2 h | M4 | ⬜ |
 | 9 | Odříznuté obce | 3 | 2,5 h | M5 | ⬜ |
@@ -42,8 +42,8 @@ Obtížnost a čas = odhad uživatele.
 | 0 Skeleton (pyproject, CLI, config, io/grid) | ⬜ | `feat/skeleton` | |
 | M1 Acquire (S1/S2/DEM/OSM) | ⬜ | `feat/acquire` | |
 | M2 Preprocess | ⬜ | `feat/preprocess` | |
-| M9 AI trénink | ⬜ | `feat/ai-model` | Kaggle (D-010) |
-| M3 AI inference (voda) | ⬜ | `feat/ai-model` | |
+| M9 AI trénink | 🟨 | `claude/relaxed-johnson-wwj9s8` | kód v `training/`, otestováno na CPU; trénink na Kaggle čeká na token (D-023) |
+| M3 AI inference (voda) | ⬜ | `feat/ai-model` | dlaždicová inference hotová v `training/floodseg/infer.py` |
 | M3d Suť a bahno | ⬜ | `feat/debris` | |
 | M4 Damage | ⬜ | `feat/damage` | |
 | M5 Network / cut-off | ⬜ | `feat/network` | |
@@ -58,6 +58,16 @@ Obtížnost a čas = odhad uživatele.
 4. Účty (CDSE, Kaggle…) zakládá uživatel až v příslušných sessions (D-011); údaje jen jako env proměnné prostředí, nikdy do repa.
 
 ## Log sessions
+### 2026-10-08 — M9 AI model — `claude/relaxed-johnson-wwj9s8`
+- Uživatel svěřil návrh a výrobu modelu Claude (architekt), uživatel spouští kroky na Kaggle.
+- Prozkoumán Kuro Siwo: formát, zpracování radaru (sigma0, Lee 3×3), split po eventech, **žádný himálajský event** (D-020).
+- Napsáno a na CPU otestováno: `training/prepare_kurosiwo.py` (stream z HF → kompaktní kopie), `training/floodseg/`
+  (features, dataset, U-Net+CE/Dice, metriky, dlaždicová inference), `training/train.py`. Inference ~1–2 min / 30×30 km na CPU.
+- Rozhodnutí D-020 – D-023, otevřené O-009 (ImageNet váhy – dotaz organizátorům), O-005 doplněno. ARCHITECTURE: kontrakt modelu.
+- **Požadavek na M1/M2:** S1 jako sigma0 + Lee 3×3 (D-020).
+- Další krok: uživatel uloží `KAGGLE_USERNAME` + `KAGGLE_KEY` do environmentu → **nová session**: znovu připravit data
+  (`prepare_kurosiwo.py`, ~1 h, data v kontejneru nepřežijí), nahrát jako Kaggle dataset, spustit trénink + ablaci se sklonem.
+  Pak himálajská evaluační sada (O-005, závisí na M1/M2).
 ### 2026-10-07 — master session (init) — `claude/gallant-keller-vftpi2`
 - Založeno repo: `CLAUDE.md`, `docs/{TASK,ARCHITECTURE,PROGRESS,DECISIONS}.md`, originální PDF v `docs/source/`, `.gitignore`, README kostra,
   Stop hook připomínající commit/push. Vytvořena větev `main`.

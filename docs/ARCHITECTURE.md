@@ -193,9 +193,17 @@ Pravidla:
 - `validation/` **nikdy** neimportuje pipeline a pipeline **nikdy** neimportuje `validation/`.
 
 ## AI model (M9 → M3) kontrakt
-- `models/<name>/model.pt` (nebo `.onnx`) + `models/<name>/model_card.json`:
-  `{"arch": "Unet", "encoder": "...", "inputs": ["s1_pre_vv","s1_pre_vh","s1_post_vv","s1_post_vh","dem","slope"],
-    "input_units": "dB", "normalization": {"mean": [...], "std": [...]}, "classes": {"0":"no water","1":"flood","2":"permanent water"},
-    "tile_size": 256, "trained_on": ["KuroSiwo"], "metrics": {...}, "license_notes": "..."}`
-- Inference běží na CPU (pipeline musí jít spustit bez GPU), dlaždicově s překryvem.
+(D-020, D-021) Kód: `training/floodseg/` — `features.py` (jediná definice vstupů), `infer.py` (načtení modelu, dlaždicová
+inference), `model.py`. M3 tento kód **používá, nereimplementuje** (po vzniku skeletonu se přesune/importuje do `src/povodne/flood/`).
+- `models/<name>/model.pt` (`{"state_dict", "config"}`, PyTorch) + `models/<name>/model_card.json`:
+  `{"arch": "Unet", "encoder": "resnet34", "in_channels": 6, "inputs": ["pre_vv","pre_vh","post_vv","post_vh","diff_vv","diff_vh"] (+ "slope"),
+    "input_units": "dB of S1 GRD sigma0, Lee Sigma 3x3", "normalization": {"pre_vv": [mean, std], ...}, "db_clip": [-35, 5],
+    "classes": {"0":"no water","1":"permanent water","2":"flood"}, "tile_size": 224, "trained_on": [...],
+    "split_events": {...}, "val_metrics": {...}, "test_metrics": {...}, "license_notes": "..."}`
+- **Vstup z M2:** `aligned/s1_{pre,post}_{vv,vh}.tif` = **sigma0** (ne gamma0/RTC), lineárně, terrain-corrected (geokódováno s DEM)
+  na 10 m, speckle filtr **Lee Sigma 3×3** — stejně jako Kuro Siwo (D-020). Více pre scén ze stejného tracku se průměruje
+  (`features.combine_pre_db`).
+- Mapování na třídy masky (M3): model 2 flood → `ai_mask` 2, model 1 permanent water → 4, model 0 → 1; nodata/layover/shadow → 0.
+  `ai_prob` = P(flood).
+- Inference běží na CPU (pipeline musí jít spustit bez GPU), dlaždice 512 px s překryvem 64 px a váženým prolnutím.
 - Váhy nejsou v gitu → stahují se z release/HF (rozhodnout, D-0xx) nebo z cesty v configu.
