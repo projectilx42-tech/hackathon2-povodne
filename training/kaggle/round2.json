@@ -1,0 +1,6 @@
+[
+ {"name": "r2_unet_r34", "args": ["--arch", "Unet", "--encoder", "resnet34", "--epochs", "20", "--no-test"]},
+ {"name": "r2_unet_r34_slope", "args": ["--arch", "Unet", "--encoder", "resnet34", "--epochs", "20", "--no-test", "--slope"]},
+ {"name": "r2_unet_r34_s1f11", "args": ["--arch", "Unet", "--encoder", "resnet34", "--epochs", "20", "--no-test", "--sen1floods11"]},
+ {"name": "r2_unet_r50", "args": ["--arch", "Unet", "--encoder", "resnet50", "--epochs", "20", "--no-test"]}
+]
