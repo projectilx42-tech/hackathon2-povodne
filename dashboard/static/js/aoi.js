@@ -1,0 +1,110 @@
+import { TerraDraw, TerraDrawRectangleMode, TerraDrawFreehandMode, TerraDrawSelectMode } from 'terra-draw';
+import { TerraDrawMapLibreGLAdapter } from 'terra-draw-maplibre-gl-adapter';
+import { maplibregl } from './map.js';
+
+const ACCENT = '#4cc2ff';
+const drawStyle = { fillColor: ACCENT, fillOpacity: 0.14, outlineColor: ACCENT, outlineWidth: 2 };
+
+/**
+ * Area-of-interest drawing (D-019): rectangle (default) and free shape, plus an edit mode.
+ * Holds at most one feature. `onChange(polygon | null)` receives a GeoJSON Polygon in EPSG:4326.
+ */
+export function createAoi(map, { onChange, onToolChange }) {
+  const draw = new TerraDraw({
+    adapter: new TerraDrawMapLibreGLAdapter({ map, lib: maplibregl }),
+    modes: [
+      new TerraDrawRectangleMode({ drawInteraction: 'click-move-or-drag', styles: drawStyle }),
+      new TerraDrawFreehandMode({ drawInteraction: 'click-move-or-drag', styles: { ...drawStyle, closingPointColor: ACCENT, closingPointOutlineColor: '#04202e' } }),
+      new TerraDrawSelectMode({
+        flags: {
+          rectangle: { feature: { draggable: true, coordinates: { resizable: 'opposite' } } },
+          freehand: { feature: { draggable: true } },
+        },
+        styles: {
+          selectedPolygonColor: ACCENT, selectedPolygonFillOpacity: 0.14, selectedPolygonOutlineColor: ACCENT, selectedPolygonOutlineWidth: 2,
+          selectionPointColor: '#ffffff', selectionPointOutlineColor: ACCENT,
+          midPointColor: ACCENT, midPointOutlineColor: '#04202e',
+        },
+      }),
+    ],
+  });
+
+  const MODE = { pan: 'static', rectangle: 'rectangle', shape: 'freehand', edit: 'select' };
+  let currentId = null;
+  let tool = 'pan'; // map can be dragged normally until a draw tool is chosen
+
+  const polygonOf = id => {
+    const f = draw.getSnapshot().find(x => x.id === id);
+    return f ? f.geometry : null;
+  };
+  const setTool = t => {
+    tool = t;
+    onToolChange?.(t);
+  };
+
+  draw.on('finish', (id, context) => {
+    if (context.action === 'draw') {
+      // Keep a single AOI: drop the previous one, then switch to edit mode on the new one.
+      const stale = draw.getSnapshot().filter(f => f.id !== id).map(f => f.id);
+      if (stale.length) draw.removeFeatures(stale);
+      currentId = id;
+      draw.setMode('select');
+      draw.selectFeature(id);
+      setTool('edit');
+    }
+    if (id === currentId) onChange(polygonOf(id));
+  });
+
+  draw.on('change', (ids, type) => {
+    // Live updates while dragging/resizing in edit mode.
+    if (type === 'update' && ids.includes(currentId)) onChange(polygonOf(currentId));
+  });
+
+  draw.start();
+  draw.setMode(MODE.pan);
+  window.addEventListener('keydown', e => { if (e.key === 'Escape' && (tool === 'rectangle' || tool === 'shape')) api.setTool('pan'); });
+
+  const api = {
+    setTool(t) {
+      if (t === 'edit') {
+        if (!currentId) return;
+        draw.setMode('select');
+        draw.selectFeature(currentId);
+      } else {
+        draw.setMode(MODE[t]);
+      }
+      setTool(t);
+    },
+    clear() {
+      draw.clear();
+      currentId = null;
+      draw.setMode(MODE.pan);
+      setTool('pan');
+      onChange(null);
+    },
+    hasArea: () => currentId !== null,
+    /** Show an existing polygon (preset / opened run) as the current AOI. */
+    setPolygon(polygon, mode = 'freehand') {
+      draw.clear();
+      const res = draw.addFeatures([{ type: 'Feature', geometry: polygon, properties: { mode } }]);
+      if (!res[0]?.valid) { currentId = null; onChange(null); return false; }
+      currentId = res[0].id;
+      draw.setMode('select');
+      draw.selectFeature(currentId);
+      setTool('edit');
+      onChange(polygonOf(currentId));
+      return true;
+    },
+    /** Suspend drawing (while another tool such as measuring owns the mouse). */
+    pause() { draw.setMode('static'); },
+    resume() {
+      if (tool === 'edit' && currentId) { draw.setMode('select'); draw.selectFeature(currentId); } else draw.setMode(MODE[tool === 'edit' ? 'pan' : tool]);
+    },
+    fit(polygon) {
+      const xs = polygon.coordinates[0].map(c => c[0]);
+      const ys = polygon.coordinates[0].map(c => c[1]);
+      map.fitBounds([[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)]], { padding: 80, duration: 500 });
+    },
+  };
+  return api;
+}

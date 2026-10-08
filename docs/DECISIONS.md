@@ -143,6 +143,44 @@ Kompaktní data se připraví v cloud session a nahrají jako soukromý Kaggle d
 (flood IoU + metriky po terénu). Test eventy Kuro Siwo se vyhodnotí až u finálních kandidátů. Hornatý podtest = dlaždice
 s převýšením > 200 m (z DEM) — náhrada za Himálaj, dokud nebude himálajská sada (O-005). Příznaky a augmentace se počítají
 dávkově na GPU (`floodseg/gpu_features.py`), shoda s numpy verzí pro inferenci je hlídaná testem `training/tests/test_features.py`.
+## D-026 | 2026-10-08 | přijato (rozhodnutí uživatele)
+**UI: stack, podkladové mapy, téma, seznam features.** Podrobnosti rozložení a features v `docs/UI_SPEC.md`. Uzavírá O-003.
+- **Stack:** backend **FastAPI + uvicorn** (`python -m povodne serve`, kód v `dashboard/`), frontend **MapLibre GL JS** (zkopírovaný v repu, bez CDN)
+  + **terra-draw** (obdélník + volné kreslení, D-019) + **čisté JS (ES moduly) a CSS bez build kroku** (D-017: jen `pip install` + jeden příkaz).
+  Streamlit zamítnut (slabší vzhled, klik na obec/panely přes reruny); React/Vite zamítnut (potřebuje Node build).
+- **Téma:** jen tmavé.
+- **Podkladové mapy** (přepínač): **CARTO Dark Matter (výchozí; nahrazeno D-027)**, OpenStreetMap standard, OpenTopoMap, EOX Sentinel-2 cloudless (satelit,
+  CC BY-NC-SA 4.0, atribuce „EOxCloudless … Contains modified Copernicus Sentinel data [rok]“). Esri World Imagery vynecháno
+  (Esri Master License Agreement + vyžaduje API klíč). Pokud je Dark Matter pod vrstvami špatně čitelný, změníme výchozí (jedna řádka v configu).
+  Licence CARTO a OpenTopoMap ověřit při implementaci.
+- **OSM podklad v UI:** rozhodnutí uživatele, že samotná podkladová mapa (aktuální OSM) v UI je v pořádku. **Je to jeho výklad pravidel:**
+  TASK.md zakazuje post-event OSM jen jako **vstup** systému; k podkladům se výslovně nevyjadřuje. Podklad slouží jen k zobrazení,
+  pipeline z něj nic nečte. Data pro analýzu zůstávají výhradně z ohsome snapshotu (D-005).
+- **Hledání místa:** Nominatim (OSM), jen pro posun mapy, nikdy jako vstup pipeline; dotaz až po Enteru (ne našeptávač, limit ~1 požadavek/s — ověřit).
+- **Features v1** (vše kromě sdíleného odkazu, který uživatel zamítl): presety příkladů, historie běhů, slider před/po, hledání místa,
+  panel kvality dat (coverage), vrstva pravděpodobnosti s prahem, průhlednost/pořadí vrstev + legenda + měřítko + souřadnice + měření,
+  export (GeoJSON/GeoTIFF/PNG/sitrep), stepper průběhu s Cancel a srozumitelnými chybami, modál Methods & Limitations + patička s atribucemi,
+  ukázkový (mock) run, barvoslepě bezpečné značky (barva + tvar), úvodní tip.
+- **Zásada:** features nezávislé na pipeline fungují doopravdy; features čekající na backend (vrstva suti, flood path, nepálský sitrep)
+  jsou viditelné a zašedlé s popiskem. Ukázkový run je v UI vždy viditelně označen „SAMPLE DATA“.
+- **Porovnání s EMSR927 v UI nebude** (D-006 — validace zůstává oddělená v `validation/`).
+- **Dopad na kontrakt:** nové HTTP API a `run.json.progress` — zapsáno v ARCHITECTURE.md.
+
+## D-027 | 2026-10-08 | přijato
+**Výchozí podklad „Dark“ = OSM standardní dlaždice s inverzí barev (MapLibre `raster-brightness`/`hue-rotate`), ne CARTO Dark Matter.**
+Důvod: při testu v prohlížeči CARTO dlaždice vracejí vodoznak „API KEY REQUIRED“ (HTTP 200, takže to curl neodhalí) — vyžaduje klíč.
+Podklady v UI nyní: Dark (OSM invertované), OSM, OpenTopoMap, EOX Sentinel-2 cloudless 2024 (satelit). Všechny ověřeny v Chromiu.
+Dopad: OSM tile policy je třeba dodržet (lehké použití, atribuce) — porota spouští lokálně, takže nízký provoz.
+Pozn.: jména v OSM dlaždicích jsou místní (nepálsky/čínsky), ne anglicky.
+**Doplnění (uživatel dodal klíč):** je-li v prostředí `CARTO_API_KEY`, backend ho vrátí v `GET /api/config` a „Dark“ použije CARTO Dark Matter
+(`…/rastertiles/dark_all/{z}/{x}/{y}.png?key=…`, ověřeno bez vodoznaku). Klíč se **nikdy necommituje**; bez klíče platí fallback (invertované OSM). Porota spouští lokálně (D-016) — bez klíče uvidí fallback.
+
+## D-028 | 2026-10-08 | přijato
+**Doplnění kontraktu kvůli UI** (ARCHITECTURE.md upraveno ve stejném commitu): `run.json.pre_window/post_window/progress/mock`, `aoi.geojson`,
+`overlays/index.json`, CLI flagy `--pre-window FROM,TO` a `--post-window FROM,TO` u `povodne run`, `damage/*_damage.geojson` obsahují všechny prvky.
+Ukázkový run `dashboard/sample_run/` je **syntetický** (generuje `dashboard/tools/make_sample_run.py`), `run.json.mock = true`, v UI štítek „SAMPLE DATA“.
+Důvod: UI se vyvíjí a ukazuje před existencí pipeline; syntetická data nesmí být zaměnitelná za výsledek (viz limity v reportu).
+Otevřené: renderer PNG překryvů z GeoTIFF (M8 backend) zatím neexistuje; `python -m povodne serve` doplní skeleton.
 
 ---
 
@@ -158,9 +196,9 @@ Návrh: abstraktní `acquire` s backendy, primárně ten, který dá RTC nejrych
 
 ## O-002 | uzavřeno → D-010
 
-## O-003 | otevřené — Technologie dashboardu
-Varianty: Streamlit + leafmap/folium (rychlé, umí i spustit pipeline pro novou AOI — vhodné pro live hodnocení), nebo statické
-HTML (MapLibre/Leaflet) generované z run adresáře (snadný hosting, ale bez spouštění pipeline).
+## O-003 | uzavřeno → D-026 — Technologie dashboardu
+(původní varianty: Streamlit + leafmap/folium (rychlé, umí i spustit pipeline pro novou AOI — vhodné pro live hodnocení), nebo statické
+HTML (MapLibre/Leaflet) generované z run adresáře (snadný hosting, ale bez spouštění pipeline).)
 
 ## O-004 | otevřené — Jak detekovat debris
 Kuro Siwo labely = voda (flood / permanent). Debris: S1 change (nárůst i pokles backscatteru, koherence není v GRD), S2 (NDVI pokles,
