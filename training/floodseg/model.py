@@ -49,50 +49,117 @@ class SiamUnet(nn.Module):
         return self.head(self.decoder(fused))
 
 
+SSL4EO_S1_URL = ("https://huggingface.co/torchgeo/resnet50_sentinel1_all_moco/resolve/main/"
+                 "resnet50_sentinel1_all_moco-906e4356.pth")
+
+
+def load_ssl4eo_s1(encoder: nn.Module, in_channels: int) -> None:
+    """Initialise a ResNet50 encoder with SSL4EO-S12 weights pretrained (MoCo) on Sentinel-1 GRD VV/VH.
+
+    Wang et al., SSL4EO-S12 (2023), CC BY 4.0, via TorchGeo. The first convolution has 2 input channels
+    (VV, VH); our inputs are pre/post/diff VV/VH (+ slope), so the VV filters are reused for every VV channel,
+    the VH filters for every VH channel, the mean of both for slope, scaled to keep the activation size.
+    """
+    sd = torch.hub.load_state_dict_from_url(SSL4EO_S1_URL, map_location="cpu", progress=False)
+    sd = {k: v for k, v in sd.items() if not k.startswith("fc.")}
+    w = sd["conv1.weight"]  # [64, 2, 7, 7]
+    cols = []
+    for c in range(in_channels):
+        cols.append(w[:, c % 2] if c < EXTRA_FROM else w.mean(1))
+    sd["conv1.weight"] = torch.stack(cols, 1) * (2.0 / in_channels)
+    # smp's encoder overrides load_state_dict; use the plain nn.Module one to get the key report
+    missing, unexpected = nn.Module.load_state_dict(encoder, sd, strict=False)
+    if unexpected or [m for m in missing if not m.startswith("fc")]:
+        raise RuntimeError(f"SSL4EO weights did not match: missing={missing} unexpected={unexpected}")
+
+
 def build_model(in_channels: int, arch: str = "Unet", encoder: str = "resnet34",
-                pretrained: bool = True) -> nn.Module:
+                pretrained: bool = True, encoder_weights: str | None = None) -> nn.Module:
+    """encoder_weights: "imagenet" (default when pretrained), "ssl4eo_s1" (resnet50 only) or None."""
+    weights = encoder_weights if encoder_weights is not None else ("imagenet" if pretrained else None)
     if arch == "SiamUnet":
-        return SiamUnet(in_channels, encoder, pretrained)
+        return SiamUnet(in_channels, encoder, weights == "imagenet")
     model_cls = getattr(smp, arch)  # Unet, UnetPlusPlus, ...
-    return model_cls(
+    model = model_cls(
         encoder_name=encoder,
-        encoder_weights="imagenet" if pretrained else None,
+        encoder_weights="imagenet" if weights == "imagenet" else None,
         in_channels=in_channels,
         classes=NUM_CLASSES,
     )
+    if weights == "ssl4eo_s1":
+        if encoder != "resnet50":
+            raise ValueError("ssl4eo_s1 weights exist only for resnet50")
+        load_ssl4eo_s1(model.encoder, in_channels)
+    return model
+
+
+def _ce_with_unknown(logp: torch.Tensor, target: torch.Tensor, unknown_label: int) -> torch.Tensor:
+    """Cross-entropy; label `unknown_label` = water of unknown type -> -log(P(permanent) + P(flood))."""
+    known = target < NUM_CLASSES
+    unknown = target == unknown_label
+    n = (known.sum() + unknown.sum()).clamp(min=1)
+    nll = -logp.gather(1, target.clamp(0, NUM_CLASSES - 1).unsqueeze(1)).squeeze(1)
+    ce = (nll * known).sum()
+    if unknown.any():
+        ce = ce - (torch.logsumexp(logp[:, 1:], dim=1) * unknown).sum()
+    return ce / n
+
+
+def _lovasz_grad(gt_sorted: torch.Tensor) -> torch.Tensor:
+    gts = gt_sorted.sum()
+    inter = gts - gt_sorted.cumsum(0)
+    union = gts + (1 - gt_sorted).cumsum(0)
+    jac = 1.0 - inter / union
+    jac[1:] = jac[1:] - jac[:-1]
+    return jac
+
+
+def lovasz_softmax(probs: torch.Tensor, target: torch.Tensor, classes=(1, 2)) -> torch.Tensor:
+    """Lovasz-Softmax loss (Berman et al., CVPR 2018): a smooth surrogate that optimises IoU directly.
+
+    probs [B,C,H,W] softmax probabilities; pixels with target >= NUM_CLASSES are ignored.
+    """
+    p = probs.permute(0, 2, 3, 1).reshape(-1, probs.shape[1])
+    t = target.reshape(-1)
+    keep = t < NUM_CLASSES
+    p, t = p[keep], t[keep]
+    losses = []
+    for c in classes:
+        fg = (t == c).float()
+        if fg.sum() == 0:
+            continue
+        err = (fg - p[:, c]).abs()
+        err_sorted, perm = torch.sort(err, descending=True)
+        losses.append(torch.dot(err_sorted, _lovasz_grad(fg[perm])))
+    return torch.stack(losses).mean() if losses else probs.sum() * 0.0
 
 
 class CEDiceLoss(nn.Module):
-    """Cross-entropy + soft Dice over the water classes (1, 2), ignoring label 255.
+    """Cross-entropy + an overlap term over the water classes (1, 2), ignoring label 255.
 
-    Cross-entropy alone tends to under-predict the rare water classes; Dice optimises overlap
-    directly and is insensitive to class imbalance.
+    Cross-entropy alone tends to under-predict the rare water classes; the overlap term ("dice" = soft
+    Dice, "lovasz" = Lovasz-Softmax, a direct IoU surrogate) is insensitive to class imbalance.
 
     Label 3 = "water of unknown type" (Sen1Floods11 has no permanent/flood distinction): its
-    cross-entropy term is -log(P(permanent) + P(flood)); it is left out of the Dice term.
+    cross-entropy term is -log(P(permanent) + P(flood)); it is left out of the overlap term.
     """
 
     WATER_UNKNOWN = 3
 
-    def __init__(self, ignore_index: int = 255, dice_weight: float = 1.0):
+    def __init__(self, ignore_index: int = 255, dice_weight: float = 1.0, overlap: str = "dice"):
         super().__init__()
         self.ignore_index = ignore_index
         self.dice_weight = dice_weight
+        self.overlap = overlap
 
     def forward(self, logits: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        logits = logits.float()
-        logp = logits.log_softmax(1)
-        known = target < NUM_CLASSES
-        unknown = target == self.WATER_UNKNOWN
-        n = (known.sum() + unknown.sum()).clamp(min=1)
-        nll = -logp.gather(1, target.clamp(0, NUM_CLASSES - 1).unsqueeze(1)).squeeze(1)
-        ce = (nll * known).sum()
-        if unknown.any():
-            water = torch.logsumexp(logp[:, 1:], dim=1)
-            ce = ce - (water * unknown).sum()
-        ce = ce / n
+        logp = logits.float().log_softmax(1)
+        ce = _ce_with_unknown(logp, target, self.WATER_UNKNOWN)
         if self.dice_weight == 0:
             return ce
+        if self.overlap == "lovasz":
+            return ce + self.dice_weight * lovasz_softmax(logp.exp(), target)
+        known = target < NUM_CLASSES
         valid = known.unsqueeze(1).float()
         probs = logp.exp() * valid
         onehot = F.one_hot(target.clamp(0, NUM_CLASSES - 1), NUM_CLASSES).permute(0, 3, 1, 2).float() * valid

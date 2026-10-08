@@ -64,3 +64,27 @@ def predict_probs(model: torch.nn.Module, x: np.ndarray, tile: int = 512, overla
             acc[:, i:i + tile, j:j + tile] += p * win
             norm[i:i + tile, j:j + tile] += win
     return (acc / np.maximum(norm, 1e-6))[:, :h, :w]
+
+
+def predict_ensemble(members, build_x, tta: bool = True, **kw) -> tuple[np.ndarray, np.ndarray]:
+    """Average class probabilities of several models (and flips), plus a per-pixel uncertainty map.
+
+    members: list of (model, cfg) from load_model; build_x(cfg) -> features [C,H,W] for that model (models
+    may differ in inputs / normalisation). With tta, each model also sees the horizontally and vertically
+    flipped scene. Returns (probs [NUM_CLASSES,H,W], entropy [H,W] in nats; high = models/flips disagree or
+    are unsure — useful as a confidence layer for damage estimates).
+    """
+    acc, n = None, 0
+    for model, cfg in members:
+        x = build_x(cfg)
+        t = cfg.get("temperature", 1.0)
+        views = [(x, lambda p: p)]
+        if tta:
+            views += [(x[:, :, ::-1].copy(), lambda p: p[:, :, ::-1]), (x[:, ::-1, :].copy(), lambda p: p[:, ::-1, :])]
+        for xv, undo in views:
+            p = undo(predict_probs(model, xv, temperature=t, **kw))
+            acc = p if acc is None else acc + p
+            n += 1
+    probs = acc / n
+    entropy = -(probs * np.log(np.clip(probs, 1e-6, 1.0))).sum(0)
+    return probs.astype(np.float32), entropy.astype(np.float32)

@@ -42,6 +42,9 @@ def parse_args():
     ap.add_argument("--arch", default="Unet", help="Unet | UnetPlusPlus | SiamUnet")
     ap.add_argument("--encoder", default="resnet34")
     ap.add_argument("--no-pretrained", action="store_true")
+    ap.add_argument("--encoder-weights", default=None, choices=["imagenet", "ssl4eo_s1"],
+                    help="encoder initialisation (default imagenet; ssl4eo_s1 = Sentinel-1 MoCo ResNet50)")
+    ap.add_argument("--loss", default="dice", choices=["dice", "lovasz"], help="overlap term added to cross-entropy")
     ap.add_argument("--slope", action="store_true", help="add slope (from DEM) as an input channel")
     ap.add_argument("--epochs", type=int, default=10)
     ap.add_argument("--batch-size", type=int, default=32)
@@ -216,8 +219,8 @@ def main():
     tr_dl = make_loader(tr_ds, args.batch_size, True, args.workers, weights)
     va_dl = make_loader(va_ds, args.batch_size * 2, False, args.workers)
 
-    model = build_model(in_ch, args.arch, args.encoder, not args.no_pretrained).to(device)
-    loss_fn = CEDiceLoss(IGNORE, args.dice_weight).to(device)
+    model = build_model(in_ch, args.arch, args.encoder, not args.no_pretrained, args.encoder_weights).to(device)
+    loss_fn = CEDiceLoss(IGNORE, args.dice_weight, args.loss).to(device)
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     steps = args.epochs * len(tr_dl)
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=args.lr, total_steps=max(steps, 1), pct_start=0.1)
