@@ -86,6 +86,10 @@ def choose_pre(dates: list[datetime], fractions: list[float | None], n_pre: int 
             warnings.append("The water rise starts at the first pass of the window; no clean pre-event image found.")
     else:
         reason = "latest passes before the event; " + res.reason
+        known = [f for f in fractions if f is not None]
+        if not known or max(known) < 0.005:
+            reason += (" (the water share is ~0 at the check resolution: rivers here are narrower than a pixel, so "
+                       "the check cannot see earlier flooding)")
     return PreChoice(idx, res.onset_index, reason, warnings)
 
 

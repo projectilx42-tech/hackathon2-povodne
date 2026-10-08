@@ -25,6 +25,19 @@ The bundled *sample run* in History is **synthetic demo data** (`dashboard/tools
 
 **Pipeline dependencies:** `pip install -r requirements.txt` (Python >= 3.11).
 
+**Copernicus Data Space key (needed to download satellite data, free):**
+1. Register at https://dataspace.copernicus.eu (top right -> Register) and confirm the e-mail.
+2. Open https://shapps.dataspace.copernicus.eu/dashboard/#/account/settings -> *OAuth clients* -> *Create*; copy the client ID and
+   the secret (the secret is shown only once). If the login keeps redirecting, use a normal (not private) desktop browser window.
+3. Set them in the environment before running: `export CDSE_CLIENT_ID=...` and `export CDSE_CLIENT_SECRET=...`
+   (Windows PowerShell: `$env:CDSE_CLIENT_ID="..."`). Without them the download step stops with an explanation.
+The free tier has 10,000 processing units per month; one run for a 30x30 km area uses roughly 550.
+
+**Download all input data for an area and date (Sentinel-1, Sentinel-2, DEM, pre-event OSM):**
+```bash
+PYTHONPATH=src python -m povodne.acquire --bbox 85.15 27.95 85.23 28.03 --event-date 2026-08-26 --out runs/test
+```
+
 **Scene selection preview (no download, no login):**
 ```bash
 PYTHONPATH=src python -m povodne.acquire.catalog --bbox 85.15 27.95 85.40 28.30 --event-date 2026-08-26

@@ -50,3 +50,10 @@ def test_missing_values_are_skipped():
 def test_alt_pre_is_before_the_rise():
     alt = [d + timedelta(days=3) for d in D]
     assert alt_pre(alt, D[3]) == [1, 2]
+
+
+def test_smooth_3x3_keeps_constant_and_nodata():
+    from povodne.acquire.sentinelhub import decode_db, smooth_3x3
+    raw = np.full((1, 6, 6), 40000, np.uint16); raw[0, 0, 0] = 0
+    out = smooth_3x3(raw)
+    assert out[0, 0, 0] == 0 and np.allclose(decode_db(out)[0][1:, 1:], decode_db(raw)[0][1:, 1:], atol=0.002)

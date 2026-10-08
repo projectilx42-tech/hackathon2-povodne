@@ -319,6 +319,35 @@ výběr pre podle D-M1-01; druhá je `s1_alt`).
    a obě viditelnosti do `run.json.acquire.s1.valley_visibility` a `acquire.s1_alt.valley_visibility`.
 Proč dno údolí a ne celá AOI: na strmých svazích voda stát nemůže (D-034), stín tam nevadí; důležité je, jestli je vidět koryto a niva.
 
+## D-M1-02 | 2026-10-08 | přijato (M1; uživatel: „ať je to správně nakalibrované“) — Kalibrace S1 vůči Kuro Siwo a formát raw dat
+**Kalibrace (měřeno, ne odhad):** 28 dlaždic z testovací části Kuro Siwo (7 povodní: Španělsko 2015, Francie/Itálie 2021, Bangladéš 2019,
+Pákistán 2022, USA 2017 aj.; převýšení 5–528 m) stažených přes Sentinel Hub na stejné místo a den (`SIGMA0_ELLIPSOID`, ortorektifikace,
+`COPERNICUS_30`), porovnání pixel po pixelu v dB (VV i VH). Jemný šum = směrodatná odchylka dB po odečtení lokálního průměru 5×5.
+| varianta | posun (medián) | rozptyl rozdílu | korelace | šum vůči Kuro Siwo |
+|---|---|---|---|---|
+| bez filtru | −0,36 dB | 2,08 dB | 0,76 | 5,4× |
+| LEE 3×3 (původní předpoklad D-020/D-031) | −0,19 dB | 1,20 dB | 0,89 | 2,6× |
+| LEE 7×7 | −0,01 dB | 0,32 dB | 0,958 | 1,7× |
+| **LEE 7×7 + průměr 3×3 v lineární škále** | **0,00 dB** | **0,25 dB** | **0,976** | **0,96×** |
+Stejné v rovině i v kopcích. → **S1 se stahuje s LEE 7×7 a M1 navíc průměruje 3×3 v lineární škále** (`sentinelhub.smooth_3x3`).
+Data pak odpovídají vstupní doméně modelu bez posunu jasu; dřívější „světlé“ hodnoty u Trishuli (VV −4 dB) jsou terén, ne kalibrace.
+Kalibrace jen na povolených tréninkových datech (Kuro Siwo), ne na EMS. Cena: ~110 PU jednorázově.
+Pozn. pro M9: „Lee 3×3“ v D-020/kontraktu modelu je jméno SNAP filtru (Lee Sigma s oknem 7×7); Sen1Floods11 v tréninku byl filtrován
+Lee 3×3 (D-024), tj. výrazně zrnitější než Kuro Siwo i než naše data — zvážit stejné zpracování (LEE 7×7 + 3×3) i tam.
+**Formát raw (kontrakt, ARCHITECTURE upraveno ve stejném commitu):**
+- `raw/s1/`, `raw/s1_alt/`: `pre_YYYYMMDD.tif` (1–2), `post_YYYYMMDD.tif`; UINT16, pásma VV, VH, **dB = hodnota × 0,001 − 50, 0 = nodata**
+  (zapsáno i v GeoTIFF scales/offsets); už na referenční 10m UTM mřížce oblasti (zarovnané na násobky 10 m) → M2 nemusí převzorkovat.
+- `raw/s2/pre_YYYYMMDD.tif`, `post_YYYYMMDD.tif`: UINT16 DN, pásma B02,B03,B04,B08,B11,B12 + **SCL jako 7. pásmo**, stejná 10m mřížka;
+  odrazivost = DN × scale + offset (GeoTIFF scales/offsets, novější snímky offset −0,1). Chybí-li použitelný snímek, soubor neexistuje.
+- `raw/dem/dem.tif`: Copernicus DEM GLO-30, float32, UTM, **30 m, oblast + 5 km okraj** (pro HAND/stín i mimo oblast).
+- `osm/*.gpkg`: `osm_id` = id z ohsome (text, např. `way/123`); silnice, sídla a zařízení se stahují pro oblast **+ 15 km** (nejbližší
+  město/nemocnice bývá mimo oblast), budovy jen v oblasti; `raw/osm/osm_raw.gpkg` = vrstvy z ohsome.
+- `run.json.acquire` navíc: `grid` (referenční mřížka), `s1.processing`, `s2` (`date`, `ids`, `clear_pct`, `scale`, `offset`), `osm`
+  (`osm_snapshot_date`, počty), `pu_spent`, `warnings` (varování tohoto kroku; při novém běhu se nahradí).
+**Zdroje (bez kreditů Sentinel Hubu):** DEM z AWS Open Data (veřejné COG Copernicus DEM; Planetary Computer vrací 403), S2 L2A z AWS Open
+Data (Element 84 earth-search, COG). Stejné produkty jako u ESA/Copernicus → v souladu s pravidly. S2 výběr: před = nejjasnější v 60 dnech,
+po = první po události s ≥ 30 % jasna nad oblastí (jinak nejjasnější; pod 5 % se nepoužije, varování).
+
 ---
 
 # Otevřené otázky (k rozhodnutí)

@@ -8,6 +8,7 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-08 — kalibrace S1 a formát raw (D-M1-02), týká se M2, M3, M9:** S1 = Sentinel Hub LEE 7×7 + průměr 3×3 (změřeno na 28 dlaždicích Kuro Siwo: posun 0,00 dB, šum 0,96×; LEE 3×3 měl 2,6× víc šumu). Raw S1 = UINT16 dB (v*0.001−50) už na 10m mřížce; S2 raw = DN + SCL (7. pásmo) se scale/offset; DEM 30 m + 5 km okraj; OSM silnice/sídla + 15 km. **M9:** Sen1Floods11 byl v tréninku filtrován jen Lee 3×3 — zvážit LEE 7×7 + 3×3.
 - **2026-10-08 — `requirements.txt` v kořeni repa (M1):** seznam knihoven pipeline (`requests`, `shapely`, `rasterio`, `pyproj`, `scipy`, `pysheds`, `torch`, `segmentation-models-pytorch`); každý modul si sem přidá své; skeleton ho převezme do `pyproject.toml`.
 - **2026-10-08 — nové pravidlo v `CLAUDE.md` (Jak mluvit s uživatelem):** uživateli nepsat interní označení (čísla rozhodnutí, zkratky modulů) ani odborné pojmy bez vysvětlení; v souborech smí zůstat.
 - **2026-10-08 — hlavní dráha (D-X-01):** nejdřívější post; výjimka, když druhá dráha má post ≤ 3 dny později a dno údolí vidí o ≥ 10 p. b. líp. Nová pole `acquire.s1.primary_reason`, `valley_visibility`.

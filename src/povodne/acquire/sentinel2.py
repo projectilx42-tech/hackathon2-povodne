@@ -63,7 +63,19 @@ def search(aoi: BaseGeometry, start: datetime, end: datetime, max_tile_cloud: fl
     return [S2Date(d, items) for d, items in sorted(by_day.items())]
 
 
-def _read(href: str, grid: Grid, resampling: Resampling, decimate: int = 1) -> np.ndarray:
+def _read(href: str, grid: Grid, resampling: Resampling, decimate: int = 1, retries: int = 4) -> np.ndarray:
+    """`_read_once` with retries: S3 range reads occasionally fail on a busy network."""
+    import time
+    for attempt in range(retries):
+        try:
+            return _read_once(href, grid, resampling, decimate)
+        except rasterio.errors.RasterioIOError:
+            if attempt == retries - 1:
+                raise
+            time.sleep(2 * 2 ** attempt)
+
+
+def _read_once(href: str, grid: Grid, resampling: Resampling, decimate: int = 1) -> np.ndarray:
     """Read the AOI window of one COG and reproject it onto `grid` (optionally at 1/decimate resolution)."""
     g = grid if decimate == 1 else Grid(grid.epsg, grid.x0, grid.y1, max(1, grid.width // decimate),
                                         max(1, grid.height // decimate), grid.res * decimate)
@@ -102,11 +114,16 @@ def choose(aoi: BaseGeometry, event: date, grid: Grid, aoi_mask: np.ndarray, pre
     start = datetime.combine(event - timedelta(days=pre_days), datetime.min.time())
     end = datetime.combine(event + timedelta(days=post_days + 1), datetime.min.time())
     dates = search(aoi, start, end)
-    for d in dates:
+
+    def score(d: S2Date) -> None:
         try:
             d.clear = clear_fraction(d, grid, aoi_mask)
         except rasterio.errors.RasterioIOError:
             d.clear = None
+
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=8) as pool:  # each date is a few small HTTP range reads
+        list(pool.map(score, dates))
     pre = [d for d in dates if d.day < event and d.clear]
     post = [d for d in dates if d.day > event and d.clear]
     ch = S2Choice(None, None, dates)

@@ -51,11 +51,12 @@ Každé spuštění pipeline = adresář `runs/<run_id>/` (není v gitu). `run_i
 runs/<run_id>/
   run.json                       # M1 zakládá, ostatní moduly připisují do svých sekcí
   raw/
-    s1/pre_*.tif, post_*.tif     # S1 GRD, VV a VH, sigma0 (ne gamma0/RTC), Lee 3×3; smí být UINT16 dB ze Sentinel Hubu — D-020, D-035
+    s1/pre_YYYYMMDD.tif, post_YYYYMMDD.tif   # S1 GRD sigma0 (ne gamma0/RTC), VV+VH, LEE 7×7 + průměr 3×3 (= Kuro Siwo, D-M1-02);
+                                 # UINT16, dB = v*0.001-50, 0 = nodata; už na referenční 10m mřížce — D-020, D-035, D-M1-02
     s1_alt/pre_*.tif, post_*.tif # totéž pro druhý směr přeletu (D-033)
-    s2/pre_*.tif, post_*.tif     # S2 L2A, pásma B02,B03,B04,B08,B11,B12 + SCL
-    dem/dem.tif                  # Copernicus DEM GLO-30
-    osm/osm_raw.gpkg             # ohsome extrakt, snapshot < event_date
+    s2/pre_YYYYMMDD.tif, post_YYYYMMDD.tif   # S2 L2A, UINT16 DN: B02,B03,B04,B08,B11,B12 + SCL (7. pásmo); odrazivost = DN*scale+offset (tagy), 10m mřížka (D-M1-02)
+    dem/dem.tif                  # Copernicus DEM GLO-30, float32, UTM 30 m, oblast + 5 km okraj (D-M1-02)
+    osm/osm_raw.gpkg             # ohsome extrakt (vrstvy), snapshot < event_date; silnice/sídla/zařízení pro oblast + 15 km (D-M1-02)
   aligned/
     grid.json                    # {"crs":"EPSG:32645","transform":[...],"width":..,"height":..,"res":10}
     s1_pre_vv.tif  s1_pre_vh.tif  s1_post_vv.tif  s1_post_vh.tif     # float32, linear sigma0 (D-020), NaN = nodata; hlavní dráha, pre = průměr pre scén (D-030)
@@ -112,7 +113,8 @@ runs/<run_id>/
     // acquire.s1.pre_selection (D-M1-01): {"method": "water_fraction_series", "lookback_days": 60, "resolution_m": 60,
     //   "series": [{"date": "YYYY-MM-DD", "water_frac": 0.0}], "onset_date": "YYYY-MM-DD|null",
     //   "chosen_pre": ["YYYY-MM-DD", ...], "reason": "...", "user_window": false}
-    "s2": {"pre": [...], "post": [...], "max_cloud_pct": 40},
+    // acquire.s1.processing, acquire.grid (referenční mřížka), acquire.pu_spent, acquire.warnings (varování kroku), acquire.osm — D-M1-02
+    "s2": {"pre": {"date": "...", "ids": [...], "clear_pct": 0, "scale": [...], "offset": [...]} | null, "post": {...} | null},
     "dem": {"source": "...", "product": "COP-DEM GLO-30"}
   },
   "flood": {"method": "ai", "model": "models/<name>", "params": {}},

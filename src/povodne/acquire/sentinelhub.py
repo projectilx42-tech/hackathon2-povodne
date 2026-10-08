@@ -118,6 +118,26 @@ def decode_db(raw: np.ndarray) -> np.ndarray:
     return out
 
 
+def smooth_3x3(raw: np.ndarray) -> np.ndarray:
+    """3x3 mean in linear power on top of Sentinel Hub's Lee 7x7, ignoring nodata; input/output UINT16 dB.
+
+    Calibration against Kuro Siwo tiles (D-M1-02): Lee 7x7 alone leaves ~1.7x the fine-scale speckle of the training
+    data (SNAP Lee Sigma); adding this 3x3 mean brings it to ~1.0 with no bias (median difference 0.00 dB).
+    """
+    from scipy.ndimage import uniform_filter
+
+    out = np.zeros_like(raw)
+    for i in range(raw.shape[0]):
+        valid = raw[i] > 0
+        lin = np.where(valid, np.power(10.0, decode_db(raw[i]) / 10.0), 0.0)
+        num, den = uniform_filter(lin, 3), uniform_filter(valid.astype(np.float64), 3)
+        mean = np.where(valid & (den > 0), num / np.maximum(den, 1e-9), 0.0)
+        d = 10 * np.log10(np.where(mean > 0, mean, 1.0))
+        enc = np.clip(np.rint((d - S1_DB_OFFSET) / S1_DB_SCALE), 1, 65535)
+        out[i] = np.where(valid & (mean > 0), enc, 0).astype(np.uint16)
+    return out
+
+
 def s1_body(grid: Grid, start: datetime, end: datetime, direction: str | None, speckle: int | None,
             bands=("VV", "VH")) -> dict:
     proc = {"backCoeff": "SIGMA0_ELLIPSOID", "orthorectify": True, "demInstance": "COPERNICUS_30"}

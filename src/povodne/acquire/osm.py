@@ -31,7 +31,7 @@ FILTERS = {
 }
 
 
-def _request(path: str, data: dict | None = None, retries: int = 5) -> dict:
+def _request(path: str, data: dict | None = None, retries: int = 3) -> dict:
     for attempt in range(retries):
         try:
             r = requests.post(OHSOME + path, data=data, timeout=600) if data else requests.get(OHSOME + path, timeout=60)
