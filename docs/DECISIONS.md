@@ -205,6 +205,29 @@ Otevřené: renderer PNG překryvů z GeoTIFF (M8 backend) zatím neexistuje; `p
    `aligned/s1_{pre,post}_{vv,vh}.tif` = **primární dráha** (pre = průměr pre scén). Data dalších drah a jednotlivých pre scén jsou navíc;
    pojmenování určí M1/M2 v ARCHITECTURE.md se zápisem do DECISIONS. Spojení drah do `flood/` viz O-010.
 
+## D-031 | 2026-10-08 | přijato (M1/M2, ověřeno v dokumentaci; požadavky zadal uživatel)
+**Požadavky na stahování a přípravu S1 (Sentinel Hub na CDSE) — výsledek ověření shody s Kuro Siwo a rozpočtu PU.**
+Ověřeno (dokumentace Sentinel Hub + `configs/grd_preprocessing.xml` Kuro Siwo):
+- **Pořadí kroků shodné:** kalibrace → speckle filtr → geokódování s DEM (Sentinel Hub: filtr běží před ortorektifikací). **Filtr se liší:** Kuro Siwo = SNAP *Lee Sigma*
+  (okno 7×7, cílové 3×3, sigma 0,9); Sentinel Hub nabízí jen „LEE“ (okno 1–7, nespecifikováno, pravděpodobně klasický Lee). Kuro Siwo navíc maskuje moře (Land-Sea-Mask).
+  Rozdíl **není změřen** → test před nasazením: jeden testovací event Kuro Siwo stáhnout naší cestou (`SIGMA0_ELLIPSOID`, `orthorectify`, `COPERNICUS_30`, Lee 3×3),
+  porovnat histogramy dB s dlaždicemi Kuro Siwo a pustit `training/floodseg/infer.py` proti popiskům; koordinovat s M9. **Zatím neprovedeno** (v prostředí není CDSE klíč).
+  Alternativa při nesouladu: žádat bez filtru a filtrovat vlastním Lee Sigma po geokódování (polovina PU, ale pořadí kroků se liší od Kuro Siwo).
+- **Hodnoty z Sentinel Hub jsou lineární výkon** (ne dB) → převod na dB v evalscriptu nebo po stažení.
+- **Maska stínu: Sentinel Hub `shadowMask` existuje jen s radiometrickou terénní korekcí** (`GAMMA0_TERRAIN`), ne se `SIGMA0_ELLIPSOID`; layover nevrací vůbec
+  (`localIncidenceAngle` je dostupný při ortorektifikaci). → **Maska stínu/layoveru se počítá z Copernicus DEM a geometrie dráhy** (M2); `shadowMask` ze Sentinel Hub
+  jen jako volitelná kontrola (cca +86 PU/běh). Maska stínu, layoveru a HAND jsou nutnost, ne pojistka (M9 naměřil v horách precision povodně 0,06, stín = „voda“).
+- **Rozpočet PU** (odhad podle oficiálního vzorce: pixely/512² × pásma/3 × formát × S1 násobky, ortorektifikace ×2 a speckle ×2 předpokládám násobící se; 
+  **změřit na reálném dotazu**). Oblast 30×30 km = 3000×3000 px, 9 scén S1 (3 dráhy × 3 snímky), VV+VH, ortorektifikace + LEE:
+  UINT16 (dB přeškálované v evalscriptu) ≈ **820 PU/běh → ~12 běhů/měsíc**; FLOAT32 ≈ 1650 PU → ~6 běhů. 20×20 km: ≈ 370 PU (27 běhů); 50×50 km: ≈ 2300 PU (4 běhy).
+  S2 (2 scény, 7 pásem) přes Sentinel Hub ≈ 160 PU (z Planetary Computer zdarma); DEM 30 m ≈ 2,5 PU. Limit 300 PU/min a 300 požadavků/min → dlaždice ≈ 23 PU, ošetřit HTTP 429.
+- **Velikost požadavku:** Process API max ~2500×2500 px (údaj uživatele; v dokumentaci, kterou jsem četl, není) → oblast dlaždicovat.
+- **Přihlášení:** Sentinel Hub vyžaduje OAuth klienta (CDSE Dashboard → User Settings → OAuth clients; client id + secret, token přes `client_credentials`, token znovu používat do `exp`).
+  Katalog (OData/STAC) je dostupný bez přihlášení. **Porotce si zadá vlastní klíč** (README + nastavení v UI); naše klíče nejsou v repu. Bez klíče aplikace
+  jasně řekne, co chybí (ne tichá chyba). Potvrzení od organizátorů: O-009 otázka 5.
+- **Ladění (D-006):** prahy masky, HAND a sklonu se neladí podle EMSR927 ani opakovaným porovnáním Trishuli s EMS; práh modelu z Kuro Siwo val (kalibrace M9),
+  HAND/sklon z literatury nebo z himálajské sady s popisky ze S2 (O-005). S EMSR927 se porovná hotový výsledek jednou na konci.
+
 ## D-032 | 2026-10-08 | přijato (M9, výsledky kola 3)
 **Sklon terénu jako 7. vstupní kanál + Sen1Floods11 + častější vzorkování hornatých dlaždic (terrain boost 4).**
 Kolo 3 (Unet R34, 10 epoch, val = 2 825 dlaždic, výběr podle průměru přes eventy):
