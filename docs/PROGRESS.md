@@ -65,7 +65,7 @@ Obtížnost a čas = odhad uživatele.
   modál Methods & Limitations, patička s atribucemi. Backend: `POST/GET /api/runs…`, status, cancel, files, overlays.
 - Zjištěno: run z UI selže s hláškou „pipeline not available“, dokud neexistuje `python -m povodne run` (očekávané).
 - Chybí / navazuje: renderer PNG překryvů z GeoTIFF; napojení na skutečnou pipeline (`progress` v `run.json`); `povodne serve`;
-  uživatel dodá API klíč (CARTO) — zatím se nepoužívá; debris a flood path se v UI zobrazí, jakmile run obsahuje data.
+  CARTO klíč: čte se z env `CARTO_API_KEY` (v cloud environmentu nastavit jako secret), bez něj fallback; debris a flood path se v UI zobrazí, jakmile run obsahuje data.
 ### 2026-10-08 — M8 krok 1: kostra UI — `ccr-d89d3cfb-ywooc4`
 - Hotovo: `dashboard/` (FastAPI `server.py`: `/api/health`, `/api/runs`, statika), frontend bez build kroku (`dashboard/static/`), vendorovaný MapLibre 6.13 + terra-draw 1.37.
   Mapa se 4 podklady, kreslení obdélníku / tvaru / úprava, plocha v km² s varováním > 900 km², datum, tlačítko Run (zatím jen toast), pravý panel (výběr + tip), patička s atribucemi.

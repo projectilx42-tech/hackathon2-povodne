@@ -120,6 +120,8 @@ Důvod: při testu v prohlížeči CARTO dlaždice vracejí vodoznak „API KEY 
 Podklady v UI nyní: Dark (OSM invertované), OSM, OpenTopoMap, EOX Sentinel-2 cloudless 2024 (satelit). Všechny ověřeny v Chromiu.
 Dopad: OSM tile policy je třeba dodržet (lehké použití, atribuce) — porota spouští lokálně, takže nízký provoz.
 Pozn.: jména v OSM dlaždicích jsou místní (nepálsky/čínsky), ne anglicky.
+**Doplnění (uživatel dodal klíč):** je-li v prostředí `CARTO_API_KEY`, backend ho vrátí v `GET /api/config` a „Dark“ použije CARTO Dark Matter
+(`…/rastertiles/dark_all/{z}/{x}/{y}.png?key=…`, ověřeno bez vodoznaku). Klíč se **nikdy necommituje**; bez klíče platí fallback (invertované OSM). Porota spouští lokálně (D-016) — bez klíče uvidí fallback.
 
 ## D-022 | 2026-10-08 | přijato
 **Doplnění kontraktu kvůli UI** (ARCHITECTURE.md upraveno ve stejném commitu): `run.json.pre_window/post_window/progress/mock`, `aoi.geojson`,

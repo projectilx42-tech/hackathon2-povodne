@@ -6,11 +6,12 @@ import { createCompare } from './compare.js';
 import { createMeasure } from './measure.js';
 import { popover, renderExamples, renderHistory, setupSearch } from './menus.js';
 import { METHODS_HTML } from './methods.js';
-import { BASEMAPS, DEFAULT_BASEMAP, AREA_WARN_KM2 } from './config.js';
+import { BASEMAPS, DEFAULT_BASEMAP, AREA_WARN_KM2, applyConfig } from './config.js';
 import { polygonAreaKm2, polygonBbox } from './geo.js';
 import { startRun, getRun, getStatus, cancelRun } from './api.js';
 import { $, el, safeStore } from './util.js';
 
+try { applyConfig(await (await fetch('/api/config')).json()); } catch { /* keep the default base maps */ }
 const map = createMap('map');
 const wrap = $('map-wrap');
 let aoi = null;           // current area (GeoJSON Polygon) or null

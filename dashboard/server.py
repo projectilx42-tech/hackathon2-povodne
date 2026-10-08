@@ -145,6 +145,12 @@ def create_app() -> FastAPI:
     def health() -> dict:
         return {"status": "ok"}
 
+    @app.get("/api/config")
+    def config() -> dict:
+        # Optional CARTO basemap key from the environment (never stored in the repo). It is public to the
+        # browser by nature of tile URLs, but only this local user's own app receives it.
+        return {"carto_key": os.environ.get("CARTO_API_KEY") or None}
+
     @app.get("/api/runs")
     def runs() -> list[dict]:
         return list_runs()

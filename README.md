@@ -20,6 +20,7 @@ Case study: the 26 August 2026 Bhote Koshi–Trishuli flood (Nepal), compared ag
 pip install -r dashboard/requirements.txt
 python -m dashboard            # then open http://127.0.0.1:8000
 ```
+Optional: set `CARTO_API_KEY` (free key from carto.com/basemaps/apikey) for the CARTO dark base map; without it the dark style falls back to inverted OpenStreetMap tiles.
 The bundled *sample run* in History is **synthetic demo data** (`dashboard/tools/make_sample_run.py`), not a real analysis.
 
 **Pipeline CLI:**

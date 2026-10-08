@@ -33,3 +33,16 @@ export const BASEMAPS = [
   },
 ];
 export const DEFAULT_BASEMAP = 'dark';
+
+/** Use CARTO Dark Matter for the "Dark" style when the server has a CARTO key (env CARTO_API_KEY, never committed);
+ *  otherwise keep the inverted-OSM fallback. Must run before the map is created. */
+export function applyConfig({ carto_key: key } = {}) {
+  if (!key) return;
+  const i = BASEMAPS.findIndex(b => b.id === 'dark');
+  BASEMAPS[i] = {
+    id: 'dark', label: 'Dark',
+    tiles: [`https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png?key=${encodeURIComponent(key)}`],
+    tileSize: 256, maxzoom: 20,
+    attribution: `${OSM_ATTR} &copy; <a href="https://carto.com/attributions">CARTO</a>`,
+  };
+}
