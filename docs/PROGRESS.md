@@ -58,6 +58,10 @@ Obtížnost a čas = odhad uživatele.
 4. Účty (CDSE, Kaggle…) zakládá uživatel až v příslušných sessions (D-011); údaje jen jako env proměnné prostředí, nikdy do repa.
 
 ## Log sessions
+### 2026-10-08 (2) — satelity po sloučení main — `claude/nice-fermi-i7qzk8`
+- Sloučen main (D-029 = naše dřívější D-020, D-030 sladění). Ověřeno v dokumentaci: Sentinel Hub „LEE“ ≠ Lee Sigma, `shadowMask` jen s RTC, rozpočet PU (D-031).
+- Neprovedeno: test shody zpracování s Kuro Siwo (potřebuje CDSE OAuth klíč, koordinace s M9). Čeká na souhlas uživatele: metoda kontroly čistoty „před“, pojmenování souborů a `run.json` pro více drah.
+
 ### 2026-10-08 — master: sloučení sessions do `main` — `claude/gallant-keller-vftpi2`
 - Sloučeny větve `claude/relaxed-johnson-wwj9s8` (M9), `ccr-d89d3cfb-ywooc4` (M8 UI), `claude/nice-fermi-i7qzk8` (satelity) do `main`.
 - Kolize čísel vyřešeny (D-030): UI → D-026–D-028, satelity → D-029, O-009 sloučeny; sladěny vstupy modelu, sigma0, 2 pre snímky, více drah; nové O-010.
