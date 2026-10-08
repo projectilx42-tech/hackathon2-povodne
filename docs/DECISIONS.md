@@ -105,3 +105,35 @@ z S2 při jasné obloze (voda viditelná opticky) jako „pseudo-ground-truth“
 ## O-006 | otevřené — Kde poběží aplikace při live hodnocení
 Porota volí AOI a datum v den hodnocení (15.–20. 10.). Varianty: Hugging Face Spaces (CPU, zdarma, Docker/Streamlit), vlastní notebook
 spuštěný během hodnocení, malý VPS. Ovlivňuje O-003 a požadavky na rychlost (CPU inference). Rozhodnout do ~12. 10.
+
+## O-007 | návrh (uložen na pokyn uživatele 2026-10-08) — Návrh UI
+Rozložení: nahoře lišta (výběr oblasti na mapě, datum povodně, tlačítko Spustit), vlevo velká mapa, vpravo panel s daty.
+```
+┌──────────────────────────────────────────────────────────┬────────────────────────────┐
+│ [výběr oblasti]  Datum: [2026-08-26]  [▶ Spustit]        │  PŘEHLED                   │
+├──────────────────────────────────────────────────────────┤  verdikt (D-013) + použitá data│
+│                     MAPA                                 │  ─────────────────────────  │
+│   modře nová voda, hnědě suť/bahno                       │  Zaplaveno (km²)            │
+│   ■ červeně zasažené budovy                              │  Suť/bahno (km²)            │
+│   ━ přerušené silnice, ✕ zasažené mosty                  │  Budovy zasažené / celkem   │
+│   ● zelené = dostupné obce                               │  Silnice přerušené (km)     │
+│   ● oranžové = objížďka                                  │  Mosty zasažené / celkem    │
+│   ● červené = odříznuté obce                             │  Obce odříznuté / celkem    │
+│                                                          │  ─────────────────────────  │
+│                                                          │  SEZNAM ODŘÍZNUTÝCH OBCÍ    │
+│                                                          │  (klik → přiblíží na mapě)  │
+│  [vrstvy: voda / suť / budovy / silnice / obce]          │  [⬇ Stáhnout sitrep]        │
+└──────────────────────────────────────────────────────────┴────────────────────────────┘
+```
+- **Klik na obec v mapě** → pravý panel se přepne na detail obce: stav (dostupná / objížďka / odříznutá), nejbližší cíl
+  před a po povodni (vzdálenost, čas), blokující úseky (`blocking_cuts`) + tlačítko „ukázat blokující úseky na mapě“, tlačítko zpět.
+  Tato data už kontrakt `settlements_access.geojson` obsahuje.
+- Všechna čísla v panelu ze `stats.json` / výstupních GeoJSON (žádná čísla mimo ně).
+- Tvar výběru oblasti (obdélník / mnohoúhelník) zatím **nerozhodnut**.
+
+## O-008 | do budoucna (uživatel 2026-10-08: teď nedělat) — Úroveň zasažení obce
+Nápad rozšířit detail obce o „jak moc je obec zasažena“: zasažené budovy obce / celkem, zaplavená plocha v okolí,
+počet a délka blokovaných cest, zasažené mosty. Problém: obec je v OSM jen bod → území obce by se určilo přiřazením
+každé budovy nejbližší obci (Voronoi), případně kruhem kolem bodu. Vyžadovalo by nová pole v `settlements_access.geojson`
+(`buildings_total`, `buildings_hit`, `flooded_area_km2`, `roads_blocked_count`, `roads_blocked_km`, `bridges_hit`) —
+**kontrakt v ARCHITECTURE.md se zatím NEMĚNÍ.**
