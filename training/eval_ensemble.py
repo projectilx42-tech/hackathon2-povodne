@@ -33,6 +33,8 @@ def main() -> None:
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     ap.add_argument("--batch-size", type=int, default=32)
     ap.add_argument("--workers", type=int, default=2)
+    ap.add_argument("--max-water-slope", type=float, nargs="*", default=[],
+                    help="also report the pipeline rule 'no water on slopes steeper than X deg' (D-034) for each X")
     args = ap.parse_args()
 
     members = []
@@ -47,6 +49,7 @@ def main() -> None:
     print(f"{args.split}: {len(ds)} tiles loaded in {time.time() - t0:.0f}s; {len(members)} model(s)", flush=True)
 
     conf = Confusion(IGNORE)
+    rule_conf = {x: Confusion(IGNORE) for x in args.max_water_slope}
     for sar, label, slope, act, terrain in dl:
         sar, label, slope = sar.to(args.device), label.to(args.device), slope.to(args.device)
         probs, y = 0.0, None
@@ -56,10 +59,22 @@ def main() -> None:
             for xv, dim in views:
                 p = (model(xv).float() / temp).softmax(1)
                 probs = probs + (p.flip(dim) if dim is not None else p)
-        conf.update(probs.argmax(1), y, {"event": act.to(args.device), "terrain": terrain.to(args.device)})
+        groups = {"event": act.to(args.device), "terrain": terrain.to(args.device)}
+        pred = probs.argmax(1)
+        conf.update(pred, y, groups)
+        for thr, c in rule_conf.items():
+            c.update(torch.where(slope.float() > thr, torch.zeros_like(pred), pred), y, groups)
     rep = name_terrain(conf.report())
     rep["val_score" if args.split == "val" else "macro_score"] = macro_score(rep)
     rep["models"] = [str(p) for p in args.models]
+    rep["slope_rule"] = {}
+    for thr, c in rule_conf.items():
+        r = name_terrain(c.report())
+        r["score"] = macro_score(r)
+        rep["slope_rule"][str(thr)] = r
+        m = r.get("per_terrain", {}).get("mountainous (>200 m)", {}).get("flood", {})
+        print(f"  slope>{thr:g}deg -> no water: score {r['score']:.4f} flood F1 {r['overall']['flood']['f1']:.4f} "
+              f"mtn flood prec {m.get('precision')} recall {m.get('recall')}", flush=True)
     args.out.write_text(json.dumps(rep, indent=1))
     o = rep["overall"]
     mtn = rep.get("per_terrain", {}).get("mountainous (>200 m)", {}).get("flood", {})
