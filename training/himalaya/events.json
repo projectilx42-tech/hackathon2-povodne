@@ -1,0 +1,74 @@
+{
+ "_about": "Himalayan evaluation scenes for the flood model (O-005). Water labels come from clear-sky Sentinel-2 L2A taken close to the Sentinel-1 post image; never from Copernicus EMS or other published maps. S1 pairs are pre/post from the same relative orbit (track). Dates from the Planetary Computer STAC catalogue (copy of Copernicus Sentinel data). Labels are kept only below label_max_elev_m (snow zone excluded) and on slopes <= 20 degrees.",
+ "events": [
+  {
+   "id": "chamoli_2021",
+   "kind": "flood",
+   "note": "Rishiganga/Dhauliganga glacier-rock avalanche and debris flood, Uttarakhand, India, 7 Feb 2021. Winter, clear sky; deep gorges with radar shadow.",
+   "event_date": "2021-02-07",
+   "aoi_bbox": [
+    79.55,
+    30.4,
+    79.8,
+    30.58
+   ],
+   "s1": {
+    "orbit_state": "ascending",
+    "relative_orbit": 56,
+    "pre": "2021-01-29",
+    "post": "2021-02-10"
+   },
+   "s2_label": {
+    "date": "2021-02-10",
+    "mgrs_tile": "44RLU"
+   },
+   "label_max_elev_m": 3000
+  },
+  {
+   "id": "teesta_2023",
+   "kind": "flood",
+   "note": "South Lhonak lake outburst flood down the Teesta, Sikkim, India, 4 Oct 2023. Mountain section Chungthang - Teesta Bazar.",
+   "event_date": "2023-10-04",
+   "aoi_bbox": [
+    88.4,
+    27.0,
+    88.7,
+    27.35
+   ],
+   "s1": {
+    "orbit_state": "ascending",
+    "relative_orbit": 114,
+    "pre": "2023-10-02",
+    "post": "2023-10-14"
+   },
+   "s2_label": {
+    "date": "2023-10-16",
+    "mgrs_tile": "45RXK"
+   },
+   "label_max_elev_m": 2500
+  },
+  {
+   "id": "marsyangdi_2024_noflood",
+   "kind": "no_flood_control",
+   "note": "Marsyangdi valley (Besisahar), Nepal, dry season, no flood: every predicted flood pixel is a false alarm. Measures radar-shadow false positives in steep terrain.",
+   "event_date": "2024-01-15",
+   "aoi_bbox": [
+    84.3,
+    28.1,
+    84.5,
+    28.35
+   ],
+   "s1": {
+    "orbit_state": "ascending",
+    "relative_orbit": 158,
+    "pre": "2024-01-09",
+    "post": "2024-01-21"
+   },
+   "s2_label": {
+    "date": "2024-01-20",
+    "mgrs_tile": "45RTM"
+   },
+   "label_max_elev_m": 2500
+  }
+ ]
+}
