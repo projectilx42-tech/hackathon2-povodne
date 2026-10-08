@@ -43,4 +43,6 @@ síť: networkx, AI: PyTorch + segmentation-models-pytorch. Detaily a otevřené
 - Rozhodnutí s dopadem na ostatní moduly nebo report → zápis do `docs/DECISIONS.md`.
 - **Dělej jen to, co uživatel výslovně zadal.** Do souborů nepiš nic, co uživatel neřekl (žádné vlastní úkoly, moduly, harmonogramy,
   pořadí). Nápady a návrhy patří **jen do chatu** jako otázka; zapsat až když uživatel výslovně řekne.
+- **Než uživateli cokoliv doporučíš, ověř, že je to v souladu s pravidly** (`docs/TASK.md`, datová pravidla výše, pravidla Devpostu).
+  Napiš, co jsi ověřil. Když to z dokumentů nejde poznat, řekni to výslovně a nehádej (případně navrhni dotaz organizátorům).
 - Plán v `docs/PROGRESS.md` je orientační — uživatel může postupovat úplně jinak. Řiď se tím, co zadá v dané session.
