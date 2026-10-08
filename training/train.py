@@ -32,7 +32,7 @@ from floodseg.data import (IGNORE, SEN1FLOODS11_ACT_BASE, SPLIT_ACTS, KuroSiwoDa
 from floodseg.features import CHANNELS, DB_MAX, DB_MIN, SLOPE_SCALE_DEG  # noqa: E402
 from floodseg.gpu_features import make_batch  # noqa: E402
 from floodseg.metrics import RELIEF_BINS, Confusion  # noqa: E402
-from floodseg.model import CLASS_NAMES, CEDiceLoss, build_model  # noqa: E402
+from floodseg.model import CLASS_NAMES, NUM_CLASSES, CEDiceLoss, build_model  # noqa: E402
 
 
 def parse_args():
@@ -54,6 +54,8 @@ def parse_args():
     ap.add_argument("--event-balance", type=float, default=0.5,
                     help="0 = uniform tile sampling, 1 = every flood event equally often")
     ap.add_argument("--tta", action="store_true", help="flip test-time augmentation for the final test")
+    ap.add_argument("--ema", type=float, default=0.999,
+                    help="decay of the exponential moving average of weights used for evaluation (0 = off)")
     ap.add_argument("--sen1floods11", action="store_true",
                     help="add Sen1Floods11 tiles (post image only, binary water) to the training split")
     ap.add_argument("--min-water", type=float, default=0.0,
@@ -98,6 +100,44 @@ def evaluate(model, loader, device, norm, use_slope, tta: bool = False) -> Confu
                 probs = probs + model(x.flip(-2)).float().softmax(1).flip(-2)
         conf.update(probs.argmax(1), y, {"event": act, "terrain": terrain})
     return conf
+
+
+@torch.no_grad()
+def _collect_logits(model, loader, device, norm, use_slope, max_pixels=4_000_000):
+    model.eval()
+    zs, ys, n = [], [], 0
+    for batch in loader:
+        sar, label, dem, _, _ = to_device(batch, device, use_slope)
+        x, y = make_batch(sar, label, dem, norm, augment=False)
+        z = model(x).float().permute(0, 2, 3, 1).reshape(-1, NUM_CLASSES)
+        y = y.reshape(-1)
+        keep = y != IGNORE
+        z, y = z[keep], y[keep]
+        sel = torch.randperm(len(y), device=y.device)[: max(1, len(y) // 20)]  # subsample pixels
+        zs.append(z[sel]), ys.append(y[sel])
+        n += len(sel)
+        if n > max_pixels:
+            break
+    return torch.cat(zs), torch.cat(ys)
+
+
+def fit_temperature(model, loader, device, norm, use_slope) -> float:
+    """Single temperature T minimising validation NLL of softmax(logits / T)."""
+    z, y = _collect_logits(model, loader, device, norm, use_slope)
+    log_t = torch.zeros(1, device=z.device, requires_grad=True)
+    opt = torch.optim.LBFGS([log_t], lr=0.1, max_iter=100)
+
+    def closure():
+        opt.zero_grad()
+        loss = torch.nn.functional.cross_entropy(z / log_t.exp(), y)
+        loss.backward()
+        return loss
+
+    opt.step(closure)
+    t = float(log_t.exp())
+    if not 0.5 <= t <= 5:  # a sane, trained model lands near 1-2; anything else means a bad fit
+        print(f"WARNING: fitted temperature {t:.2f} clipped to [0.5, 5]")
+    return round(min(max(t, 0.5), 5.0), 4)
 
 
 def make_loader(ds, batch_size, shuffle, workers, weights=None):
@@ -153,6 +193,11 @@ def main():
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=args.lr, total_steps=max(steps, 1), pct_start=0.1)
     use_amp = device.startswith("cuda")
     scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
+    # EMA of the weights (incl. BatchNorm statistics): smoother, usually generalises better than the last step.
+    ema = (torch.optim.swa_utils.AveragedModel(
+        model, multi_avg_fn=torch.optim.swa_utils.get_ema_multi_avg_fn(args.ema), use_buffers=True)
+        if args.ema > 0 else None)
+    eval_model = ema.module if ema is not None else model
 
     config = {
         "arch": args.arch, "encoder": args.encoder, "in_channels": in_ch,
@@ -176,9 +221,11 @@ def main():
             scaler.step(opt)
             scaler.update()
             sched.step()
+            if ema is not None:
+                ema.update_parameters(model)
             if math.isfinite(loss.item()):
                 tot, n = tot + loss.item(), n + 1
-        val_report = name_terrain(evaluate(model, va_dl, device, norm, args.slope).report())
+        val_report = name_terrain(evaluate(eval_model, va_dl, device, norm, args.slope).report())
         val = val_report["overall"]
         row = {"epoch": epoch, "train_loss": tot / max(n, 1), "val_flood_iou": val["flood"]["iou"],
                "val_perm_iou": val["permanent water"]["iou"], "val_water_iou": val["water (perm+flood)"]["iou"],
@@ -188,8 +235,15 @@ def main():
         key = row["val_flood_iou"] or 0.0
         if key > best:
             best = key
-            torch.save({"state_dict": model.state_dict(), "config": config, "epoch": epoch}, args.out / "model.pt")
+            torch.save({"state_dict": eval_model.state_dict(), "config": config, "epoch": epoch}, args.out / "model.pt")
             (args.out / "val_metrics.json").write_text(json.dumps({"epoch": epoch, **val_report}, indent=1))
+    # Temperature scaling on the validation events: makes softmax probabilities calibrated (used as flood_prob).
+    ckpt = torch.load(args.out / "model.pt", map_location=device, weights_only=False)
+    eval_model.load_state_dict(ckpt["state_dict"])
+    config["temperature"] = fit_temperature(eval_model, va_dl, device, norm, args.slope)
+    ckpt["config"] = config
+    torch.save(ckpt, args.out / "model.pt")
+    print("temperature:", config["temperature"])
     with open(args.out / "history.csv", "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(history[0]))
         w.writeheader()
@@ -197,7 +251,7 @@ def main():
 
     card = {
         **{k: config[k] for k in ("arch", "encoder", "in_channels", "inputs", "normalization", "db_clip",
-                                   "slope_scale_deg", "classes")},
+                                   "slope_scale_deg", "classes", "temperature")},
         "input_units": "dB of Sentinel-1 GRD sigma0 (linear -> 10*log10), Lee Sigma 3x3 speckle filter",
         "tile_size": 224,
         "trained_on": ["KuroSiwo GRD (official train events)"]
@@ -213,7 +267,7 @@ def main():
         del tr_arr, tr_ds, tr_dl
         te_idx = split_index(index, "test", args.max_tiles, args.seed)
         te_ds = KuroSiwoDataset(te_idx, load_arrays(te_idx, args.slope), args.slope)
-        model.load_state_dict(torch.load(args.out / "model.pt", map_location=device)["state_dict"])
+        model = eval_model
         te_dl = make_loader(te_ds, args.batch_size * 2, False, args.workers)
         test = name_terrain(evaluate(model, te_dl, device, norm, args.slope).report())
         if args.tta:

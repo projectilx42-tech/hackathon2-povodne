@@ -41,11 +41,12 @@ def _starts(size: int, tile: int, step: int) -> list[int]:
 
 @torch.no_grad()
 def predict_probs(model: torch.nn.Module, x: np.ndarray, tile: int = 512, overlap: int = 64,
-                  batch_size: int = 4, device: str = "cpu") -> np.ndarray:
+                  batch_size: int = 4, device: str = "cpu", temperature: float = 1.0) -> np.ndarray:
     """Class probabilities [NUM_CLASSES, H, W] float32 for features x [C, H, W].
 
     Tiles overlap and are blended with a ramp window, which removes seams at tile borders.
     `tile` must be a multiple of 32 (U-Net downsampling); small inputs are padded.
+    `temperature` comes from the model config (fitted on validation events) and calibrates probabilities.
     """
     c, h, w = x.shape
     ph, pw = max(h, tile), max(w, tile)
@@ -58,7 +59,7 @@ def predict_probs(model: torch.nn.Module, x: np.ndarray, tile: int = 512, overla
     for b in range(0, len(coords), batch_size):
         batch = coords[b:b + batch_size]
         xb = torch.from_numpy(np.stack([x[:, i:i + tile, j:j + tile] for i, j in batch])).to(device)
-        probs = model(xb).float().softmax(1).cpu().numpy()
+        probs = (model(xb).float() / temperature).softmax(1).cpu().numpy()
         for (i, j), p in zip(batch, probs):
             acc[:, i:i + tile, j:j + tile] += p * win
             norm[i:i + tile, j:j + tile] += win
