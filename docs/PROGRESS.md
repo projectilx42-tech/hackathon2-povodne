@@ -47,7 +47,7 @@ Obtížnost a čas = odhad uživatele.
 | 3 | Pochopit satelity a data | 2–3 | 30 min | — | ⬜ |
 | 4 | Najít zdroje, stránky atd. | 3 | 1–2 h | — | ⬜ |
 | 5 | Stahování dat ze satelitu | ~7 | ~4 h | M1, M2 | ⬜ |
-| 6 | Natrénovat AI (Kaggle) | 7 | 4 h + běh tréninku | M9, M3 | 🟨 kandidát hotový (kolo 3), běží test + kolo 4 |
+| 6 | Natrénovat AI (Kaggle) | 7 | 4 h + běh tréninku | M9, M3 | ✅ model v0.2 (test F1 0,775); himálajský test předběžně |
 | 7 | Algoritmus na suť a bahno | 8 | 4 h | M3d | ⬜ |
 | 8 | Škody | 3 | 2 h | M4 | ⬜ |
 | 9 | Odříznuté obce | 3 | 2,5 h | M5 | ⬜ |
@@ -64,8 +64,8 @@ Obtížnost a čas = odhad uživatele.
 | 0 Skeleton (pyproject, CLI, config, io/grid) | ⬜ | `feat/skeleton` | |
 | M1 Acquire (S1/S2/DEM/OSM) | ⬜ | `feat/acquire` | požadavky z M9: D-020, D-033 (sigma0+Lee, oba směry přeletu) |
 | M2 Preprocess | ⬜ | `feat/preprocess` | požadavky z M9: D-033 (layover/shadow maska pro oba tracky, slope, HAND) |
-| M9 AI trénink | 🟨 | `claude/relaxed-johnson-wwj9s8` | kandidát `r3_r34_slope_tb4_s1f11` (val F1 povodně 0,69); test + kolo 4 běží; slabina hory (D-032) |
-| M3 AI inference (voda) | ⬜ | `feat/ai-model` | dlaždicová inference + kalibrace v `training/floodseg/infer.py`; pravidla skládání D-034 |
+| M9 AI trénink | ✅ | `claude/relaxed-johnson-wwj9s8` | v0.2 (`floodseg-model`), D-M9-01–07; zbývá himálajský test s reálným vstupem z M1/M2 |
+| M3 AI inference (voda) | 🟨 | `claude/relaxed-johnson-wwj9s8` | `training/run_ai.py` funguje dle kontraktu (+ test); přesun do `src/povodne/flood/` až bude skeleton |
 | M3d Suť a bahno | ⬜ | `feat/debris` | |
 | M4 Damage | ⬜ | `feat/damage` | |
 | M5 Network / cut-off | ⬜ | `feat/network` | |
@@ -80,6 +80,17 @@ Obtížnost a čas = odhad uživatele.
 4. Účty (CDSE, Kaggle…) zakládá uživatel až v příslušných sessions (D-011); údaje jen jako env proměnné prostředí, nikdy do repa.
 
 ## Log sessions
+### 2026-10-08/09 (noc) — M9 AI model — `claude/relaxed-johnson-wwj9s8`
+- Kola 5–8 na Kaggle: UNet++ bez přínosu; SSL4EO-S12 (S1 encoder) bez přínosu → dotaz na organizátory není potřeba (D-M9-04);
+  Lovász loss = **v0.2** (test F1 povodně 0,775, hory 0,53); šum mezi seedy ±0,007 val score (D-M9-06); refit train+val
+  (v0.3) nenasazen podle předem daného pravidla (D-M9-07).
+- Změřeno na val: ensemble se nevyplatí, pravidlo „žádná voda na svahu > 15°“ pomáhá, práh P(povodeň) nechán argmax (D-M9-03).
+- Himálajská sada (O-005) ze Sentinel-2 bez EMS: `training/himalaya/` (Chamoli 2021, Teesta 2023, kontrola Marsyangdi 2024).
+  Předběžně (radar z Planetary Computer RTC): 0 % falešných povodní, úzké divoké řeky radar jako vodu nevidí (limit SAR).
+- Model v0.2 publikován (`fetch_model.py`), AI krok pipeline `training/run_ai.py` (~30 s / 30×30 km / dráhu, 2 GB RAM) + testy.
+- Kaggle: `push_kernel.py` čeká na zpracování kódu, kernel končí hned při starém kódu (kolo 5 kvůli tomu propadlo 2 běhy).
+- Zbývá: himálajský test se skutečným vstupem z M1/M2 (`evaluate_himalaya.py`), přesun `run_ai.py` do `src/povodne/flood/`
+  po skeletonu, finální hosting vah pro porotu (O-011).
 ### 2026-10-08 — master: kontrola kompatibility a sjednocení — `claude/gallant-keller-vftpi2`
 - Sloučeny `claude/relaxed-johnson-wwj9s8` (M9) a `claude/nice-fermi-i7qzk8` (M1/M2) do `main`; přečíslování a sjednocení viz D-035 a Oznámení.
 - `docs/QUESTIONS.md` = jediný seznam otázek (5 odesláno). Pojistky: číslování se zkratkou modulu, sekce Koordinace v CLAUDE.md,
