@@ -85,7 +85,9 @@ runs/<run_id>/
   report/
     sitrep_en.md sitrep_en.pdf   # 1 strana; volitelně sitrep_ne.*
   logs/pipeline.log
+  overlays/*.png                 # cache PNG překryvů pro dashboard (píše jen M8 backend, viz HTTP API)
 ```
+`run.json` navíc obsahuje `progress` (průběh kroků pro UI) a u ukázkového runu `"mock": true` — viz sekce *HTTP API*.
 
 ### `run.json`
 ```json
@@ -167,6 +169,29 @@ Sitrep, dashboard i případný copilot berou čísla **výhradně odsud** (žá
 }
 ```
 
+## HTTP API (M8 dashboard ↔ backend) — D-020
+Backend: FastAPI, `python -m povodne serve [--port 8000]`, kód v `dashboard/`. Statický frontend se servíruje ze stejného procesu.
+Pipeline spouští jako podproces `python -m povodne run ...`; průběh čte z `run.json.progress` (viz níže).
+
+| Metoda + cesta | Význam |
+|---|---|
+| `POST /api/runs` | tělo `{"aoi": <GeoJSON|bbox>, "event_date": "YYYY-MM-DD", "pre_window": [from,to]?, "post_window": [from,to]?}` → `{"run_id": "..."}` |
+| `GET /api/runs` | seznam běhů z `runs/`: `[{"run_id","event_date","created_utc","aoi_area_km2","verdict","state","mock"}]` |
+| `GET /api/runs/{run_id}` | `run.json` (+ `stats.json`, pokud existuje) |
+| `GET /api/runs/{run_id}/status` | `{"state","steps":[...],"log_tail":[...],"error"}` (z `run.json.progress`, `logs/pipeline.log`) |
+| `POST /api/runs/{run_id}/cancel` | zastaví běžící pipeline |
+| `GET /api/runs/{run_id}/files/{path}` | soubor z run adresáře (GeoJSON, `stats.json`, `report/sitrep_en.*`, GeoTIFF ke stažení) |
+| `GET /api/runs/{run_id}/overlays` | `[{"name","url","bounds"}]` — PNG překryvy rastrů pro mapu (EPSG:4326 bounds `[w,s,e,n]`) |
+
+- **Překryvy** (`overlays/*.png`) renderuje backend na vyžádání z rastrů v `flood/`, `masks/`, `aligned/` a cachuje v `runs/<run_id>/overlays/`
+  (nová složka run adresáře, píše ji jen dashboard backend; pipeline ji nečte). Jména: `water`, `debris`, `flood_prob`, `permanent_water`,
+  `layover_shadow`, `s2_pre`, `s2_post`, `s1_pre`, `s1_post`.
+- **`run.json.progress`** (píše pipeline/CLI, čte dashboard):
+  `{"state": "queued|running|done|failed|cancelled", "steps": [{"name": "acquire|preprocess|flood_ai|debris|damage|network|report",
+  "state": "pending|running|done|skipped|failed", "message": "..."}]}`.
+- **Ukázkový run:** `dashboard/sample_run/` (v gitu, < 5 MB), `run.json.mock = true`; API ho vrací v seznamu s `"mock": true`.
+- Backend poslouchá jen na `127.0.0.1` (D-016, lokální spuštění); CORS není potřeba.
+
 ## Moduly — vlastnictví souborů (kvůli paralelním session)
 | # | Modul | Kód | Větev (návrh) | Čte | Píše |
 |---|---|---|---|---|---|
@@ -180,7 +205,7 @@ Sitrep, dashboard i případný copilot berou čísla **výhradně odsud** (žá
 | M5 | Road network / cut-off | `src/povodne/network/` | `feat/network` | `osm/`, `damage/` | `network/` |
 | M6 | Stats + sitrep | `src/povodne/report/` | `feat/report` | vše | `stats.json`, `report/` |
 | M7 | Flood path (bonus) | `src/povodne/floodpath/` | `feat/floodpath` | `aligned/dem.tif`, `osm/` | `floodpath/` |
-| M8 | Dashboard | `dashboard/` | `feat/dashboard` | run adresář | — |
+| M8 | Dashboard (backend FastAPI + frontend) | `dashboard/` | `feat/dashboard` | run adresář | `runs/<id>/overlays/` (cache), spouští pipeline |
 | M10 | Validace vs EMSR927 | `validation/` | `feat/validation` | run adresář + EMS | `validation/results/` |
 | — | Report (6 stran), video | `deliverables/` | `docs/report` | — | — |
 

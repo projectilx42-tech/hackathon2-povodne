@@ -38,7 +38,7 @@ Obtížnost a čas = odhad uživatele.
 | Modul | Stav | Větev | Poznámka |
 |---|---|---|---|
 | Repo init, docs, workflow | ✅ | `main` | CLAUDE.md, docs/, Stop hook |
-| M8 Dashboard / webové UI | ⬜ | `feat/dashboard` | technologie O-003 |
+| M8 Dashboard / webové UI | 🟨 | `feat/dashboard` | návrh hotový (D-020, `docs/UI_SPEC.md`, HTTP API v ARCHITECTURE.md); kód zatím ne |
 | 0 Skeleton (pyproject, CLI, config, io/grid) | ⬜ | `feat/skeleton` | |
 | M1 Acquire (S1/S2/DEM/OSM) | ⬜ | `feat/acquire` | |
 | M2 Preprocess | ⬜ | `feat/preprocess` | |
@@ -58,6 +58,12 @@ Obtížnost a čas = odhad uživatele.
 4. Účty (CDSE, Kaggle…) zakládá uživatel až v příslušných sessions (D-011); údaje jen jako env proměnné prostředí, nikdy do repa.
 
 ## Log sessions
+### 2026-10-08 — návrh UI (M8) — `ccr-d89d3cfb-ywooc4`
+- Dohodnut návrh UI: FastAPI + MapLibre + čisté JS, jen tmavé téma, podklady CARTO Dark Matter (výchozí) / OSM / OpenTopoMap / EOX S2 cloudless,
+  seznam features (bez sdíleného odkazu). Zapsáno: `D-020`, `docs/UI_SPEC.md`, sekce *HTTP API* a `run.json.progress` v `ARCHITECTURE.md`; O-003 uzavřeno.
+- Kód UI zatím nevznikl. Další krok: kostra aplikace (backend, mapa, přepínač podkladů, kreslení AOI), pak horní lišta, mock run a pravý panel, vrstvy a nástroje, stepper/historie/modály.
+- K ověření při implementaci: licence CARTO a OpenTopoMap, limity Nominatim, `terra-draw` freehand.
+
 ### 2026-10-07 — master session (init) — `claude/gallant-keller-vftpi2`
 - Založeno repo: `CLAUDE.md`, `docs/{TASK,ARCHITECTURE,PROGRESS,DECISIONS}.md`, originální PDF v `docs/source/`, `.gitignore`, README kostra,
   Stop hook připomínající commit/push. Vytvořena větev `main`.
