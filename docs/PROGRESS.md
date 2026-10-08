@@ -8,6 +8,7 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-08 — výběr snímku „před“ (D-M1-01):** časová řada podílu vody v ~60 m → pre = poslední průlet před nárůstem vody; nové pole `run.json.acquire.s1.pre_selection` (UI ho může ukázat, M6 do sitrepu varování).
 - **2026-10-08 — sjednocení (master, D-035), platí pro všechny:**
   1. Všechny větve jsou sloučené v `main` → **`git fetch origin main && git merge origin/main`**.
   2. **Přečíslováno:** modelová D-026/027/028 → **D-032/033/034**, O-010 (váhy) → **O-011**; satelity D-031 beze změny; O-009 a O-010 zrušeny.
