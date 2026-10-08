@@ -1,0 +1,7 @@
+# Training of the flood segmentation model (Kaggle GPU notebook or local).
+# torch is preinstalled on Kaggle; locally install the build matching your hardware first.
+numpy>=1.26
+pandas>=2.0
+requests>=2.31
+torch>=2.2
+segmentation-models-pytorch>=0.3.3
