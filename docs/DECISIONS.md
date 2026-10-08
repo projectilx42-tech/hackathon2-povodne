@@ -287,6 +287,20 @@ Kontrakt (ARCHITECTURE.md: `s1_alt_*`, `acquire.s1_alt`) upraven ve stejném com
    kontrola `tools/check_docs.py` (spouští ji SessionStart a Stop hook), SessionStart hook hlásí, když je větev pozadu za `main`.
 Kontrakt (ARCHITECTURE.md) upraven ve stejném commitu.
 
+## D-M9-01 | 2026-10-08 | přijato (M9) — výsledky testu a kola 4
+**Test (jednorázově) kandidáta `r3_r34_slope_tb4_s1f11` na 10 test eventech Kuro Siwo** (15 896 dlaždic, i bez vody, pixely sečtené):
+| | IoU | precision | recall | F1 |
+|---|---|---|---|---|
+| povodeň | 0,639 | 0,864 | 0,710 | **0,779** |
+| trvalá voda | 0,635 | 0,806 | 0,750 | 0,777 |
+| voda celkem | 0,701 | 0,892 | 0,766 | 0,824 |
+| povodeň – rovina / kopce / hory | 0,635 / 0,704 / 0,325 | 0,87 / 0,83 / 0,49 | | 0,78 / 0,83 / 0,49 |
+Flip TTA: +0,001 F1 (zanedbatelné; na CPU 3× pomalejší → v pipeline volitelné, default vypnuto). Pro srovnání nejlepší model
+článku Kuro Siwo (UNet-R50, 3 snímky): F1 povodně 0,801 na stejných test eventech. Nejslabší eventy: 1111002 (Čad, F1 0,58),
+205 (Srí Lanka, 0,64). Hory na testu: polovina predikované povodně falešná → pravidla D-034 zůstávají nutná.
+**Kolo 4:** ResNet50 i terrain boost bez přínosu (val score 0,610–0,614 = šum) → základ dál R34 + sklon + Sen1Floods11.
+Kolo 5 (SSL4EO-S12 S1 encoder, Lovász loss, UNet++) běží; finální výběr / ensemble podle val.
+
 ---
 
 # Otevřené otázky (k rozhodnutí)
