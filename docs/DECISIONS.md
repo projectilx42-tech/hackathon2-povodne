@@ -91,6 +91,17 @@ na instalaci, jeden na spuštění). Docker ani `uv` nejsou potřeba.
 ## D-019 | 2026-10-08 | přijato (rozhodnutí uživatele)
 **Výběr oblasti na mapě má dva režimy: obdélník a kreslení vlastního tvaru myší** (kolečko, „brambora“ apod.). **Výchozí je obdélník.**
 
+## D-020 | 2026-10-08 | přijato (rozhodnutí uživatele)
+**Systém musí fungovat pro libovolné místo na světě, ne jen pro Nepál. Snímek „před“ musí být ověřený jako nezasažený povodní.**
+- Žádná logika svázaná s Himálajem/Trishuli: relativní dráhy, UTM zóna, časy průletů se zjišťují z katalogu pro zadanou AOI a datum.
+- **Snímek „před“ může být sám zasažený povodní** (povodeň začala dřív než zadané datum, pomalá/dlouhá povodeň, uživatel zadal pozdní datum).
+  Pipeline proto nesmí slepě vzít poslední snímek před datem: musí zjistit, zda už povodeň neobsahuje, a pokud ano, vzít starší snímek
+  **stejné relativní dráhy** (o 12 dní dříve, případně dál), dokud nenajde čistý. Zvolený snímek a důvod výběru zapsat do `run.json`
+  (`warnings`) a do stats; pokud čistý snímek neexistuje, jasně to říct (viz D-013), ne tiše počítat s kontaminovaným. Metoda ověření zatím není určena.
+- Snímek „po“ = první dostupný po události; „před“ musí být ze stejné relativní dráhy jako „po“.
+- Satelitní data se stahují jen jako výřez (D-018). Registraci na CDSE uživatel provede (viz D-011).
+- Používat každou hotovou zkratku (knihovny, hotové služby), která je v souladu s datovými pravidly; legálnost ověřit před použitím.
+
 ---
 
 # Otevřené otázky (k rozhodnutí)
@@ -152,3 +163,13 @@ počet a délka blokovaných cest, zasažené mosty. Problém: obec je v OSM jen
 každé budovy nejbližší obci (Voronoi), případně kruhem kolem bodu. Vyžadovalo by nová pole v `settlements_access.geojson`
 (`buildings_total`, `buildings_hit`, `flooded_area_km2`, `roads_blocked_count`, `roads_blocked_km`, `bridges_hit`) —
 **kontrakt v ARCHITECTURE.md se zatím NEMĚNÍ.**
+
+## O-009 | otevřené — Otázky pro organizátory na Discordu
+Z dokumentů nejde poznat; zeptat se (anglicky, ke zkopírování):
+1. "May we use Sentinel-1 data already terrain-corrected (RTC) by a data provider, e.g. Microsoft Planetary Computer `sentinel-1-rtc` (processed with PlanetDEM)? Or must terrain correction use Copernicus DEM only (e.g. Sentinel Hub on CDSE)?"
+2. "May we start our own training from pretrained weights (ImageNet encoders, foundation models such as Prithvi, published Kuro Siwo checkpoints)?"
+3. "May we use global water layers (JRC Global Surface Water, ESA WorldCover) to mask permanent water, or only water derived from Sentinel imagery before the event?"
+4. "May EMSR927 be used to compute validation metrics for the AI model on Himalayan scenes (checking only, never training or threshold tuning)? Or should held-out evaluation use other labels?"
+5. "On judging day, will judges run the app themselves on their own machine with internet access? Is it acceptable that they register a free CDSE account?"
+6. "Judges choose area and date live: may the chosen event have no Sentinel-1 post-event pass yet? Is an explicit 'insufficient data' result acceptable?"
+7. "For events other than the Trishuli case, is the ohsome snapshot before the event date the expected OSM source?"

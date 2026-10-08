@@ -58,6 +58,11 @@ Obtížnost a čas = odhad uživatele.
 4. Účty (CDSE, Kaggle…) zakládá uživatel až v příslušných sessions (D-011); údaje jen jako env proměnné prostředí, nikdy do repa.
 
 ## Log sessions
+### 2026-10-08 — průzkum satelitů a dat — `claude/nice-fermi-i7qzk8`
+- Průzkum katalogů (Planetary Computer, CDSE) pro Trishuli: S1 dráhy 85 (asc), 19 a 121 (desc), jen Sentinel-1D; první snímek po události 28. 8. (dráha 85, pár s 16. 8.);
+  S2 po události 54–90 % oblačnosti. Planetary Computer `sentinel-1-rtc` používá PlanetDEM (legálnost otevřená, O-009). Sentinel Hub na CDSE: 10 000 PU/měsíc zdarma.
+- Zapsáno D-020 (celý svět, ověření snímku „před“) a O-009 (otázky na Discord). Žádný kód.
+
 ### 2026-10-07 — master session (init) — `claude/gallant-keller-vftpi2`
 - Založeno repo: `CLAUDE.md`, `docs/{TASK,ARCHITECTURE,PROGRESS,DECISIONS}.md`, originální PDF v `docs/source/`, `.gitignore`, README kostra,
   Stop hook připomínající commit/push. Vytvořena větev `main`.
