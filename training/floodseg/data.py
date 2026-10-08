@@ -13,9 +13,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
-import torch.nn.functional as F
 
-from .features import build_features, combine_pre_db, slope_from_dem, uint8_to_db
+from .features import combine_pre_db, uint8_to_db
 from .metrics import relief_bucket
 
 TRAIN_ACTS = [130, 470, 555, 118, 174, 324, 421, 554, 427, 518, 502, 498, 497, 496, 492, 147, 267, 273,
@@ -28,14 +27,17 @@ SEN1FLOODS11_ACT_BASE = 9_000_000  # Sen1Floods11 events (training only), see pr
 IGNORE = 255
 
 
-def load_index(root: Path, subdirs=("train_GRD", "test_GRD", "sen1floods11")) -> pd.DataFrame:
-    """All index CSVs under root, with a `path` column pointing at the npz part."""
+def load_index(root: Path) -> pd.DataFrame:
+    """All index_*.csv files anywhere under root, with a `path` column pointing at the npz part.
+
+    Works both for the local layout (root/train_GRD, root/test_GRD, root/sen1floods11) and for Kaggle,
+    where each part is a separate dataset under /kaggle/input.
+    """
     frames = []
-    for sub in subdirs:
-        for csv in sorted((root / sub).glob("index_*.csv")):
-            df = pd.read_csv(csv)
-            df["path"] = [str(root / sub / f) for f in df["file"]]
-            frames.append(df)
+    for csv in sorted(Path(root).rglob("index_*.csv")):
+        df = pd.read_csv(csv)
+        df["path"] = [str(csv.parent / f) for f in df["file"]]
+        frames.append(df)
     if not frames:
         raise FileNotFoundError(f"no index_*.csv under {root}")
     df = pd.concat(frames, ignore_index=True)
@@ -71,10 +73,10 @@ def load_arrays(index: pd.DataFrame, keep_dem: bool = True) -> dict[str, np.ndar
 
 
 class KuroSiwoDataset(torch.utils.data.Dataset):
-    """Returns (x [C,H,W] float32, y [H,W] int64, act_id, terrain_bucket).
+    """Returns raw tiles: (sar uint8 [6,H,W], label uint8 [H,W], dem int16 [H,W] or empty, act_id, terrain).
 
-    Training-time randomness (only if `augment`), chosen to make the model robust to conditions the
-    Kuro Siwo events do not cover well:
+    Features and training augmentations are computed batch-wise on the GPU by
+    gpu_features.make_batch (same maths as features.build_features), so the CPU only copies bytes:
       - pre-event image: pre1, pre2 or their mean (the pipeline may have one or two pre scenes),
       - dB offsets for pre and post, plus a smaller per-polarisation one (calibration differences
         between processors, incidence angle),
@@ -83,84 +85,21 @@ class KuroSiwoDataset(torch.utils.data.Dataset):
       - random 90 degree rotations and flips (any orbit direction / valley orientation).
     """
 
-    def __init__(self, index: pd.DataFrame, arrays: dict[str, np.ndarray], norm: dict | None = None,
-                 use_slope: bool = False, augment: bool = False, gain_db: float = 0.5,
-                 speckle_p: float = 0.3, scale_p: float = 0.3, seed: int = 0):
+    def __init__(self, index: pd.DataFrame, arrays: dict[str, np.ndarray], use_slope: bool = False):
         self.index = index.reset_index(drop=True)
         self.a = arrays
-        self.norm = norm
         self.use_slope = use_slope
-        self.augment = augment
-        self.gain_db = gain_db
-        self.speckle_p = speckle_p
-        self.scale_p = scale_p
-        self.rng = np.random.default_rng(seed)
         self.acts = self.index["actid"].to_numpy()
         self.terrain = np.array([relief_bucket(r) for r in arrays["relief"]], np.int64)
+        self.empty = torch.zeros(0, dtype=torch.int16)
 
     def __len__(self) -> int:
         return len(self.index)
 
-    def _pre(self, db: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        pre1 = (db[2], db[3])
-        pre2 = (db[4], db[5])
-        choice = self.rng.integers(3) if self.augment else 2
-        if choice == 0:
-            return pre1
-        if choice == 1:
-            return pre2
-        return combine_pre_db(pre1[0], pre2[0]), combine_pre_db(pre1[1], pre2[1])
-
-    def _speckle_db(self, shape) -> np.ndarray:
-        looks = self.rng.uniform(4, 30)
-        return (10 * np.log10(self.rng.gamma(looks, 1 / looks, size=shape))).astype(np.float32)
-
     def __getitem__(self, i: int):
-        db = uint8_to_db(self.a["sar"][i])
-        pre_vv, pre_vh = self._pre(db)
-        post_vv, post_vh = db[0], db[1]
-        if self.augment:
-            if self.gain_db > 0:
-                g = self.rng.normal(0.0, self.gain_db, 2) + self.rng.normal(0.0, self.gain_db / 3, (2, 2)).T
-                pre_vv, pre_vh = pre_vv + g[0, 0], pre_vh + g[1, 0]
-                post_vv, post_vh = post_vv + g[0, 1], post_vh + g[1, 1]
-            if self.rng.random() < self.speckle_p:
-                pre_vv, pre_vh = pre_vv + self._speckle_db(pre_vv.shape), pre_vh + self._speckle_db(pre_vh.shape)
-                post_vv, post_vh = post_vv + self._speckle_db(post_vv.shape), post_vh + self._speckle_db(post_vh.shape)
-        slope = None
-        if self.use_slope:
-            dem = self.a["dem"][i].astype(np.float32)
-            dem[dem == -32768] = np.nan
-            slope = slope_from_dem(dem)
-        x = build_features(pre_vv, pre_vh, post_vv, post_vh, slope, self.norm)
-        y = self.a["label"][i].astype(np.int64)
-        if self.augment:
-            k = int(self.rng.integers(4))
-            x, y = np.rot90(x, k, axes=(1, 2)), np.rot90(y, k)
-            if self.rng.random() < 0.5:
-                x, y = x[:, :, ::-1], y[:, ::-1]
-        x, y = torch.from_numpy(x.copy()), torch.from_numpy(y.copy())
-        if self.augment and self.rng.random() < self.scale_p:
-            x, y = self._rescale(x, y, self.rng.uniform(0.7, 1.4))
-        return x, y, int(self.acts[i]), int(self.terrain[i])
-
-    def _rescale(self, x: torch.Tensor, y: torch.Tensor, s: float):
-        """Zoom by factor s, then crop (s > 1) or pad (s < 1; padding is ignored by the loss) back."""
-        _, h, w = x.shape
-        nh, nw = max(int(round(h * s)), 8), max(int(round(w * s)), 8)
-        xs = F.interpolate(x[None], size=(nh, nw), mode="bilinear", align_corners=False)[0]
-        ys = F.interpolate(y[None, None].float(), size=(nh, nw), mode="nearest")[0, 0].long()
-        if s >= 1:
-            i, j = int(self.rng.integers(nh - h + 1)), int(self.rng.integers(nw - w + 1))
-            return xs[:, i:i + h, j:j + w].contiguous(), ys[i:i + h, j:j + w].contiguous()
-        xo = torch.zeros_like(x)
-        yo = torch.full_like(y, IGNORE)
-        i, j = int(self.rng.integers(h - nh + 1)), int(self.rng.integers(w - nw + 1))
-        xo[:, i:i + nh, j:j + nw], yo[i:i + nh, j:j + nw] = xs, ys
-        return xo, yo
-
-    def worker_init(self, worker_id: int) -> None:
-        self.rng = np.random.default_rng(torch.initial_seed() % 2**32 + worker_id)
+        dem = torch.from_numpy(self.a["dem"][i]) if self.use_slope else self.empty
+        return (torch.from_numpy(self.a["sar"][i]), torch.from_numpy(self.a["label"][i]), dem,
+                int(self.acts[i]), int(self.terrain[i]))
 
 
 def tile_relief(dem: np.ndarray) -> np.ndarray:

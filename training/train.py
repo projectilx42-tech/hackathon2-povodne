@@ -30,6 +30,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from floodseg.data import (IGNORE, SEN1FLOODS11_ACT_BASE, SPLIT_ACTS, KuroSiwoDataset, compute_norm_stats, event_balanced_weights,  # noqa: E402
                            load_arrays, load_index)
 from floodseg.features import CHANNELS, DB_MAX, DB_MIN, SLOPE_SCALE_DEG  # noqa: E402
+from floodseg.gpu_features import make_batch  # noqa: E402
 from floodseg.metrics import RELIEF_BINS, Confusion  # noqa: E402
 from floodseg.model import CLASS_NAMES, CEDiceLoss, build_model  # noqa: E402
 
@@ -76,18 +77,26 @@ def split_index(index, split: str, max_tiles: int | None, seed: int, sen1floods1
     return df.reset_index(drop=True)
 
 
+def to_device(batch, device, use_slope):
+    sar, label, dem, act, terrain = batch
+    sar, label = sar.to(device, non_blocking=True), label.to(device, non_blocking=True)
+    dem = dem.to(device, non_blocking=True) if use_slope else None
+    return sar, label, dem, act.to(device), terrain.to(device)
+
+
 @torch.no_grad()
-def evaluate(model, loader, device, tta: bool = False) -> Confusion:
+def evaluate(model, loader, device, norm, use_slope, tta: bool = False) -> Confusion:
     model.eval()
     conf = Confusion(IGNORE)
-    for x, y, act, terrain in loader:
-        x, y = x.to(device, non_blocking=True), y.to(device, non_blocking=True)
+    for batch in loader:
+        sar, label, dem, act, terrain = to_device(batch, device, use_slope)
+        x, y = make_batch(sar, label, dem, norm, augment=False)
         with torch.autocast(device_type=device.split(":")[0], enabled=device.startswith("cuda")):
             probs = model(x).float().softmax(1)
             if tta:  # average over horizontal / vertical flips
                 probs = probs + model(x.flip(-1)).float().softmax(1).flip(-1)
                 probs = probs + model(x.flip(-2)).float().softmax(1).flip(-2)
-        conf.update(probs.argmax(1), y, {"event": act.to(device), "terrain": terrain.to(device)})
+        conf.update(probs.argmax(1), y, {"event": act, "terrain": terrain})
     return conf
 
 
@@ -98,7 +107,7 @@ def make_loader(ds, batch_size, shuffle, workers, weights=None):
         shuffle = None
     return torch.utils.data.DataLoader(
         ds, batch_size=batch_size, shuffle=shuffle, sampler=sampler, num_workers=workers, pin_memory=True,
-        drop_last=bool(shuffle or sampler), worker_init_fn=ds.worker_init, persistent_workers=workers > 0,
+        drop_last=bool(shuffle or sampler), persistent_workers=workers > 0,
     )
 
 
@@ -130,9 +139,9 @@ def main():
     print("normalisation (dB mean, std):", norm)
 
     in_ch = len(CHANNELS) + (1 if args.slope else 0)
-    tr_ds = KuroSiwoDataset(tr_idx, tr_arr, norm, args.slope, augment=True, gain_db=args.gain_db,
-                            speckle_p=args.speckle_p, scale_p=args.scale_p, seed=args.seed)
-    va_ds = KuroSiwoDataset(va_idx, va_arr, norm, args.slope, augment=False)
+    tr_ds = KuroSiwoDataset(tr_idx, tr_arr, args.slope)
+    va_ds = KuroSiwoDataset(va_idx, va_arr, args.slope)
+    gen = torch.Generator(device=device).manual_seed(args.seed)
     weights = event_balanced_weights(tr_ds.acts, args.event_balance) if args.event_balance > 0 else None
     tr_dl = make_loader(tr_ds, args.batch_size, True, args.workers, weights)
     va_dl = make_loader(va_ds, args.batch_size * 2, False, args.workers)
@@ -155,8 +164,10 @@ def main():
     for epoch in range(1, args.epochs + 1):
         model.train()
         t0, tot, n = time.time(), 0.0, 0
-        for x, y, _, _ in tr_dl:
-            x, y = x.to(device, non_blocking=True), y.to(device, non_blocking=True)
+        for batch in tr_dl:
+            sar, label, dem, _, _ = to_device(batch, device, args.slope)
+            x, y = make_batch(sar, label, dem, norm, augment=True, gain_db=args.gain_db,
+                              speckle_p=args.speckle_p, scale_p=args.scale_p, gen=gen)
             with torch.autocast(device_type=device.split(":")[0], enabled=use_amp):
                 logits = model(x)
             loss = loss_fn(logits.float(), y)
@@ -167,7 +178,7 @@ def main():
             sched.step()
             if math.isfinite(loss.item()):
                 tot, n = tot + loss.item(), n + 1
-        val_report = name_terrain(evaluate(model, va_dl, device).report())
+        val_report = name_terrain(evaluate(model, va_dl, device, norm, args.slope).report())
         val = val_report["overall"]
         row = {"epoch": epoch, "train_loss": tot / max(n, 1), "val_flood_iou": val["flood"]["iou"],
                "val_perm_iou": val["permanent water"]["iou"], "val_water_iou": val["water (perm+flood)"]["iou"],
@@ -201,12 +212,12 @@ def main():
     if not args.no_test:
         del tr_arr, tr_ds, tr_dl
         te_idx = split_index(index, "test", args.max_tiles, args.seed)
-        te_ds = KuroSiwoDataset(te_idx, load_arrays(te_idx, args.slope), norm, args.slope, augment=False)
+        te_ds = KuroSiwoDataset(te_idx, load_arrays(te_idx, args.slope), args.slope)
         model.load_state_dict(torch.load(args.out / "model.pt", map_location=device)["state_dict"])
         te_dl = make_loader(te_ds, args.batch_size * 2, False, args.workers)
-        test = name_terrain(evaluate(model, te_dl, device).report())
+        test = name_terrain(evaluate(model, te_dl, device, norm, args.slope).report())
         if args.tta:
-            test["tta"] = name_terrain(evaluate(model, te_dl, device, tta=True).report())
+            test["tta"] = name_terrain(evaluate(model, te_dl, device, norm, args.slope, tta=True).report())
         (args.out / "test_metrics.json").write_text(json.dumps(test, indent=1))
         card["test_metrics"] = test["overall"]
         card["test_metrics_by_terrain"] = test.get("per_terrain")
