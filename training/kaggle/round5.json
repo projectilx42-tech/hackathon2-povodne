@@ -1,5 +1,5 @@
 [
- {"name": "r5_r50_ssl4eo", "args": ["--arch", "Unet", "--encoder", "resnet50", "--encoder-weights", "ssl4eo_s1", "--epochs", "8", "--no-test", "--slope", "--terrain-boost", "4", "--sen1floods11"]},
- {"name": "r5_r34_lovasz", "args": ["--arch", "Unet", "--encoder", "resnet34", "--epochs", "10", "--no-test", "--slope", "--terrain-boost", "4", "--sen1floods11", "--loss", "lovasz"]},
- {"name": "r5_unetpp_r34", "args": ["--arch", "UnetPlusPlus", "--encoder", "resnet34", "--epochs", "10", "--no-test", "--slope", "--terrain-boost", "4", "--sen1floods11"]}
+ {"name": "r5_r50_ssl4eo", "args": ["--arch", "Unet", "--encoder", "resnet50", "--encoder-weights", "ssl4eo_s1", "--epochs", "8", "--no-test", "--slope", "--sen1floods11"]},
+ {"name": "r5_r34_lovasz", "args": ["--arch", "Unet", "--encoder", "resnet34", "--epochs", "10", "--no-test", "--slope", "--sen1floods11", "--loss", "lovasz"]},
+ {"name": "r5_unetpp_r34", "args": ["--arch", "UnetPlusPlus", "--encoder", "resnet34", "--epochs", "10", "--no-test", "--slope", "--sen1floods11"]}
 ]
