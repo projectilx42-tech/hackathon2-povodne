@@ -3,7 +3,7 @@ import { maplibregl } from './map.js';
 import { getFileJson, getOverlays } from './api.js';
 import { el, esc } from './util.js';
 
-const C = { water: '#3b82f6', debris: '#b7791f', cut: '#ff4d4f', bldg: '#ff6b6b', ok: '#34d399', deg: '#f5a524', road: '#7d8a99', sel: '#ffe066' };
+const C = { water: '#3987e5', debris: '#b9822a', cut: '#e5484d', bldg: '#ec835a', ok: '#12b312', deg: '#fab219', road: '#8a8a82', sel: '#ffe066' };
 const FILES = {
   flood: 'flood/flood_polygons.geojson', buildings: 'damage/buildings_damage.geojson', roads: 'damage/roads_damage.geojson',
   bridges: 'damage/bridges_damage.geojson', settlements: 'network/settlements_access.geojson', cuts: 'network/road_cuts.geojson', floodpath: 'floodpath/path.geojson',
@@ -56,7 +56,7 @@ const DEFS = [
     add(map, d, ov) { addImage(map, 'flood_prob', ov.flood_prob); map.addLayer({ id: 'flood_prob', type: 'raster', source: 'flood_prob', layout: { visibility: 'none' }, paint: { 'raster-opacity': 0.85, 'raster-fade-duration': 0 } }); } },
   { id: 'water', label: 'Flood water', group: 'Flood', base: 0.55,
     ok: d => (d.flood?.features ?? []).some(f => f.properties.class === 'water'), why: 'No new water detected', legend: [{ t: 'fill', c: C.water, l: 'Flood water (new)' }],
-    add(map, d) { map.addSource('water', { type: 'geojson', data: fcOf(d.flood, f => f.properties.class === 'water') }); map.addLayer({ id: 'water', type: 'fill', source: 'water', paint: { 'fill-color': C.water, 'fill-opacity': 0.55, 'fill-outline-color': '#93c5fd' } }); } },
+    add(map, d) { map.addSource('water', { type: 'geojson', data: fcOf(d.flood, f => f.properties.class === 'water') }); map.addLayer({ id: 'water', type: 'fill', source: 'water', paint: { 'fill-color': C.water, 'fill-opacity': 0.55, 'fill-outline-color': '#86b6ef' } }); } },
   { id: 'debris', label: 'Debris / mud', group: 'Flood', base: 0.6,
     ok: d => (d.flood?.features ?? []).some(f => f.properties.class === 'debris'), why: 'Not available yet (debris detection module)', legend: [{ t: 'fill', c: C.debris, l: 'Debris / mud' }],
     add(map, d) { map.addSource('debris', { type: 'geojson', data: fcOf(d.flood, f => f.properties.class === 'debris') }); map.addLayer({ id: 'debris', type: 'fill', source: 'debris', paint: { 'fill-color': C.debris, 'fill-opacity': 0.6, 'fill-outline-color': '#e0a64a' } }); } },
@@ -217,8 +217,13 @@ export function createLayers(map, { panelEl, legendEl, onSettlement, onFeatureIn
       const cb = el('input', { type: 'checkbox', id: `lp-${def.id}`, disabled: !ok });
       cb.checked = ok && st.on;
       cb.addEventListener('change', () => { st.on = cb.checked; applyVisibility(def); renderLegend(); });
+      const lg = def.legend[0];
+      let sw;
+      if (lg?.t === 'icon') { const c = document.createElement('canvas'); c.width = c.height = 14; c.getContext('2d').drawImage(iconCanvas(lg.i), 0, 0, 14, 14); c.className = 'swatch-icon'; sw = c; }
+      else if (lg?.c) sw = el('i', { class: `swatch${lg.t === 'line' || lg.t === 'dash' ? ' line' : ''}`, style: `--c:${lg.c}` });
+      else sw = el('i', { class: 'swatch hollow' });
       const row = el('div', { class: `lp-row${ok ? '' : ' disabled'}`, title: ok ? '' : def.why },
-        el('label', { for: `lp-${def.id}` }, cb, el('span', { text: def.label })),
+        el('label', { for: `lp-${def.id}` }, cb, sw, el('span', { text: def.label })),
         ok ? el('input', { type: 'range', min: 0, max: 1, step: 0.05, value: st.opacity, class: 'lp-opacity', 'aria-label': `${def.label} opacity`, title: 'Opacity', oninput: e => { st.opacity = +e.target.value; applyOpacity(def); } })
            : el('span', { class: 'lp-why', text: def.why }));
       panelEl.append(row);

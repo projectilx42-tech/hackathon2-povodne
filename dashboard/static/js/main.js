@@ -9,7 +9,7 @@ import { METHODS_HTML } from './methods.js';
 import { BASEMAPS, DEFAULT_BASEMAP, AREA_WARN_KM2, applyConfig } from './config.js';
 import { polygonAreaKm2, polygonBbox } from './geo.js';
 import { startRun, getRun, getStatus, cancelRun } from './api.js';
-import { $, el, safeStore } from './util.js';
+import { $, el, safeStore, icon } from './util.js';
 
 try { applyConfig(await (await fetch('/api/config')).json()); } catch { /* keep the default base maps */ }
 const map = createMap('map');
@@ -113,8 +113,8 @@ $('adv-reset').addEventListener('click', () => { winIds.forEach(i => { $(i).valu
 
 function updateRun() {
   const btn = $('run-btn');
-  if (running) { btn.disabled = false; btn.textContent = '■ Cancel'; btn.classList.remove('primary'); btn.classList.add('danger-outline'); btn.title = 'Cancel the running analysis'; return; }
-  btn.textContent = '▶ Run'; btn.classList.add('primary'); btn.classList.remove('danger-outline');
+  if (running) { btn.disabled = false; btn.replaceChildren(icon('stop'), 'Cancel'); btn.classList.remove('primary'); btn.classList.add('danger-outline'); btn.title = 'Cancel the running analysis'; return; }
+  btn.replaceChildren(icon('play'), 'Run'); btn.classList.add('primary'); btn.classList.remove('danger-outline');
   const ok = !!aoi && /^\d{4}-\d{2}-\d{2}$/.test(dateInput.value) && dateInput.value <= today;
   btn.disabled = !ok;
   btn.title = ok ? 'Run the analysis' : 'Select an area and a date first';
@@ -207,7 +207,7 @@ function openSettlement(osmId) {
   if (!f) return;
   const root = $('state');
   if (!overviewNodes) overviewNodes = [...root.children];
-  results.renderSettlement(f, currentRunId);
+  results.renderSettlement(f);
 }
 function backToOverview() {
   layers.clearSelection();
@@ -230,7 +230,7 @@ async function toggleCompare() {
     compare.disable();
     layers.setLayerOn('imagery_pre', false);
     layers.setVectorsHidden(false);
-    $('cmp-btn').textContent = 'Before / after slider';
+    $('cmp-btn').lastElementChild.textContent = 'Before / after slider';
     return;
   }
   const ov = layers.overlays ?? {};
@@ -239,7 +239,7 @@ async function toggleCompare() {
   layers.setLayerOn('imagery_pre', true);
   layers.setLayerOn('imagery_post', false);
   await compare.enable({ pre: ov.s2_pre, post: ov.s2_post, basemap });
-  $('cmp-btn').textContent = 'Exit before / after';
+  $('cmp-btn').lastElementChild.textContent = 'Exit before / after';
 }
 $('cmp-btn').addEventListener('click', toggleCompare);
 

@@ -3,6 +3,12 @@
 Rozhodnutí a důvody: `DECISIONS.md` D-012, D-016, D-017, D-019, **D-020**. Rozhraní backendu: sekce *HTTP API* v `ARCHITECTURE.md`.
 Texty v UI jsou **anglicky** (D-007). Téma: **jen tmavé**. Cíl: intuitivní, profesionální, elegantní — nic složitého.
 
+## Vizuální systém
+Teplé neutrální tmavé povrchy (`#141413`/`#1a1a19`), jeden zdrženlivý modrý akcent (`#3987e5`, tlačítko Run `#2a78d6`) jen pro akce a výběr; stavové barvy
+(`good #0ca30c`, `warning #fab219`, `critical #e66767`) jen pro stav a vždy s ikonou/tvarem + textem. Panel vpravo je ploché členění hairlines
+(ne karty v kartách); v pohledu s výsledky jedno hlavní číslo (odříznutá sídla) a sekce podle tří otázek ze zadání (Where the flood hit /
+What was damaged / Who is cut off). Ikony jsou inline SVG sprite v `index.html`, bez externích fontů a bez CDN. Sentence case, žádné verzálky s prostrkáním.
+
 ## Rozložení
 ```
 ┌─────────────────────────────────────────────────────────────────────────┬───────────────────────────┐
