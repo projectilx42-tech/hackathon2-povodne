@@ -25,7 +25,7 @@ Obtížnost a čas = odhad uživatele.
 | 3 | Pochopit satelity a data | 2–3 | 30 min | — | ⬜ |
 | 4 | Najít zdroje, stránky atd. | 3 | 1–2 h | — | ⬜ |
 | 5 | Stahování dat ze satelitu | ~7 | ~4 h | M1, M2 | ⬜ |
-| 6 | Natrénovat AI (Kaggle) | 7 | 4 h + běh tréninku | M9, M3 | 🟨 trénink běží na Kaggle (kolo 1) |
+| 6 | Natrénovat AI (Kaggle) | 7 | 4 h + běh tréninku | M9, M3 | 🟨 kolo 3 běží na Kaggle |
 | 7 | Algoritmus na suť a bahno | 8 | 4 h | M3d | ⬜ |
 | 8 | Škody | 3 | 2 h | M4 | ⬜ |
 | 9 | Odříznuté obce | 3 | 2,5 h | M5 | ⬜ |
@@ -42,7 +42,7 @@ Obtížnost a čas = odhad uživatele.
 | 0 Skeleton (pyproject, CLI, config, io/grid) | ⬜ | `feat/skeleton` | |
 | M1 Acquire (S1/S2/DEM/OSM) | ⬜ | `feat/acquire` | |
 | M2 Preprocess | ⬜ | `feat/preprocess` | |
-| M9 AI trénink | 🟨 | `claude/relaxed-johnson-wwj9s8` | data na Kaggle (`floodseg-*` datasety), kolo 1 běží (`floodseg-r1`: Unet vs SiamUnet r34) |
+| M9 AI trénink | 🟨 | `claude/relaxed-johnson-wwj9s8` | Unet > SiamUnet (kolo 1); kolo 3 (`floodseg-r3`): sklon, terrain boost, Sen1Floods11 |
 | M3 AI inference (voda) | ⬜ | `feat/ai-model` | dlaždicová inference hotová v `training/floodseg/infer.py` |
 | M3d Suť a bahno | ⬜ | `feat/debris` | |
 | M4 Damage | ⬜ | `feat/damage` | |
@@ -70,6 +70,11 @@ Obtížnost a čas = odhad uživatele.
   (`training/kaggle/push_kernel.py`). Přidáno: SiamUnet, vyvážení eventů, augmentace, terénní metriky, TTA, EMA, kalibrace
   teploty, Sen1Floods11 (D-024, bez Srí Lanky), protokol experimentů (D-025). Průzkum literatury: cíl F1 povodně ~80 %
   (Kuro Siwo UNet-R50). Kolo 1 (`floodseg-r1`) běží; další: vítěz + R50 / sklon / Sen1Floods11, pak finální test.
+- Kolo 1: Unet R34 val F1 povodně 0,80 (jen 199 val dlaždic – chyběl test dataset), SiamUnet horší a pomalejší → vyřazen.
+- Kolo 2: 3 ze 4 běhů zabité pro nedostatek RAM (s test shardy má train 48,8k dlaždic, z toho 27k bez vody). R50 doběhl:
+  plná val (2 825 dlaždic) F1 povodně 0,65; **hory (převýšení > 200 m): precision povodně 0,06** = radarový stín jako voda;
+  přeučení od 4. epochy. Val je z 85 % event 279 → výběr modelu teď průměrem přes eventy.
+- Opravy: sdílená memmap cache (`training/build_cache.py`), sklon jako uint8 stupně, `--terrain-boost`, 10 epoch.
 - (Původní plán) Další krok: uživatel uloží `KAGGLE_USERNAME` + `KAGGLE_KEY` do environmentu → **nová session**: znovu připravit data
   (`prepare_kurosiwo.py`, ~1 h, data v kontejneru nepřežijí), nahrát jako Kaggle dataset, spustit trénink + ablaci se sklonem.
   Pak himálajská evaluační sada (O-005, závisí na M1/M2).
