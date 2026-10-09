@@ -37,6 +37,8 @@ The free tier has 10,000 processing units per month; one run for a 30x30 km area
 ```bash
 PYTHONPATH=src python -m povodne.acquire --bbox 85.15 27.95 85.23 28.03 --event-date 2026-08-26 --out runs/test
 ```
+Optional: `--event-time HH:MM` (local time of the flood in that area). If a satellite passed on the flood day, the time says whether
+that image is before or after the flood; without it the image is used only when it clearly shows a change against earlier passes.
 
 **Scene selection preview (no download, no login):**
 ```bash
