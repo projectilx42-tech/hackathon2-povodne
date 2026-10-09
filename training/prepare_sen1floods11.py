@@ -4,7 +4,8 @@ Sen1Floods11 adds geographic diversity (11 flood events, mostly tropical) but ha
 post-event Sentinel-1 image and a binary water label. So:
   - pre-event bands are stored as nodata (the model sees "pre missing"),
   - water pixels get label 3 = "water, type unknown" (the loss treats it as permanent OR flood),
-  - the unfiltered dB backscatter is Lee-filtered 3x3 in linear power to approach Kuro Siwo,
+  - the unfiltered dB backscatter is Lee-filtered 7x7 in linear power: this matches the speckle level of Kuro Siwo
+    (std of dB minus its 5x5 local mean: Kuro Siwo 0.36 dB; unfiltered 4.3x, Lee 3x3 2.2x, Lee 7x7 1.0x; D-M9-09),
   - each 512x512 chip is cut into 9 overlapping 224x224 tiles.
 
 Chips of the Sri Lanka event (2017-05-30) are EXCLUDED: it is the same flood as Kuro Siwo test event 205
@@ -28,6 +29,7 @@ import rasterio
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from floodseg.features import db_to_uint8, lee_filter, linear_to_db  # noqa: E402
 
+LEE_SIZE = 7  # measured to match Kuro Siwo speckle (D-M9-09); 3x3 left Sen1Floods11 2.2x grainier
 EXCLUDE_COUNTRIES = {"Sri-Lanka"}  # = Kuro Siwo test event 205
 ACT_BASE = 9_000_000  # synthetic event ids, never in the Kuro Siwo split lists
 WATER_UNKNOWN = 3
@@ -59,7 +61,7 @@ def main() -> None:
             db = r.read().astype(np.float32)  # VV, VH in dB
         with rasterio.open(str(p).replace("S1Hand", "LabelHand")) as r:
             lab = r.read(1)
-        filtered = [linear_to_db(lee_filter(np.power(10.0, b / 10.0))) for b in db]
+        filtered = [linear_to_db(lee_filter(np.power(10.0, b / 10.0), size=LEE_SIZE)) for b in db]
         q = [db_to_uint8(b) for b in filtered]
         label = np.full(lab.shape, 255, np.uint8)
         ok = (lab >= 0) & (q[0] > 0) & (q[1] > 0)

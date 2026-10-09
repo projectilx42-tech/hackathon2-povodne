@@ -116,8 +116,9 @@ def _box_mean(a: np.ndarray, size: int) -> np.ndarray:
 def lee_filter(lin: np.ndarray, size: int = 3, looks: float = 4.4) -> np.ndarray:
     """Classic Lee speckle filter on linear power (NaN = nodata stays NaN).
 
-    Used to bring unfiltered Sentinel-1 data (e.g. Sen1Floods11) closer to Kuro Siwo, which used
-    SNAP's Lee Sigma 3x3. looks=4.4 is the equivalent number of looks of S1 IW GRDH.
+    Used to bring unfiltered Sentinel-1 data (e.g. Sen1Floods11) closer to Kuro Siwo, which used SNAP's Lee Sigma
+    (7x7 window, 3x3 target). With size=7 the speckle level matches Kuro Siwo (D-M9-09). looks=4.4 is the equivalent
+    number of looks of S1 IW GRDH.
     """
     lin = np.asarray(lin, np.float32)
     nan = ~np.isfinite(lin)
