@@ -27,6 +27,12 @@ def test_stable_series_has_no_onset_and_takes_latest_two():
 def test_rise_before_event_moves_pre_back():
     c = choose_pre(D, [0.05, 0.06, 0.05, 0.20, 0.25])  # flood started between pass 2 and 3
     assert c.onset_index == 3 and c.chosen == [1, 2]
+    assert [w.code for w in c.warnings] == ["pre_rise_detected"] and c.warnings[0].details["rise_date"] == f"{D[3]:%Y-%m-%d}"
+
+
+def test_check_without_visible_water_says_it_is_blind():
+    c = choose_pre(D, [0.0, 0.001, 0.0, 0.0, 0.002])
+    assert [w.code for w in c.warnings] == ["pre_check_blind"] and c.warnings[0].severity == "warning"
 
 
 def test_seasonal_drift_is_not_an_onset():
@@ -35,12 +41,12 @@ def test_seasonal_drift_is_not_an_onset():
 
 def test_wet_window_start_is_warned():
     c = choose_pre(D, [0.30, 0.20, 0.10, 0.06, 0.05])
-    assert c.onset_index is None and any("may already contain flooding" in w for w in c.warnings)
+    assert c.onset_index is None and any(w.code == "pre_may_be_flooded" for w in c.warnings)
 
 
 def test_user_window_is_kept_but_warned():
     c = choose_pre(D, [0.05, 0.06, 0.05, 0.20, 0.25], user_window=(D[3], D[4]))
-    assert c.chosen == [3, 4] and any("after the water rise" in w for w in c.warnings)
+    assert c.chosen == [3, 4] and any(w.code == "pre_window_after_rise" for w in c.warnings)
 
 
 def test_missing_values_are_skipped():

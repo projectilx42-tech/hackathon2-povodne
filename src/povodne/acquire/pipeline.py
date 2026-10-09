@@ -18,6 +18,7 @@ import rasterio
 from rasterio.warp import Resampling, reproject, transform_bounds
 
 from . import catalog, osm, preselect, sentinel2, terrain
+from .notices import Notice
 from .sentinelhub import (S1_DB_OFFSET, S1_DB_SCALE, Grid, MissingCredentials, SentinelHub, decode_db, fetch_s1,
                           smooth_3x3, utm_grid)
 
@@ -41,7 +42,10 @@ def _load(run_dir: Path) -> dict:
     return json.loads((run_dir / "run.json").read_text())
 
 
-def _save(run_dir: Path, rj: dict) -> None:
+def _save(run_dir: Path, rj: dict, keep_progress: bool = True) -> None:
+    current = run_dir / "run.json"
+    if keep_progress and current.exists():  # progress is written by _progress; never roll it back with an older copy
+        rj["progress"] = json.loads(current.read_text()).get("progress", rj.get("progress"))
     tmp = run_dir / "run.json.tmp"
     tmp.write_text(json.dumps(rj, indent=2, default=str))
     tmp.replace(run_dir / "run.json")
@@ -60,7 +64,7 @@ def _progress(run_dir: Path, state: str, message: str) -> None:
         prog["state"] = "failed"
     elif prog.get("state") in (None, "queued"):
         prog["state"] = "running"
-    _save(run_dir, rj)
+    _save(run_dir, rj, keep_progress=False)
 
 
 # ---------- helpers ----------
@@ -108,10 +112,14 @@ def _s1(path: Path, grid: Grid, sh: SentinelHub, a: catalog.Acquisition, directi
     return _write_s1(path, fetch_s1(sh, grid, a.start, direction, speckle), grid, a)
 
 
-def _store_warnings(rj: dict, warnings: list[str]) -> None:
-    unique = list(dict.fromkeys(warnings))
-    rj.setdefault("acquire", {})["warnings"] = unique
-    rj["warnings"] = rj.get("warnings", []) + [w for w in unique if w not in rj.get("warnings", [])]
+def _store_warnings(rj: dict, notices: list[Notice]) -> None:
+    """All notices go to run.json.notices (with code, severity, details; D-M1-05); errors and warnings also stay as
+    plain text in acquire.warnings / run.json.warnings."""
+    unique = list(dict.fromkeys(notices))
+    texts = [str(n) for n in unique if n.severity != "info"]
+    rj.setdefault("acquire", {})["warnings"] = texts
+    rj["warnings"] = rj.get("warnings", []) + [w for w in texts if w not in rj.get("warnings", [])]
+    rj["notices"] = [n for n in rj.get("notices", []) if n.get("step") != "acquire"] + [n.to_json() for n in unique]
 
 
 def _to_grid(src: np.ndarray, dem: terrain.Dem, grid: Grid, resampling=Resampling.nearest) -> np.ndarray:
@@ -130,11 +138,14 @@ def run(run_dir: Path, cfg: AcquireConfig | None = None) -> None:
     # This step's warnings are kept in acquire.warnings and replaced on a re-run; other modules' warnings stay.
     previous = set((rj.get("acquire") or {}).get("warnings", []))
     rj["warnings"] = [w for w in rj.get("warnings", []) if w not in previous]
-    warnings: list[str] = []
+    rj["notices"] = [n for n in rj.get("notices", []) if n.get("step") != "acquire"]
+    warnings: list[Notice] = []
     _progress(run_dir, "running", "checking credentials")
     try:
         sh = SentinelHub()
     except MissingCredentials as exc:
+        _store_warnings(rj, [Notice("cdse_credentials", str(exc))])
+        _save(run_dir, rj)
         _progress(run_dir, "failed", str(exc))
         raise
     try:
@@ -143,11 +154,14 @@ def run(run_dir: Path, cfg: AcquireConfig | None = None) -> None:
         (run_dir / "logs").mkdir(exist_ok=True)
         with open(run_dir / "logs" / "pipeline.log", "a") as f:
             f.write(traceback.format_exc())
+        code = "cdse_credentials" if isinstance(exc, MissingCredentials) else "acquire_failed"
+        _store_warnings(rj, warnings + [Notice(code, f"Data download failed: {exc}", error=str(exc))])
+        _save(run_dir, rj)
         _progress(run_dir, "failed", f"acquire failed: {exc}")
         raise
 
 
-def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings: list[str]) -> None:
+def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings: list[Notice]) -> None:
     aoi = catalog.aoi_to_geometry(rj["aoi"])
     event = date.fromisoformat(rj["event_date"])
     epsg = terrain.utm_epsg(aoi.centroid.x, aoi.centroid.y)
@@ -209,8 +223,15 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
         t.same_day_info = {"datetime": t.same_day.to_json()["datetime"], "used_as_post": dec.use_as_post, "reason": dec.reason,
                            "change_frac": None if change is None else round(change, 4),
                            "baseline_frac": None if baseline is None else round(baseline, 4)}
+        details = {"track": t.relative_orbit, "direction": t.direction, **t.same_day_info}
         if dec.use_as_post:
             t.post = t.same_day
+            warnings.append(Notice("event_day_pass_used", f"A radar pass on the flood day itself "
+                                   f"({t.same_day_info['datetime']}) already shows clear changes and is used as the "
+                                   f"after-image ({dec.reason}).", **details))
+        else:
+            warnings.append(Notice("event_day_pass_dropped", f"A radar pass on the flood day itself "
+                                   f"({t.same_day_info['datetime']}) is not used: {dec.reason}.", **details))
     plan = catalog.order_tracks(plan)
     warnings += plan.warnings
     if plan.main is None:
@@ -223,6 +244,11 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
     vis = {t.key: terrain.valley_visibility(floor, blocked(t), np.zeros_like(floor)) for t in (plan.main, plan.alt) if t}
     plan = catalog.choose_main(plan, vis)
     main, alt = plan.main, plan.alt
+    post_local = catalog.local_clock(aoi.centroid)(main.post.start)
+    days_after = (post_local.date() - event).days
+    warnings.append(Notice("post_image_date", f"The after-image is from {post_local:%Y-%m-%d %H:%M} local time, "
+                           f"{days_after} day(s) after the given flood date; changes after that are not visible.",
+                           datetime_local=f"{post_local:%Y-%m-%dT%H:%M}", days_after_event=days_after))
 
     # Water-share series on the main track's valley floor (D-M1-01).
     grid = utm_grid(bounds, epsg, 10.0)
@@ -257,7 +283,9 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
         if t is None or not pres:
             blocks[key] = None
             if key == "s1_alt" and t is not None:
-                warnings.append("No pre-event image for the second flight direction: s1_alt is null.")
+                warnings.append(Notice("s1_alt_missing", "No flood-free before-image for the opposite flight direction: "
+                                       "areas hidden behind mountains for the main track stay unmapped.",
+                                       reason="no_pre_image"))
             continue
         _progress(run_dir, "running", f"downloading Sentinel-1 {t.direction.lower()} track {t.relative_orbit}")
         out_dir = run_dir / "raw" / folder
@@ -295,7 +323,8 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
                     s2[name] = sentinel2.download(d, grid, run_dir / "raw" / "s2" / f"{name}_{d.day:%Y%m%d}.tif")
             acq["s2"] = s2
         except Exception as exc:  # optical data is optional
-            warnings.append(f"Sentinel-2 step failed ({exc}); radar only.")
+            warnings.append(Notice("s2_failed", f"Optical Sentinel-2 images could not be downloaded ({exc}); radar only.",
+                                   error=str(exc)))
         _save(run_dir, rj)
 
     if cfg.osm:
@@ -305,7 +334,8 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
             rj["osm_snapshot_date"] = info["osm_snapshot_date"]
             acq["osm"] = info
         except Exception as exc:
-            warnings.append(f"OpenStreetMap download failed ({exc}); damage and cut-off analysis are not possible.")
+            warnings.append(Notice("osm_failed", f"OpenStreetMap (buildings, roads) could not be downloaded ({exc}); "
+                                   "damage and cut-off analysis are not possible.", error=str(exc)))
     acq["pu_spent"] = round(sh.pu_spent, 1)
     _store_warnings(rj, warnings)
     _save(run_dir, rj)

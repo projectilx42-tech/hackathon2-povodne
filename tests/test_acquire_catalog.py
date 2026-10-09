@@ -59,12 +59,12 @@ def test_main_is_earliest_post_alt_is_opposite_direction():
 
 def test_no_opposite_direction_gives_null_alt_and_warning():
     plan = plan_tracks(group_acquisitions(passes(1, "ASCENDING", ["2026-01-02", "2026-01-14", "2026-01-26"]), AOI), date(2026, 1, 20))
-    assert plan.main is not None and plan.alt is None and any("s1_alt" in w for w in plan.warnings)
+    assert plan.main is not None and plan.alt is None and any(w.code == "s1_alt_missing" for w in plan.warnings)
 
 
 def test_no_pre_acquisition_is_reported_not_silent():
     plan = plan_tracks(group_acquisitions(passes(1, "ASCENDING", ["2026-01-26"]), AOI), date(2026, 1, 20))
-    assert plan.main is None and any("earlier acquisition" in w for w in plan.warnings)
+    assert plan.main is None and any(w.code == "s1_no_pair" and w.severity == "error" for w in plan.warnings)
 
 
 def test_pre_outside_lookback_window_is_ignored():

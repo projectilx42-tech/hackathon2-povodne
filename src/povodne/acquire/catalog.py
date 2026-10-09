@@ -25,6 +25,8 @@ from shapely.geometry import box, shape
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 
+from .notices import Notice
+
 ODATA_URL = "https://catalogue.dataspace.copernicus.eu/odata/v1/Products"
 PRODUCT_TYPE = "IW_GRDH_1S"  # IW GRD high resolution; the *-COG duplicates have a different type
 PAGE_SIZE = 100
@@ -242,7 +244,9 @@ def plan_tracks(acqs: list[Acquisition], event_date: date, lookback_days: int = 
     window_start = event_date - timedelta(days=lookback_days)
     full = [a for a in acqs if a.coverage >= min_coverage]
     if acqs and not full:
-        warnings.append(f"No S1 acquisition covers {min_coverage:.0%} of the AOI (best {max(a.coverage for a in acqs):.0%}).")
+        best = max(a.coverage for a in acqs)
+        warnings.append(Notice("s1_partial_coverage", f"No Sentinel-1 pass covers {min_coverage:.0%} of the area "
+                               f"(best {best:.0%}); passes covering less are not used.", best_coverage=round(best, 3)))
     tracks: list[TrackPlan] = []
     for key in sorted({(a.relative_orbit, a.direction) for a in full}):
         mine = [a for a in full if (a.relative_orbit, a.direction) == key]
@@ -269,20 +273,24 @@ def order_tracks(plan: Plan) -> Plan:
     """Main = track with the earliest post (then best coverage), alt = earliest from the opposite flight direction."""
     usable = [t for t in plan.tracks if t.post is not None and t.pre_candidates]
     plan.main = plan.alt = None
-    plan.warnings = [w for w in plan.warnings if not w.startswith(("No track has both", "Track ", "No acquisition from the opposite"))]
+    plan.warnings = [w for w in plan.warnings if getattr(w, "code", None) not in ("s1_no_pair", "s1_alt_missing")]
     if not usable:
-        plan.warnings.append("No track has both a post-event acquisition and an earlier acquisition of the same track.")
-        for t in plan.tracks:
-            post = t.post.start.strftime("%Y-%m-%d") if t.post else "none"
-            plan.warnings.append(f"Track {t.relative_orbit} {t.direction}: post-event {post}, "
-                                 f"{len(t.pre_candidates)} earlier acquisition(s) in the window.")
+        tracks = [{"track": t.relative_orbit, "direction": t.direction,
+                   "post": t.post.start.strftime("%Y-%m-%d") if t.post else None, "n_pre": len(t.pre_candidates)}
+                  for t in plan.tracks]
+        lines = "; ".join(f"track {x['track']} {x['direction'].lower()}: post {x['post'] or 'none'}, "
+                          f"{x['n_pre']} earlier pass(es)" for x in tracks)
+        plan.warnings.append(Notice("s1_no_pair", "No Sentinel-1 track has both a pass after the event and an earlier "
+                                    "pass of the same track, so before/after cannot be compared"
+                                    + (f" ({lines})." if lines else "."), tracks=tracks))
         return plan
     usable.sort(key=lambda t: (t.post.start, -t.post.coverage))
     plan.main = usable[0]
     opposite = [t for t in usable if t.direction != plan.main.direction]
     plan.alt = opposite[0] if opposite else None
     if plan.alt is None:
-        plan.warnings.append("No acquisition from the opposite flight direction: s1_alt is null.")
+        plan.warnings.append(Notice("s1_alt_missing", "No usable Sentinel-1 pass from the opposite flight direction: "
+                                    "areas hidden behind mountains for the main track stay unmapped.", reason="no_opposite_track"))
     plan.primary_reason = "earliest post"
     return plan
 
@@ -308,6 +316,9 @@ def choose_main(plan: Plan, visibility: dict[tuple[int, str], float | None], max
         plan.main, plan.alt = plan.alt, plan.main
         plan.primary_reason = (f"better valley-floor visibility ({va:.0%} vs {vm:.0%}), "
                                f"post +{delay_days:.1f} days")
+        plan.warnings.append(Notice("main_track_by_visibility", f"The main radar track sees {va:.0%} of the valley floor "
+                                    f"instead of {vm:.0%}; its after-image is {delay_days:.1f} days later than the earliest one.",
+                                    visibility=round(va, 3), other_visibility=round(vm, 3), delay_days=round(delay_days, 1)))
     else:
         plan.primary_reason = f"earliest post (valley-floor visibility {vm:.0%} vs {va:.0%} for the other track)"
     return plan
@@ -345,12 +356,16 @@ def find_plan(aoi, event_date: date, lookback_days: int = 60, post_horizon_days:
     acqs = group_acquisitions(search_s1(geom, start, end), geom)
     plan = plan_tracks(acqs, event_date, lookback_days, min_coverage, local_clock(geom.centroid), event_time, post_window)
     if not any(t.post for t in plan.tracks):
-        plan.warnings.append(f"No post-event S1 acquisition in the catalogue within {post_horizon_days} days after {event_date}.")
+        plan.warnings.append(Notice("s1_no_post", f"No Sentinel-1 pass over the area within {post_horizon_days} days after "
+                                    f"{event_date} yet (satellites pass every few days; try again later).",
+                                    horizon_days=post_horizon_days))
     if visibility and plan.main is not None:
         try:
             plan = choose_main(plan, compute_valley_visibility(plan, geom))
         except Exception as exc:  # DEM unavailable: keep earliest post, but say so
-            plan.warnings.append(f"Valley-floor visibility could not be computed ({exc}); main track = earliest post.")
+            plan.warnings.append(Notice("valley_visibility_unavailable", f"Could not compute which radar track sees the "
+                                        f"valley floor better ({exc}); the track with the earliest after-image is used.",
+                                        error=str(exc)))
             plan = choose_main(plan, {})
     return plan
 

@@ -122,7 +122,9 @@ runs/<run_id>/
   },
   "sensitivity": "standard",                                  // "standard" | "sensitive" (D-M9-08); píše UI/CLI, čte M3
   "flood": {"method": "ai", "model": "models/<name>", "params": {"sensitivity": "...", "flood_threshold": null, ...}},
-  "warnings": ["S2 post scene >80 % cloud – S1 only", "..."]
+  "warnings": ["S2 post scene >80 % cloud – S1 only", "..."],   // jen text (error + warning); zpětná kompatibilita
+  "notices": [{"step": "acquire", "code": "pre_may_be_flooded", "severity": "error|warning|info",
+               "message": "...", "details": {}}]                 // D-M1-05; kódy a zobrazení v docs/NOTICES.md
 }
 ```
 

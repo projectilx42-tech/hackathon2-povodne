@@ -489,6 +489,19 @@ viditelnost dna údolí u Trishuli 88 % vs 88 % (dřív 81 % vs 74 % — dno úd
 **Pro M2:** `masks/hand.tif` počítat stejnou funkcí `acquire.terrain.hand` (práh 100 buněk na 30 m DEM), ať HAND v kroku stahování a v masce sedí.
 `run.json.acquire.dem` navíc: `water_mask` (bool), `hand_stream_cells`.
 
+## D-M1-05 | 2026-10-09 | přijato (uživatel: „všechna varování a upozornění exportuj do souboru, ať je UI může implementovat“) — Upozornění s pevnými kódy
+**`run.json.notices`** = seznam `{"step", "code", "severity", "message", "details"}`; seznam kódů, jejich význam a doporučené zobrazení
+v UI je v **`docs/NOTICES.md`** (pro UI session). Kódy definuje `src/povodne/acquire/notices.py` (`SEVERITY`); test hlídá, že dokument
+obsahuje přesně všechny kódy.
+- `severity`: `error` = odpověď chybí (není mapa povodně, nebo škody/odříznuté obce), `warning` = odpověď je, ale méně spolehlivá,
+  `info` = co program rozhodl a proč (např. datum snímku „po“, použitý průlet v den povodně, dřívější začátek povodně).
+- `message` = hotová anglická věta s čísly z výpočtu; `details` = čísla pro chytřejší zobrazení (graf, data).
+- Zpětně kompatibilní: `error` a `warning` zůstávají jako text v `run.json.warnings` / `acquire.warnings`.
+- Krok nahradí jen své položky (`step = "acquire"`); další moduly můžou přidat vlastní kódy se svým `step` (a doplnit NOTICES.md).
+- Nově jako upozornění (dřív jen v textu důvodu nebo nikde): `pre_check_blind`, `pre_rise_detected`, `event_day_pass_used/dropped`,
+  `main_track_by_visibility`, `post_image_date`; chyba přihlášení a pád kroku se taky zapíšou (`cdse_credentials`, `acquire_failed`).
+- Oprava při té příležitosti: zápis `run.json` během kroku už nepřepíše průběh (`progress`) starší kopií.
+
 ---
 
 # Otevřené otázky (k rozhodnutí)

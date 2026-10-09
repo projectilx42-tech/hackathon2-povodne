@@ -23,6 +23,7 @@ from rasterio.windows import from_bounds
 from shapely.geometry import mapping
 from shapely.geometry.base import BaseGeometry
 
+from .notices import Notice
 from .sentinelhub import Grid
 
 STAC_URL = "https://earth-search.aws.element84.com/v1/search"
@@ -137,9 +138,12 @@ def choose(aoi: BaseGeometry, event: date, grid: Grid, aoi_mask: np.ndarray, pre
                 ch.pre = None
             else:
                 ch.post = None
-            ch.warnings.append(f"No usable Sentinel-2 {name}-event image (clouds) - radar only for this part.")
+            ch.warnings.append(Notice("s2_none", f"No usable Sentinel-2 optical {name}-event image (clouds); "
+                                      f"radar only for the {'before' if name == 'pre' else 'after'} view.", phase=name))
         elif d.clear < min_clear:
-            ch.warnings.append(f"Sentinel-2 {name}-event image {d.day} is only {d.clear:.0%} cloud-free over the area.")
+            ch.warnings.append(Notice("s2_cloudy", f"The Sentinel-2 optical {name}-event image ({d.day}) is only "
+                                      f"{d.clear:.0%} cloud-free over the area.", phase=name, date=f"{d.day}",
+                                      clear_frac=round(d.clear, 3)))
     return ch
 
 

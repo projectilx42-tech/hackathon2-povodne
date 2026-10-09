@@ -8,6 +8,7 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-09 — M1: upozornění s kódy pro UI (D-M1-05), změna kontraktu, týká se M8 a M6:** nové `run.json.notices` (`step`, `code`, `severity` error/warning/info, `message`, `details`). **Seznam kódů a doporučené zobrazení: `docs/NOTICES.md`** — UI prosím implementovat (červený pruh / panel kvality dat / „How this was computed“; graf podílu vody z `pre_selection.series`). `run.json.warnings` zůstává (text).
 - **2026-10-09 — M1: HAND jako ASF + maska vod z DEM (D-M1-04), týká se M2, M3, M3d:** práh toku 100 buněk (dřív 1 km²) → HAND v horách sedí s globálním HAND od ASF (Trishuli rozdíl 120 m → 13 m). Nový `raw/dem/water.tif` (moře/jezera/řeky z Copernicus DEM = povolený zdroj trvalé vody místo JRC). **M2:** `masks/hand.tif` počítat `acquire.terrain.hand`.
 - **2026-10-09 — M1: hodina povodně + průlet v den povodně (D-M1-03), změna kontraktu:** nové volitelné `run.json.event_time` (`"HH:MM"`, místní čas oblasti), pole `event_time` v `POST /api/runs` a v UI (Advanced → Flood time; **M1 upravil `dashboard/` minimálně: 1 políčko + předání, ověřeno v Chromiu** — M8 prosím zkontrolovat), CLI `--event-time`. **Skeleton:** `povodne run --event-time` → `run.json`. Data se porovnávají v místním čase (oprava UTC). Nové `acquire.s1.same_day`. Okno „po“ se nově respektuje.
 - **2026-10-09 — master: sloučeno do `main` (model, satelity, UI) → všichni `git fetch origin main && git merge origin/main`.** Bez kolizí čísel; testy 33/33 OK.
@@ -92,6 +93,12 @@ Obtížnost a čas = odhad uživatele.
 4. Účty (CDSE, Kaggle…) zakládá uživatel až v příslušných sessions (D-011); údaje jen jako env proměnné prostředí, nikdy do repa.
 
 ## Log sessions
+### 2026-10-09 (2) — satelity: upozornění pro UI — `claude/nice-fermi-i7qzk8`
+- Všechna upozornění kroku stahování mají pevný kód, závažnost a podrobnosti (`acquire/notices.py`, `run.json.notices`), seznam pro UI
+  v `docs/NOTICES.md` (D-M1-05). Ověřeno: běh bez klíče zapíše `cdse_credentials` + `failed`; běh Trishuli (z mezipaměti, 0,5 PU) zapsal
+  `post_image_date`, `pre_check_blind`, `osm_failed`. Opraveno přepisování `progress` při ukládání `run.json`. Testy 49/49.
+- **ohsome znovu běží (metadata, count = 200), ale `elements/geometry` vrací HTTP 403** (Apache, i pro malý dotaz) → OSM vrstvy pořád
+  neotestované; zjistit, zda jde o dočasné omezení služby.
 ### 2026-10-09 — satelity: přesnost terénu a vody podle profesionálních postupů — `claude/nice-fermi-i7qzk8`
 - Průzkum: NASA OPERA DSWx-S1 (parametry v `algorithm_parameter_s1.yaml`: HAND maska 200 m + plynulá 0–15 m, sklon 0,5–15°, prahování
   Kittler–Illingworth po dlaždicích s testem bimodality, zaplavená vegetace přes poměr VV/VH, „tmavá souš“), GFM (vylučovací maska: HAND,

@@ -15,6 +15,8 @@ from datetime import datetime
 
 import numpy as np
 
+from .notices import Notice
+
 WATER_DB = -18.0  # VV sigma0 below this is treated as open water (calm water is typically -20 dB or darker)
 
 
@@ -69,27 +71,37 @@ def choose_pre(dates: list[datetime], fractions: list[float | None], n_pre: int 
     """Pick up to `n_pre` pre-event passes (D-M1-01 steps 4-7). `dates` are the candidates, oldest first."""
     res = detect_onset(fractions)
     warnings: list[str] = []
+    known = [f for f in fractions if f is not None]
     if res.flooded_at_start:
-        warnings.append("Pre-event image may already contain flooding (the wet period started before the "
-                        "60-day window); the flooded area may be underestimated.")
+        warnings.append(Notice("pre_may_be_flooded", "The area was wetter at the start of the checked period and has been "
+                               "drying out since, so the wet period probably began earlier: the before-image may already "
+                               "contain flood water and the flooded area may be underestimated.",
+                               start_water_frac=round(known[0], 4), min_water_frac=round(min(known[1:]), 4)))
     if user_window is not None:  # the user's window wins; the check only warns
         idx = [i for i, d in enumerate(dates) if user_window[0] <= d <= user_window[1]][-n_pre:]
         if res.onset_index is not None and any(i >= res.onset_index for i in idx):
-            warnings.append(f"The chosen pre-event window includes dates after the water rise on "
-                            f"{dates[res.onset_index]:%Y-%m-%d}; the pre image may contain flooding.")
+            warnings.append(Notice("pre_window_after_rise", f"The chosen 'before' window includes dates after the water "
+                                   f"started rising on {dates[res.onset_index]:%Y-%m-%d}; the before-image may contain flooding.",
+                                   rise_date=f"{dates[res.onset_index]:%Y-%m-%d}"))
         return PreChoice(idx, res.onset_index, "user-defined pre-event window; " + res.reason, warnings)
     limit = res.onset_index if res.onset_index is not None else len(dates)
     idx = list(range(max(0, limit - n_pre), limit))
     if res.onset_index is not None:
-        reason = f"last passes before the water rise on {dates[res.onset_index]:%Y-%m-%d} ({res.reason})"
+        rise = f"{dates[res.onset_index]:%Y-%m-%d}"
+        reason = f"last passes before the water rise on {rise} ({res.reason})"
         if not idx:
-            warnings.append("The water rise starts at the first pass of the window; no clean pre-event image found.")
+            warnings.append(Notice("s1_no_clean_pre", f"Water was already rising at the first radar pass checked ({rise}); "
+                                   "no flood-free before-image was found.", rise_date=rise))
+        else:
+            warnings.append(Notice("pre_rise_detected", f"Radar shows water rising already on {rise} (before the given date); "
+                                   f"the before-image is taken from {dates[idx[-1]]:%Y-%m-%d}, before the rise.",
+                                   rise_date=rise, chosen_pre=[f"{dates[i]:%Y-%m-%d}" for i in idx]))
     else:
         reason = "latest passes before the event; " + res.reason
-        known = [f for f in fractions if f is not None]
         if not known or max(known) < 0.005:
-            reason += (" (the water share is ~0 at the check resolution: rivers here are narrower than a pixel, so "
-                       "the check cannot see earlier flooding)")
+            warnings.append(Notice("pre_check_blind", "The check for flooding before the given date sees almost no open "
+                                   "water here (rivers narrower than the 60 m check pixels), so it cannot confirm that the "
+                                   "before-image is flood-free.", max_water_frac=round(max(known), 4) if known else None))
     return PreChoice(idx, res.onset_index, reason, warnings)
 
 
