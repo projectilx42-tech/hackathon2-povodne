@@ -441,6 +441,24 @@ Lee 3×3 (D-024), tj. výrazně zrnitější než Kuro Siwo i než naše data �
 Data (Element 84 earth-search, COG). Stejné produkty jako u ESA/Copernicus → v souladu s pravidly. S2 výběr: před = nejjasnější v 60 dnech,
 po = první po události s ≥ 30 % jasna nad oblastí (jinak nejjasnější; pod 5 % se nepoužije, varování).
 
+## D-M1-03 | 2026-10-09 | přijato (rozhodnutí uživatele: „udělej všechny 3 body“) — Místní čas, hodina povodně a průlet v den povodně
+Kontext: průlet družice v den povodně dřív program zahazoval (nevíme, zda byl před, nebo po povodni). Přitom je to nejdřívější možný snímek
+„po“ (zkracuje čekání o 2–5 dní); naopak snímek bez povodně nemá větší hodnotu než jakýkoli starší snímek „před“ (uživatel).
+1. **Data se porovnávají v místním čase oblasti** (časové pásmo středu oblasti přes `timezonefinder`, jinak sluneční čas = délka/15 h).
+   Dřív se porovnávalo v UTC → v Nepálu (+5:45) mohl průlet ve 23:00 UTC spadnout do špatného dne (chyba opravena).
+2. **Volitelná hodina povodně** `run.json.event_time` = `"HH:MM"` v místním čase oblasti (UI: Advanced → Flood time; API `POST /api/runs`
+   pole `event_time`; CLI `--event-time HH:MM`). Je-li zadána, průlet v den povodně se zařadí přesně: před hodinou = kandidát na „před“
+   (projde i kontrolou čistoty D-M1-01), po hodině = „po“.
+3. **Bez hodiny se průlet v den povodně zkontroluje** (`preselect.judge_same_day`): v rozlišení 20 m (jen VV, ~11 PU/snímek pro 30×30 km)
+   se na dně údolí (nízký HAND, sklon ≤ 15°, bez layover/shadow dané dráhy) spočítá podíl pixelů, které se proti předchozímu průletu téže
+   dráhy změnily o > 3 dB (ztmavnutí = voda, zesvětlení = suť), a totéž mezi dvěma staršími průlety (běžné kolísání oblasti).
+   **Použije se jako „po“, jen když je změna jasně nad běžnou** (o ≥ 3 p. b. a ≥ 2× víc; bez staršího páru ≥ 6 %). Jinak se zahodí:
+   nejde odlišit „před povodní“ od „povodeň není vidět“ a jako „před“ by mohl povodeň schovat. Prahy jsou fyzikální/relativní, neladí se na EMS.
+   Výsledek v `run.json.acquire.s1.same_day` / `acquire.s1_alt.same_day` (`datetime`, `used_as_post`, `reason`, `change_frac`, `baseline_frac`).
+   Povýšený průlet se stává „po“ své dráhy a volba hlavní dráhy (D-X-01) proběhne až potom (může vyhrát jako nejdřívější).
+4. **Uživatelovo okno „po“ (`post_window`) se nově respektuje** (dřív ho krok stahování ignoroval).
+Kontrakt (ARCHITECTURE.md) upraven ve stejném commitu. **Skeleton:** `povodne run` musí přijmout `--event-time` a předat ho do `run.json`.
+
 ---
 
 # Otevřené otázky (k rozhodnutí)

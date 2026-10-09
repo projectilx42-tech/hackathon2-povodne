@@ -100,6 +100,7 @@ runs/<run_id>/
   "run_id": "trishuli_2026-08-26",
   "aoi": {"type": "Polygon", "coordinates": [...]},          // EPSG:4326
   "event_date": "2026-08-26",
+  "event_time": "14:30",                                      // volitelné, místní čas oblasti (D-M1-03); null = neznámý
   "osm_snapshot_date": "2026-07-27",                          // vždy < event_date
   "crs": "EPSG:32645",
   "created_utc": "...",
@@ -113,6 +114,7 @@ runs/<run_id>/
     // acquire.s1.pre_selection (D-M1-01): {"method": "water_fraction_series", "lookback_days": 60, "resolution_m": 60,
     //   "series": [{"date": "YYYY-MM-DD", "water_frac": 0.0}], "onset_date": "YYYY-MM-DD|null",
     //   "chosen_pre": ["YYYY-MM-DD", ...], "reason": "...", "user_window": false}
+    // acquire.s1.same_day / acquire.s1_alt.same_day (D-M1-03): {"datetime", "used_as_post", "reason", "change_frac", "baseline_frac"} | null
     // acquire.s1.processing, acquire.grid (referenční mřížka), acquire.pu_spent, acquire.warnings (varování kroku), acquire.osm — D-M1-02
     "s2": {"pre": {"date": "...", "ids": [...], "clear_pct": 0, "scale": [...], "offset": [...]} | null, "post": {...} | null},
     "dem": {"source": "...", "product": "COP-DEM GLO-30"}
@@ -188,7 +190,7 @@ Pipeline spouští jako podproces `python -m povodne run ...`; průběh čte z `
 
 | Metoda + cesta | Význam |
 |---|---|
-| `POST /api/runs` | tělo `{"aoi": <GeoJSON|bbox>, "event_date": "YYYY-MM-DD", "pre_window": [from,to]?, "post_window": [from,to]?, "sensitivity": "standard"|"sensitive"?}` → `{"run_id": "..."}` (D-M9-08) |
+| `POST /api/runs` | tělo `{"aoi": <GeoJSON|bbox>, "event_date": "YYYY-MM-DD", "pre_window": [from,to]?, "post_window": [from,to]?, "sensitivity": "standard"|"sensitive"?, "event_time": "HH:MM"?}` → `{"run_id": "..."}` (D-M9-08; `event_time` = místní čas oblasti, D-M1-03) |
 | `GET /api/runs` | seznam běhů z `runs/`: `[{"run_id","event_date","created_utc","aoi_area_km2","verdict","state","mock"}]` |
 | `GET /api/runs/{run_id}` | `run.json` (+ `stats.json`, pokud existuje) |
 | `GET /api/runs/{run_id}/status` | `{"state","steps":[...],"log_tail":[...],"error"}` (z `run.json.progress`, `logs/pipeline.log`) |
@@ -202,7 +204,7 @@ Pipeline spouští jako podproces `python -m povodne run ...`; průběh čte z `
   z `flood/flood_polygons.geojson` (třídy `water`, `debris`), ne z PNG.
 - **Spuštění z UI:** `POST /api/runs` založí `runs/run_<date>_<hash6>/` s `run.json` (`aoi`, `event_date`, `pre_window`, `post_window`,
   `progress.state=queued`) a `aoi.geojson`, pak spustí `python -m povodne run --aoi <run>/aoi.geojson --event-date D --out <run>
-  [--pre-window FROM,TO] [--post-window FROM,TO]`; stdout/stderr jde do `logs/pipeline.log`. Pipeline aktualizuje `run.json.progress`.
+  [--pre-window FROM,TO] [--post-window FROM,TO] [--event-time HH:MM]`; stdout/stderr jde do `logs/pipeline.log`. Pipeline aktualizuje `run.json.progress`.
   Když podproces skončí s chybou, `status` vrací `failed` + poslední řádek logu (nebo srozumitelnou hlášku, pokud modul `povodne` neexistuje).
 - Soubory pro UI: `damage/*_damage.geojson` obsahují **všechny** prvky (i `hit=false`), UI z nich kreslí silnice, mosty i budovy.
 - **`run.json.progress`** (píše pipeline/CLI, čte dashboard):

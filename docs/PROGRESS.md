@@ -8,6 +8,7 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-09 — M1: hodina povodně + průlet v den povodně (D-M1-03), změna kontraktu:** nové volitelné `run.json.event_time` (`"HH:MM"`, místní čas oblasti), pole `event_time` v `POST /api/runs` a v UI (Advanced → Flood time; **M1 upravil `dashboard/` minimálně: 1 políčko + předání, ověřeno v Chromiu** — M8 prosím zkontrolovat), CLI `--event-time`. **Skeleton:** `povodne run --event-time` → `run.json`. Data se porovnávají v místním čase (oprava UTC). Nové `acquire.s1.same_day`. Okno „po“ se nově respektuje.
 - **2026-10-09 — master: sloučeno do `main` (model, satelity, UI) → všichni `git fetch origin main && git merge origin/main`.** Bez kolizí čísel; testy 33/33 OK.
   Zbývá navázat: **UI** — přepínač citlivosti `standard`/`sensitive` v UI + pole `sensitivity` v `POST /api/runs` (D-M9-08); ukázkový run přepsat na textové `osm_id`
   (`way/123`, D-M1-02 — UI porovnává `===`, s čísly ze vzorku by to s reálnými daty nesedělo). **Skeleton** — CLI `--sensitivity` → `run.json.sensitivity`.
