@@ -144,6 +144,10 @@ Obtížnost a čas = odhad uživatele.
 - **ohsome API je v údržbě (HTTP 503, „Down For Maintenance“)** → OSM vrstvy zatím neotestované; krok to ohlásí varováním a pokračuje. Riziko pro den hodnocení.
 - **Zjištění:** na dně údolí u Trishuli (malý výřez) je podíl tmavé vody ~0 % i na snímku po povodni (60/30/20 m: 0,1/0,2/0,3 %) → povodeň se tu
   na radaru neprojevuje jako voda, spíš suť/bahno (důležité pro M3d); kontrola čistoty „před“ tu nic nevidí a jemnější rozlišení nepomůže (ponecháno 60 m).
+- **2026-10-09: místní čas, hodina povodně, průlet v den povodně (D-M1-03):** data průletů se porovnávají v místním čase oblasti (byla chyba: UTC);
+  volitelná hodina povodně v UI/API/CLI (`event_time`); bez ní se průlet v den povodně použije jako „po“ jen při jasné změně na dně údolí
+  proti běžnému kolísání (20 m, VV); okno „po“ z UI se nově respektuje. Testy 39 offline; políčko v UI ověřeno v Chromiu (odešle `event_time`,
+  server ho zapíše do `run.json`, nesmyslný čas odmítne). Spuštění z UI dál končí „No module named povodne“ — chybí skeleton (`povodne run`).
 
 ### 2026-10-08 — master: sloučení sessions do `main` — `claude/gallant-keller-vftpi2`
 - Sloučeny větve `claude/relaxed-johnson-wwj9s8` (M9), `ccr-d89d3cfb-ywooc4` (M8 UI), `claude/nice-fermi-i7qzk8` (satelity) do `main`.
