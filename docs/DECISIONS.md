@@ -461,8 +461,19 @@ je to malý vzorek z několika eventů. Pro report: celkové metriky modelu se z
 3. **Spojení v `run_ai.py`:** kde je S2 post jasno: voda z optiky = povodeň, když byl pixel předtím suchý (S2 pre jasný, jinak radarový pre),
    jinak trvalá voda; radarová povodeň zůstává (optika ji neruší — nevidí vodu pod vegetací). Optika vyplní místa, kde radar nevidí (stín,
    layover). Bez modelu nebo snímků běží jen radar a `run.json.flood.params.s2.reason` řekne proč.
-4. **Minimální plocha povodně** `--min-flood-px` (výchozí hodnota podle měření na Kuro Siwo val, `training/eval_postprocess.py`, ne EMS).
-Kontrakt (ARCHITECTURE.md, sekce AI model) upraven ve stejném commitu. Výsledky optického modelu a výchozí minimální plocha se doplní sem.
+4. **Minimální plocha povodně a dvoustupňový práh** — změřeno na Kuro Siwo val (`training/eval_postprocess.py`, model v0.2, po pravidle svahu;
+   ne test, ne EMS; `training/results/postprocess_val_v0.2.json`):
+   | varianta | val score | F1 povodně | precision | recall | hory P / R |
+   |---|---|---|---|---|---|
+   | standard (argmax) | 0,6138 | 0,717 | 0,733 | 0,702 | 0,256 / 0,760 |
+   | + min. plocha 10 px | 0,6138 | 0,717 | 0,734 | 0,701 | 0,257 / 0,760 |
+   | + min. plocha 50 px | 0,6103 | 0,718 | 0,739 | 0,698 | 0,268 / 0,757 |
+   | sensitive, prostý práh 0,25 | 0,6310 | 0,708 | 0,661 | 0,762 | 0,183 / 0,788 |
+   | **sensitive, dvoustupňový** (P ≥ 0,25 jen v ploše, která obsahuje jistou povodeň) | **0,6314** | **0,714** | **0,672** | **0,761** | 0,196 / 0,782 |
+   → **minimální plocha 10 px (0,1 ha)** jako výchozí (čísla beze změny, mapa bez teček; víc už ubírá score) a **režim sensitive =
+   dvoustupňový práh** (stejný recall, vyšší precision i F1 než prostý práh). Výřezy mají 224 px, takže plochy na okrajích vypadají menší
+   než v celé oblasti — na skutečné mapě je efekt minimální plochy spíš menší.
+Kontrakt (ARCHITECTURE.md, sekce AI model) upraven ve stejném commitu. Výsledky optického modelu se doplní sem.
 
 ---
 

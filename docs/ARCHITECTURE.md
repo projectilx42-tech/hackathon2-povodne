@@ -252,7 +252,8 @@ inference), `model.py`. M3 tento kód **používá, nereimplementuje** (po vznik
 - `model_card.json` obsahuje `temperature` (kalibrace z val): pravděpodobnosti = softmax(logits / T) — `infer.predict_probs(..., temperature=T)`.
 - Mapování na třídy masky (M3): model 2 flood → `ai_mask` 2, model 1 permanent water → 4, model 0 → 1; nodata/layover/shadow → 0.
 - **Citlivost (D-M9-08):** `run.json.sensitivity` = `"standard"` (nejpravděpodobnější třída, výchozí) nebo `"sensitive"`
-  (povodeň už od P(flood) ≥ `model_card.flood_thresholds.sensitive`, pro v0.2 = 0,25: najde víc zaplavené plochy, víc falešných).
+  (povodeň už od P(flood) ≥ `model_card.flood_thresholds.sensitive`, pro v0.2 = 0,25, ale jen v ploše, která obsahuje i „jistou“
+  povodeň = dvoustupňový práh, D-M9-11: najde víc zaplavené plochy, víc falešných).
   Nastavuje UI (`POST /api/runs`) / CLI `povodne run --sensitivity standard|sensitive`; M3 (`training/run_ai.py --sensitivity`) ji čte.
 - **Terénní pravidla a spojení dvou tracků v M3 (D-034):** model se pustí zvlášť na hlavní a na `alt` track (každý pre/post ze
   stejného tracku); pixel platí v tracku, kde není layover/shadow; kde platí oba, `ai_prob` = průměr, kde jeden, ten jeden.
@@ -263,7 +264,7 @@ inference), `model.py`. M3 tento kód **používá, nereimplementuje** (po vznik
   vstupy `training/floodseg/s2.py`) čte `aligned/s2_post.tif` + `masks/s2_post_valid.tif` (a `s2_pre*`, pokud jsou): kde je po události
   jasno, voda z optiky = povodeň (2), když byl pixel předtím suchý (jasný S2 pre, jinak radarový pre), jinak trvalá voda (4); optika
   doplňuje i místa, kde radar nevidí (pixel je vyhodnocený, když platí radar **nebo** je jasno). Chybí-li model nebo snímky, běží jen radar.
-  `ai_prob` = max(radar P(flood), optická P(voda) u dřív suchých pixelů). Plochy povodně menší než `min_flood_px` pixelů se ruší.
+  `ai_prob` = max(radar P(flood), optická P(voda) u dřív suchých pixelů). Plochy povodně menší než `min_flood_px` pixelů (výchozí 10 = 0,1 ha) se ruší.
   `run.json.flood.params` navíc: `cross_shadow_px`, `min_flood_px`, `small_patches_removed_px`, `s2` (`used`, `reason`, `post_clear_pct`,
   `pre_clear_pct`, `optical_flood_km2`, `optical_water_unknown_before_km2`).
   `ai_prob` = P(flood).

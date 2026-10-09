@@ -11,7 +11,8 @@ Rules (D-034): the model runs separately per track (pre/post from the same track
 layover/shadow or has no data; where both tracks are valid their probabilities are averaged. Water is suppressed (-> 1) on
 slopes > max_water_slope_deg or HAND > max_water_hand_m. No valid track -> 0.
 Sensitivity (D-M9-08): "standard" takes the most likely class; "sensitive" calls flood from P(flood) >= the threshold in
-model_card.json (flood_thresholds.sensitive), which finds more of the flooded area at the cost of more false alarms.
+model_card.json (flood_thresholds.sensitive) where that area touches confident flood (two-stage threshold, D-M9-11),
+which finds more of the flooded area at the cost of more false alarms.
 Shadow from both pass directions (D-M9-11, rule of the Copernicus Global Flood Monitoring service): where both tracks
 exist, a pixel whose pre-event VV is below -15 dB in one track but above -10 dB in the other is radar shadow in the
 dark track (water would be dark in both), so that track is not used there.
@@ -41,7 +42,7 @@ from floodseg.s2 import PIPELINE_BAND_INDEX, features_np as s2_features  # noqa:
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MODEL = ROOT / "models" / "floodseg_v0.2" / "model.pt"
 DEFAULT_S2_MODEL = ROOT / "models" / "floodseg_s2_v0.1" / "model.pt"
-MIN_FLOOD_PX = 1  # set from the validation measurement (D-M9-11)
+MIN_FLOOD_PX = 10  # 0.1 ha; no effect on Kuro Siwo val scores, removes specks from the map (D-M9-11)
 SHADOW_DARK_DB, SHADOW_BRIGHT_DB = -15.0, -10.0  # GFM shadow rule: dark in this track, bright in the opposite one
 SENSITIVE_DEFAULT = 0.25  # used when the model card has no flood_thresholds (chosen on Kuro Siwo val for v0.2, D-M9-08)
 
@@ -92,6 +93,18 @@ def _read_bands(path: Path):
         return None, None
     with rasterio.open(path) as r:
         return r.read().astype(np.float32), r.profile
+
+
+def grow_from_seeds(candidate: np.ndarray, seeds: np.ndarray) -> np.ndarray:
+    """8-connected patches of `candidate` that contain at least one `seeds` pixel."""
+    if not candidate.any():
+        return candidate
+    from scipy import ndimage
+    lab, n = ndimage.label(candidate, np.ones((3, 3), bool))
+    hit = np.zeros(n + 1, bool)
+    hit[np.unique(lab[seeds & candidate])] = True
+    hit[0] = False
+    return hit[lab]
 
 
 def drop_small_patches(mask: np.ndarray, min_px: int) -> np.ndarray:
@@ -166,7 +179,10 @@ def main() -> None:
     cls = probs.argmax(0)  # 0 no water, 1 permanent, 2 flood (model classes)
     if sensitivity == "sensitive":
         threshold = cfg.get("flood_thresholds", {}).get("sensitive", SENSITIVE_DEFAULT)
-        cls = np.where(probs[2] >= threshold, 2, probs[:2].argmax(0))
+        # two-stage threshold: likely flood (P >= threshold) counts only where it is connected to confident flood
+        # (most likely class); on Kuro Siwo val better than a plain threshold in F1 and precision (D-M9-11)
+        likely = grow_from_seeds((probs[2] >= threshold) & radar_valid, (cls == 2) & radar_valid)
+        cls = np.where(likely, 2, probs[:2].argmax(0))
     mask = np.zeros(slope.shape, np.uint8)
     mask[radar_valid] = 1
     mask[radar_valid & (cls == 2)] = 2
