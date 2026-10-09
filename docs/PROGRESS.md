@@ -98,7 +98,8 @@ Obtížnost a čas = odhad uživatele.
   v `docs/NOTICES.md` (D-M1-05). Ověřeno: běh bez klíče zapíše `cdse_credentials` + `failed`; běh Trishuli (z mezipaměti, 0,5 PU) zapsal
   `post_image_date`, `pre_check_blind`, `osm_failed`. Opraveno přepisování `progress` při ukládání `run.json`. Testy 49/49.
 - **ohsome znovu běží (metadata, count = 200), ale `elements/geometry` vrací HTTP 403** (Apache, i pro malý dotaz) → OSM vrstvy pořád
-  neotestované; zjistit, zda jde o dočasné omezení služby.
+  neotestované. Pravděpodobná příčina: ohsome přechází na API v2 (`https://api.heigit.org/ohsome-api/v2-rc/extraction/features`,
+  **vyžaduje bezplatný API klíč** z account.heigit.org, odpověď GeoParquet), v1 se vypíná 30. 11. 2026. Neověřeno, čeká na rozhodnutí uživatele.
 ### 2026-10-09 — satelity: přesnost terénu a vody podle profesionálních postupů — `claude/nice-fermi-i7qzk8`
 - Průzkum: NASA OPERA DSWx-S1 (parametry v `algorithm_parameter_s1.yaml`: HAND maska 200 m + plynulá 0–15 m, sklon 0,5–15°, prahování
   Kittler–Illingworth po dlaždicích s testem bimodality, zaplavená vegetace přes poměr VV/VH, „tmavá souš“), GFM (vylučovací maska: HAND,
