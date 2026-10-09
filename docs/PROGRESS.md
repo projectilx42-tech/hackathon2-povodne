@@ -150,7 +150,10 @@ Obtížnost a čas = odhad uživatele.
   server ho zapíše do `run.json`, nesmyslný čas odmítne). Spuštění z UI dál končí „No module named povodne“ — chybí skeleton (`povodne run`).
 - Kontrola průletu v den povodně přepracována po živém testu (1. verze 3/6 chyb: moře u Derny, šum) → srovnání s historií pixelu, bez vody,
   průměr 3×3: **6/6 správně** (Derna, Opava, Trishuli před/po; `tools/event_day_check/`). Trishuli 28. 8.: změna 6,7 % dna údolí proti běžným
-  0,2 % → povodeň je na radaru vidět jako změna (hlavně zesvětlení = suť), i když tmavé vody je ~0 % — dobrá zpráva pro algoritmus na suť.
+  0,2 % → povodeň je na radaru vidět jako změna, i když „vodní“ tmavosti (< −18 dB) je ~0 %. Rozklad změn (souš, > 3 dB mimo historii):
+  **Trishuli 6,3 % ztmavnutí / 0,4 % zesvětlení** (povrch ztmavl, ale ne na úroveň vody: mokré bahno/nánosy nebo voda smíchaná v pixelu);
+  **Opava 0,5 % / 13,6 %** (zaplavené město a vegetace radar zesvětlí — „dvojitý odraz“ voda + stěny/kmeny); Derna 0,9 % / 3,2 %.
+  → Důležité pro M3d (suť) i M3: povodeň se neprojevuje jen jako tmavá voda; podnět pro ně, M1 to jen změřil.
 
 ### 2026-10-08 — master: sloučení sessions do `main` — `claude/gallant-keller-vftpi2`
 - Sloučeny větve `claude/relaxed-johnson-wwj9s8` (M9), `ccr-d89d3cfb-ywooc4` (M8 UI), `claude/nice-fermi-i7qzk8` (satelity) do `main`.
