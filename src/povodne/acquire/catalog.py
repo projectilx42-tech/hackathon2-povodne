@@ -319,7 +319,7 @@ def compute_valley_visibility(plan: Plan, aoi: BaseGeometry, dem=None) -> dict[t
 
     dem = dem or terrain.fetch_dem(aoi)
     hand = terrain.hand(dem)
-    floor = terrain.valley_floor(hand, terrain.slope_deg(dem.data, dem.res)) & terrain.aoi_mask(aoi, dem)
+    floor = terrain.valley_floor(hand, terrain.slope_deg(dem.data, dem.res), water=dem.water) & terrain.aoi_mask(aoi, dem)
     out: dict[tuple[int, str], float | None] = {}
     for t in (plan.main, plan.alt):
         if t is None:

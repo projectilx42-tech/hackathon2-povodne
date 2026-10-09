@@ -56,6 +56,7 @@ runs/<run_id>/
     s1_alt/pre_*.tif, post_*.tif # totéž pro druhý směr přeletu (D-033)
     s2/pre_YYYYMMDD.tif, post_YYYYMMDD.tif   # S2 L2A, UINT16 DN: B02,B03,B04,B08,B11,B12 + SCL (7. pásmo); odrazivost = DN*scale+offset (tagy), 10m mřížka (D-M1-02)
     dem/dem.tif                  # Copernicus DEM GLO-30, float32, UTM 30 m, oblast + 5 km okraj (D-M1-02)
+    dem/water.tif                # maska vod z Copernicus DEM (WBM): uint8 0 souš, 1 moře, 2 jezero, 3 řeka; mřížka dem.tif (D-M1-04)
     osm/osm_raw.gpkg             # ohsome extrakt (vrstvy), snapshot < event_date; silnice/sídla/zařízení pro oblast + 15 km (D-M1-02)
   aligned/
     grid.json                    # {"crs":"EPSG:32645","transform":[...],"width":..,"height":..,"res":10}
@@ -67,7 +68,7 @@ runs/<run_id>/
     s1_layover_shadow.tif        # uint8 1 = layover/shadow (nepoužitelné) pro hlavní track
     s1_alt_layover_shadow.tif    # totéž pro druhý směr (jen pokud existuje s1_alt_*)
     slope.tif                    # float32, stupně — `features.slope_from_dem` z DEM na 10 m mřížce (D-035)
-    hand.tif                     # float32, Height Above Nearest Drainage, m
+    hand.tif                     # float32, Height Above Nearest Drainage, m — `acquire.terrain.hand` (práh toku 100 buněk jako ASF, D-M1-04)
     s2_pre_valid.tif s2_post_valid.tif   # uint8 1 = čistý pixel (bez mraků/stínů/sněhu dle SCL)
   flood/
     flood_mask.tif               # uint8 třídy (viz níže) — FINÁLNÍ maska použitá dál
@@ -117,7 +118,7 @@ runs/<run_id>/
     // acquire.s1.same_day / acquire.s1_alt.same_day (D-M1-03): {"datetime", "used_as_post", "reason", "change_frac", "baseline_frac"} | null
     // acquire.s1.processing, acquire.grid (referenční mřížka), acquire.pu_spent, acquire.warnings (varování kroku), acquire.osm — D-M1-02
     "s2": {"pre": {"date": "...", "ids": [...], "clear_pct": 0, "scale": [...], "offset": [...]} | null, "post": {...} | null},
-    "dem": {"source": "...", "product": "COP-DEM GLO-30"}
+    "dem": {"source": "...", "product": "COP-DEM GLO-30", "water_mask": true, "hand_stream_cells": 100}   // D-M1-04
   },
   "sensitivity": "standard",                                  // "standard" | "sensitive" (D-M9-08); píše UI/CLI, čte M3
   "flood": {"method": "ai", "model": "models/<name>", "params": {"sensitivity": "...", "flood_threshold": null, ...}},

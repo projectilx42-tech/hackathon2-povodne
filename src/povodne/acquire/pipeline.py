@@ -172,9 +172,15 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
     _progress(run_dir, "running", "downloading the Copernicus DEM, computing terrain")
     dem = terrain.fetch_dem(aoi)
     dem.save(run_dir / "raw" / "dem" / "dem.tif")
-    acq["dem"] = {"source": "AWS Open Data (copernicus-dem-30m)", "product": "COP-DEM GLO-30", "crs": dem.crs, "res_m": dem.res}
+    if dem.water is not None:
+        with rasterio.open(run_dir / "raw" / "dem" / "water.tif", "w", driver="GTiff", height=dem.water.shape[0],
+                           width=dem.water.shape[1], count=1, dtype="uint8", crs=dem.crs, transform=dem.transform,
+                           compress="deflate") as ds:
+            ds.write(dem.water, 1)
+    acq["dem"] = {"source": "AWS Open Data (copernicus-dem-30m)", "product": "COP-DEM GLO-30", "crs": dem.crs, "res_m": dem.res,
+                  "water_mask": dem.water is not None, "hand_stream_cells": terrain.HAND_STREAM_CELLS}
     hand = terrain.hand(dem)
-    floor = terrain.valley_floor(hand, terrain.slope_deg(dem.data, dem.res)) & terrain.aoi_mask(aoi, dem)
+    floor = terrain.valley_floor(hand, terrain.slope_deg(dem.data, dem.res), water=dem.water) & terrain.aoi_mask(aoi, dem)
     masks: dict = {}
 
     def track_mask(t: catalog.TrackPlan) -> np.ndarray:
@@ -221,7 +227,8 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
     # Water-share series on the main track's valley floor (D-M1-01).
     grid = utm_grid(bounds, epsg, 10.0)
     sgrid = utm_grid(bounds, epsg, cfg.series_res_m)
-    usable = _to_grid((floor & ~track_mask(main)).astype(np.uint8), dem, sgrid) > 0
+    # Known permanent water (sea, lakes, wide rivers from the DEM water mask) is left out: the series looks for new water.
+    usable = _to_grid((floor & ~track_mask(main) & ~terrain.permanent_water(dem)).astype(np.uint8), dem, sgrid) > 0
     cands = main.pre_candidates
     _progress(run_dir, "running", f"checking {len(cands)} earlier passes for flooding before the event date")
     fracs: list[float | None] = []

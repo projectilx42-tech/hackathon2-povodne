@@ -5,16 +5,20 @@ water-fraction series is measured (D-M1-01). Everything is computed from the Cop
 geometry from the catalogue.
 
 DEM source: the public Copernicus DEM GLO-30 COG tiles on AWS Open Data (no login), read only for the AOI window.
+Each tile ships with a Water Body Mask (WBM, part of the DEM product: 0 land, 1 ocean, 2 lake, 3 river), used here to
+keep the sea out of the "valley floor" and permanent water out of the water-share series.
 """
 from __future__ import annotations
 
 import math
 import tempfile
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
 import rasterio
+import requests
 from rasterio.features import rasterize
 from rasterio.merge import merge
 from rasterio.transform import from_origin
@@ -25,6 +29,10 @@ from shapely.geometry.base import BaseGeometry
 
 DEM_URL = ("https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_{lat}_00_{lon}_00_DEM/"
            "Copernicus_DSM_COG_10_{lat}_00_{lon}_00_DEM.tif")
+WBM_URL = ("https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_{lat}_00_{lon}_00_DEM/AUXFILES/"
+           "Copernicus_DSM_COG_10_{lat}_00_{lon}_00_WBM.tif")
+WBM_LAND, WBM_OCEAN, WBM_LAKE, WBM_RIVER = 0, 1, 2, 3
+HAND_STREAM_CELLS = 100  # same drainage threshold as the ASF global GLO-30 HAND (asf_tools calculate_hand, acc_thresh=100)
 GDAL_ENV = {"GDAL_DISABLE_READDIR_ON_OPEN": "EMPTY_DIR", "AWS_NO_SIGN_REQUEST": "YES"}
 
 
@@ -36,6 +44,7 @@ class Dem:
     transform: rasterio.Affine
     crs: str
     res: float
+    water: np.ndarray | None = None  # uint8 WBM classes on the same grid (WBM_*), None if not loaded
 
     def save(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -66,20 +75,13 @@ def fetch_dem(aoi: BaseGeometry, buffer_m: float = 5000, res: float = 30.0) -> D
     dlat = buffer_m / 111_320
     dlon = buffer_m / (111_320 * max(math.cos(math.radians(clat)), 0.1))
     w, s, e, n = lon0 - dlon, lat0 - dlat, lon1 + dlon, lat1 + dlat
-    sources = []
+    tiles = [_tile_name(lat, lon) for lat in range(math.floor(s), math.floor(n) + 1)
+             for lon in range(math.floor(w), math.floor(e) + 1)]
     with rasterio.Env(**GDAL_ENV):
-        for lat in range(math.floor(s), math.floor(n) + 1):
-            for lon in range(math.floor(w), math.floor(e) + 1):
-                la, lo = _tile_name(lat, lon)
-                try:
-                    sources.append(rasterio.open(DEM_URL.format(lat=la, lon=lo)))
-                except rasterio.errors.RasterioIOError:
-                    continue  # no tile = sea
-        if not sources:
+        dem_mosaic = _mosaic(DEM_URL, tiles, (w, s, e, n), fill=0.0)  # no tile = sea at 0 m
+        if dem_mosaic is None:
             raise RuntimeError("No Copernicus DEM tile covers the AOI.")
-        mosaic, src_transform = merge(sources, bounds=(w, s, e, n), nodata=0.0)
-        for ds in sources:
-            ds.close()
+        wbm_mosaic = _mosaic(WBM_URL, tiles, (w, s, e, n), fill=WBM_OCEAN)
     epsg = utm_epsg(aoi.centroid.x, aoi.centroid.y)
     crs = f"EPSG:{epsg}"
     utm = transform_geom("EPSG:4326", crs, mapping(_bbox_polygon(w, s, e, n)))
@@ -87,11 +89,51 @@ def fetch_dem(aoi: BaseGeometry, buffer_m: float = 5000, res: float = 30.0) -> D
     ys = [p[1] for p in utm["coordinates"][0]]
     x0, y1 = math.floor(min(xs) / res) * res, math.ceil(max(ys) / res) * res
     width, height = int(math.ceil((max(xs) - x0) / res)), int(math.ceil((y1 - min(ys)) / res))
-    dst = np.full((height, width), np.nan, np.float32)
     transform = from_origin(x0, y1, res, res)
-    reproject(mosaic[0].astype(np.float32), dst, src_transform=src_transform, src_crs="EPSG:4326",
+    dst = np.full((height, width), np.nan, np.float32)
+    reproject(dem_mosaic[0][0].astype(np.float32), dst, src_transform=dem_mosaic[1], src_crs="EPSG:4326",
               dst_transform=transform, dst_crs=crs, resampling=Resampling.bilinear, dst_nodata=np.nan)
-    return Dem(dst, transform, crs, res)
+    water = None
+    if wbm_mosaic is not None:
+        water = np.full((height, width), WBM_OCEAN, np.uint8)
+        reproject(wbm_mosaic[0][0], water, src_transform=wbm_mosaic[1], src_crs="EPSG:4326",
+                  dst_transform=transform, dst_crs=crs, resampling=Resampling.nearest)
+    return Dem(dst, transform, crs, res, water)
+
+
+def _mosaic(url: str, tiles: list[tuple[str, str]], bounds, fill):
+    """Merge the existing tiles of one Copernicus DEM layer over `bounds`; cells without a tile get `fill`."""
+    sources = []
+    for la, lo in tiles:
+        ds = _open_tile(url.format(lat=la, lon=lo))
+        if ds is not None:
+            sources.append(ds)
+    if not sources:
+        return None
+    try:
+        return merge(sources, bounds=bounds, nodata=fill)
+    finally:
+        for ds in sources:
+            ds.close()
+
+
+def _open_tile(url: str, attempts: int = 4):
+    """Open one AWS tile; None only when the tile does not exist (HTTP 404 = open sea).
+
+    Reads over HTTP fail now and then; such a failure must not turn land into "sea", so it is retried and then raised."""
+    for i in range(attempts):
+        try:
+            return rasterio.open(url)
+        except rasterio.errors.RasterioIOError:
+            try:
+                status = requests.head(url, timeout=30).status_code
+            except requests.RequestException:
+                status = None
+            if status in (403, 404):  # the public bucket answers 403/404 for keys that do not exist
+                return None
+            if i == attempts - 1:
+                raise
+            time.sleep(2 * (i + 1))
 
 
 def _bbox_polygon(w, s, e, n):
@@ -104,10 +146,12 @@ def slope_deg(dem: np.ndarray, res: float) -> np.ndarray:
     return np.degrees(np.arctan(np.hypot(gx, gy))).astype(np.float32)
 
 
-def hand(dem: Dem, stream_area_km2: float = 1.0) -> np.ndarray:
+def hand(dem: Dem, stream_cells: int = HAND_STREAM_CELLS) -> np.ndarray:
     """Height Above Nearest Drainage (m): height of each cell above the stream cell it drains to.
 
-    Streams = cells draining at least `stream_area_km2`. Uses pysheds (pit/depression filling, D8 flow).
+    Same recipe as the ASF global GLO-30 HAND (pysheds: fill pits, fill depressions, resolve flats, D8 flow,
+    streams = cells draining more than `stream_cells` cells). A much larger threshold (we had 1 km^2) leaves the
+    small side valleys of mountains without a stream and inflates HAND by hundreds of metres there.
     """
     if not hasattr(np, "in1d"):  # pysheds 0.5 still calls np.in1d, removed in NumPy 2.4; np.isin is equivalent here
         np.in1d = np.isin
@@ -122,7 +166,7 @@ def hand(dem: Dem, stream_area_km2: float = 1.0) -> np.ndarray:
     raster = grid.resolve_flats(grid.fill_depressions(grid.fill_pits(raster)))
     fdir = grid.flowdir(raster)
     acc = grid.accumulation(fdir)
-    streams = acc >= stream_area_km2 * 1e6 / (dem.res * dem.res)
+    streams = acc > stream_cells
     out = np.asarray(grid.compute_hand(fdir, raster, streams), dtype=np.float32)
     out[~np.isfinite(dem.data)] = np.nan
     return out
@@ -173,9 +217,22 @@ def aoi_mask(aoi: BaseGeometry, dem: Dem) -> np.ndarray:
     return rasterize([(geom, 1)], out_shape=dem.data.shape, transform=dem.transform, fill=0, dtype="uint8").astype(bool)
 
 
-def valley_floor(hand_m: np.ndarray, slope: np.ndarray, max_hand_m: float = 30.0, max_slope_deg: float = 15.0) -> np.ndarray:
-    """Cells where flood water can physically stand (D-034 defaults): low above the river and not steep."""
-    return np.isfinite(hand_m) & (hand_m <= max_hand_m) & (slope <= max_slope_deg)
+def valley_floor(hand_m: np.ndarray, slope: np.ndarray, max_hand_m: float = 30.0, max_slope_deg: float = 15.0,
+                 water: np.ndarray | None = None) -> np.ndarray:
+    """Cells where flood water can physically stand (D-034 defaults): low above the river and not steep.
+
+    With the DEM water mask the open sea is left out (HAND is ~0 there, but it is not a valley)."""
+    floor = np.isfinite(hand_m) & (hand_m <= max_hand_m) & (slope <= max_slope_deg)
+    if water is not None:
+        floor &= water != WBM_OCEAN
+    return floor
+
+
+def permanent_water(dem: Dem) -> np.ndarray:
+    """Sea, lakes and wide rivers from the DEM water mask (all False when the mask is not loaded)."""
+    if dem.water is None:
+        return np.zeros(dem.data.shape, bool)
+    return dem.water != WBM_LAND
 
 
 def valley_visibility(floor: np.ndarray, layover: np.ndarray, shadow: np.ndarray) -> float | None:

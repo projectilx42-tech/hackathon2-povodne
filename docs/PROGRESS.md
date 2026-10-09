@@ -8,6 +8,7 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-09 — M1: HAND jako ASF + maska vod z DEM (D-M1-04), týká se M2, M3, M3d:** práh toku 100 buněk (dřív 1 km²) → HAND v horách sedí s globálním HAND od ASF (Trishuli rozdíl 120 m → 13 m). Nový `raw/dem/water.tif` (moře/jezera/řeky z Copernicus DEM = povolený zdroj trvalé vody místo JRC). **M2:** `masks/hand.tif` počítat `acquire.terrain.hand`.
 - **2026-10-09 — M1: hodina povodně + průlet v den povodně (D-M1-03), změna kontraktu:** nové volitelné `run.json.event_time` (`"HH:MM"`, místní čas oblasti), pole `event_time` v `POST /api/runs` a v UI (Advanced → Flood time; **M1 upravil `dashboard/` minimálně: 1 políčko + předání, ověřeno v Chromiu** — M8 prosím zkontrolovat), CLI `--event-time`. **Skeleton:** `povodne run --event-time` → `run.json`. Data se porovnávají v místním čase (oprava UTC). Nové `acquire.s1.same_day`. Okno „po“ se nově respektuje.
 - **2026-10-09 — master: sloučeno do `main` (model, satelity, UI) → všichni `git fetch origin main && git merge origin/main`.** Bez kolizí čísel; testy 33/33 OK.
   Zbývá navázat: **UI** — přepínač citlivosti `standard`/`sensitive` v UI + pole `sensitivity` v `POST /api/runs` (D-M9-08); ukázkový run přepsat na textové `osm_id`
@@ -91,6 +92,16 @@ Obtížnost a čas = odhad uživatele.
 4. Účty (CDSE, Kaggle…) zakládá uživatel až v příslušných sessions (D-011); údaje jen jako env proměnné prostředí, nikdy do repa.
 
 ## Log sessions
+### 2026-10-09 — satelity: přesnost terénu a vody podle profesionálních postupů — `claude/nice-fermi-i7qzk8`
+- Průzkum: NASA OPERA DSWx-S1 (parametry v `algorithm_parameter_s1.yaml`: HAND maska 200 m + plynulá 0–15 m, sklon 0,5–15°, prahování
+  Kittler–Illingworth po dlaždicích s testem bimodality, zaplavená vegetace přes poměr VV/VH, „tmavá souš“), GFM (vylučovací maska: HAND,
+  radarový stín, města a hustý les bez citlivosti; referenční voda z mediánů S1), ASF globální HAND (pysheds, práh 100 buněk), Hydro-Topo
+  Features (vypálení řek z OSM do DEM). Copernicus DEM je model povrchu (lesy a budovy zvedají HAND); FABDEM není povolený vstup.
+- Hotovo (D-M1-04): HAND s prahem 100 buněk jako ASF, ověřeno na 4 oblastech (`tools/terrain_check/`); maska vod z Copernicus DEM (moře mimo
+  dno údolí, trvalá voda mimo řadu podílu vody, `raw/dem/water.tif`); oprava: nepřečtená dlaždice DEM už není „moře“. Kontrola průletu
+  v den povodně dál 6/6. Testy 44/44.
+- Návrhy pro jiné moduly (jen v chatu, čekají na uživatele): plynulý HAND 0–15 m místo ostrého 30 m v pravidlech modelu, prahování
+  po dlaždicích, pravidlo zaplavené vegetace/měst (zesvětlení), vypálení řek z OSM do DEM.
 ### 2026-10-09 — master: sloučení modelu, satelitů a UI — `claude/gallant-keller-vftpi2`
 - Sloučeny `claude/relaxed-johnson-wwj9s8` (model v0.2, citlivost, AI krok), `claude/nice-fermi-i7qzk8` (stahování dat, kalibrace S1), `ccr-d89d3cfb-ywooc4` (UI chybový detail).
 - Konflikty jen polohové (DECISIONS, PROGRESS), čísla rozhodnutí se zkratkou modulu nekolidovala. `check_docs` OK, `pytest tests training/tests`: 33 passed.

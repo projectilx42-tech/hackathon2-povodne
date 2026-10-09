@@ -463,6 +463,32 @@ Kontext: průlet družice v den povodně dřív program zahazoval (nevíme, zda 
 4. **Uživatelovo okno „po“ (`post_window`) se nově respektuje** (dřív ho krok stahování ignoroval).
 Kontrakt (ARCHITECTURE.md) upraven ve stejném commitu. **Skeleton:** `povodne run` musí přijmout `--event-time` a předat ho do `run.json`.
 
+## D-M1-04 | 2026-10-09 | přijato (uživatel: „podívej se, jak to dělají profesionální programy … zvýšit přesnost“) — HAND podle ASF, maska vody z DEM
+**Ověřeno proti profesionálnímu výsledku:** náš HAND (výška nad nejbližším tokem) jsme porovnali s globálním HAND od ASF (Alaska Satellite
+Facility, `s3://glo-30-hand`; stejný Copernicus DEM, stejné kroky v pysheds). Rozdíl byl jen v prahu, od kdy je buňka „tok“:
+my 1 km² povodí (1111 buněk), ASF **100 buněk** (`asf_tools … calculate_hand(acc_thresh=100)`). S 1 km² zůstanou boční údolí v horách bez
+toku a HAND tam vyjde o stovky metrů vyšší → dno údolí se podhodnotí.
+| oblast | rozdíl mediánu HAND (1 km² → 100 buněk) | korelace | shoda dna údolí (IoU) |
+|---|---|---|---|
+| Trishuli | 120 m → 13 m | 0,57 → 0,87 | 0,77 → 0,90 |
+| Melamchi (Nepál) | 88 m → 9 m | 0,55 → 0,91 | 0,68 → 0,88 |
+| Derna | 6,5 m → 1,4 m | 0,68 → 0,96 | 0,49 → 0,90 |
+| Opava | 2,5 m → 0,7 m | 0,67 → 0,93 | 0,93 → 0,99 |
+→ **`terrain.hand` používá práh 100 buněk (`HAND_STREAM_CELLS`), stejně jako ASF.** Skript a čísla: `tools/terrain_check/`.
+ASF HAND slouží jen ke kontrole (není to vstup pipeline; počítáme sami z povoleného Copernicus DEM pro jakoukoli oblast).
+**Maska vodních ploch z Copernicus DEM (WBM):** každá dlaždice DEM má pomocnou vrstvu WBM (0 souš, 1 moře, 2 jezero, 3 řeka) — je to součást
+produktu Copernicus DEM, tedy povolený vstup. Používá se:
+- **moře se nepočítá do dna údolí** (HAND je tam ~0, ale není to údolí; u Derny bylo moře 22 % oblasti a zkreslovalo viditelnost dna údolí);
+- **trvalá voda (moře, jezera, široké řeky) se vynechá z řady podílu vody** při kontrole čistoty „před“ (hledá se nová voda);
+- uloží se jako `raw/dem/water.tif` (uint8, stejná mřížka jako `dem.tif`) pro další moduly (zdroj trvalé vody bez JRC).
+Pozor: WBM je z let 2011–2015 (doba vzniku DEM), změny řek po té době nezná.
+**Oprava chyby:** dlaždice DEM, která se při stahování přechodně nepřečetla, se dřív tiše brala jako moře (výška 0). Teď se opakuje
+a za moře se bere jen dlaždice, která v bucketu neexistuje (HTTP 404).
+Po změně: kontrola průletu v den povodně (D-M1-03) dál 6/6 správně (čísla v `tools/event_day_check/README.md` přepočtena);
+viditelnost dna údolí u Trishuli 88 % vs 88 % (dřív 81 % vs 74 % — dno údolí teď zahrnuje i boční údolí).
+**Pro M2:** `masks/hand.tif` počítat stejnou funkcí `acquire.terrain.hand` (práh 100 buněk na 30 m DEM), ať HAND v kroku stahování a v masce sedí.
+`run.json.acquire.dem` navíc: `water_mask` (bool), `hand_stream_cells`.
+
 ---
 
 # Otevřené otázky (k rozhodnutí)
