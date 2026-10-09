@@ -475,6 +475,13 @@ je to malý vzorek z několika eventů. Pro report: celkové metriky modelu se z
    než v celé oblasti — na skutečné mapě je efekt minimální plochy spíš menší.
 Kontrakt (ARCHITECTURE.md, sekce AI model) upraven ve stejném commitu. Výsledky optického modelu se doplní sem.
 
+## D-M9-12 | 2026-10-09 | přijato (M9) — trénink s méně výřezy bez vody nepomáhá (kolo 10)
+Podnět: autoři Kuro Siwo trénují jen na výřezech s vodou; náš trénink má 54 % výřezů bez vody a model je opatrný (recall 0,70).
+Kolo 10 (recept v0.2, seed 42, val): **jen výřezy s vodou** val score 0,592, F1 povodně 0,625 (P 0,571, R 0,689); **výřezy bez vody max 25 %**
+0,604, F1 0,668 (P 0,633, R 0,707); **v0.2** 0,612, F1 0,713 (P 0,725, R 0,702). Recall se nezvedl, precision výrazně klesla (hory 0,20 → 0,11–0,12).
+→ **výřezy bez vody v tréninku nechat** (učí model, kde voda není; val i nasazení obsahují hlavně suchou zemi). Test se nespouštěl.
+Přepínač `--max-dry-share` v `train.py` zůstává. Metriky `training/results/r10_*`.
+
 ---
 
 # Otevřené otázky (k rozhodnutí)

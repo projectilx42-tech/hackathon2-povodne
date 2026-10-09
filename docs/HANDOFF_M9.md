@@ -17,7 +17,7 @@ od A do Z bude plně funkční a co nejschopnější“). Uživatel spouští v�
 | Minimální plocha povodně 10 px + dvoustupňový práh v režimu sensitive | ✅ změřeno na val | D-M9-11 bod 4 |
 | Optický model vody (Sentinel-2) | 🟨 **trénink běžel v kontejneru předchozí session** — viz kap. 6 | `training/train_s2.py`, `training/floodseg/s2.py` |
 | Spojení radar + optika v pipeline | ✅ kód + test; čeká na natrénovaný optický model | `run_ai.py` |
-| Kolo 10 (méně výřezů bez vody) | 🟨 běží / doběhlo na Kaggle | kernel `floodseg-r10` — viz kap. 6 |
+| Kolo 10 (méně výřezů bez vody) | ❌ hotovo, horší než v0.2 → nenasazeno | D-M9-12 |
 | Himálajská evaluace | 🟨 jen předběžně (proxy radar z Planetary Computer) | `training/himalaya/` |
 
 ---
@@ -102,7 +102,7 @@ Rychlost: ~30 s na 30×30 km a směr přeletu, ~2 GB RAM, CPU. Testy: `python -m
 ---
 
 ## 6. Rozběhnuté věci v okamžiku předání — CO UDĚLAT HNED
-1. **Kolo 10 na Kaggle** (`floodseg-r10`, `training/kaggle/round10.json`): recept v0.2 + (a) `--min-water 0.000001` = trénink jen na výřezech
+1. ~~Kolo 10~~ **HOTOVO: horší, nenasazeno (D-M9-12).** Původní popis: (`floodseg-r10`, `training/kaggle/round10.json`): recept v0.2 + (a) `--min-water 0.000001` = trénink jen na výřezech
    s vodou (jako autoři Kuro Siwo), (b) `--max-dry-share 0.25` = výřezy bez vody max 25 %. Motivace: v0.2 trénoval z 54 % na výřezech bez vody
    a je moc opatrný (recall 0,70). Postup: stáhnout výstup, porovnat **val score a recall/precision** s v0.2 (val 0,612; seedy 42/1/2 =
    0,612/0,603/0,600) — rozdíl pod ~0,014 je šum. Pokud je varianta jasně lepší: **před testem zapsat pravidlo nasazení do DECISIONS**
@@ -135,7 +135,7 @@ Rychlost: ~30 s na 30×30 km a směr přeletu, ~2 GB RAM, CPU. Testy: `python -m
 ## 8. Pravidla, která musí nová session dodržet
 - **Datová pravidla** (`CLAUDE.md`): trénink jen Kuro Siwo + Sen1Floods11; EMS/UNOSAT/JRC nikdy; prahy se neladí na EMS ani na Trishuli.
 - **Protokol:** výběr jen podle val; test jednou; pravidlo nasazení napsat **před** testem; výsledky (i negativní) zapsat do DECISIONS (`D-M9-NN`,
-  další volné číslo je **dvanácté** v řadě D-M9) a metriky do `training/results/`.
+  další volné číslo je **třinácté** v řadě D-M9) a metriky do `training/results/`.
 - **Kontrakt:** změna čehokoli, co čte jiný modul → DECISIONS + ARCHITECTURE ve stejném commitu + řádek do Oznámení v PROGRESS + říct uživateli,
   ať informuje master session.
 - **Komunikace s uživatelem:** česky, stručně, lidsky; bez interních čísel rozhodnutí a zkratek modulů; odborné pojmy vysvětlit v závorce.
