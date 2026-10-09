@@ -33,7 +33,9 @@ export function createResults(root, api) {
 
   function renderError(status, { onBack } = {}) {
     const cancelled = status.state === 'cancelled';
+    const failedStep = status.steps?.find(x => x.state === 'failed');
     setView(sec(cancelled ? 'Run cancelled' : 'Run failed',
+      failedStep ? el('p', { class: 'muted', style: 'margin-bottom:8px', text: `Stopped at: ${STEP_LABEL[failedStep.name] ?? failedStep.name}` }) : null,
       el('p', { class: `notice ${cancelled ? 'warn' : 'bad'}`, text: cancelled ? 'The run was cancelled. Nothing was produced.' : (status.error || 'The pipeline stopped unexpectedly.') }),
       cancelled ? null : el('p', { class: 'muted', style: 'margin-top:12px', text: 'Things to try: a smaller area, a different flood date, or custom before/after windows under Advanced. Missing satellite scenes (for example no radar pair from the same orbit) are reported here instead of an empty map.' }),
       status.log_tail?.length ? el('details', { style: 'margin-top:12px' }, el('summary', { text: 'Log' }), el('pre', { class: 'log', text: status.log_tail.join('\n') })) : null,

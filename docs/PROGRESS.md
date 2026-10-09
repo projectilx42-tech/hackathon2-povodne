@@ -97,6 +97,12 @@ Obtížnost a čas = odhad uživatele.
 - Kaggle: `push_kernel.py` čeká na zpracování kódu, kernel končí hned při starém kódu (kolo 5 kvůli tomu propadlo 2 běhy).
 - Zbývá: himálajský test se skutečným vstupem z M1/M2 (`evaluate_himalaya.py`), přesun `run_ai.py` do `src/povodne/flood/`
   po skeletonu, finální hosting vah pro porotu (O-011).
+### 2026-10-08 (večer) — M8: sloučení main (D-035), redesign UI, detail chyb — `ccr-d89d3cfb-ywooc4`
+- Sloučeno `origin/main` (D-035; moje UI rozhodnutí jsou teď D-026/027/028); `python tools/check_docs.py` projde.
+- UI: vizuální redesign (neutrální tmavý systém, SVG ikony, jedno hlavní číslo, sekce podle tří otázek), výchozí nástroj Pan, kreslení tažením,
+  CARTO klíč z env `CARTO_API_KEY`. Chybový pohled ukazuje i krok, na kterém run selhal („Stopped at: …“) a zprávu z `run.json.progress`
+  (ověřeno na simulovaném selhání kroku `acquire` kvůli chybějícím CDSE údajům).
+- Žádná změna kontraktu. Chybí: renderer PNG překryvů z GeoTIFF, napojení na reálný `python -m povodne run`.
 ### 2026-10-08 — master: kontrola kompatibility a sjednocení — `claude/gallant-keller-vftpi2`
 - Sloučeny `claude/relaxed-johnson-wwj9s8` (M9) a `claude/nice-fermi-i7qzk8` (M1/M2) do `main`; přečíslování a sjednocení viz D-035 a Oznámení.
 - `docs/QUESTIONS.md` = jediný seznam otázek (5 odesláno). Pojistky: číslování se zkratkou modulu, sekce Koordinace v CLAUDE.md,
