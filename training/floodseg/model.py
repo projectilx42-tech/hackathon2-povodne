@@ -74,7 +74,7 @@ def load_ssl4eo_s1(encoder: nn.Module, in_channels: int) -> None:
 
 
 def build_model(in_channels: int, arch: str = "Unet", encoder: str = "resnet34",
-                pretrained: bool = True, encoder_weights: str | None = None) -> nn.Module:
+                pretrained: bool = True, encoder_weights: str | None = None, classes: int = NUM_CLASSES) -> nn.Module:
     """encoder_weights: "imagenet" (default when pretrained), "ssl4eo_s1" (resnet50 only) or None."""
     weights = encoder_weights if encoder_weights is not None else ("imagenet" if pretrained else None)
     if arch == "SiamUnet":
@@ -84,7 +84,7 @@ def build_model(in_channels: int, arch: str = "Unet", encoder: str = "resnet34",
         encoder_name=encoder,
         encoder_weights="imagenet" if weights == "imagenet" else None,
         in_channels=in_channels,
-        classes=NUM_CLASSES,
+        classes=classes,
     )
     if weights == "ssl4eo_s1":
         if encoder != "resnet50":

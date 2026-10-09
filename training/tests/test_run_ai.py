@@ -79,6 +79,66 @@ def test_run_ai_outputs():
         assert params["sensitivity"] == "sensitive" and params["flood_threshold"] == 0.25
 
 
+
+def _write_multi(path, arr):
+    prof = dict(driver="GTiff", height=arr.shape[1], width=arr.shape[2], count=arr.shape[0], dtype="float32",
+                crs="EPSG:32645", transform=from_origin(300000, 3100000, 10, 10))
+    with rasterio.open(path, "w", **prof) as w:
+        w.write(arr.astype("float32"))
+
+
+def test_run_ai_two_tracks_shadow_and_s2():
+    """Two-direction shadow rule and the optical model filling radar gaps (D-M9-11)."""
+    from floodseg.s2 import S2_INPUTS
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        model = build_model(len(CHANNELS) + 1, "Unet", "resnet18", pretrained=False)
+        cfg = {"arch": "Unet", "encoder": "resnet18", "in_channels": len(CHANNELS) + 1, "inputs": CHANNELS + ["slope"],
+               "normalization": DEFAULT_NORM, "temperature": 1.0}
+        torch.save({"state_dict": model.state_dict(), "config": cfg}, tmp / "model.pt")
+        s2m = build_model(len(S2_INPUTS), "Unet", "resnet18", pretrained=False, classes=2)
+        s2cfg = {"arch": "Unet", "encoder": "resnet18", "in_channels": len(S2_INPUTS), "num_classes": 2,
+                 "inputs": S2_INPUTS, "normalization": {k: (0.0, 1.0) for k in S2_INPUTS}, "temperature": 1.0}
+        torch.save({"state_dict": s2m.state_dict(), "config": s2cfg}, tmp / "s2.pt")
+
+        run = tmp / "run"
+        (run / "aligned").mkdir(parents=True)
+        (run / "masks").mkdir()
+        h, w = 64, 80
+        rng = np.random.default_rng(1)
+        for prefix in ("s1", "s1_alt"):
+            for t in ("pre", "post"):
+                for pol, mean in (("vv", 0.08), ("vh", 0.02)):
+                    a = rng.gamma(50, mean / 50, (h, w))  # steady background: never below -15 dB by chance
+                    if pol == "vv" and t == "pre":
+                        a[:10, :10] = 0.01 if prefix == "s1" else 0.3  # -20 dB vs -5 dB: shadow in the main track
+                    _write(run / "aligned" / f"{prefix}_{t}_{pol}.tif", a)
+            ls = np.zeros((h, w))
+            ls[-10:, -10:] = 1  # both tracks blind here
+            _write(run / "masks" / f"{prefix}_layover_shadow.tif", ls, "uint8")
+        _write(run / "masks" / "slope.tif", np.zeros((h, w)))
+        for when in ("pre", "post"):
+            _write_multi(run / "aligned" / f"s2_{when}.tif", rng.uniform(0.02, 0.3, (6, h, w)))
+            _write(run / "masks" / f"s2_{when}_valid.tif", np.ones((h, w)), "uint8")
+
+        subprocess.run([sys.executable, str(ROOT / "run_ai.py"), str(run), "--model", str(tmp / "model.pt"),
+                        "--s2-model", str(tmp / "s2.pt")], check=True)
+        params = json.loads((run / "run.json").read_text())["flood"]["params"]
+        assert params["tracks"] == ["s1", "s1_alt"]
+        assert params["cross_shadow_px"] == 100  # the 10x10 block, main track only
+        assert params["s2"]["used"] and params["s2"]["post_clear_pct"] == 100.0
+        with rasterio.open(run / "flood" / "ai_mask.tif") as r:
+            mask = r.read(1)
+        assert (mask[-10:, -10:] != 0).all()  # radar blind, optical image clear -> evaluated
+        assert set(np.unique(mask)) <= {1, 2, 4}
+
+        subprocess.run([sys.executable, str(ROOT / "run_ai.py"), str(run), "--model", str(tmp / "model.pt"),
+                        "--no-s2"], check=True)
+        with rasterio.open(run / "flood" / "ai_mask.tif") as r:
+            assert (r.read(1)[-10:, -10:] == 0).all()  # radar only -> no data there
+
+
 if __name__ == "__main__":
     test_run_ai_outputs()
+    test_run_ai_two_tracks_shadow_and_s2()
     print("ok")

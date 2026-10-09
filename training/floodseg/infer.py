@@ -18,7 +18,8 @@ def load_model(path: str | Path, device: str = "cpu") -> tuple[torch.nn.Module, 
     """Load model.pt written by train.py. Returns (model in eval mode, config)."""
     ckpt = torch.load(path, map_location=device, weights_only=False)
     cfg = ckpt["config"]
-    model = build_model(cfg["in_channels"], cfg["arch"], cfg["encoder"], pretrained=False)
+    model = build_model(cfg["in_channels"], cfg["arch"], cfg["encoder"], pretrained=False,
+                        classes=cfg.get("num_classes", NUM_CLASSES))
     model.load_state_dict(ckpt["state_dict"])
     return model.to(device).eval(), cfg
 
@@ -42,7 +43,7 @@ def _starts(size: int, tile: int, step: int) -> list[int]:
 @torch.no_grad()
 def predict_probs(model: torch.nn.Module, x: np.ndarray, tile: int = 512, overlap: int = 64,
                   batch_size: int = 4, device: str = "cpu", temperature: float = 1.0) -> np.ndarray:
-    """Class probabilities [NUM_CLASSES, H, W] float32 for features x [C, H, W].
+    """Class probabilities [n_classes, H, W] float32 for features x [C, H, W] (n_classes = model output channels).
 
     Tiles overlap and are blended with a ramp window, which removes seams at tile borders.
     `tile` must be a multiple of 32 (U-Net downsampling); small inputs are padded.
@@ -52,7 +53,7 @@ def predict_probs(model: torch.nn.Module, x: np.ndarray, tile: int = 512, overla
     ph, pw = max(h, tile), max(w, tile)
     if (ph, pw) != (h, w):
         x = np.pad(x, ((0, 0), (0, ph - h), (0, pw - w)), mode="reflect" if min(h, w) > 1 else "constant")
-    acc = np.zeros((NUM_CLASSES, ph, pw), np.float32)
+    acc = None
     norm = np.zeros((ph, pw), np.float32)
     win = _weights(tile, overlap)
     coords = [(i, j) for i in _starts(ph, tile, tile - overlap) for j in _starts(pw, tile, tile - overlap)]
@@ -60,6 +61,8 @@ def predict_probs(model: torch.nn.Module, x: np.ndarray, tile: int = 512, overla
         batch = coords[b:b + batch_size]
         xb = torch.from_numpy(np.stack([x[:, i:i + tile, j:j + tile] for i, j in batch])).to(device)
         probs = (model(xb).float() / temperature).softmax(1).cpu().numpy()
+        if acc is None:
+            acc = np.zeros((probs.shape[1], ph, pw), np.float32)
         for (i, j), p in zip(batch, probs):
             acc[:, i:i + tile, j:j + tile] += p * win
             norm[i:i + tile, j:j + tile] += win
