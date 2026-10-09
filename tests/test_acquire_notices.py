@@ -41,3 +41,10 @@ def test_every_code_is_documented_and_every_used_code_exists():
         used |= set(re.findall(r'Notice\(\s*"([a-z0-9_]+)"', f.read_text()))
     used |= {"cdse_credentials", "acquire_failed"}  # chosen by a variable in pipeline.run
     assert used == set(SEVERITY)
+
+
+def test_missing_ohsome_key_is_a_clear_error(monkeypatch):
+    from povodne.acquire import osm
+    monkeypatch.delenv("OHSOME_API_KEY", raising=False)
+    with pytest.raises(osm.MissingOhsomeKey, match="OHSOME_API_KEY"):
+        osm._request("/metadata")

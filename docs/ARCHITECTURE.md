@@ -140,7 +140,7 @@ runs/<run_id>/
 "Zasaženo" (pro M4/M5) = třídy **2 ∪ 3**. Nodata = 255 se nepoužívá; nodata je 0.
 
 ## Schémata OSM vrstev (`osm/*.gpkg`, UTM)
-Zdroj: **ohsome API** `elements/geometry` s `time=<osm_snapshot_date>`. Nikdy Overpass/aktuální OSM.
+Zdroj: **ohsome API v2** `extraction/features.parquet` s `time=<osm_snapshot_date>T00:00:00Z` (klíč `OHSOME_API_KEY`, D-M1-06). Nikdy Overpass/aktuální OSM.
 - **`osm_id` je text** ve tvaru z ohsome (`way/123`, `node/45`) ve všech vrstvách i výstupech (`blocking_cuts`, `road_cuts`) — D-M1-02.
 - `buildings.gpkg`: `osm_id`, `building`, `geometry` (Polygon)
 - `roads.gpkg`: `osm_id`, `highway`, `name`, `bridge` (bool), `tunnel` (bool), `geometry` (LineString). Filtr: motorway…track, bez footway/path (konfigurovatelné).

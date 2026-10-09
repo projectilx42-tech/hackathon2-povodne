@@ -18,6 +18,7 @@ SEVERITY = {
     "s1_no_pair": "error",
     "s1_no_clean_pre": "error",
     "osm_failed": "error",
+    "osm_key_missing": "error",
     # warnings
     "s1_partial_coverage": "warning",
     "s1_alt_missing": "warning",

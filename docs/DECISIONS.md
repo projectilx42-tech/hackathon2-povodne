@@ -502,6 +502,20 @@ obsahuje přesně všechny kódy.
   `main_track_by_visibility`, `post_image_date`; chyba přihlášení a pád kroku se taky zapíšou (`cdse_credentials`, `acquire_failed`).
 - Oprava při té příležitosti: zápis `run.json` během kroku už nepřepíše průběh (`progress`) starší kopií.
 
+## D-M1-06 | 2026-10-09 | přijato (uživatel dodal klíč: „tady máš to API“) — OpenStreetMap přes ohsome API v2 s klíčem
+Kontext: ohsome API v1 (`api.ohsome.org/v1`, uvedené v zadání) od 9. 10. 2026 vrací na `elements/geometry` HTTP 403; v1 se podle
+dokumentace vypíná 30. 11. 2026. Nová verze v2 (stejný autor HeiGIT, stejná data a filtry) vyžaduje bezplatný API klíč.
+- **Zdroj:** `https://api.heigit.org/ohsome-api/v2/extraction/features.parquet` (POST `{"aoi": bbox, "filter", "time"}`), hlavička
+  `Authorization: <klíč>`, klíč z env **`OHSOME_API_KEY`** (account.heigit.org; nikdy v repu). Odpověď GeoParquet → knihovna `pyarrow`.
+- **Snímek před povodní:** `time` = jeden okamžik (snapshot) = 00:00 UTC dne před `event_date` (omezeno nejnovějšími daty ohsome).
+  v2 má data až do současnosti (v1 končila 27. 7. 2026) → pro Trishuli snapshot **25. 8. 2026** (zadání: „snapshot date before 26 Aug 2026“
+  → v pořádku). Ověřeno: nejnovější úprava ve stažených silnicích 9. 8. 2026 (= nic po snapshotu).
+- Výstup stejný jako dřív (`osm/*.gpkg`, `osm_id` = `way/123`), nově v `raw/osm/osm_raw.gpkg` sloupec `edit_timestamp` (kontrola).
+- Bez klíče: krok pokračuje, upozornění `osm_key_missing` (error, D-M1-05). Limit: 15 dotazů/min, 250/den; běh = 6 dotazů.
+- Trishuli 8×9 km + 15 km okraj: 18 s; 16 582 budov, 3 859 silnic, 83 mostů, 244 sídel, 16 zařízení/měst.
+- Porotce potřebuje druhý bezplatný účet (vedle CDSE) → otázka pro organizátory (návrh v chatu).
+- **Rozpor k vyřešení (master):** CLAUDE.md říká „pro case study ≤ 2026-07-27“ (byl to limit v1); kód bere obecné pravidlo < `event_date`.
+
 ---
 
 # Otevřené otázky (k rozhodnutí)

@@ -1,6 +1,7 @@
 """OpenStreetMap layers for M1, strictly as they were BEFORE the event (D-005).
 
-Source: the ohsome API (OSM history), snapshot at the day before the event, capped to the newest date ohsome has.
+Source: the ohsome API v2 (OSM history, needs a free API key in OHSOME_API_KEY), snapshot at 00:00 UTC of the day before
+the event, capped to the newest date ohsome has. (The v1 API stopped serving geometries in October 2026.)
 Never Overpass or current OSM (post-event edits would break the data rules).
 
 Roads, settlements and facilities are fetched for the AOI plus a buffer (default 15 km): the nearest town or hospital
@@ -9,7 +10,9 @@ Output layers follow docs/ARCHITECTURE.md (osm/*.gpkg in UTM); osm_id is the ohs
 """
 from __future__ import annotations
 
+import io
 import math
+import os
 import time
 from datetime import date, timedelta
 from pathlib import Path
@@ -19,7 +22,9 @@ import pandas as pd
 import requests
 from shapely.geometry.base import BaseGeometry
 
-OHSOME = "https://api.ohsome.org/v1"
+OHSOME = "https://api.heigit.org/ohsome-api/v2"
+KEY_HELP = ("OpenStreetMap download needs a free ohsome API key: sign up at https://account.heigit.org/signup, create a key "
+            "and set the environment variable OHSOME_API_KEY (see README).")
 ROAD_TYPES = ("motorway", "trunk", "primary", "secondary", "tertiary", "unclassified", "residential", "living_street",
               "service", "track", "motorway_link", "trunk_link", "primary_link", "secondary_link", "tertiary_link")
 FILTERS = {
@@ -31,39 +36,66 @@ FILTERS = {
 }
 
 
-def _request(path: str, data: dict | None = None, retries: int = 3) -> dict:
+class MissingOhsomeKey(RuntimeError):
+    pass
+
+
+def _key() -> str:
+    key = os.environ.get("OHSOME_API_KEY", "").strip()
+    if not key:
+        raise MissingOhsomeKey(KEY_HELP)
+    return key
+
+
+def _request(path: str, body: dict | None = None, retries: int = 3) -> requests.Response:
+    """ohsome API v2 call (needs OHSOME_API_KEY). Retries server errors and the 15 requests/minute limit."""
+    headers = {"Authorization": _key()}
+    r = None
     for attempt in range(retries):
         try:
-            r = requests.post(OHSOME + path, data=data, timeout=600) if data else requests.get(OHSOME + path, timeout=60)
+            r = (requests.post(OHSOME + path, json=body, headers=headers, timeout=600) if body is not None
+                 else requests.get(OHSOME + path, headers=headers, timeout=60))
+            if r.status_code == 401:
+                raise MissingOhsomeKey("ohsome rejected the API key (OHSOME_API_KEY). " + KEY_HELP)
             if r.status_code < 500 and r.status_code != 429:
-                r.raise_for_status()
-                return r.json()
+                if r.status_code >= 400:
+                    raise RuntimeError(f"ohsome HTTP {r.status_code}: {r.text[:300]}")
+                return r
         except requests.ConnectionError:
             pass
-        time.sleep(5 * 2 ** attempt)
+        time.sleep(5 * 2 ** attempt if r is None or r.status_code != 429 else 30)
     raise RuntimeError(f"ohsome API unavailable ({OHSOME}{path}); OSM layers could not be downloaded.")
 
 
 def snapshot_date(event: date) -> date:
     """Day before the event, but not newer than the latest data ohsome holds."""
-    meta = _request("/metadata")
-    latest = date.fromisoformat(meta["extractRegion"]["temporalExtent"]["toTimestamp"][:10])
+    meta = _request("/metadata").json()
+    latest = date.fromisoformat(meta["temporalExtent"]["end"][:10])
     return min(event - timedelta(days=1), latest)
 
 
-def _bbox(geom: BaseGeometry, buffer_m: float = 0) -> str:
+def _bbox(geom: BaseGeometry, buffer_m: float = 0) -> list[float]:
     x0, y0, x1, y1 = geom.bounds
     dlat = buffer_m / 111_320
     dlon = buffer_m / (111_320 * max(math.cos(math.radians((y0 + y1) / 2)), 0.1))
-    return f"{x0 - dlon},{y0 - dlat},{x1 + dlon},{y1 + dlat}"
+    return [x0 - dlon, y0 - dlat, x1 + dlon, y1 + dlat]
 
 
-def fetch(bbox: str, when: date, flt: str) -> gpd.GeoDataFrame:
-    fc = _request("/elements/geometry", {"bboxes": bbox, "time": when.isoformat(), "filter": flt, "properties": "tags"})
-    if not fc.get("features"):
+def fetch(bbox: list[float], when: date, flt: str) -> gpd.GeoDataFrame:
+    """OSM features matching `flt` as they were at 00:00 UTC of `when` (a snapshot, never later edits).
+
+    ohsome v2 answers with GeoParquet; tags come as a key/value list and become columns here, osm_id becomes "way/123"."""
+    r = _request("/extraction/features.parquet", {"aoi": bbox, "filter": flt, "time": f"{when.isoformat()}T00:00:00Z"})
+    if not r.content:
         return gpd.GeoDataFrame({"osm_id": []}, geometry=[], crs="EPSG:4326")
-    gdf = gpd.GeoDataFrame.from_features(fc["features"], crs="EPSG:4326")
-    return gdf.rename(columns={"@osmId": "osm_id"})
+    gdf = gpd.read_parquet(io.BytesIO(r.content))
+    if gdf.empty:
+        return gpd.GeoDataFrame({"osm_id": []}, geometry=[], crs="EPSG:4326")
+    tags = pd.DataFrame([dict(t) if t is not None else {} for t in gdf["tags"]], index=gdf.index)
+    out = gpd.GeoDataFrame(tags, geometry=gdf.geometry.values, crs=gdf.crs or "EPSG:4326")
+    out.insert(0, "osm_id", gdf["osm_type"].astype(str) + "/" + gdf["osm_id"].astype(str))
+    out["edit_timestamp"] = gdf["edit_timestamp"].astype(str)
+    return out
 
 
 def _col(gdf, name, default=None):
@@ -130,4 +162,4 @@ def extract(aoi: BaseGeometry, event: date, epsg: int, raw_dir: Path, osm_dir: P
             gdf["geometry"] = gdf.geometry.representative_point()  # polygons -> a point inside them
         gdf.to_file(osm_dir / f"{name}.gpkg", driver="GPKG")
         counts[name] = int(len(gdf))
-    return {"osm_snapshot_date": when.isoformat(), "source": "ohsome API", "buffer_m": buffer_m, "counts": counts}
+    return {"osm_snapshot_date": when.isoformat(), "source": "ohsome API v2", "buffer_m": buffer_m, "counts": counts}

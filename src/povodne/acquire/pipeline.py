@@ -333,6 +333,8 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
             info = osm.extract(aoi, event, epsg, run_dir / "raw" / "osm", run_dir / "osm", cfg.osm_buffer_m)
             rj["osm_snapshot_date"] = info["osm_snapshot_date"]
             acq["osm"] = info
+        except osm.MissingOhsomeKey as exc:
+            warnings.append(Notice("osm_key_missing", f"{exc} Without it, damage and cut-off analysis are not possible."))
         except Exception as exc:
             warnings.append(Notice("osm_failed", f"OpenStreetMap (buildings, roads) could not be downloaded ({exc}); "
                                    "damage and cut-off analysis are not possible.", error=str(exc)))

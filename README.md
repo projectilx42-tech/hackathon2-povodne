@@ -33,6 +33,11 @@ The bundled *sample run* in History is **synthetic demo data** (`dashboard/tools
    (Windows PowerShell: `$env:CDSE_CLIENT_ID="..."`). Without them the download step stops with an explanation.
 The free tier has 10,000 processing units per month; one run for a 30x30 km area uses roughly 550.
 
+**ohsome API key (needed for pre-event OpenStreetMap buildings and roads, free):**
+sign up at https://account.heigit.org/signup, create an API key and set `export OHSOME_API_KEY=...`
+(Windows PowerShell: `$env:OHSOME_API_KEY="..."`). Without it the flood map still works, but damage and cut-off analysis do not.
+One run uses 6 requests; the free key allows 250 per day.
+
 **Download all input data for an area and date (Sentinel-1, Sentinel-2, DEM, pre-event OSM):**
 ```bash
 PYTHONPATH=src python -m povodne.acquire --bbox 85.15 27.95 85.23 28.03 --event-date 2026-08-26 --out runs/test

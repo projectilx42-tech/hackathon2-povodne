@@ -14,6 +14,7 @@ geopandas>=0.14
 pyogrio>=0.7
 pandas>=2.0
 timezonefinder>=6.0
+pyarrow>=14  # ohsome API v2 answers in GeoParquet
 
 # M3 flood model inference (training/floodseg)
 torch>=2.2
