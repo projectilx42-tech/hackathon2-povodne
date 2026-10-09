@@ -76,7 +76,7 @@ Obtížnost a čas = odhad uživatele.
 | Repo init, docs, workflow | ✅ | `main` | CLAUDE.md, docs/, Stop hook |
 | M8 Dashboard / webové UI | 🟨 | `feat/dashboard` | UI hotové nad ukázkovým runem (kroky 1–5 z UI_SPEC); spouští pipeline přes `python -m povodne run`, která zatím neexistuje; chybí renderer PNG překryvů z GeoTIFF; spuštění `python -m dashboard` |
 | 0 Skeleton (pyproject, CLI, config, io/grid) | ⬜ | `feat/skeleton` | |
-| M1 Acquire (S1/S2/DEM/OSM) | 🟨 | `claude/nice-fermi-i7qzk8` | celý krok hotový (`python -m povodne.acquire`): katalog, hlavní dráha (D-X-01), DEM, kontrola čistoty pre (D-M1-01), S1 obě dráhy kalibrované (D-M1-02), S2, OSM; OSM přes ohsome v2 s klíčem (D-M1-06), otestováno |
+| M1 Acquire (S1/S2/DEM/OSM) | 🟨 | `claude/nice-fermi-i7qzk8` | celý krok hotový (`python -m povodne.acquire`): katalog, hlavní dráha (D-X-01), DEM, kontrola čistoty pre (D-M1-01), S1 obě dráhy kalibrované (D-M1-02), S2, OSM; OSM přes ohsome v2 s klíčem (D-M1-06), otestováno; **předávka: `docs/HANDOFF_SATELITY.md`** |
 | M2 Preprocess | ⬜ | `feat/preprocess` | požadavky z M9: D-033 (layover/shadow maska pro oba tracky, slope, HAND) |
 | M9 AI trénink | ✅ | `claude/relaxed-johnson-wwj9s8` | v0.2 (`floodseg-model`), D-M9-01–07; zbývá himálajský test s reálným vstupem z M1/M2 |
 | M3 AI inference (voda) | 🟨 | `claude/relaxed-johnson-wwj9s8` | `training/run_ai.py` funguje dle kontraktu (+ test); přesun do `src/povodne/flood/` až bude skeleton |
