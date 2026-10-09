@@ -136,6 +136,7 @@ runs/<run_id>/
 
 ## Schémata OSM vrstev (`osm/*.gpkg`, UTM)
 Zdroj: **ohsome API** `elements/geometry` s `time=<osm_snapshot_date>`. Nikdy Overpass/aktuální OSM.
+- **`osm_id` je text** ve tvaru z ohsome (`way/123`, `node/45`) ve všech vrstvách i výstupech (`blocking_cuts`, `road_cuts`) — D-M1-02.
 - `buildings.gpkg`: `osm_id`, `building`, `geometry` (Polygon)
 - `roads.gpkg`: `osm_id`, `highway`, `name`, `bridge` (bool), `tunnel` (bool), `geometry` (LineString). Filtr: motorway…track, bez footway/path (konfigurovatelné).
 - `bridges.gpkg`: `osm_id`, `highway`, `name`, `geometry` — silnice s `bridge=yes` (+ `man_made=bridge` polygony).
@@ -244,7 +245,8 @@ inference), `model.py`. M3 tento kód **používá, nereimplementuje** (po vznik
     "classes": {"0":"no water","1":"permanent water","2":"flood"}, "tile_size": 224, "trained_on": [...],
     "split_events": {...}, "val_metrics": {...}, "test_metrics": {...}, "license_notes": "..."}`
 - **Vstup z M2:** `aligned/s1_{pre,post}_{vv,vh}.tif` = **sigma0** (ne gamma0/RTC), lineárně, terrain-corrected (geokódováno s DEM)
-  na 10 m, speckle filtr **Lee Sigma 3×3** — stejně jako Kuro Siwo (D-020). Více pre scén ze stejného tracku se průměruje
+  na 10 m, speckle filtr **Lee Sigma 3×3** — stejně jako Kuro Siwo (D-020). Pozn.: „Lee Sigma 3×3“ je jméno filtru ze SNAP (okno 7×7);
+  v naší pipeline mu odpovídá Sentinel Hub LEE 7×7 + průměr 3×3 (změřeno, D-M1-02). Více pre scén ze stejného tracku se průměruje
   (`features.combine_pre_db`).
 - **Sklon** (kanál `slope`, D-032) = `masks/slope.tif` ve stupních (z DEM na mřížce 10 m); v tréninku zaokrouhlen na celé stupně.
 - `model_card.json` obsahuje `temperature` (kalibrace z val): pravděpodobnosti = softmax(logits / T) — `infer.predict_probs(..., temperature=T)`.
