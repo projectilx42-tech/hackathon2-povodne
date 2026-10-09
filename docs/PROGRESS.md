@@ -8,6 +8,9 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-08 — kalibrace S1 a formát raw (D-M1-02), týká se M2, M3, M9:** S1 = Sentinel Hub LEE 7×7 + průměr 3×3 (změřeno na 28 dlaždicích Kuro Siwo: posun 0,00 dB, šum 0,96×; LEE 3×3 měl 2,6× víc šumu). Raw S1 = UINT16 dB (v*0.001−50) už na 10m mřížce; S2 raw = DN + SCL (7. pásmo) se scale/offset; DEM 30 m + 5 km okraj; OSM silnice/sídla + 15 km. **M9:** Sen1Floods11 byl v tréninku filtrován jen Lee 3×3 — zvážit LEE 7×7 + 3×3.
+- **2026-10-08 — `requirements.txt` v kořeni repa (M1):** seznam knihoven pipeline (`requests`, `shapely`, `rasterio`, `pyproj`, `scipy`, `pysheds`, `torch`, `segmentation-models-pytorch`); každý modul si sem přidá své; skeleton ho převezme do `pyproject.toml`.
+- **2026-10-08 — nové pravidlo v `CLAUDE.md` (Jak mluvit s uživatelem):** uživateli nepsat interní označení (čísla rozhodnutí, zkratky modulů) ani odborné pojmy bez vysvětlení; v souborech smí zůstat.
 - **2026-10-08 — hlavní dráha (D-X-01):** nejdřívější post; výjimka, když druhá dráha má post ≤ 3 dny později a dno údolí vidí o ≥ 10 p. b. líp. Nová pole `acquire.s1.primary_reason`, `valley_visibility`.
 - **2026-10-08 — výběr snímku „před“ (D-M1-01):** časová řada podílu vody v ~60 m → pre = poslední průlet před nárůstem vody; nové pole `run.json.acquire.s1.pre_selection` (UI ho může ukázat, M6 do sitrepu varování).
 - **2026-10-08 — sjednocení (master, D-035), platí pro všechny:**
@@ -65,7 +68,7 @@ Obtížnost a čas = odhad uživatele.
 | Repo init, docs, workflow | ✅ | `main` | CLAUDE.md, docs/, Stop hook |
 | M8 Dashboard / webové UI | 🟨 | `feat/dashboard` | UI hotové nad ukázkovým runem (kroky 1–5 z UI_SPEC); spouští pipeline přes `python -m povodne run`, která zatím neexistuje; chybí renderer PNG překryvů z GeoTIFF; spuštění `python -m dashboard` |
 | 0 Skeleton (pyproject, CLI, config, io/grid) | ⬜ | `feat/skeleton` | |
-| M1 Acquire (S1/S2/DEM/OSM) | ⬜ | `feat/acquire` | požadavky z M9: D-020, D-033 (sigma0+Lee, oba směry přeletu) |
+| M1 Acquire (S1/S2/DEM/OSM) | 🟨 | `claude/nice-fermi-i7qzk8` | celý krok hotový (`python -m povodne.acquire`): katalog, hlavní dráha (D-X-01), DEM, kontrola čistoty pre (D-M1-01), S1 obě dráhy kalibrované (D-M1-02), S2, OSM; **OSM neotestováno (ohsome v údržbě)** |
 | M2 Preprocess | ⬜ | `feat/preprocess` | požadavky z M9: D-033 (layover/shadow maska pro oba tracky, slope, HAND) |
 | M9 AI trénink | ✅ | `claude/relaxed-johnson-wwj9s8` | v0.2 (`floodseg-model`), D-M9-01–07; zbývá himálajský test s reálným vstupem z M1/M2 |
 | M3 AI inference (voda) | 🟨 | `claude/relaxed-johnson-wwj9s8` | `training/run_ai.py` funguje dle kontraktu (+ test); přesun do `src/povodne/flood/` až bude skeleton |
@@ -100,7 +103,32 @@ Obtížnost a čas = odhad uživatele.
   `tools/check_docs.py`, SessionStart hook (hlásí zpoždění za `main`), Stop hook (blokuje nekonzistentní docs).
 ### 2026-10-08 (2) — satelity po sloučení main — `claude/nice-fermi-i7qzk8`
 - Sloučen main (D-029 = naše dřívější D-020, D-030 sladění). Ověřeno v dokumentaci: Sentinel Hub „LEE“ ≠ Lee Sigma, `shadowMask` jen s RTC, rozpočet PU (D-031).
-- Neprovedeno: test shody zpracování s Kuro Siwo (potřebuje CDSE OAuth klíč, koordinace s M9). Čeká na souhlas uživatele: metoda kontroly čistoty „před“, pojmenování souborů a `run.json` pro více drah.
+- Neprovedeno: test shody zpracování s Kuro Siwo (potřebuje CDSE OAuth klíč, koordinace s M9). Metoda kontroly čistoty „před“ je D-M1-01, pojmenování drah D-033/D-035.
+- Hotovo: `src/povodne/acquire/catalog.py` — výběr S1 z katalogu CDSE (bez přihlášení) pro libovolné AOI a datum: dráhy podle relativního orbitu + směru,
+  první průlet po události = post (průlet ve dnu události se nepoužije), starší průlety téže dráhy za 60 dní = kandidáti na pre (výběr podle D-M1-01 zatím není),
+  hlavní dráha = nejdřívější post, `s1_alt` = opačný směr. Testy `tests/test_acquire_catalog.py` (offline, 9). Vyzkoušeno živě: Trishuli, Derna 2023, Česko 2024, Rio Grande do Sul 2024.
+- Zjištění: u Rio Grande do Sul (2024-05-02) není v katalogu CDSE pro AOI žádný S1 produkt od ledna do 8. 5. 2024 → žádný pár pre/post; plán to hlásí varováním (verdikt `insufficient_data`, D-013).
+  Katalog občas vrátí krátké HTTP 403 po sérii dotazů → opakování s čekáním. Závislosti modulu: `requests`, `shapely`.
+- Nerozhodnuto: hlavní dráha = nejdřívější post (D-029) vs. méně layover/shadow (D-033) — kód má zatím první, přepínač `prefer`.
+- **Sentinel Hub na CDSE vyzkoušen s klíčem uživatele (2026-10-08)**, výřez u Trishuli, snímek 2026-08-28 (`SIGMA0_ELLIPSOID`, ortorektifikace, `COPERNICUS_30`, Lee 3×3, UINT16 dB):
+  přihlášení funguje (token platí 30 min); **naměřená cena 2,77 PU na výřez 5×5 km, 10 m, VV+VH** = shoda s odhadem (ortorektifikace ×2 a filtr ×2 se násobí);
+  bez filtru 1,38 PU; **série pro kontrolu čistoty „před“: 30×30 km při 60 m, jen VV = 0,64 PU bez filtru / 1,27 PU s filtrem** (cíl ~1 PU splněn).
+  Dotaz s hranicemi v UTM (EPSG:32645) vrací přesně 10m mřížku v UTM, takže M2 nemusí převzorkovávat.
+- **Neověřeno:** shoda hodnot s tréninkovými daty. Hory u Trishuli: VV medián −4 dB, VH −11 dB; trénink má střední hodnoty VV −10 dB, VH −17 dB (`DEFAULT_NORM`).
+  Rozdíl může být terénem (sigma0 bez terénní korekce, strmé svahy, zástavba), ne chybou kalibrace — rozhodne až srovnání s dlaždicí Kuro Siwo (potřebuje M9).
+- **Hlavní dráha podle D-X-01 implementována** (`choose_main`, přepínač `prefer` zrušen): viditelnost dna údolí z DEM + geometrie dráhy z obrysu scény
+  (`acquire/terrain.py`: DEM, HAND přes pysheds, sklon, layover/shadow paprskem podél směru pohledu; `track_geometry`: směr letu, směr pohledu, úhel dopadu).
+  Dno údolí = HAND ≤ 30 m a sklon ≤ 15° (výchozí hodnoty D-034). Výstup pro `run.json`: `acquire_json()` (`primary_reason`, `valley_visibility`).
+  Živě: Trishuli hlavní 85 ASC (post 28. 8.), viditelnost 81 % vs 74 % (19 DESC); Derna 90/90 %; Česko 89/90 % → všude „earliest post“. Čas 15–50 s podle velikosti oblasti.
+- **DEM ze zdroje AWS Open Data** (veřejné COG dlaždice Copernicus DEM GLO-30, bez přihlášení, čte se jen výřez). Planetary Computer pro DEM vrací HTTP 403.
+- Pozor: pysheds 0.5 volá `np.in1d` (odstraněno v NumPy 2.4) → v `terrain.hand` je náhrada `np.isin`. Testy: 21 offline (`tests/test_acquire_*.py`).
+- Chyba nalezená testem a opravená: výřez scény S1 je napříč dráhou delší (~250 km) než podél (~170 km) → směr letu se určuje podle hran nejblíž sever–jih, ne podle délky.
+- **Kalibrace S1 vůči Kuro Siwo (D-M1-02):** 28 dlaždic, 7 povodní → LEE 7×7 + průměr 3×3 = bez posunu (0,00 dB), šum 0,96× Kuro Siwo. Skripty a čísla `tools/s1_calibration/`.
+- **Celý krok stahování** (`src/povodne/acquire/pipeline.py`, `python -m povodne.acquire --bbox … --event-date … --out runs/…`): test Trishuli 8×9 km: 3,6 min, 44 PU;
+  opakovaný běh používá stažené soubory (1 PU). S2 z AWS (pre 12. 8. 98 % jasno, post 27. 8. 61 %). Výstup na 10m UTM mřížce, scales/offsets v GeoTIFF.
+- **ohsome API je v údržbě (HTTP 503, „Down For Maintenance“)** → OSM vrstvy zatím neotestované; krok to ohlásí varováním a pokračuje. Riziko pro den hodnocení.
+- **Zjištění:** na dně údolí u Trishuli (malý výřez) je podíl tmavé vody ~0 % i na snímku po povodni (60/30/20 m: 0,1/0,2/0,3 %) → povodeň se tu
+  na radaru neprojevuje jako voda, spíš suť/bahno (důležité pro M3d); kontrola čistoty „před“ tu nic nevidí a jemnější rozlišení nepomůže (ponecháno 60 m).
 
 ### 2026-10-08 — master: sloučení sessions do `main` — `claude/gallant-keller-vftpi2`
 - Sloučeny větve `claude/relaxed-johnson-wwj9s8` (M9), `ccr-d89d3cfb-ywooc4` (M8 UI), `claude/nice-fermi-i7qzk8` (satelity) do `main`.

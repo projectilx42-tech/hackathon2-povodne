@@ -1,0 +1,19 @@
+# Pipeline dependencies (src/povodne), Python >= 3.11. Install: pip install -r requirements.txt
+# The skeleton will move this list into pyproject.toml. Modules add their own lines here.
+# torch: on a machine without GPU the default PyPI wheel is fine (inference runs on CPU).
+
+# M1 acquire: catalogue search, DEM, terrain masks
+requests>=2.31
+numpy>=1.26
+shapely>=2.0
+pyproj>=3.6
+rasterio>=1.3
+scipy>=1.11
+pysheds>=0.4
+geopandas>=0.14
+pyogrio>=0.7
+pandas>=2.0
+
+# M3 flood model inference (training/floodseg)
+torch>=2.2
+segmentation-models-pytorch>=0.3.3

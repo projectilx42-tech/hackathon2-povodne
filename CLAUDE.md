@@ -46,6 +46,16 @@ síť: networkx, AI: PyTorch + segmentation-models-pytorch. Detaily a otevřené
 - Otázky na organizátory jen v `docs/QUESTIONS.md`.
 - `python tools/check_docs.py` hlídá duplicitní čísla, odkazy na neexistující rozhodnutí a konfliktní značky; Stop hook nepustí konec session, dokud neprojde.
 
+## Jak mluvit s uživatelem (platí pro VŠECHNY sessions, pravidlo uživatele)
+Uživatel není odborník na satelitní data ani na vývoj a musí všemu doopravdy rozumět (vysvětluje to porotě).
+- **Interní označení smíš používat jen v souborech** (docs, kód, commity). **V odpovědích uživateli je nepoužívej** a řekni, co to je:
+  čísla rozhodnutí a otázek (D-017, D-M1-01, O-009 …) → řekni, o čem rozhodnutí je („rozhodnutí o výběru čistého snímku před povodní“);
+  zkratky modulů (M1, M3d, M9 …) → řekni, co modul dělá („modul na stahování dat“, „trénink AI modelu“).
+- **Bez vysvětlení smíš:** názvy satelitů a dat (Sentinel-1, Sentinel-2, DEM) a pojmy pre / post, dráha, směr přeletu. Místo „AOI“ říkej „oblast“.
+- **Vždy vysvětli lidsky (nebo do závorky):** technické pojmy z radaru a zpracování dat, např. sigma0, GRD, RTC, dB, VV/VH, speckle, layover, shadow,
+  HAND, slope, PU, OAuth, UTM, COG, maska, F1/IoU. Příklad: „HAND (výška nad nejbližším tokem)“.
+- **Jakékoliv jiné slovo, které by uživatel nemusel znát, vysvětli stručně v závorce** (jednou v dané odpovědi). Odpovědi zůstávají stručné.
+
 ## Workflow (cloudové sessions, vše přes GitHub)
 - Všechno běží v cloud sessions; jediný sdílený stav je **GitHub repo** `projectilx42-tech/hackathon2-povodne`. Co není pushnuté, neexistuje (kontejner se maže).
 - **Commituj a pushuj často** — po každém funkčním kroku, minimálně každých ~30–60 min práce. `git push -u origin <branch>`.

@@ -402,7 +402,7 @@ za cenu víc falešných poplachů. Volí uživatel v UI.
 
 ## D-M9-09 | 2026-10-09 | přijato (uživatel: „dokážeš to vyřešit?“ po kalibraci S1 v M1)
 **Sen1Floods11 v tréninku filtrovat Lee 7×7 místo 3×3 (stejná zrnitost jako Kuro Siwo a data pipeline).**
-Kontext: kalibrace S1 v M1 (rozhodnutí na větvi `claude/nice-fermi-i7qzk8`, zatím není v main) ukázala, že Kuro Siwo („Lee Sigma“ ze SNAP) je hladší, než jsme předpokládali; pipeline teď dává 0,96×
+Kontext: kalibrace S1 v M1 (D-M1-02) ukázala, že Kuro Siwo („Lee Sigma“ ze SNAP) je hladší, než jsme předpokládali; pipeline teď dává 0,96×
 zrnitosti Kuro Siwo. Sen1Floods11 (D-024) jsme filtrovali Lee 3×3 → v tréninku byl zrnitější než zbytek dat i než nasazení.
 Změřeno stejnou metrikou jako kalibrace M1 (sm. odch. dB po odečtení lokálního průměru 5×5; Kuro Siwo train 0,36 dB):
 Sen1Floods11 bez filtru 4,3×, Lee 3×3 2,2×, Lee 5×5 1,3×, **Lee 7×7 1,0×** (náš numpy Lee; Sentinel Hub „LEE 7×7“ je jiná implementace,
@@ -411,6 +411,35 @@ Přetrénování receptu v0.2 (kolo 9, seedy 42 a 1). **Pravidlo nasazení (stan
 nasazení, kterou val (Kuro Siwo) neměří → nový model nahradí v0.2, když není horší nad šum: průměr val score dvou seedů ≥ 0,601
 (průměr v0.2 seedů 42 a 1 = 0,6075 − 1 sm. odch. 0,007, D-M9-06); z nich lepší seed podle val; test jednorázově a platí
 F1 povodně ≥ 0,765 a F1 povodně na horských dlaždicích ≥ 0,51 (jako D-M9-05). Jinak zůstává v0.2.
+
+## D-M1-02 | 2026-10-08 | přijato (M1; uživatel: „ať je to správně nakalibrované“) — Kalibrace S1 vůči Kuro Siwo a formát raw dat
+**Kalibrace (měřeno, ne odhad):** 28 dlaždic z testovací části Kuro Siwo (7 povodní: Španělsko 2015, Francie/Itálie 2021, Bangladéš 2019,
+Pákistán 2022, USA 2017 aj.; převýšení 5–528 m) stažených přes Sentinel Hub na stejné místo a den (`SIGMA0_ELLIPSOID`, ortorektifikace,
+`COPERNICUS_30`), porovnání pixel po pixelu v dB (VV i VH). Jemný šum = směrodatná odchylka dB po odečtení lokálního průměru 5×5.
+| varianta | posun (medián) | rozptyl rozdílu | korelace | šum vůči Kuro Siwo |
+|---|---|---|---|---|
+| bez filtru | −0,36 dB | 2,08 dB | 0,76 | 5,4× |
+| LEE 3×3 (původní předpoklad D-020/D-031) | −0,19 dB | 1,20 dB | 0,89 | 2,6× |
+| LEE 7×7 | −0,01 dB | 0,32 dB | 0,958 | 1,7× |
+| **LEE 7×7 + průměr 3×3 v lineární škále** | **0,00 dB** | **0,25 dB** | **0,976** | **0,96×** |
+Stejné v rovině i v kopcích. → **S1 se stahuje s LEE 7×7 a M1 navíc průměruje 3×3 v lineární škále** (`sentinelhub.smooth_3x3`).
+Data pak odpovídají vstupní doméně modelu bez posunu jasu; dřívější „světlé“ hodnoty u Trishuli (VV −4 dB) jsou terén, ne kalibrace.
+Kalibrace jen na povolených tréninkových datech (Kuro Siwo), ne na EMS. Cena: ~110 PU jednorázově.
+Pozn. pro M9: „Lee 3×3“ v D-020/kontraktu modelu je jméno SNAP filtru (Lee Sigma s oknem 7×7); Sen1Floods11 v tréninku byl filtrován
+Lee 3×3 (D-024), tj. výrazně zrnitější než Kuro Siwo i než naše data — zvážit stejné zpracování (LEE 7×7 + 3×3) i tam.
+**Formát raw (kontrakt, ARCHITECTURE upraveno ve stejném commitu):**
+- `raw/s1/`, `raw/s1_alt/`: `pre_YYYYMMDD.tif` (1–2), `post_YYYYMMDD.tif`; UINT16, pásma VV, VH, **dB = hodnota × 0,001 − 50, 0 = nodata**
+  (zapsáno i v GeoTIFF scales/offsets); už na referenční 10m UTM mřížce oblasti (zarovnané na násobky 10 m) → M2 nemusí převzorkovat.
+- `raw/s2/pre_YYYYMMDD.tif`, `post_YYYYMMDD.tif`: UINT16 DN, pásma B02,B03,B04,B08,B11,B12 + **SCL jako 7. pásmo**, stejná 10m mřížka;
+  odrazivost = DN × scale + offset (GeoTIFF scales/offsets, novější snímky offset −0,1). Chybí-li použitelný snímek, soubor neexistuje.
+- `raw/dem/dem.tif`: Copernicus DEM GLO-30, float32, UTM, **30 m, oblast + 5 km okraj** (pro HAND/stín i mimo oblast).
+- `osm/*.gpkg`: `osm_id` = id z ohsome (text, např. `way/123`); silnice, sídla a zařízení se stahují pro oblast **+ 15 km** (nejbližší
+  město/nemocnice bývá mimo oblast), budovy jen v oblasti; `raw/osm/osm_raw.gpkg` = vrstvy z ohsome.
+- `run.json.acquire` navíc: `grid` (referenční mřížka), `s1.processing`, `s2` (`date`, `ids`, `clear_pct`, `scale`, `offset`), `osm`
+  (`osm_snapshot_date`, počty), `pu_spent`, `warnings` (varování tohoto kroku; při novém běhu se nahradí).
+**Zdroje (bez kreditů Sentinel Hubu):** DEM z AWS Open Data (veřejné COG Copernicus DEM; Planetary Computer vrací 403), S2 L2A z AWS Open
+Data (Element 84 earth-search, COG). Stejné produkty jako u ESA/Copernicus → v souladu s pravidly. S2 výběr: před = nejjasnější v 60 dnech,
+po = první po události s ≥ 30 % jasna nad oblastí (jinak nejjasnější; pod 5 % se nepoužije, varování).
 
 ---
 

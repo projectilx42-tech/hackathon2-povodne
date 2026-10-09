@@ -23,6 +23,27 @@ python -m dashboard            # then open http://127.0.0.1:8000
 Optional: set `CARTO_API_KEY` (free key from carto.com/basemaps/apikey) for the CARTO dark base map; without it the dark style falls back to inverted OpenStreetMap tiles.
 The bundled *sample run* in History is **synthetic demo data** (`dashboard/tools/make_sample_run.py`), not a real analysis.
 
+**Pipeline dependencies:** `pip install -r requirements.txt` (Python >= 3.11).
+
+**Copernicus Data Space key (needed to download satellite data, free):**
+1. Register at https://dataspace.copernicus.eu (top right -> Register) and confirm the e-mail.
+2. Open https://shapps.dataspace.copernicus.eu/dashboard/#/account/settings -> *OAuth clients* -> *Create*; copy the client ID and
+   the secret (the secret is shown only once). If the login keeps redirecting, use a normal (not private) desktop browser window.
+3. Set them in the environment before running: `export CDSE_CLIENT_ID=...` and `export CDSE_CLIENT_SECRET=...`
+   (Windows PowerShell: `$env:CDSE_CLIENT_ID="..."`). Without them the download step stops with an explanation.
+The free tier has 10,000 processing units per month; one run for a 30x30 km area uses roughly 550.
+
+**Download all input data for an area and date (Sentinel-1, Sentinel-2, DEM, pre-event OSM):**
+```bash
+PYTHONPATH=src python -m povodne.acquire --bbox 85.15 27.95 85.23 28.03 --event-date 2026-08-26 --out runs/test
+```
+
+**Scene selection preview (no download, no login):**
+```bash
+PYTHONPATH=src python -m povodne.acquire.catalog --bbox 85.15 27.95 85.40 28.30 --event-date 2026-08-26
+```
+Shows which Sentinel-1 tracks and post-event acquisitions the pipeline would use and why (uses the public Copernicus DEM).
+
 **Pipeline CLI:**
 _TBD_ — planned: `python -m povodne run --aoi <aoi.geojson | minlon,minlat,maxlon,maxlat> --event-date YYYY-MM-DD`
 
@@ -30,6 +51,9 @@ _TBD_ — planned: `python -m povodne run --aoi <aoi.geojson | minlon,minlat,max
 This project was developed with the help of **Claude Code** (Anthropic), used as a coding assistant for project scaffolding,
 documentation and implementation. Per-module notes on which parts were AI-assisted:
 - **Dashboard (`dashboard/`)**: backend, frontend, synthetic sample-run generator and UI design discussion were developed with Claude Code.
+
+- **Scene selection (`src/povodne/acquire/`)** — Sentinel-1 catalogue search and track planning, Copernicus DEM download,
+  HAND, radar layover/shadow geometry and the main-track rule were written with Claude Code; tests in `tests/test_acquire_*.py`.
 
 - **Flood segmentation model (`training/`)** — dataset analysis, model design, data preparation, training, inference and
   evaluation code were written with Claude Code; design choices are documented in `docs/DECISIONS.md` (D-020 – D-025, D-032 – D-034).
