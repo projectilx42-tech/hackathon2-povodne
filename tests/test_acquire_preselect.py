@@ -60,26 +60,54 @@ def test_smooth_3x3_keeps_constant_and_nodata():
 
 
 # ---------- event-day pass check (D-M1-03) ----------
-from povodne.acquire.preselect import change_fraction, judge_same_day
+from povodne.acquire.preselect import change_fraction, judge_same_day, smooth_db
+
+RNG = np.random.default_rng(0)
 
 
-def test_change_fraction_counts_both_darkening_and_brightening():
-    before = np.full((30, 30), -10.0); after = before.copy()
-    after[:3] = -20.0; after[3:6] = -2.0  # water and debris
-    assert abs(change_fraction(after, before, np.ones_like(before, bool)) - 0.2) < 1e-9
+def _hist(n=4, base=-10.0):
+    return [base + RNG.normal(0, 0.3, (40, 40)) for _ in range(n)]
+
+
+def test_change_counts_new_water_and_debris_on_land():
+    hist = _hist(); new = hist[-1].copy()
+    new[:4] = -22.0; new[4:8] = 0.0  # water and debris on 20 % of the land
+    assert abs(change_fraction(new, hist, np.ones((40, 40), bool)) - 0.2) < 1e-9
+
+
+def test_sea_and_lakes_are_ignored():
+    hist = _hist(); hist = [h.copy() for h in hist]
+    for h in hist:
+        h[:20] = -22.0  # sea in the north half
+    new = hist[-1].copy(); new[:20] = -28.0  # calm sea, darker than ever
+    assert change_fraction(new, hist, np.ones((40, 40), bool)) == 0.0
+
+
+def test_too_little_history_cannot_be_judged():
+    assert change_fraction(_hist(1)[0], _hist(1), np.ones((40, 40), bool)) is None
+
+
+def test_smooth_db_keeps_constant_and_nodata():
+    x = np.full((10, 10), -12.0); x[0, 0] = np.nan
+    y = smooth_db(x)
+    assert np.isnan(y[0, 0]) and np.allclose(y[1:, 1:], -12.0, atol=1e-4)
 
 
 def test_clear_change_above_usual_variation_is_used_as_post():
-    assert judge_same_day(0.12, 0.03).use_as_post
+    assert judge_same_day(0.041, 0.004).use_as_post  # Derna-like
 
 
 def test_change_similar_to_usual_variation_is_dropped():
-    d = judge_same_day(0.05, 0.04)
+    d = judge_same_day(0.015, 0.045)  # Opava before the flood
     assert not d.use_as_post and "not clearly above" in d.reason
 
 
+def test_small_absolute_change_is_dropped_even_if_ratio_is_high():
+    assert not judge_same_day(0.0015, 0.0005).use_as_post
+
+
 def test_without_baseline_needs_a_larger_change():
-    assert judge_same_day(0.08, None).use_as_post and not judge_same_day(0.04, None).use_as_post
+    assert judge_same_day(0.08, None).use_as_post and not judge_same_day(0.03, None).use_as_post
 
 
 def test_unjudgeable_image_is_not_used():

@@ -100,15 +100,40 @@ def alt_pre(alt_dates: list[datetime], before: datetime, n_pre: int = 2) -> list
 
 # ---------- pass on the event day itself (D-M1-03) ----------
 
-CHANGE_DB = 3.0  # |dB difference| counted as a clear change of the surface (water darkens, debris brightens)
+CHANGE_DB = 3.0  # change beyond the pixel's own history range that counts as a clear surface change
+WATER_DB = -15.0  # pixels whose historical median is darker are water/sea: their changes say nothing about a flood
 
 
-def change_fraction(after_db: np.ndarray, before_db: np.ndarray, valid: np.ndarray, change_db: float = CHANGE_DB) -> float | None:
-    """Share of valid valley-floor pixels whose backscatter changed by more than `change_db` (either direction)."""
-    ok = valid & np.isfinite(after_db) & np.isfinite(before_db)
-    if ok.sum() < 300:
+def smooth_db(db: np.ndarray, k: int = 3) -> np.ndarray:
+    """k x k mean in linear power (NaN-aware): averages out radar speckle before comparing dates."""
+    from scipy.ndimage import uniform_filter
+
+    valid = np.isfinite(db)
+    lin = np.where(valid, np.power(10.0, db / 10.0), 0.0)
+    m = uniform_filter(lin, k) / np.maximum(uniform_filter(valid.astype(np.float64), k), 1e-9)
+    out = np.full(db.shape, np.nan, np.float32)
+    ok = valid & (m > 0)
+    out[ok] = 10 * np.log10(m[ok])
+    return out
+
+
+def change_fraction(new_db: np.ndarray, history_db: list[np.ndarray], valid: np.ndarray,
+                    change_db: float = CHANGE_DB, water_db: float = WATER_DB) -> float | None:
+    """Share of land pixels (valley floor, not water in history) where the new image leaves the pixel's own
+    historical range [min, max] by more than `change_db`: darker = new water, brighter = debris / destroyed surface.
+
+    Comparing with each pixel's own history (not one earlier image) ignores places that always vary (sea, wind,
+    crops); excluding historically dark pixels removes sea, lakes and rivers.
+    """
+    if len(history_db) < 2:
         return None
-    return float((np.abs(after_db[ok] - before_db[ok]) > change_db).mean())
+    hist = np.stack(history_db)
+    land = valid & np.isfinite(new_db) & np.all(np.isfinite(hist), axis=0) & (np.median(hist, axis=0) > water_db)
+    if land.sum() < 300:
+        return None
+    lo, hi = hist.min(axis=0), hist.max(axis=0)
+    changed = (new_db < lo - change_db) | (new_db > hi + change_db)
+    return float(changed[land].mean())
 
 
 @dataclass
@@ -117,22 +142,23 @@ class SameDayDecision:
     reason: str
 
 
-def judge_same_day(change: float | None, baseline: float | None, min_jump: float = 0.03, min_ratio: float = 2.0,
-                   no_baseline_min: float = 0.06) -> SameDayDecision:
+def judge_same_day(change: float | None, baseline: float | None, min_jump: float = 0.02, min_ratio: float = 3.0,
+                   no_baseline_min: float = 0.05) -> SameDayDecision:
     """Is the event-day pass clearly after the flood?
 
-    `change` = changed share between the event-day pass and the previous pass of the same track; `baseline` = the same
-    measure between the two passes before that (how much this valley changes on its own: rain, crops, noise). Only a
-    clear excess counts. Without a clear change we cannot tell "before the flood" from "flood not visible", and a
-    flood-free event-day image is worth no more than an older pre image, so it is not used at all.
+    `change` = changed share of the event-day image against the history of the same track; `baseline` = the same
+    measure for the newest earlier pass against the passes before it (how much this place changes on its own).
+    Thresholds were set on two known cases (Derna 2023, Opava 2024) and checked on Trishuli without tuning; never EMS.
+    Without a clear change we cannot tell "before the flood" from "flood not visible", and a flood-free event-day image
+    is worth no more than an older pre image, so it is then not used.
     """
     if change is None:
-        return SameDayDecision(False, "too few usable valley-floor pixels to judge the event-day image")
+        return SameDayDecision(False, "not enough earlier passes or land pixels to judge the event-day image")
     if baseline is None:
         if change >= no_baseline_min:
             return SameDayDecision(True, f"{change:.1%} of the valley floor changed (no earlier pair to compare)")
         return SameDayDecision(False, f"only {change:.1%} of the valley floor changed; flood not visible or not yet started")
     if change - baseline >= min_jump and change >= min_ratio * baseline:
-        return SameDayDecision(True, f"{change:.1%} of the valley floor changed vs {baseline:.1%} between earlier passes")
+        return SameDayDecision(True, f"{change:.1%} of the valley floor changed vs {baseline:.1%} usually")
     return SameDayDecision(False, f"change {change:.1%} is not clearly above the usual {baseline:.1%}; "
                                   "flood not visible or not yet started")

@@ -32,7 +32,7 @@ class AcquireConfig:
     s2: bool = True
     osm: bool = True
     osm_buffer_m: float = 15000
-    same_day_res_m: float = 20.0  # resolution of the event-day check (VV only; ~11 PU per image for 30x30 km)
+    same_day_res_m: float = 20.0  # event-day check: VV at 20 m, 3x3 mean; ~11 PU per image for 30x30 km (5 images)
 
 
 # ---------- run.json helpers (until the skeleton provides them) ----------
@@ -195,10 +195,10 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
         _progress(run_dir, "running", f"checking the event-day pass of track {t.relative_orbit} for flood signs")
         cgrid = utm_grid(bounds, epsg, cfg.same_day_res_m)
         usable_c = _to_grid((floor & ~track_mask(t)).astype(np.uint8), dem, cgrid) > 0
-        vv = lambda a: decode_db(fetch_s1(sh, cgrid, a.start, t.direction, cfg.speckle, bands=("VV",))[0])
-        new, p1 = vv(t.same_day), vv(t.pre_candidates[-1])
-        change = preselect.change_fraction(new, p1, usable_c)
-        baseline = preselect.change_fraction(p1, vv(t.pre_candidates[-2]), usable_c) if len(t.pre_candidates) > 1 else None
+        vv = lambda a: preselect.smooth_db(decode_db(fetch_s1(sh, cgrid, a.start, t.direction, cfg.speckle, bands=("VV",))[0]))
+        hist = [vv(a) for a in t.pre_candidates[-4:]]  # up to 4 earlier passes of the same track
+        change = preselect.change_fraction(vv(t.same_day), hist, usable_c)
+        baseline = preselect.change_fraction(hist[-1], hist[:-1], usable_c) if len(hist) >= 3 else None
         dec = preselect.judge_same_day(change, baseline)
         t.same_day_info = {"datetime": t.same_day.to_json()["datetime"], "used_as_post": dec.use_as_post, "reason": dec.reason,
                            "change_frac": None if change is None else round(change, 4),

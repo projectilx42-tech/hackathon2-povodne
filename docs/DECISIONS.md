@@ -449,11 +449,15 @@ Kontext: průlet družice v den povodně dřív program zahazoval (nevíme, zda 
 2. **Volitelná hodina povodně** `run.json.event_time` = `"HH:MM"` v místním čase oblasti (UI: Advanced → Flood time; API `POST /api/runs`
    pole `event_time`; CLI `--event-time HH:MM`). Je-li zadána, průlet v den povodně se zařadí přesně: před hodinou = kandidát na „před“
    (projde i kontrolou čistoty D-M1-01), po hodině = „po“.
-3. **Bez hodiny se průlet v den povodně zkontroluje** (`preselect.judge_same_day`): v rozlišení 20 m (jen VV, ~11 PU/snímek pro 30×30 km)
-   se na dně údolí (nízký HAND, sklon ≤ 15°, bez layover/shadow dané dráhy) spočítá podíl pixelů, které se proti předchozímu průletu téže
-   dráhy změnily o > 3 dB (ztmavnutí = voda, zesvětlení = suť), a totéž mezi dvěma staršími průlety (běžné kolísání oblasti).
-   **Použije se jako „po“, jen když je změna jasně nad běžnou** (o ≥ 3 p. b. a ≥ 2× víc; bez staršího páru ≥ 6 %). Jinak se zahodí:
-   nejde odlišit „před povodní“ od „povodeň není vidět“ a jako „před“ by mohl povodeň schovat. Prahy jsou fyzikální/relativní, neladí se na EMS.
+3. **Bez hodiny se průlet v den povodně zkontroluje** (`preselect.change_fraction` + `judge_same_day`): VV ve 20 m, průměr 3×3 (potlačí šum);
+   každý pixel souše na dně údolí (nízký HAND, sklon ≤ 15°, bez layover/shadow dané dráhy, **ne voda v historii** = medián > −15 dB) se porovná
+   s **vlastním rozsahem** z až 4 dřívějších průletů téže dráhy; změna = o > 3 dB mimo rozsah (ztmavnutí = voda, zesvětlení = suť).
+   „Běžná změna“ = totéž pro nejnovější dřívější průlet proti těm před ním. **Použije se jako „po“, jen když je změna ≥ 2 p. b. nad běžnou
+   a zároveň ≥ 3× větší** (bez běžné změny ≥ 5 %). Jinak se zahodí: nejde odlišit „před povodní“ od „povodeň není vidět“ a jako „před“ by
+   mohl povodeň schovat. Cena ~5 snímků × 11 PU pro 30×30 km.
+   **Ověřeno na 6 případech se známou odpovědí, 6/6 správně** (`tools/event_day_check/`): Derna 2023 a Opava 2024 před/po (podle nich
+   nastaveny prahy), Trishuli 2026 před/po jako nezávislá kontrola (neladěno, žádná EMS data). První verze (jen jeden předchozí snímek, bez
+   vyloučení vody, bez průměrování) měla 3/6 špatně — moře u Derny a zrnitý šum.
    Výsledek v `run.json.acquire.s1.same_day` / `acquire.s1_alt.same_day` (`datetime`, `used_as_post`, `reason`, `change_frac`, `baseline_frac`).
    Povýšený průlet se stává „po“ své dráhy a volba hlavní dráhy (D-X-01) proběhne až potom (může vyhrát jako nejdřívější).
 4. **Uživatelovo okno „po“ (`post_window`) se nově respektuje** (dřív ho krok stahování ignoroval).
