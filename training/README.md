@@ -72,6 +72,9 @@ python training/run_ai.py runs/<run_id>     # aligned/ + masks/ -> flood/ai_mask
 water suppressed on steep slopes / high HAND, both pass directions averaged (D-034). Model v0.2 = `r6_r34_lovasz`
 (test flood F1 0.775, mountainous tiles 0.53; D-M9-04); later versions keep the same files and interface.
 Speed: a 30 × 30 km area (3000 × 3000 px) takes ~30 s per pass direction on 4 CPU cores with ~2 GB RAM.
+Sensitivity (`--sensitivity` or `run.json` `"sensitivity"`): `standard` takes the most likely class; `sensitive` reports flood
+from P(flood) ≥ 0.25 (threshold chosen on validation events, stored in `model_card.json`): on validation it finds 76 % instead
+of 70 % of the flooded area, with precision 0.64 instead of 0.71 — for rescuers who prefer false alarms to missed floods.
 
 ## Files
 | file | purpose |

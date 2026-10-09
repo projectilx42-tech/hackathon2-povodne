@@ -115,7 +115,8 @@ runs/<run_id>/
     "s2": {"pre": [...], "post": [...], "max_cloud_pct": 40},
     "dem": {"source": "...", "product": "COP-DEM GLO-30"}
   },
-  "flood": {"method": "ai", "model": "models/<name>", "params": {}},
+  "sensitivity": "standard",                                  // "standard" | "sensitive" (D-M9-08); píše UI/CLI, čte M3
+  "flood": {"method": "ai", "model": "models/<name>", "params": {"sensitivity": "...", "flood_threshold": null, ...}},
   "warnings": ["S2 post scene >80 % cloud – S1 only", "..."]
 }
 ```
@@ -184,7 +185,7 @@ Pipeline spouští jako podproces `python -m povodne run ...`; průběh čte z `
 
 | Metoda + cesta | Význam |
 |---|---|
-| `POST /api/runs` | tělo `{"aoi": <GeoJSON|bbox>, "event_date": "YYYY-MM-DD", "pre_window": [from,to]?, "post_window": [from,to]?}` → `{"run_id": "..."}` |
+| `POST /api/runs` | tělo `{"aoi": <GeoJSON|bbox>, "event_date": "YYYY-MM-DD", "pre_window": [from,to]?, "post_window": [from,to]?, "sensitivity": "standard"|"sensitive"?}` → `{"run_id": "..."}` (D-M9-08) |
 | `GET /api/runs` | seznam běhů z `runs/`: `[{"run_id","event_date","created_utc","aoi_area_km2","verdict","state","mock"}]` |
 | `GET /api/runs/{run_id}` | `run.json` (+ `stats.json`, pokud existuje) |
 | `GET /api/runs/{run_id}/status` | `{"state","steps":[...],"log_tail":[...],"error"}` (z `run.json.progress`, `logs/pipeline.log`) |
@@ -246,6 +247,9 @@ inference), `model.py`. M3 tento kód **používá, nereimplementuje** (po vznik
 - **Sklon** (kanál `slope`, D-032) = `masks/slope.tif` ve stupních (z DEM na mřížce 10 m); v tréninku zaokrouhlen na celé stupně.
 - `model_card.json` obsahuje `temperature` (kalibrace z val): pravděpodobnosti = softmax(logits / T) — `infer.predict_probs(..., temperature=T)`.
 - Mapování na třídy masky (M3): model 2 flood → `ai_mask` 2, model 1 permanent water → 4, model 0 → 1; nodata/layover/shadow → 0.
+- **Citlivost (D-M9-08):** `run.json.sensitivity` = `"standard"` (nejpravděpodobnější třída, výchozí) nebo `"sensitive"`
+  (povodeň už od P(flood) ≥ `model_card.flood_thresholds.sensitive`, pro v0.2 = 0,25: najde víc zaplavené plochy, víc falešných).
+  Nastavuje UI (`POST /api/runs`) / CLI `povodne run --sensitivity standard|sensitive`; M3 (`training/run_ai.py --sensitivity`) ji čte.
 - **Terénní pravidla a spojení dvou tracků v M3 (D-034):** model se pustí zvlášť na hlavní a na `alt` track (každý pre/post ze
   stejného tracku); pixel platí v tracku, kde není layover/shadow; kde platí oba, `ai_prob` = průměr, kde jeden, ten jeden.
   Voda (2, 4) se potlačí na 1, kde `slope` > `max_water_slope_deg` (default 15) nebo `hand` > `max_water_hand_m` (default 30).

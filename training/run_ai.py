@@ -10,6 +10,8 @@ Writes: flood/ai_prob.tif (float32 P(flood)) and flood/ai_mask.tif (uint8: 0 nod
 Rules (D-034): the model runs separately per track (pre/post from the same track); a pixel counts in a track unless it is in
 layover/shadow or has no data; where both tracks are valid their probabilities are averaged. Water is suppressed (-> 1) on
 slopes > max_water_slope_deg or HAND > max_water_hand_m. No valid track -> 0.
+Sensitivity (D-M9-08): "standard" takes the most likely class; "sensitive" calls flood from P(flood) >= the threshold in
+model_card.json (flood_thresholds.sensitive), which finds more of the flooded area at the cost of more false alarms.
 """
 
 from __future__ import annotations
@@ -30,6 +32,7 @@ from floodseg.infer import load_model, predict_probs  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MODEL = ROOT / "models" / "floodseg_v0.2" / "model.pt"
+SENSITIVE_DEFAULT = 0.25  # used when the model card has no flood_thresholds (chosen on Kuro Siwo val for v0.2, D-M9-08)
 
 
 def _read(path: Path) -> tuple[np.ndarray, dict] | tuple[None, None]:
@@ -67,6 +70,10 @@ def main() -> None:
     ap.add_argument("--max-water-slope-deg", type=float, default=15.0)
     ap.add_argument("--max-water-hand-m", type=float, default=30.0)
     ap.add_argument("--device", default="cpu")
+    ap.add_argument("--sensitivity", choices=["standard", "sensitive"], default=None,
+                    help="standard = most likely class; sensitive = flood already from P(flood) >= the model's "
+                         "'sensitive' threshold (finds more flood, more false alarms; D-M9-08). Default: run.json "
+                         "'sensitivity', else standard")
     args = ap.parse_args()
     t0 = time.time()
     run = args.run_dir
@@ -94,7 +101,14 @@ def main() -> None:
     any_valid = count > 0
     probs = acc / np.maximum(count, 1)
 
+    run_json = run / "run.json"
+    meta = json.loads(run_json.read_text()) if run_json.exists() else {}
+    sensitivity = args.sensitivity or meta.get("sensitivity") or "standard"
+    threshold = None
     cls = probs.argmax(0)  # 0 no water, 1 permanent, 2 flood (model classes)
+    if sensitivity == "sensitive":
+        threshold = cfg.get("flood_thresholds", {}).get("sensitive", SENSITIVE_DEFAULT)
+        cls = np.where(probs[2] >= threshold, 2, probs[:2].argmax(0))
     mask = np.ones(slope.shape, np.uint8)
     mask[cls == 2] = 2
     mask[cls == 1] = 4
@@ -114,10 +128,9 @@ def main() -> None:
     with rasterio.open(out / "ai_mask.tif", "w", **{**prof, "dtype": "uint8", "nodata": 0}) as w:
         w.write(mask, 1)
 
-    run_json = run / "run.json"
-    meta = json.loads(run_json.read_text()) if run_json.exists() else {}
     meta["flood"] = {**meta.get("flood", {}), "method": "ai", "model": str(args.model),
-                     "params": {"tracks": used, "max_water_slope_deg": args.max_water_slope_deg,
+                     "params": {"tracks": used, "sensitivity": sensitivity, "flood_threshold": threshold,
+                                "max_water_slope_deg": args.max_water_slope_deg,
                                 "max_water_hand_m": args.max_water_hand_m, "temperature": cfg.get("temperature", 1.0)}}
     run_json.write_text(json.dumps(meta, indent=2))
     px = mask.size

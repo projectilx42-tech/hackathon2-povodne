@@ -388,6 +388,18 @@ Test v0.3: F1 povodně 0,781 (v0.2: 0,775; pravidlo ≥ 0,765 ✓), ale F1 povod
 pravidlo ≥ 0,51 ✗). Rozdíly jsou v rozsahu šumu (D-M9-06), ale pravidlo bylo dané předem → **finální model zůstává v0.2**.
 v0.3 je uložený jako výstup kernelu `floodseg-r8` (není publikovaný v `floodseg-model`).
 
+## D-M9-08 | 2026-10-09 | přijato (rozhodnutí uživatele: „ten přepínač citlivosti tam dáme“)
+**Přepínač citlivosti detekce povodně: „standard“ / „sensitive“.**
+Kontext: model je opatrný (test v0.2: precision 0,87, recall 0,70); pro záchranáře může být lepší najít víc zaplavené plochy
+za cenu víc falešných poplachů. Volí uživatel v UI.
+- `standard` (výchozí) = nejpravděpodobnější třída (jako dosud). `sensitive` = povodeň, když P(flood) ≥ práh, jinak
+  nejpravděpodobnější z (bez vody, trvalá voda). Terénní pravidla a stín (D-034) platí v obou režimech.
+- **Práh 0,25 vybrán na Kuro Siwo val** (ne na testu, ne na EMS — D-006): v0.2 val recall povodně 0,70 → 0,76, precision 0,71 → 0,64,
+  F1 0,713 → 0,698, val score 0,612 → 0,628. Uložen v `model_card.json` → `flood_thresholds.sensitive` (každý model má svůj).
+- **Kontrakt:** `run.json.sensitivity`, pole `sensitivity` v `POST /api/runs`, CLI `povodne run --sensitivity`, `run.json.flood.params`
+  `sensitivity` + `flood_threshold`. Implementováno v M3 (`training/run_ai.py --sensitivity`, test). **Zbývá M8 (přepínač v UI
+  + předání v `POST /api/runs`) a skeleton (CLI flag → `run.json`)** — oznámeno v PROGRESS.
+
 ---
 
 # Otevřené otázky (k rozhodnutí)

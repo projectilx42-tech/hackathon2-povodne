@@ -20,6 +20,9 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
   7. `flood_polygons.geojson`: `class` = `"water"` / `"debris"` (text).
   8. **Otázky na organizátory jen v `docs/QUESTIONS.md`** (5 odesláno, čeká se). Do odpovědi: ImageNet nechat, Sentinel Hub nechat, **JRC nepoužívat**.
 
+- **2026-10-09 — M9: přepínač citlivosti (D-M9-08), změna kontraktu:** `run.json.sensitivity` = `"standard"|"sensitive"`.
+  **M8:** přepínač v UI + pole `sensitivity` v `POST /api/runs`. **Skeleton:** `povodne run --sensitivity` → `run.json`.
+  M3 (`training/run_ai.py`) už ho čte; práh je v `model_card.json` (`flood_thresholds.sensitive`, v0.2 = 0,25).
 - **2026-10-08 (noc) — M9: model v0.2 (D-M9-04)** nahradil v0.1: stejné rozhraní, `fetch_model.py` → `models/floodseg_v0.2/`,
   `run_ai.py` ho bere jako výchozí. Lepší v horách (test F1 0,53 vs 0,49), celkově stejný (F1 0,775).
 - **2026-10-08 — M9: model v0.1 k dispozici pro propojení:** `python training/fetch_model.py` → `models/floodseg_v0.1/`

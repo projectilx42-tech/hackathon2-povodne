@@ -65,6 +65,18 @@ def test_run_ai_outputs():
         assert np.isnan(prob[mask == 0]).all() and np.nanmax(prob) <= 1.0
         meta = json.loads((run / "run.json").read_text())
         assert meta["flood"]["method"] == "ai" and meta["flood"]["params"]["tracks"] == ["s1"]
+        assert meta["flood"]["params"]["sensitivity"] == "standard"
+
+        # sensitive mode (D-M9-08): flood from a lower probability -> at least as much flood, same rules
+        n_std = int((mask == 2).sum())
+        subprocess.run([sys.executable, str(ROOT / "run_ai.py"), str(run), "--model", str(tmp / "model.pt"),
+                        "--sensitivity", "sensitive"], check=True)
+        with rasterio.open(run / "flood" / "ai_mask.tif") as r:
+            mask_s = r.read(1)
+        assert int((mask_s == 2).sum()) >= n_std
+        assert not np.isin(mask_s[:, -20:], (2, 4)).any() and (mask_s[-10:, :10] == 0).all()
+        params = json.loads((run / "run.json").read_text())["flood"]["params"]
+        assert params["sensitivity"] == "sensitive" and params["flood_threshold"] == 0.25
 
 
 if __name__ == "__main__":
