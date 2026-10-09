@@ -77,8 +77,8 @@ Obtížnost a čas = odhad uživatele.
 | 0 Skeleton (pyproject, CLI, config, io/grid) | ⬜ | `feat/skeleton` | |
 | M1 Acquire (S1/S2/DEM/OSM) | 🟨 | `claude/nice-fermi-i7qzk8` | celý krok hotový (`python -m povodne.acquire`): katalog, hlavní dráha (D-X-01), DEM, kontrola čistoty pre (D-M1-01), S1 obě dráhy kalibrované (D-M1-02), S2, OSM; **OSM neotestováno (ohsome v údržbě)** |
 | M2 Preprocess | ⬜ | `feat/preprocess` | požadavky z M9: D-033 (layover/shadow maska pro oba tracky, slope, HAND) |
-| M9 AI trénink | ✅ | `claude/relaxed-johnson-wwj9s8` | v0.2 (`floodseg-model`), D-M9-01–07; zbývá himálajský test s reálným vstupem z M1/M2 |
-| M3 AI inference (voda) | 🟨 | `claude/relaxed-johnson-wwj9s8` | `training/run_ai.py` funguje dle kontraktu (+ test); přesun do `src/povodne/flood/` až bude skeleton |
+| M9 AI trénink | ✅ | `claude/relaxed-johnson-wwj9s8` | v0.2 (`floodseg-model`), D-M9-01–11; optický model S2 a kolo 10 rozpracované; **předání: `docs/HANDOFF_M9.md`** |
+| M3 AI inference (voda) | 🟨 | `claude/relaxed-johnson-wwj9s8` | `training/run_ai.py` (+ testy): dva směry, stín z obou směrů, optika S2, min. plocha, dvoustupňový práh (D-M9-11); přesun do `src/povodne/flood/` až bude skeleton |
 | M3d Suť a bahno | ⬜ | `feat/debris` | |
 | M4 Damage | ⬜ | `feat/damage` | |
 | M5 Network / cut-off | ⬜ | `feat/network` | |
@@ -93,6 +93,15 @@ Obtížnost a čas = odhad uživatele.
 4. Účty (CDSE, Kaggle…) zakládá uživatel až v příslušných sessions (D-011); údaje jen jako env proměnné prostředí, nikdy do repa.
 
 ## Log sessions
+### 2026-10-09 (den) — M9/M3 vylepšení modelu — `claude/relaxed-johnson-wwj9s8`
+- **Podrobné předání pro další session: `docs/HANDOFF_M9.md`.**
+- Sen1Floods11 přefiltrován Lee 7×7 (zrnitost = Kuro Siwo, D-M9-09); kolo 9 nenasazeno podle předem daného pravidla (hory 0,47 < 0,51, D-M9-10) → dál v0.2.
+- Průzkum literatury (2 agenti) + brainstorm: model je blízko maxima datasetu; foundation modely ani větší sítě nepomáhají; model soup rozbil model.
+- Hotovo v AI kroku (D-M9-11): stín z obou směrů přeletu (pravidlo GFM), spojení s optickým modelem Sentinel-2, min. plocha 10 px,
+  dvoustupňový práh v režimu sensitive (změřeno na val: F1 0,708 → 0,714 při stejném recallu).
+- Rozpracováno: optický model (`training/train_s2.py`, trénink na CPU v kontejneru — v nové session pustit znovu), kolo 10 na Kaggle
+  (méně výřezů bez vody, `floodseg-r10`).
+- Blokuje himálajský test se skutečnou pipeline: chybí CDSE klíč v této session a modul předzpracování (M2).
 ### 2026-10-09 — master: sloučení modelu, satelitů a UI — `claude/gallant-keller-vftpi2`
 - Sloučeny `claude/relaxed-johnson-wwj9s8` (model v0.2, citlivost, AI krok), `claude/nice-fermi-i7qzk8` (stahování dat, kalibrace S1), `ccr-d89d3cfb-ywooc4` (UI chybový detail).
 - Konflikty jen polohové (DECISIONS, PROGRESS), čísla rozhodnutí se zkratkou modulu nekolidovala. `check_docs` OK, `pytest tests training/tests`: 33 passed.
