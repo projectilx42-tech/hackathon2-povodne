@@ -8,6 +8,8 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-09 — M9: optický model vody v0.1 hotový** (test Bolívie F1 0,885): `python training/fetch_model.py` teď stáhne radarový i optický model
+  (`models/floodseg_s2_v0.1/`); `run_ai.py` ho použije, když M2 dodá `aligned/s2_*.tif` + `masks/s2_*_valid.tif`.
 - **2026-10-09 — M3/M9: optika + stín z obou směrů (D-M9-11), změna kontraktu:** AI krok (`training/run_ai.py`) teď čte i `aligned/s2_pre|post.tif`
   a `masks/s2_*_valid.tif` (**M2 je musí dodat podle kontraktu**) a optický model `models/floodseg_s2_*`; pixel je vyhodnocený, když platí radar
   nebo je jasno. Nová pole `run.json.flood.params` (`s2`, `cross_shadow_px`, `min_flood_px`). Bez optiky běží dál jen radar.

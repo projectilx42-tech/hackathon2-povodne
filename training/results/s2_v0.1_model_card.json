@@ -1,0 +1,126 @@
+{
+ "arch": "Unet",
+ "encoder": "resnet18",
+ "in_channels": 8,
+ "num_classes": 2,
+ "inputs": [
+  "B03",
+  "B04",
+  "B08",
+  "B11",
+  "B12",
+  "ndwi",
+  "mndwi",
+  "ndvi"
+ ],
+ "bands": [
+  "B03",
+  "B04",
+  "B08",
+  "B11",
+  "B12"
+ ],
+ "normalization": {
+  "B03": [
+   0.13590869307518005,
+   0.07289556413888931
+  ],
+  "B04": [
+   0.12249758094549179,
+   0.08819084614515305
+  ],
+  "B08": [
+   0.2609749436378479,
+   0.09958051145076752
+  ],
+  "B11": [
+   0.2033354789018631,
+   0.09944488108158112
+  ],
+  "B12": [
+   0.11746115237474442,
+   0.07814916968345642
+  ],
+  "ndwi": [
+   -0.29914137721061707,
+   0.21999746561050415
+  ],
+  "mndwi": [
+   -0.16221465170383453,
+   0.2715001106262207
+  ],
+  "ndvi": [
+   0.36426398158073425,
+   0.2706913352012634
+  ]
+ },
+ "temperature": 1.1500000000000006,
+ "classes": {
+  "0": "no water",
+  "1": "water"
+ },
+ "input_units": "Sentinel-2 reflectance 0-1 (trained on L1C, augmented to cover L2A)",
+ "trained_on": "Sen1Floods11 hand-labelled S2 chips (Bonafilia et al., 2020), events except ['Bolivia', 'Ghana', 'Sri-Lanka']",
+ "split_events": {
+  "train": [
+   "India",
+   "Mekong",
+   "Nigeria",
+   "Pakistan",
+   "Paraguay",
+   "Somalia",
+   "Spain",
+   "USA"
+  ],
+  "val": [
+   "Ghana"
+  ],
+  "test": [
+   "Bolivia"
+  ],
+  "excluded": [
+   "Sri-Lanka"
+  ]
+ },
+ "val_metrics": {
+  "overall": {
+   "iou": 0.7088621158755893,
+   "precision": 0.8732998777461674,
+   "recall": 0.7901206145665284,
+   "f1": 0.8296305585923548,
+   "water_px": 577708,
+   "px": 9188721
+  },
+  "per_event": {
+   "Ghana": {
+    "iou": 0.7088621158755893,
+    "precision": 0.8732998777461674,
+    "recall": 0.7901206145665284,
+    "f1": 0.8296305585923548,
+    "water_px": 577708,
+    "px": 9188721
+   }
+  }
+ },
+ "license_notes": "Sen1Floods11: CC BY 4.0 (mirrors); ImageNet-pretrained encoder",
+ "test_metrics": {
+  "overall": {
+   "iou": 0.7943439530244891,
+   "precision": 0.8990382544874279,
+   "recall": 0.8721431367116552,
+   "f1": 0.8853864964803075,
+   "water_px": 454782,
+   "px": 2867455
+  },
+  "per_event": {
+   "Bolivia": {
+    "iou": 0.7943439530244891,
+    "precision": 0.8990382544874279,
+    "recall": 0.8721431367116552,
+    "f1": 0.8853864964803075,
+    "water_px": 454782,
+    "px": 2867455
+   }
+  }
+ }
+}

@@ -54,6 +54,16 @@ precision 0.12 → 0.18, no recall lost).
 no false flood on dry land in any of the three valleys (0.00 %), but narrow, fast mountain rivers are mostly not seen
 as water by radar (water recall 0.15–0.20 where labelled) — see the next section.
 
+## Sentinel-2 water model (optional second model)
+Where the sky is clear, an optical model adds water the radar misses (narrow mountain rivers, radar shadow).
+U-Net (ResNet18), inputs Sentinel-2 B03, B04, B08, B11, B12 + NDWI, MNDWI, NDVI (`floodseg/s2.py`), trained on the Sen1Floods11
+hand-labelled Sentinel-2 chips with an event split fixed in advance: validation Ghana, **test Bolivia (water IoU 0.794, precision
+0.899, recall 0.872, F1 0.885)**, Sri Lanka excluded. Training data are top-of-atmosphere (L1C) images, the pipeline reads surface
+reflectance (L2A): blue is not used and training randomly shifts each band by the size of that difference. On real L2A Himalayan
+images it agrees with a water index (Teesta: IoU 0.86) — a plausibility check, not an independent score.
+`python training/train_s2.py --src data/sen1floods11/v1.1 --out models/floodseg_s2_v0.1 --test` (~80 min on 4 CPU cores).
+In the pipeline (`run_ai.py`), optical water is a flood where the pixel was dry before the event, otherwise permanent water.
+
 ## Known limitation
 - In steep terrain radar shadow and dark back-slopes look like water: on mountainous tiles about half of the predicted
   flood is false. The pipeline masks layover/shadow, suppresses water on slopes > 15° and high above the river (HAND), and
@@ -86,10 +96,12 @@ of 70 % of the flooded area, with precision 0.64 instead of 0.71 — for rescuer
 | `floodseg/metrics.py` | IoU / precision / recall / F1 overall and per flood event |
 | `floodseg/infer.py` | load a checkpoint, sliding-window prediction over a whole area |
 | `train.py` | training loop, checkpoint selection on validation events, test evaluation, `model_card.json` |
-| `fetch_model.py` | downloads the current model weights (not in git) |
+| `fetch_model.py` | downloads the current model weights (radar and optical; not in git) |
 | `run_ai.py` | pipeline step M3 (interim): run directory -> `flood/ai_mask.tif`, `flood/ai_prob.tif` |
 | `evaluate.py` | one-off evaluation of a checkpoint on the held-out test events (optionally with flip TTA) |
 | `prepare_sen1floods11.py` | converts Sen1Floods11 chips to the same compact tile format |
+| `train_s2.py`, `floodseg/s2.py` | Sentinel-2 water model: training and its single input definition |
+| `eval_postprocess.py` | measures map clean-up rules (min. patch size, two-stage threshold) on validation events |
 | `build_cache.py` | memory-mapped tile cache shared by parallel training runs |
 | `kaggle/` | runs experiment lists on Kaggle GPUs (`push_kernel.py`, `round*.json`) |
 | `results/` | small per-run metric files (history, validation metrics, model cards) |

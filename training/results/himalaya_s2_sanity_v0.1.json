@@ -1,0 +1,32 @@
+{
+ "chamoli_2021": {
+  "s2_item": "S2B_MSIL2A_20210210T051939_R062_T44RLU_20210211T211237",
+  "processing_baseline": 2.12,
+  "usable_px": 1050169,
+  "index_water_px": 2085,
+  "model_water_px": 348,
+  "agreement_iou": 0.05782608695652174,
+  "model_water_where_index_dry_pct": 0.020513622953885376,
+  "index_water_found_pct": 6.378896882494005
+ },
+ "teesta_2023": {
+  "s2_item": "S2B_MSIL2A_20231016T043749_R033_T45RXK_20231016T103411",
+  "processing_baseline": 5.09,
+  "usable_px": 2061412,
+  "index_water_px": 14841,
+  "model_water_px": 14315,
+  "agreement_iou": 0.8631222442328583,
+  "model_water_where_index_dry_pct": 0.03948067279366316,
+  "index_water_found_pct": 91.01138737281855
+ },
+ "marsyangdi_2024_noflood": {
+  "s2_item": "S2B_MSIL2A_20240120T050129_R119_T45RTM_20240120T092151",
+  "processing_baseline": 5.1,
+  "usable_px": 4599704,
+  "index_water_px": 3397,
+  "model_water_px": 8553,
+  "agreement_iou": 0.31723985890652556,
+  "model_water_where_index_dry_pct": 0.12346868910192466,
+  "index_water_found_pct": 84.72181336473359
+ }
+}

@@ -15,8 +15,8 @@ od A do Z bude plně funkční a co nejschopnější“). Uživatel spouští v�
 | Přepínač citlivosti standard / sensitive | ✅ v M3; **UI a CLI skeleton ho ještě nemají** | D-M9-08 |
 | Pravidlo stínu z obou směrů přeletu | ✅ v `run_ai.py` | D-M9-11 bod 1 |
 | Minimální plocha povodně 10 px + dvoustupňový práh v režimu sensitive | ✅ změřeno na val | D-M9-11 bod 4 |
-| Optický model vody (Sentinel-2) | 🟨 **trénink běžel v kontejneru předchozí session** — viz kap. 6 | `training/train_s2.py`, `training/floodseg/s2.py` |
-| Spojení radar + optika v pipeline | ✅ kód + test; čeká na natrénovaný optický model | `run_ai.py` |
+| Optický model vody (Sentinel-2) **v0.1** | ✅ test Bolívie IoU 0,794 / F1 0,885; zveřejněn | Kaggle `floodseg-model-s2`, `fetch_model.py` → `models/floodseg_s2_v0.1/` |
+| Spojení radar + optika v pipeline | ✅ kód + test + model | `run_ai.py` |
 | Kolo 10 (méně výřezů bez vody) | ❌ hotovo, horší než v0.2 → nenasazeno | D-M9-12 |
 | Himálajská evaluace | 🟨 jen předběžně (proxy radar z Planetary Computer) | `training/himalaya/` |
 
@@ -82,7 +82,8 @@ Rychlost: ~30 s na 30×30 km a směr přeletu, ~2 GB RAM, CPU. Testy: `python -m
   (U-Net R18, 30 epoch × 60 kroků, výřezy 256, CE + Dice; na 4 CPU ~160 s/epochu ≈ 1,5 h; na GPU minuty).
   Výběr epochy podle val IoU vody, teplota z val, test Bolívie jednou na konci → `model_card.json` (`val_metrics`, `test_metrics`).
 - **Himálajská sada se na optický model použít nedá** (popisky jsou z S2 → kruhové). Hodnotí se jen Bolívií.
-- Průběh v předchozí session (val Ghana, IoU vody): epocha 4 → 0,646, 5 → 0,689, 6 → 0,650 (pokračovalo).
+- Výsledek v0.1: val Ghana IoU 0,709, test Bolívie IoU 0,794 / F1 0,885; kontrola na L2A (`training/himalaya/s2_sanity.py`) v D-M9-11 bod 5.
+- Slabina: v zimě v horách tmavá místa ve stínu → trocha falešné vody (0,12 % suché plochy v Marsyangdi); pipeline ji z velké části odfiltruje HAND.
 
 ---
 
@@ -109,7 +110,7 @@ Rychlost: ~30 s na 30×30 km a směr přeletu, ~2 GB RAM, CPU. Testy: `python -m
    (vzor D-M9-09: druhý seed, pak test jednou, F1 povodně ≥ 0,765 a hory ≥ 0,51 — zvážit, jestli horské kritérium nechat, protože kolísá).
    Při nasazení: nahrát do `floodseg-model` jako novou verzi (`kaggle datasets version`), aktualizovat `fetch_model.py`/`run_ai.py` výchozí cestu,
    `model_card.json` doplnit `flood_thresholds.sensitive` (vybrat na val přes `eval_ensemble.py --flood-thresholds`).
-2. **Optický model:** trénink běžel v kontejneru předchozí session (`models/floodseg_s2_v0.1/`, log `models/s2_train.log`) — **kontejner se
+2. ~~Optický model~~ **HOTOVO (D-M9-11 bod 5), váhy na Kaggle `floodseg-model-s2`.** Původní text: trénink běžel v kontejneru předchozí session (`models/floodseg_s2_v0.1/`, log `models/s2_train.log`) — **kontejner se
    maže, v nové session ho pusť znovu** (příkaz v kap. 4; nejdřív stáhnout S2Hand + LabelHand, `pip install scipy pytest`).
    Pak: zapsat val/test výsledky do D-M9-11, **zveřejnit váhy** (nový Kaggle dataset např. `floodseg-model-s2`) a rozšířit `fetch_model.py`,
    aby stáhl i optický model do `models/floodseg_s2_v0.1/`. Bez toho pipeline běží jen s radarem (s hláškou v `run.json.flood.params.s2.reason`).

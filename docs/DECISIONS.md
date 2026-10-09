@@ -473,7 +473,15 @@ je to malý vzorek z několika eventů. Pro report: celkové metriky modelu se z
    → **minimální plocha 10 px (0,1 ha)** jako výchozí (čísla beze změny, mapa bez teček; víc už ubírá score) a **režim sensitive =
    dvoustupňový práh** (stejný recall, vyšší precision i F1 než prostý práh). Výřezy mají 224 px, takže plochy na okrajích vypadají menší
    než v celé oblasti — na skutečné mapě je efekt minimální plochy spíš menší.
-Kontrakt (ARCHITECTURE.md, sekce AI model) upraven ve stejném commitu. Výsledky optického modelu se doplní sem.
+5. **Výsledky optického modelu v0.1** (`models/floodseg_s2_v0.1`, U-Net R18, 30 epoch na CPU ~80 min; výběr epochy podle val; teplota 1,15):
+   val Ghana IoU vody 0,709 (F1 0,830); **test Bolívie jednorázově: IoU 0,794, precision 0,899, recall 0,872, F1 0,885**.
+   Pro srovnání (literatura, Bolívie): U-Net baseline IoU ~0,71, Prithvi ~0,80. Val kolísá mezi epochami 0,62–0,71 (jedna povodeň).
+   **Kontrola na skutečných L2A snímcích** (`training/himalaya/s2_sanity.py`, NE nezávislá metrika — popisky z vodního indexu téhož snímku),
+   s pravidlem svahu: Teesta shoda IoU 0,86 (najde 91 % vody z indexu, navíc 0,04 % suché plochy); Marsyangdi (bez povodně) IoU 0,32,
+   navíc 0,12 % suché plochy (~0,6 km² na 460 km², hlavně tmavá místa ve stínu hor v zimě; v pipeline je odfiltruje HAND, a co bylo
+   „voda“ i na snímku před, jde do trvalé vody, ne do povodně); Chamoli najde jen 6 % (kalná voda v hluboké soutěsce, index i model slabé).
+   → přechod L1C → L2A model nerozbil. Váhy: Kaggle dataset `krataihalfmaster/floodseg-model-s2`, `python training/fetch_model.py` stáhne oba modely.
+Kontrakt (ARCHITECTURE.md, sekce AI model) upraven ve stejném commitu jako bod 1–4.
 
 ## D-M9-12 | 2026-10-09 | přijato (M9) — trénink s méně výřezy bez vody nepomáhá (kolo 10)
 Podnět: autoři Kuro Siwo trénují jen na výřezech s vodou; náš trénink má 54 % výřezů bez vody a model je opatrný (recall 0,70).
