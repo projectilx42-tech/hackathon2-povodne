@@ -400,11 +400,11 @@ za cenu víc falešných poplachů. Volí uživatel v UI.
   `sensitivity` + `flood_threshold`. Implementováno v M3 (`training/run_ai.py --sensitivity`, test). **Zbývá M8 (přepínač v UI
   + předání v `POST /api/runs`) a skeleton (CLI flag → `run.json`)** — oznámeno v PROGRESS.
 
-## D-M9-09 | 2026-10-09 | přijato (uživatel: „dokážeš to vyřešit?“ po kalibraci S1 v M1)
+## D-M9-09 | 2026-10-09 | přijato (uživatel: „dokážeš to vyřešit?“ po kalibraci S1, D-M1-02)
 **Sen1Floods11 v tréninku filtrovat Lee 7×7 místo 3×3 (stejná zrnitost jako Kuro Siwo a data pipeline).**
 Kontext: kalibrace S1 v M1 (D-M1-02) ukázala, že Kuro Siwo („Lee Sigma“ ze SNAP) je hladší, než jsme předpokládali; pipeline teď dává 0,96×
 zrnitosti Kuro Siwo. Sen1Floods11 (D-024) jsme filtrovali Lee 3×3 → v tréninku byl zrnitější než zbytek dat i než nasazení.
-Změřeno stejnou metrikou jako kalibrace M1 (sm. odch. dB po odečtení lokálního průměru 5×5; Kuro Siwo train 0,36 dB):
+Změřeno stejnou metrikou jako D-M1-02 (sm. odch. dB po odečtení lokálního průměru 5×5; Kuro Siwo train 0,36 dB):
 Sen1Floods11 bez filtru 4,3×, Lee 3×3 2,2×, Lee 5×5 1,3×, **Lee 7×7 1,0×** (náš numpy Lee; Sentinel Hub „LEE 7×7“ je jiná implementace,
 proto M1 potřebuje navíc průměr 3×3). → `prepare_sen1floods11.py` používá Lee 7×7, Kaggle dataset `floodseg-sen1floods11` nová verze.
 Přetrénování receptu v0.2 (kolo 9, seedy 42 a 1). **Pravidlo nasazení (stanoveno před výsledky):** změna je kvůli shodě s daty
