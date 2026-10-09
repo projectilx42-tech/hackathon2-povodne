@@ -154,6 +154,11 @@ Obtížnost a čas = odhad uživatele.
   **Trishuli 6,3 % ztmavnutí / 0,4 % zesvětlení** (povrch ztmavl, ale ne na úroveň vody: mokré bahno/nánosy nebo voda smíchaná v pixelu);
   **Opava 0,5 % / 13,6 %** (zaplavené město a vegetace radar zesvětlí — „dvojitý odraz“ voda + stěny/kmeny); Derna 0,9 % / 3,2 %.
   → Důležité pro M3d (suť) i M3: povodeň se neprojevuje jen jako tmavá voda; podnět pro ně, M1 to jen změřil.
+- **⚠️ NUTNO JEŠTĚ OVĚŘIT (uživatel 2026-10-09):** kontrola průletu v den povodně (v2) je ověřená jen offline nad uloženými daty
+  (6 případů, funkce stejné jako v programu). **Celý běh `python -m povodne.acquire` s v2 naostro neproběhl** (živě jen chybná v1) →
+  pustit na Derně 2023-09-12, Derně 2023-08-31 a Trishuli 2026-08-28 (`tools/event_day_check/`, ~100 PU, ~15 min) a zkontrolovat
+  `run.json.acquire.s1.same_day`. Dál: jen 6 případů (prahy z Derny a Opavy, nezávislá kontrola jen Trishuli) → ověřit na jiném typu
+  krajiny (poušť, rýžová pole/nížina v monzunu); stahování OSM neotestováno (ohsome byl v údržbě).
 
 ### 2026-10-08 — master: sloučení sessions do `main` — `claude/gallant-keller-vftpi2`
 - Sloučeny větve `claude/relaxed-johnson-wwj9s8` (M9), `ccr-d89d3cfb-ywooc4` (M8 UI), `claude/nice-fermi-i7qzk8` (satelity) do `main`.
