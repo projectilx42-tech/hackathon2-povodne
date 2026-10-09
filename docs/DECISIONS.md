@@ -441,6 +441,13 @@ Lee 3×3 (D-024), tj. výrazně zrnitější než Kuro Siwo i než naše data �
 Data (Element 84 earth-search, COG). Stejné produkty jako u ESA/Copernicus → v souladu s pravidly. S2 výběr: před = nejjasnější v 60 dnech,
 po = první po události s ≥ 30 % jasna nad oblastí (jinak nejjasnější; pod 5 % se nepoužije, varování).
 
+## D-M9-10 | 2026-10-09 | přijato (M9) — model z kola 9 (Sen1Floods11 Lee 7×7) nenasazen podle pravidla D-M9-09
+Val: seed 42 0,613, seed 1 0,607 (průměr 0,610 ≥ 0,601 ✓). Test seedu 42 (jednorázově): F1 povodně 0,777 (v0.2: 0,775 ✓),
+precision 0,866, recall 0,705; rovina 0,774, kopce 0,823, **hory 0,468** (v0.2: 0,530; pravidlo ≥ 0,51 ✗) → **zůstává v0.2**.
+Horský podtest kolísá mezi modely se stejným receptem o víc, než ukazuje val (v0.1 0,49, v0.2 0,53, v0.3 0,51, kolo 9 0,47) —
+je to malý vzorek z několika eventů. Pro report: celkové metriky modelu se změnou filtru nezměnily; zrnitost Sen1Floods11
+(2,2× vs 1,0×) na Kuro Siwo test nemá měřitelný vliv. Výstup kernelu `floodseg-r9`, metriky v `training/results/r9_*`.
+
 ---
 
 # Otevřené otázky (k rozhodnutí)
