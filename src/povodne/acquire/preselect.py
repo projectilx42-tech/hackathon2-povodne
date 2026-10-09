@@ -96,3 +96,43 @@ def choose_pre(dates: list[datetime], fractions: list[float | None], n_pre: int 
 def alt_pre(alt_dates: list[datetime], before: datetime, n_pre: int = 2) -> list[int]:
     """Pre passes of the alt track: the latest ones before `before` (the rise date, else the event date)."""
     return [i for i, d in enumerate(alt_dates) if d < before][-n_pre:]
+
+
+# ---------- pass on the event day itself (D-M1-03) ----------
+
+CHANGE_DB = 3.0  # |dB difference| counted as a clear change of the surface (water darkens, debris brightens)
+
+
+def change_fraction(after_db: np.ndarray, before_db: np.ndarray, valid: np.ndarray, change_db: float = CHANGE_DB) -> float | None:
+    """Share of valid valley-floor pixels whose backscatter changed by more than `change_db` (either direction)."""
+    ok = valid & np.isfinite(after_db) & np.isfinite(before_db)
+    if ok.sum() < 300:
+        return None
+    return float((np.abs(after_db[ok] - before_db[ok]) > change_db).mean())
+
+
+@dataclass
+class SameDayDecision:
+    use_as_post: bool
+    reason: str
+
+
+def judge_same_day(change: float | None, baseline: float | None, min_jump: float = 0.03, min_ratio: float = 2.0,
+                   no_baseline_min: float = 0.06) -> SameDayDecision:
+    """Is the event-day pass clearly after the flood?
+
+    `change` = changed share between the event-day pass and the previous pass of the same track; `baseline` = the same
+    measure between the two passes before that (how much this valley changes on its own: rain, crops, noise). Only a
+    clear excess counts. Without a clear change we cannot tell "before the flood" from "flood not visible", and a
+    flood-free event-day image is worth no more than an older pre image, so it is not used at all.
+    """
+    if change is None:
+        return SameDayDecision(False, "too few usable valley-floor pixels to judge the event-day image")
+    if baseline is None:
+        if change >= no_baseline_min:
+            return SameDayDecision(True, f"{change:.1%} of the valley floor changed (no earlier pair to compare)")
+        return SameDayDecision(False, f"only {change:.1%} of the valley floor changed; flood not visible or not yet started")
+    if change - baseline >= min_jump and change >= min_ratio * baseline:
+        return SameDayDecision(True, f"{change:.1%} of the valley floor changed vs {baseline:.1%} between earlier passes")
+    return SameDayDecision(False, f"change {change:.1%} is not clearly above the usual {baseline:.1%}; "
+                                  "flood not visible or not yet started")

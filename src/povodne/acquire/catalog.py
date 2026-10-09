@@ -18,6 +18,7 @@ import math
 import time
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
+from datetime import time as time_of_day
 
 import requests
 from shapely.geometry import box, shape
@@ -69,6 +70,8 @@ class TrackPlan:
     direction: str
     post: Acquisition | None
     pre_candidates: list[Acquisition]  # oldest first, all earlier than the event date
+    same_day: Acquisition | None = None  # pass on the event day itself (local time) whose timing vs the flood is unknown
+    same_day_info: dict | None = None  # result of the same-day check (pipeline)
 
     @property
     def key(self) -> tuple[int, str]:
@@ -119,6 +122,28 @@ def track_geometry(footprint: BaseGeometry, direction: str, point) -> TrackGeome
     proj = sorted(((e[0][0] + e[1][0]) / 2 * lx + (e[0][1] + e[1][1]) / 2 * ly) for e in along)
     frac = min(max((0.0 - proj[0]) / (proj[1] - proj[0]), 0.0), 1.0) if proj[1] > proj[0] else 0.5
     return TrackGeometry(heading, look, IW_INCIDENCE_NEAR + frac * (IW_INCIDENCE_FAR - IW_INCIDENCE_NEAR))
+
+
+def local_clock(point) -> "callable":
+    """UTC datetime -> local wall-clock datetime (naive) of the AOI.
+
+    The user gives the flood date (and optionally the hour) in local time, satellite passes are in UTC; a pass at
+    23:00 UTC is already the next morning in Nepal. Uses the IANA time zone of the AOI centre (timezonefinder),
+    falling back to solar time (longitude / 15 h) if the zone cannot be determined.
+    """
+    try:
+        from zoneinfo import ZoneInfo
+
+        from timezonefinder import TimezoneFinder
+
+        name = TimezoneFinder().timezone_at(lng=point.x, lat=point.y)
+        if name:
+            zone = ZoneInfo(name)
+            return lambda dt: dt.astimezone(zone).replace(tzinfo=None)
+    except Exception:
+        pass
+    offset = timedelta(hours=point.x / 15.0)
+    return lambda dt: (dt + offset).replace(tzinfo=None)
 
 
 def aoi_to_geometry(aoi) -> BaseGeometry:
@@ -201,40 +226,65 @@ def group_acquisitions(scenes: list[S1Scene], aoi: BaseGeometry) -> list[Acquisi
     return sorted(out, key=lambda a: a.start)
 
 
-def plan_tracks(acqs: list[Acquisition], event_date: date, lookback_days: int = 60, min_coverage: float = 0.9) -> Plan:
-    """Per track: first acquisition after the event day (post) and earlier ones (pre candidates).
+def plan_tracks(acqs: list[Acquisition], event_date: date, lookback_days: int = 60, min_coverage: float = 0.9,
+                local=None, event_time: time_of_day | None = None,
+                post_window: tuple[date, date] | None = None) -> Plan:
+    """Per track: first acquisition after the event (post), earlier ones (pre candidates) and a pass on the event day.
 
-    Acquisitions on the event day itself are not used as post: the catalogue gives no flood time, so they may
-    precede the flood. The main track is the one with the earliest post (then best coverage); the alt track is the
-    earliest one from the opposite flight direction. `choose_main` may swap them based on valley-floor visibility.
+    Dates are compared in the AOI's local time (`local`, see `local_clock`). A pass on the event day itself is
+    ambiguous (before or after the flood?): with a known `event_time` it is placed exactly; without it the pass is kept
+    as `same_day` and the pipeline checks the image for a clear change before using it as post (D-M1-03); a pass
+    without flooding is worth no more than an older pre image, so it is then simply dropped.
+    `post_window` (user's "after" window, local dates) restricts the post candidates.
     """
+    local = local or (lambda dt: dt.replace(tzinfo=None))
     warnings: list[str] = []
-    window_start = datetime.combine(event_date - timedelta(days=lookback_days), datetime.min.time(), timezone.utc)
-    day_after = datetime.combine(event_date + timedelta(days=1), datetime.min.time(), timezone.utc)
+    window_start = event_date - timedelta(days=lookback_days)
     full = [a for a in acqs if a.coverage >= min_coverage]
     if acqs and not full:
         warnings.append(f"No S1 acquisition covers {min_coverage:.0%} of the AOI (best {max(a.coverage for a in acqs):.0%}).")
     tracks: list[TrackPlan] = []
     for key in sorted({(a.relative_orbit, a.direction) for a in full}):
         mine = [a for a in full if (a.relative_orbit, a.direction) == key]
-        post = next((a for a in mine if a.start >= day_after), None)
-        pre = [a for a in mine if window_start <= a.start < datetime.combine(event_date, datetime.min.time(), timezone.utc)]
-        tracks.append(TrackPlan(key[0], key[1], post, pre))
-    usable = [t for t in tracks if t.post is not None and t.pre_candidates]
+        pre, post_c, same = [], [], None
+        for a in mine:
+            lt = local(a.start)
+            if lt.date() < event_date:
+                if lt.date() >= window_start:
+                    pre.append(a)
+            elif lt.date() > event_date:
+                post_c.append(a)
+            elif event_time is not None:  # same day, known flood time: place it exactly
+                (pre if lt.time() < event_time else post_c).append(a)
+            else:
+                same = a
+        if post_window is not None:
+            post_c = [a for a in post_c if post_window[0] <= local(a.start).date() <= post_window[1]]
+        tracks.append(TrackPlan(key[0], key[1], post_c[0] if post_c else None, pre, same))
+    plan = Plan(None, None, tracks, warnings)
+    return order_tracks(plan)
+
+
+def order_tracks(plan: Plan) -> Plan:
+    """Main = track with the earliest post (then best coverage), alt = earliest from the opposite flight direction."""
+    usable = [t for t in plan.tracks if t.post is not None and t.pre_candidates]
+    plan.main = plan.alt = None
+    plan.warnings = [w for w in plan.warnings if not w.startswith(("No track has both", "Track ", "No acquisition from the opposite"))]
     if not usable:
-        warnings.append("No track has both a post-event acquisition and an earlier acquisition of the same track.")
-        for t in tracks:
+        plan.warnings.append("No track has both a post-event acquisition and an earlier acquisition of the same track.")
+        for t in plan.tracks:
             post = t.post.start.strftime("%Y-%m-%d") if t.post else "none"
-            warnings.append(f"Track {t.relative_orbit} {t.direction}: post-event {post}, "
-                            f"{len(t.pre_candidates)} earlier acquisition(s) in the last {lookback_days} days.")
-        return Plan(None, None, tracks, warnings)
+            plan.warnings.append(f"Track {t.relative_orbit} {t.direction}: post-event {post}, "
+                                 f"{len(t.pre_candidates)} earlier acquisition(s) in the window.")
+        return plan
     usable.sort(key=lambda t: (t.post.start, -t.post.coverage))
-    main = usable[0]
-    opposite = [t for t in usable if t.direction != main.direction]
-    alt = opposite[0] if opposite else None
-    if alt is None:
-        warnings.append("No acquisition from the opposite flight direction: s1_alt is null.")
-    return Plan(main, alt, tracks, warnings, primary_reason="earliest post")
+    plan.main = usable[0]
+    opposite = [t for t in usable if t.direction != plan.main.direction]
+    plan.alt = opposite[0] if opposite else None
+    if plan.alt is None:
+        plan.warnings.append("No acquisition from the opposite flight direction: s1_alt is null.")
+    plan.primary_reason = "earliest post"
+    return plan
 
 
 def choose_main(plan: Plan, visibility: dict[tuple[int, str], float | None], max_delay_days: float = 3.0,
@@ -282,15 +332,18 @@ def compute_valley_visibility(plan: Plan, aoi: BaseGeometry, dem=None) -> dict[t
 
 
 def find_plan(aoi, event_date: date, lookback_days: int = 60, post_horizon_days: int = 20, min_coverage: float = 0.9,
-              visibility: bool = True) -> Plan:
+              visibility: bool = True, event_time: time_of_day | None = None,
+              post_window: tuple[date, date] | None = None) -> Plan:
     """Search the catalogue and plan tracks. `aoi` is GeoJSON or bbox in EPSG:4326.
 
     With `visibility` the main track is chosen by D-X-01 (downloads the DEM for the AOI, no satellite images)."""
     geom = aoi_to_geometry(aoi)
     start = datetime.combine(event_date - timedelta(days=lookback_days + 1), datetime.min.time())
     end = datetime.combine(event_date + timedelta(days=post_horizon_days + 1), datetime.min.time())
+    if post_window is not None:
+        end = max(end, datetime.combine(post_window[1] + timedelta(days=2), datetime.min.time()))
     acqs = group_acquisitions(search_s1(geom, start, end), geom)
-    plan = plan_tracks(acqs, event_date, lookback_days, min_coverage)
+    plan = plan_tracks(acqs, event_date, lookback_days, min_coverage, local_clock(geom.centroid), event_time, post_window)
     if not any(t.post for t in plan.tracks):
         plan.warnings.append(f"No post-event S1 acquisition in the catalogue within {post_horizon_days} days after {event_date}.")
     if visibility and plan.main is not None:

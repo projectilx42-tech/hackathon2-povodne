@@ -32,6 +32,7 @@ class AcquireConfig:
     s2: bool = True
     osm: bool = True
     osm_buffer_m: float = 15000
+    same_day_res_m: float = 20.0  # resolution of the event-day check (VV only; ~11 PU per image for 30x30 km)
 
 
 # ---------- run.json helpers (until the skeleton provides them) ----------
@@ -70,6 +71,13 @@ def _parse_window(w) -> tuple[datetime, datetime] | None:
     a, b = w
     return (datetime.fromisoformat(str(a)).replace(tzinfo=timezone.utc),
             datetime.fromisoformat(str(b)).replace(tzinfo=timezone.utc) + timedelta(days=1))
+
+
+def _parse_time(t):
+    if not t:
+        return None
+    from datetime import time
+    return time.fromisoformat(str(t))
 
 
 def _write_s1(path: Path, data: np.ndarray, grid: Grid, acq: catalog.Acquisition, bands=("VV", "VH")) -> dict:
@@ -147,9 +155,14 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
     acq: dict = rj.setdefault("acquire", {})
 
     _progress(run_dir, "running", "searching the Sentinel-1 catalogue")
-    plan = catalog.find_plan(aoi, event, cfg.lookback_days, cfg.post_horizon_days, visibility=False)
-    warnings += plan.warnings
-    if plan.main is None:
+    event_time = _parse_time(rj.get("event_time"))
+    pw = rj.get("post_window")
+    post_window = (date.fromisoformat(pw[0]), date.fromisoformat(pw[1])) if pw else None
+    plan = catalog.find_plan(aoi, event, cfg.lookback_days, cfg.post_horizon_days, visibility=False,
+                             event_time=event_time, post_window=post_window)
+    has_same_day = any(t.same_day is not None and t.pre_candidates for t in plan.tracks)
+    if plan.main is None and not has_same_day:
+        warnings += plan.warnings
         acq.update(s1=None, s1_alt=None)
         _store_warnings(rj, warnings)
         _save(run_dir, rj)
@@ -162,23 +175,53 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
     acq["dem"] = {"source": "AWS Open Data (copernicus-dem-30m)", "product": "COP-DEM GLO-30", "crs": dem.crs, "res_m": dem.res}
     hand = terrain.hand(dem)
     floor = terrain.valley_floor(hand, terrain.slope_deg(dem.data, dem.res)) & terrain.aoi_mask(aoi, dem)
-    vis, masks = {}, {}
-    for t in (plan.main, plan.alt):
-        if t is None:
+    masks: dict = {}
+
+    def track_mask(t: catalog.TrackPlan) -> np.ndarray:
+        if t.key not in masks:
+            a = t.post or t.same_day
+            scene = next((s for s in a.scenes if s.footprint.contains(aoi.centroid)), a.scenes[0])
+            g = catalog.track_geometry(scene.footprint, t.direction, aoi.centroid)
+            lay, sh_mask = terrain.layover_shadow(dem.data, dem.res, g.look_azimuth_deg, g.incidence_deg)
+            masks[t.key] = lay | sh_mask
+        return masks[t.key]
+
+    bounds = transform_bounds("EPSG:4326", f"EPSG:{epsg}", *aoi.bounds, densify_pts=21)
+
+    # A pass on the event day itself: use it as post only if the image clearly shows a change (D-M1-03).
+    for t in plan.tracks:
+        if t.same_day is None or not t.pre_candidates:
             continue
-        scene = next((s for s in t.post.scenes if s.footprint.contains(aoi.centroid)), t.post.scenes[0])
-        g = catalog.track_geometry(scene.footprint, t.direction, aoi.centroid)
-        lay, sh_mask = terrain.layover_shadow(dem.data, dem.res, g.look_azimuth_deg, g.incidence_deg)
-        masks[t.key] = lay | sh_mask
-        vis[t.key] = terrain.valley_visibility(floor, lay, sh_mask)
+        _progress(run_dir, "running", f"checking the event-day pass of track {t.relative_orbit} for flood signs")
+        cgrid = utm_grid(bounds, epsg, cfg.same_day_res_m)
+        usable_c = _to_grid((floor & ~track_mask(t)).astype(np.uint8), dem, cgrid) > 0
+        vv = lambda a: decode_db(fetch_s1(sh, cgrid, a.start, t.direction, cfg.speckle, bands=("VV",))[0])
+        new, p1 = vv(t.same_day), vv(t.pre_candidates[-1])
+        change = preselect.change_fraction(new, p1, usable_c)
+        baseline = preselect.change_fraction(p1, vv(t.pre_candidates[-2]), usable_c) if len(t.pre_candidates) > 1 else None
+        dec = preselect.judge_same_day(change, baseline)
+        t.same_day_info = {"datetime": t.same_day.to_json()["datetime"], "used_as_post": dec.use_as_post, "reason": dec.reason,
+                           "change_frac": None if change is None else round(change, 4),
+                           "baseline_frac": None if baseline is None else round(baseline, 4)}
+        if dec.use_as_post:
+            t.post = t.same_day
+    plan = catalog.order_tracks(plan)
+    warnings += plan.warnings
+    if plan.main is None:
+        acq.update(s1=None, s1_alt=None)
+        _store_warnings(rj, warnings)
+        _save(run_dir, rj)
+        _progress(run_dir, "done", "insufficient data: no Sentinel-1 pre/post pair for this area and date")
+        return
+    blocked = lambda t: track_mask(t)  # layover | shadow of the track
+    vis = {t.key: terrain.valley_visibility(floor, blocked(t), np.zeros_like(floor)) for t in (plan.main, plan.alt) if t}
     plan = catalog.choose_main(plan, vis)
     main, alt = plan.main, plan.alt
 
     # Water-share series on the main track's valley floor (D-M1-01).
-    bounds = transform_bounds("EPSG:4326", f"EPSG:{epsg}", *aoi.bounds, densify_pts=21)
     grid = utm_grid(bounds, epsg, 10.0)
     sgrid = utm_grid(bounds, epsg, cfg.series_res_m)
-    usable = _to_grid((floor & ~masks[main.key]).astype(np.uint8), dem, sgrid) > 0
+    usable = _to_grid((floor & ~track_mask(main)).astype(np.uint8), dem, sgrid) > 0
     cands = main.pre_candidates
     _progress(run_dir, "running", f"checking {len(cands)} earlier passes for flooding before the event date")
     fracs: list[float | None] = []
@@ -216,6 +259,11 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
         blocks[key]["processing"] = {"backCoeff": "SIGMA0_ELLIPSOID", "orthorectify": True, "dem": "COPERNICUS_30",
                                      "speckle": (f"LEE {cfg.speckle}x{cfg.speckle} + 3x3 mean (linear)" if cfg.speckle else "none"),
                                      "encoding": "UINT16, dB = value*0.001-50, 0 = nodata"}
+    for key, t in (("s1", main), ("s1_alt", alt)):
+        if blocks.get(key) is not None and t is not None:
+            blocks[key]["same_day"] = t.same_day_info
+            if event_time is not None:
+                blocks[key]["event_time_local"] = rj.get("event_time")
     blocks["s1"]["pre_selection"] = {
         "method": "water_fraction_series", "lookback_days": cfg.lookback_days, "resolution_m": cfg.series_res_m,
         "water_threshold_db": preselect.WATER_DB,
@@ -258,12 +306,13 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
                                f"({plan.primary_reason}); {sh.pu_spent:.0f} processing units")
 
 
-def new_run(out: Path, aoi, event: str, pre_window=None, post_window=None) -> Path:
+def new_run(out: Path, aoi, event: str, pre_window=None, post_window=None, event_time=None) -> Path:
     """Create a run directory with a minimal run.json (for using M1 before the skeleton exists)."""
     out.mkdir(parents=True, exist_ok=True)
     geom = catalog.aoi_to_geometry(aoi)
     from shapely.geometry import mapping
-    rj = {"run_id": out.name, "aoi": mapping(geom), "event_date": event, "pre_window": pre_window, "post_window": post_window,
+    rj = {"run_id": out.name, "aoi": mapping(geom), "event_date": event, "event_time": event_time,
+          "pre_window": pre_window, "post_window": post_window,
           "created_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "warnings": [],
           "progress": {"state": "queued", "steps": []}}
     (out / "run.json").write_text(json.dumps(rj, indent=2))

@@ -57,3 +57,30 @@ def test_smooth_3x3_keeps_constant_and_nodata():
     raw = np.full((1, 6, 6), 40000, np.uint16); raw[0, 0, 0] = 0
     out = smooth_3x3(raw)
     assert out[0, 0, 0] == 0 and np.allclose(decode_db(out)[0][1:, 1:], decode_db(raw)[0][1:, 1:], atol=0.002)
+
+
+# ---------- event-day pass check (D-M1-03) ----------
+from povodne.acquire.preselect import change_fraction, judge_same_day
+
+
+def test_change_fraction_counts_both_darkening_and_brightening():
+    before = np.full((30, 30), -10.0); after = before.copy()
+    after[:3] = -20.0; after[3:6] = -2.0  # water and debris
+    assert abs(change_fraction(after, before, np.ones_like(before, bool)) - 0.2) < 1e-9
+
+
+def test_clear_change_above_usual_variation_is_used_as_post():
+    assert judge_same_day(0.12, 0.03).use_as_post
+
+
+def test_change_similar_to_usual_variation_is_dropped():
+    d = judge_same_day(0.05, 0.04)
+    assert not d.use_as_post and "not clearly above" in d.reason
+
+
+def test_without_baseline_needs_a_larger_change():
+    assert judge_same_day(0.08, None).use_as_post and not judge_same_day(0.04, None).use_as_post
+
+
+def test_unjudgeable_image_is_not_used():
+    assert not judge_same_day(None, 0.02).use_as_post

@@ -63,6 +63,9 @@
             <p class="muted">Leave empty and the system chooses suitable satellite windows itself.</p>
             <div class="win"><span>Before</span><input type="date" class="field" id="pre-from" aria-label="Before window from"><span>–</span><input type="date" class="field" id="pre-to" aria-label="Before window to"></div>
             <div class="win"><span>After</span><input type="date" class="field" id="post-from" aria-label="After window from"><span>–</span><input type="date" class="field" id="post-to" aria-label="After window to"></div>
+            <h3>Flood time (optional)</h3>
+            <p class="muted">Local time in the selected area. If a satellite passed on the flood day, this tells the system whether that image is before or after the flood; without it the image is used only if it clearly shows the flood.</p>
+            <div class="win"><span>Time</span><input type="time" class="field" id="event-time" aria-label="Flood time, local"></div>
             <p class="notice warn" id="adv-warn" hidden></p>
             <button type="button" class="linklike" id="adv-reset">Reset to automatic</button>
           </div>

@@ -78,3 +78,43 @@ def test_partial_coverage_track_is_not_used():
                        + group_acquisitions([scene(d, 2, "DESCENDING", footprint=half) for d in ["2026-01-04", "2026-01-28"]], AOI),
                        date(2026, 1, 20))
     assert plan.main.key == (1, "ASCENDING") and plan.alt is None
+
+
+# ---------- local time, flood hour, after window (D-M1-03) ----------
+from datetime import time as _time
+
+from povodne.acquire.catalog import order_tracks
+
+NEPAL = lambda dt: (dt + timedelta(hours=5, minutes=45)).replace(tzinfo=None)
+
+
+def test_pass_late_in_utc_counts_for_the_next_local_day():
+    # 2026-01-24 23:00 UTC = 2026-01-25 04:45 in Nepal -> event-day pass, not a pre image
+    acqs = group_acquisitions(passes(1, "ASCENDING", ["2026-01-12"]) + [scene("2026-01-24", 1, "ASCENDING", hh=23)]
+                              + passes(1, "ASCENDING", ["2026-02-05"]), AOI)
+    t = plan_tracks(acqs, date(2026, 1, 25), local=NEPAL).tracks[0]
+    assert t.same_day is not None and [a.start.day for a in t.pre_candidates] == [12] and t.post.start.day == 5
+
+
+def test_known_flood_hour_places_event_day_pass_exactly():
+    acqs = group_acquisitions(passes(1, "ASCENDING", ["2026-01-13", "2026-01-25"]), AOI)  # pass 12:00 UTC = 17:45 local
+    after = plan_tracks(acqs, date(2026, 1, 25), local=NEPAL, event_time=_time(9, 0)).tracks[0]
+    before = plan_tracks(acqs, date(2026, 1, 25), local=NEPAL, event_time=_time(20, 0)).tracks[0]
+    assert after.post.start.day == 25 and after.same_day is None
+    assert before.post is None and [a.start.day for a in before.pre_candidates] == [13, 25]
+
+
+def test_after_window_restricts_post():
+    acqs = group_acquisitions(passes(1, "ASCENDING", ["2026-01-13", "2026-01-26", "2026-02-07"]), AOI)
+    t = plan_tracks(acqs, date(2026, 1, 20), post_window=(date(2026, 2, 1), date(2026, 2, 10))).tracks[0]
+    assert t.post.start.day == 7
+
+
+def test_promoted_event_day_pass_becomes_earliest_post():
+    acqs = group_acquisitions(passes(1, "ASCENDING", ["2026-01-08", "2026-01-20", "2026-02-01"])
+                              + passes(2, "DESCENDING", ["2026-01-10", "2026-01-22"]), AOI)
+    plan = plan_tracks(acqs, date(2026, 1, 20))
+    assert plan.main.key == (2, "DESCENDING")  # the ascending event-day pass is not trusted yet
+    t = next(t for t in plan.tracks if t.key == (1, "ASCENDING"))
+    t.post = t.same_day  # the pipeline found a clear change on it
+    assert order_tracks(plan).main.key == (1, "ASCENDING")
