@@ -71,6 +71,9 @@ def parse_args():
                     help="add Sen1Floods11 tiles (post image only, binary water) to the training split")
     ap.add_argument("--min-water", type=float, default=0.0,
                     help="train only on tiles with at least this water fraction (val/test unaffected)")
+    ap.add_argument("--max-dry-share", type=float, default=None,
+                    help="keep a random subset of water-free training tiles so they make up at most this share of the "
+                         "training split (Kuro Siwo's reference training uses only tiles with water; val/test unaffected)")
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     ap.add_argument("--max-tiles", type=int, default=None, help="limit tiles per split (smoke tests)")
@@ -199,6 +202,12 @@ def main():
     tr_idx = split_index(index, "train", args.max_tiles, args.seed, args.sen1floods11, args.trainval)
     if args.min_water > 0:
         tr_idx = tr_idx[(tr_idx["perm_frac"] + tr_idx["flood_frac"]) >= args.min_water].reset_index(drop=True)
+    if args.max_dry_share is not None:
+        dry = (tr_idx["perm_frac"] + tr_idx["flood_frac"]) <= 0
+        n_wet = int((~dry).sum())
+        n_keep = min(int(dry.sum()), int(round(n_wet * args.max_dry_share / (1 - args.max_dry_share))))
+        keep_dry = tr_idx[dry].sample(n=n_keep, random_state=args.seed).index
+        tr_idx = tr_idx[~dry | tr_idx.index.isin(keep_dry)].reset_index(drop=True)
     va_idx = split_index(index, "val", args.max_tiles, args.seed)
     print(f"train {len(tr_idx)} tiles / val {len(va_idx)} tiles")
     if args.cache is not None:
