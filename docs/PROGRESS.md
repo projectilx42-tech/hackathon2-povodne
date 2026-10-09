@@ -8,6 +8,9 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-09 — M3/M9: optika + stín z obou směrů (D-M9-11), změna kontraktu:** AI krok (`training/run_ai.py`) teď čte i `aligned/s2_pre|post.tif`
+  a `masks/s2_*_valid.tif` (**M2 je musí dodat podle kontraktu**) a optický model `models/floodseg_s2_*`; pixel je vyhodnocený, když platí radar
+  nebo je jasno. Nová pole `run.json.flood.params` (`s2`, `cross_shadow_px`, `min_flood_px`). Bez optiky běží dál jen radar.
 - **2026-10-09 — master: sloučeno do `main` (model, satelity, UI) → všichni `git fetch origin main && git merge origin/main`.** Bez kolizí čísel; testy 33/33 OK.
   Zbývá navázat: **UI** — přepínač citlivosti `standard`/`sensitive` v UI + pole `sensitivity` v `POST /api/runs` (D-M9-08); ukázkový run přepsat na textové `osm_id`
   (`way/123`, D-M1-02 — UI porovnává `===`, s čísly ze vzorku by to s reálnými daty nesedělo). **Skeleton** — CLI `--sensitivity` → `run.json.sensitivity`.

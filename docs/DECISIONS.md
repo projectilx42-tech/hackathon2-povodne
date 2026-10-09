@@ -448,6 +448,22 @@ Horský podtest kolísá mezi modely se stejným receptem o víc, než ukazuje v
 je to malý vzorek z několika eventů. Pro report: celkové metriky modelu se změnou filtru nezměnily; zrnitost Sen1Floods11
 (2,2× vs 1,0×) na Kuro Siwo test nemá měřitelný vliv. Výstup kernelu `floodseg-r9`, metriky v `training/results/r9_*`.
 
+## D-M9-11 | 2026-10-09 | přijato (uživatel: „tak makej“ na návrh z brainstormu vylepšení)
+**M3: stín z obou směrů přeletu, optický model vody ze Sentinel-2 a minimální plocha povodně.** Podklad: průzkum literatury (chat 2026-10-09).
+1. **Stín z obou směrů** (Copernicus Global Flood Monitoring, Wagner et al. 2025): pre VV < −15 dB v jednom tracku a > −10 dB v opačném
+   = radarový stín v tom tmavém (voda je tmavá z obou směrů) → pixel se v tom tracku nepoužije. Jen Sentinel-1, prahy převzaté z GFM, neladěné.
+2. **Optický model vody** (`training/train_s2.py`, vstupy `training/floodseg/s2.py`): U-Net R18, 8 kanálů (B03, B04, B08, B11, B12 + NDWI,
+   MNDWI, NDVI), 2 třídy (voda / ne). Trénink jen na **Sen1Floods11 S2 výřezech** (povolený dataset; popisky LabelHand), split po eventech
+   pevně předem: test = Bolívie (drží stranou i autoři datasetu), val = Ghana, Srí Lanka vyřazena (jako D-024). Sen1Floods11 má S2 **L1C**,
+   pipeline čte **L2A** → modrá se nepoužívá a trénink náhodně posouvá/škáluje pásma o velikost rozdílu atmosférické korekce.
+   **Himálajská sada (O-005) na optický model nejde** — její popisky jsou ze S2 (kruhové). Literatura: z optiky F1 0,86–0,90 vs jen radar 0,62
+   na Sen1Floods11 (Konapala et al. 2021). Pravidla svahu a HAND (D-034) platí i pro optickou vodu.
+3. **Spojení v `run_ai.py`:** kde je S2 post jasno: voda z optiky = povodeň, když byl pixel předtím suchý (S2 pre jasný, jinak radarový pre),
+   jinak trvalá voda; radarová povodeň zůstává (optika ji neruší — nevidí vodu pod vegetací). Optika vyplní místa, kde radar nevidí (stín,
+   layover). Bez modelu nebo snímků běží jen radar a `run.json.flood.params.s2.reason` řekne proč.
+4. **Minimální plocha povodně** `--min-flood-px` (výchozí hodnota podle měření na Kuro Siwo val, `training/eval_postprocess.py`, ne EMS).
+Kontrakt (ARCHITECTURE.md, sekce AI model) upraven ve stejném commitu. Výsledky optického modelu a výchozí minimální plocha se doplní sem.
+
 ---
 
 # Otevřené otázky (k rozhodnutí)

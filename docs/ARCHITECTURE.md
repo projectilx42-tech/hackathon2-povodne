@@ -258,6 +258,14 @@ inference), `model.py`. M3 tento kód **používá, nereimplementuje** (po vznik
   stejného tracku); pixel platí v tracku, kde není layover/shadow; kde platí oba, `ai_prob` = průměr, kde jeden, ten jeden.
   Voda (2, 4) se potlačí na 1, kde `slope` > `max_water_slope_deg` (default 15) nebo `hand` > `max_water_hand_m` (default 30).
   Pixel bez platného tracku → 0 (nodata).
+- **Stín z obou směrů, optika a minimální plocha v M3 (D-M9-11):** kde existují oba tracky, pixel s pre VV < −15 dB v jednom a > −10 dB
+  ve druhém je stín v tom tmavém (pravidlo Copernicus GFM) → tam se ten track nepoužije. **Optický model** (`models/floodseg_s2_*`,
+  vstupy `training/floodseg/s2.py`) čte `aligned/s2_post.tif` + `masks/s2_post_valid.tif` (a `s2_pre*`, pokud jsou): kde je po události
+  jasno, voda z optiky = povodeň (2), když byl pixel předtím suchý (jasný S2 pre, jinak radarový pre), jinak trvalá voda (4); optika
+  doplňuje i místa, kde radar nevidí (pixel je vyhodnocený, když platí radar **nebo** je jasno). Chybí-li model nebo snímky, běží jen radar.
+  `ai_prob` = max(radar P(flood), optická P(voda) u dřív suchých pixelů). Plochy povodně menší než `min_flood_px` pixelů se ruší.
+  `run.json.flood.params` navíc: `cross_shadow_px`, `min_flood_px`, `small_patches_removed_px`, `s2` (`used`, `reason`, `post_clear_pct`,
+  `pre_clear_pct`, `optical_flood_km2`, `optical_water_unknown_before_km2`).
   `ai_prob` = P(flood).
 - Inference běží na CPU (pipeline musí jít spustit bez GPU), dlaždice 512 px s překryvem 64 px a váženým prolnutím.
 - Váhy nejsou v gitu → stahují se z release/HF (rozhodnout, D-0xx) nebo z cesty v configu. Zatím leží jako výstupy Kaggle
