@@ -65,6 +65,10 @@ documentation and implementation. Per-module notes on which parts were AI-assist
 - **Flood segmentation model (`training/`)** — dataset analysis, model design, data preparation, training, inference and
   evaluation code were written with Claude Code; design choices are documented in `docs/DECISIONS.md` (D-020 – D-025, D-032 – D-034).
 
+- **Surface changes: debris, mud, erosion, flooded vegetation and built-up areas (`src/povodne/flood/debris/`)** — literature
+  and operational-system research, the statistical change test, decision rules, the flood-free self-test and the synthetic tests
+  (`tests/test_debris*.py`) were written with Claude Code; the method and its sources are in `docs/DECISIONS.md` (D-M3d-01, D-M3d-02).
+
 ## Data attributions
 - Contains modified Copernicus Sentinel data 2026.
 - Produced using Copernicus WorldDEM-30 © DLR e.V. 2010–2014 and © Airbus Defence and Space GmbH 2014–2018 provided under

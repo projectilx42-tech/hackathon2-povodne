@@ -12,6 +12,14 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 - **2026-10-11 — satelity (D-X-05):** nové upozornění „lepší pohled za X dní“ (datum příštího průletu druhé dráhy + kolik dna údolí přibude). Dělá satelitní session (`acquire/notices.py`, `docs/NOTICES.md`), UI ho pak zobrazí.
 - **2026-10-11 — AI model (D-X-02):** radarový model přetrénovat **bez Bolívie ze Sen1Floods11** a výsledky na Bolívii uvádět (požadavek organizátorů „ukázat výsledky i na dalších datasetech“; Bolívie je oficiální test Sen1Floods11, v0.2 ji viděl v tréninku). Dělá session AI modelu.
 - **2026-10-11 — přišly odpovědi organizátorů (Discord 9. 10.), týká se všech → přečti `docs/QUESTIONS.md` nahoře.** ImageNet ano, ale výsledky ukázat i na dalších datasetech (→ D-X-02); vlastní pipeline zpracování je potřeba (**uživatel: Sentinel Hub nechat**); porota účet nemá → video + návod v README, živě smíme s naším účtem; JRC smí s porovnáním obou variant (**uživatel: teď ne, možná do budoucna — D-X-03**); Unstop ne.
+- **2026-10-11 — M3d: krok změn povrchu hotový v kódu (D-M3d-01), změna kontraktu (D-M3d-02), týká se M1, M3, M6, M8:**
+  `python -m povodne.flood.debris runs/<id>` → `flood/debris_{mask,type,confidence,observability}.tif`, `flood/debris_polygons.geojson`,
+  `run.json.debris`, upozornění `step = "debris"` (`docs/NOTICES.md`). Podtypy: suť, bahno, eroze, zaplavená vegetace, zaplavená/poškozená zástavba, neznámá.
+  **M1 (uživatel schválil):** ukládat `raw/s1[_alt]/hist_YYYYMMDD.tif` = až 4 starší průlety téže dráhy (VV+VH, 20 m, stejné kódování,
+  ~+180 PU / 30×30 km) + `acquire.s1[_alt].hist`; volitelně `osm/landuse.gpkg` (`kind`). Bez nich krok běží, jen méně spolehlivě.
+  **M3 (combine):** třída 3 = `debris_mask`, voda má přednost; polygony třídy `debris` převzít s `subtype` + `confidence`.
+  **M6:** plochy po podtypech v `run.json.debris.areas_km2`. **M8:** legenda podtypů, vrstva viditelnosti, `evidence` po kliknutí.
+  **Master:** test `tests/test_acquire_notices.py` bere všechny řádky `| \`kód\` |` za „## Seznam kódů“ → kódy dalších kroků mají v tabulce první sloupec `step`.
 - **2026-10-11 — master: sloučeny satelity (hodina povodně, HAND jako ASF + maska vod z DEM, upozornění s kódy, OSM přes ohsome v2) do `main` → všichni `git fetch origin main && git merge origin/main`.**
   Bez konfliktů, `check_docs` OK, testy 53/53. **Nové env `OHSOME_API_KEY`** (vedle CDSE). Snapshot OSM = den před událostí (CLAUDE.md sladěno, D-M1-06).
   **UI:** satelity minimálně upravily `dashboard/` (políčko Flood time + `event_time`) — při slučování UI větve zkontrolovat; implementovat zobrazení `run.json.notices` podle `docs/NOTICES.md`.
@@ -70,7 +78,7 @@ Obtížnost a čas = odhad uživatele.
 | 4 | Najít zdroje, stránky atd. | 3 | 1–2 h | — | ⬜ |
 | 5 | Stahování dat ze satelitu | ~7 | ~4 h | M1, M2 | ⬜ |
 | 6 | Natrénovat AI (Kaggle) | 7 | 4 h + běh tréninku | M9, M3 | ✅ model v0.2 (test F1 0,775); himálajský test předběžně |
-| 7 | Algoritmus na suť a bahno | 8 | 4 h | M3d | ⬜ |
+| 7 | Algoritmus na suť a bahno | 8 | 4 h | M3d | 🟨 kód + syntetické testy; chybí ověření na skutečných datech |
 | 8 | Škody | 3 | 2 h | M4 | ⬜ |
 | 9 | Odříznuté obce | 3 | 2,5 h | M5 | ⬜ |
 | 10 | Stránka a UI | 4–5 | 3–4 h | M8 | ⬜ |
@@ -88,7 +96,7 @@ Obtížnost a čas = odhad uživatele.
 | M2 Preprocess | ⬜ | `feat/preprocess` | požadavky z M9: D-033 (layover/shadow maska pro oba tracky, slope, HAND) |
 | M9 AI trénink | ✅ | `claude/relaxed-johnson-wwj9s8` | v0.2 (`floodseg-model`), D-M9-01–07; zbývá himálajský test s reálným vstupem z M1/M2 |
 | M3 AI inference (voda) | 🟨 | `claude/relaxed-johnson-wwj9s8` | `training/run_ai.py` funguje dle kontraktu (+ test); přesun do `src/povodne/flood/` až bude skeleton |
-| M3d Suť a bahno | ⬜ | `feat/debris` | |
+| M3d Suť a bahno + změny povrchu | 🟨 | `claude/affectionate-shannon-jrnssg` | kód hotový (`python -m povodne.flood.debris`), testy na syntetickém údolí; chybí běh na skutečných datech (Opava, Derna, Trishuli) a starší snímky od M1 (D-M3d-02) |
 | M4 Damage | ⬜ | `feat/damage` | |
 | M5 Network / cut-off | ⬜ | `feat/network` | |
 | M6 Stats + sitrep | ⬜ | `feat/report` | |
@@ -105,6 +113,16 @@ Obtížnost a čas = odhad uživatele.
 ### 2026-10-11 — odpovědi organizátorů — `claude/funny-fermat-ukdqp8`
 - Přečtena předávka satelitní session (`docs/HANDOFF_SATELITY.md` na `claude/nice-fermi-i7qzk8`, zatím není v `main`).
 - Odpovědi z Discordu zapsány do `docs/QUESTIONS.md` (Zodpovězeno) + oznámení výše. Uživatel: Sentinel Hub nechat; radarový model bez Bolívie (D-X-02); JRC teď ne (D-X-03); suť zahrne zaplavenou vegetaci (D-X-04); upozornění na příští průlet (D-X-05).
+### 2026-10-11 — M3d: suť, bahno a změny povrchu — `claude/affectionate-shannon-jrnssg`
+- Průzkum (5 paralelních rešerší: provozní systémy, zaplavená vegetace/města, suťové proudy, statistika, optika) → nikdo to automaticky
+  nedělá (GFM vegetaci a města vyřazuje, OPERA jen mokřady, EMS ručně) → výsledky jako orientační s jistotou. Shrnutí v D-M3d-01.
+- Hotovo `src/povodne/flood/debris/` (D-M3d-01): test proti historii pixelu se smrštěním rozptylu k okolí, Fisher přes dvě dráhy,
+  semínka + růst, minimální plocha, rozhodovací strom 6 podtypů + neznámá, kontrola počasí nad údolím, autotest na dni bez povodně, jistota,
+  viditelnost, polygony s vysvětlením. Kontrakt D-M3d-02 (výstupy, požadavek na `hist_*` a `landuse.gpkg` od M1).
+- Testy `tests/test_debris.py` (8, syntetické údolí; všechny podtypy ≥ 90 %, déšť a změna nad údolím nenahlášeny, 0 falešných jinde,
+  déšť v celé oblasti < 1 %), `tests/test_debris_notices.py`. Plná oblast 30×30 km: ~2 min, ~4 GB RAM.
+- **Nevyzkoušeno na skutečných datech** (v prostředí není klíč CDSE). Další krok: běh na Opavě 2024 a Derně 2023 (prahy), Trishuli a Chamoli
+  jen kontrola; autotest bez povodně v různé krajině; M1 doplní starší snímky.
 ### 2026-10-11 — master: sloučení satelitů — `claude/gallant-keller-vftpi2`
 - `claude/nice-fermi-i7qzk8` (12 commitů) sloučena do `main` bez konfliktů (main nebyl napřed). `check_docs` OK, `pytest tests training/tests`: 53 passed.
 - Vyřešen rozpor data OSM snapshotu (CLAUDE.md vs D-M1-06): platí < `event_date`.

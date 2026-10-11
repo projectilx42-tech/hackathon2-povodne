@@ -63,3 +63,24 @@ Sloupec „Titulek pro UI“ je návrh krátkého anglického nadpisu. Celou vě
   a kolik dna údolí každá dráha vidí.
 - `acquire.s2.pre.clear_pct` / `acquire.s2.post.clear_pct` — kolik oblasti bylo bez mraků.
 - `acquire.pu_spent` — kolik kreditů zpracování na Copernicus Data Space běh stál (pro porotce s vlastním účtem).
+
+## Kódy dalších kroků
+Tabulky níže mají první sloupec `step` (kód kroku), aby je test kroku stahování nepočítal mezi své.
+
+### Krok změn povrchu (`step = "debris"`, D-M3d-01)
+Kódy definuje `src/povodne/flood/debris/pipeline.py` (`SEVERITY`), test `tests/test_debris_notices.py` hlídá, že tabulka obsahuje přesně je.
+
+| step | kód | závažnost | kdy nastane (česky) | titulek pro UI (EN) | `details` |
+|---|---|---|---|---|---|
+| debris | `debris_failed` | error | Krok změn povrchu spadl. Mapa vody z AI modelu platí dál, jen chybí suť, bahno, zaplavená vegetace a zástavba. | Surface-change mapping failed | `error` |
+| debris | `debris_no_radar` | error | Chybí radarový snímek „po“, změny povrchu nejde mapovat. | No radar after-image | — |
+| debris | `debris_short_history` | warning | Dráha má méně než 2 starší průlety: běžné kolísání místa se odhaduje jen z okolí, výsledek je méně spolehlivý. | Short radar history | `track`, `earlier_passes` |
+| debris | `debris_no_buildings` | warning | Chybí budovy z OpenStreetMap: zaplavené nebo poškozené město nejde odlišit (zaplavené město se ukáže jako zaplavená vegetace). | No building footprints | — |
+| debris | `debris_placebo_high` | warning | Autotest: i mezi dvěma staršími snímky (bez povodně) se tu hodně změnilo (pole, stavby, déšť); podobné změny nesouvisející s povodní můžou být ve výsledku. | Area changes a lot without floods | `rate`, `target` |
+| debris | `debris_regional_change` | warning | Radar zesvětlal (déšť) nebo ztmavl (mokrý sníh, mráz) i vysoko nad řekami, kam povodeň nedosáhne; stejné změny na dně údolí se braly jako počasí, skutečná povodeň se stejným podpisem může chybět. | Weather changed the whole area | `background_change`, `weather` |
+| debris | `debris_no_optical` | info | Chybí dvojice optických snímků bez mraků: podtypy jen z radaru, nižší jistota. | Radar-only surface changes | — |
+| debris | `debris_false_alarm_estimate` | info | Výsledek autotestu na dni bez povodně: kolik km² by se nahlásilo omylem a jaký podíl nalezené plochy může být falešný. **Doporučuji ukázat u čísla „suť/bahno“.** | Self-test: false-alarm estimate | `rate`, `flagged_km2`, `searchable_km2`, `estimated_false_share`, `fake_after_image`, `tightened_steps`, `target_rate` |
+| debris | `debris_not_observable` | info | Víc než 10 % oblasti je neviditelné (stín hor, mraky) nebo necitlivé (hustý les, hustá zástavba): „nic“ tam neznamená „žádná škoda“. | Parts of the area not visible | `observed_pct`, `not_observable_pct`, `insensitive_pct` |
+
+Pro UI dál: `flood/debris_polygons.geojson` má u každé plochy `subtype`, `confidence` a anglickou větu `evidence` (proč to systém tvrdí) —
+hodí se do vyskakovacího okna po kliknutí. `flood/debris_observability.tif` = vrstva „co bylo vidět“.
