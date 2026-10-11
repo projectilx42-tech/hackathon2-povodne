@@ -8,6 +8,7 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-11 — M8 (UI): hotovo přepínač citlivosti** (v Advanced) + pole `sensitivity` v `POST /api/runs` (backend zapíše `run.json.sensitivity` a předá `--sensitivity` do `python -m povodne run`); ukázkový run má textová `osm_id` (`way/…`, `node/…`). **Skeleton:** CLI musí přijímat `--sensitivity` (a `--pre-window/--post-window`). Kontrakt beze změny.
 - **2026-10-11 — satelity: starší průlety + využití půdy pro krok změn povrchu (D-M1-07, splňuje D-M3d-02):** krok stahování ukládá `raw/s1[_alt]/hist_*.tif` (obvykle 2–3, max. 4 starší průlety, VV+VH, 20 m) a `osm/landuse.gpkg`; `run.json.acquire.s1.hist`. ohsome = 7 dotazů na běh. Naostro neověřeno (chybí klíče). Větev `claude/funny-fermat-ukdqp8` — **master: sloučit**.
 - **2026-10-11 — suť a bahno (D-X-04), týká se M3d, M3, M8, M6:** algoritmus na suť hledá změny povrchu na dně údolí **oběma směry** a zahrne i **zaplavenou vegetaci a zástavbu** (radar je zesvětlí, model vody je nevidí). Třída 3 = „suť, bahno a jiná změna povrchu“ (hodnota beze změny); podtypy navrhne session suti jako změnu kontraktu.
 - **2026-10-11 — satelity (D-X-05):** nové upozornění „lepší pohled za X dní“ (datum příštího průletu druhé dráhy + kolik dna údolí přibude). Dělá satelitní session (`acquire/notices.py`, `docs/NOTICES.md`), UI ho pak zobrazí.
@@ -117,6 +118,14 @@ Obtížnost a čas = odhad uživatele.
 4. Účty (CDSE, Kaggle…) zakládá uživatel až v příslušných sessions (D-011); údaje jen jako env proměnné prostředí, nikdy do repa.
 
 ## Log sessions
+### 2026-10-11 — M8: typy hlášek (nedostatek dat, nic nenalezeno, chyby) — `ccr-d89d3cfb-ywooc4`
+- UI rozlišuje verdikty (`no_significant_flooding` s kontextem pokrytí, `insufficient_data` se seznamem, co chybí), sbírá varování ze všech míst, nepíše „0 of 0“ při chybějících
+  mapových datech, u chyb běhu dává lidskou radu podle typu a backend hlásí přerušený běh (bez aktivity > 15 min). Popsáno v `UI_SPEC.md` (Typy hlášek). Kontrakt beze změny.
+- Ověřeno headless Chromiem na simulovaných runech (nic nenalezeno, nedostatek dat, chybějící klíč, nenalezené snímky, přerušený běh).
+### 2026-10-11 — M8: nové požadavky z main (citlivost, textová osm_id) — `ccr-d89d3cfb-ywooc4`
+- Sloučen `origin/main`; prošel jsem DECISIONS/PROGRESS/ARCHITECTURE kvůli požadavkům na UI. Splněno: přepínač citlivosti (Standard/Sensitive) v UI + backend,
+  textová `osm_id` v ukázkovém runu a ve filtrech mapy, v *Data quality* důvod výběru dráhy a snímku „před“ (`primary_reason`, `pre_selection`).
+- Ověřeno headless Chromiem (POST obsahuje `sensitivity`, zvýraznění blokujících úseků s textovými ID). Run z UI stále čeká na `python -m povodne`.
 ### 2026-10-11 — radarový model bez Bolívie (D-X-02, D-M9-13) — `claude/zen-bell-a83s7a`
 - Sloučeny větve modelu (`claude/relaxed-johnson-wwj9s8`) a odpovědí organizátorů (`claude/funny-fermat-ukdqp8`).
 - Kód: Bolívie nikdy v tréninku, test na Bolívii na konci tréninku i v `evaluate.py` (`training/floodseg/s1f11.py`, test). Testy 6/6 OK.

@@ -59,7 +59,13 @@
         <div class="pop-wrap">
           <button type="button" class="btn quiet" id="adv-btn" aria-haspopup="true" aria-expanded="false">Advanced<span class="dot" id="adv-dot" hidden></span><svg class="i small"><use href="#i-chev"/></svg></button>
           <div class="popover" id="adv-pop" hidden>
-            <h3>Before / after windows</h3>
+            <h3>Detection sensitivity</h3>
+            <div class="segmented wide" id="sens-group" role="group" aria-label="Detection sensitivity">
+              <button type="button" data-sens="standard" class="active">Standard</button>
+              <button type="button" data-sens="sensitive">Sensitive</button>
+            </div>
+            <p class="muted" id="sens-help">Balanced: marks flooded area only where the model is fairly sure. Fewer false alarms.</p>
+            <h3 style="margin-top:14px">Before / after windows</h3>
             <p class="muted">Leave empty and the system chooses suitable satellite windows itself.</p>
             <div class="win"><span>Before</span><input type="date" class="field" id="pre-from" aria-label="Before window from"><span>–</span><input type="date" class="field" id="pre-to" aria-label="Before window to"></div>
             <div class="win"><span>After</span><input type="date" class="field" id="post-from" aria-label="After window from"><span>–</span><input type="date" class="field" id="post-to" aria-label="After window to"></div>
@@ -67,7 +73,7 @@
             <p class="muted">Local time in the selected area. If a satellite passed on the flood day, this tells the system whether that image is before or after the flood; without it the image is used only if it clearly shows the flood.</p>
             <div class="win"><span>Time</span><input type="time" class="field" id="event-time" aria-label="Flood time, local"></div>
             <p class="notice warn" id="adv-warn" hidden></p>
-            <button type="button" class="linklike" id="adv-reset">Reset to automatic</button>
+            <button type="button" class="linklike" id="adv-reset">Reset all to default</button>
           </div>
         </div>
       </div>
