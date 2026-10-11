@@ -8,6 +8,7 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-11 — přišly odpovědi organizátorů (Discord 9. 10.), týká se všech → přečti `docs/QUESTIONS.md` nahoře.** ImageNet ano, ale výsledky ukázat i na dalších datasetech (Sen1Floods11); **vlastní pipeline zpracování surových dat je potřeba** (Sentinel Hub už zpracovaný radar asi nestačí — nerozhodnuto); porota účet nemá → video + návod v README, živě smíme s naším účtem; **JRC smí, ale porovnat s variantou bez něj a zdůvodnit**; Unstop ne. Rozhodnutí se zatím nemění — rozhodne uživatel / master.
 - **2026-10-09 — master: sloučeno do `main` (model, satelity, UI) → všichni `git fetch origin main && git merge origin/main`.** Bez kolizí čísel; testy 33/33 OK.
   Zbývá navázat: **UI** — přepínač citlivosti `standard`/`sensitive` v UI + pole `sensitivity` v `POST /api/runs` (D-M9-08); ukázkový run přepsat na textové `osm_id`
   (`way/123`, D-M1-02 — UI porovnává `===`, s čísly ze vzorku by to s reálnými daty nesedělo). **Skeleton** — CLI `--sensitivity` → `run.json.sensitivity`.
@@ -90,6 +91,9 @@ Obtížnost a čas = odhad uživatele.
 4. Účty (CDSE, Kaggle…) zakládá uživatel až v příslušných sessions (D-011); údaje jen jako env proměnné prostředí, nikdy do repa.
 
 ## Log sessions
+### 2026-10-11 — odpovědi organizátorů — `claude/funny-fermat-ukdqp8`
+- Přečtena předávka satelitní session (`docs/HANDOFF_SATELITY.md` na `claude/nice-fermi-i7qzk8`, zatím není v `main`).
+- Odpovědi z Discordu zapsány do `docs/QUESTIONS.md` (Zodpovězeno) + oznámení výše. Žádná změna rozhodnutí ani kódu.
 ### 2026-10-09 — master: sloučení modelu, satelitů a UI — `claude/gallant-keller-vftpi2`
 - Sloučeny `claude/relaxed-johnson-wwj9s8` (model v0.2, citlivost, AI krok), `claude/nice-fermi-i7qzk8` (stahování dat, kalibrace S1), `ccr-d89d3cfb-ywooc4` (UI chybový detail).
 - Konflikty jen polohové (DECISIONS, PROGRESS), čísla rozhodnutí se zkratkou modulu nekolidovala. `check_docs` OK, `pytest tests training/tests`: 33 passed.
