@@ -8,6 +8,10 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-11 (večer) — master: sloučeno do `main` — AI model v0.4 + optický model (`claude/zen-bell-a83s7a`), satelity 2 + suť/bahno + odpovědi organizátorů (`claude/funny-fermat-ukdqp8`, obsahuje `claude/affectionate-shannon-jrnssg`), UI (`ccr-d89d3cfb-ywooc4`) → všichni `git fetch origin main && git merge origin/main`.**
+  Konflikty jen polohové (DECISIONS, PROGRESS) + `dashboard/` (citlivost z UI a hodina povodně ze satelitů spojeny; ověřeno v Chromiu: obě políčka, `POST /api/runs` zapíše `sensitivity` i `event_time`). D-X-02 byl v obou větvích stejný → jednou. `check_docs` OK, testy 69/69.
+  **Otevřené po sloučení:** upozornění „lepší pohled za X dní“ (D-X-05) zatím v kódu není (satelity); UI zatím neukazuje `run.json.notices`, podtypy suti ani vrstvu viditelnosti (D-M3d-02);
+  v `flood_polygons.geojson` mají polygony suti nést `subtype` + `confidence` (combine, M3); **chybí krok předzpracování** (`aligned/`, `masks/` — čte AI krok i optický model), skeleton `povodne run`, skládání finální masky, škody, odříznutá sídla, sitrep, renderer překryvů.
 - **2026-10-11 — M8 (UI): hotovo přepínač citlivosti** (v Advanced) + pole `sensitivity` v `POST /api/runs` (backend zapíše `run.json.sensitivity` a předá `--sensitivity` do `python -m povodne run`); ukázkový run má textová `osm_id` (`way/…`, `node/…`). **Skeleton:** CLI musí přijímat `--sensitivity` (a `--pre-window/--post-window`). Kontrakt beze změny.
 - **2026-10-11 — satelity: starší průlety + využití půdy pro krok změn povrchu (D-M1-07, splňuje D-M3d-02):** krok stahování ukládá `raw/s1[_alt]/hist_*.tif` (obvykle 2–3, max. 4 starší průlety, VV+VH, 20 m) a `osm/landuse.gpkg`; `run.json.acquire.s1.hist`. ohsome = 7 dotazů na běh. Naostro neověřeno (chybí klíče). Větev `claude/funny-fermat-ukdqp8` — **master: sloučit**.
 - **2026-10-11 — suť a bahno (D-X-04), týká se M3d, M3, M8, M6:** algoritmus na suť hledá změny povrchu na dně údolí **oběma směry** a zahrne i **zaplavenou vegetaci a zástavbu** (radar je zesvětlí, model vody je nevidí). Třída 3 = „suť, bahno a jiná změna povrchu“ (hodnota beze změny); podtypy navrhne session suti jako změnu kontraktu.
@@ -118,6 +122,9 @@ Obtížnost a čas = odhad uživatele.
 4. Účty (CDSE, Kaggle…) zakládá uživatel až v příslušných sessions (D-011); údaje jen jako env proměnné prostředí, nikdy do repa.
 
 ## Log sessions
+### 2026-10-11 (večer) — master: sloučení modelu v0.4, suti, satelitů 2 a UI — `claude/gallant-keller-vftpi2`
+- Sloučeny `claude/zen-bell-a83s7a`, `claude/funny-fermat-ukdqp8` (+ `claude/affectionate-shannon-jrnssg`), `ccr-d89d3cfb-ywooc4`. `claude/relaxed-johnson-wwj9s8` je celá v `zen-bell`.
+- Konflikty vyřešeny spojením obou stran; `dashboard/` = citlivost + hodina povodně dohromady (headless Chromium OK). `check_docs` OK, `pytest tests training/tests`: 69 passed.
 ### 2026-10-11 — M8: typy hlášek (nedostatek dat, nic nenalezeno, chyby) — `ccr-d89d3cfb-ywooc4`
 - UI rozlišuje verdikty (`no_significant_flooding` s kontextem pokrytí, `insufficient_data` se seznamem, co chybí), sbírá varování ze všech míst, nepíše „0 of 0“ při chybějících
   mapových datech, u chyb běhu dává lidskou radu podle typu a backend hlásí přerušený běh (bez aktivity > 15 min). Popsáno v `UI_SPEC.md` (Typy hlášek). Kontrakt beze změny.
