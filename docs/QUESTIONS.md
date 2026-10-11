@@ -10,7 +10,7 @@ nejde ověřit, organizátor/mentor podle kontextu). Doslovné znění a dopady 
 Stručně:
 1. ImageNet váhy **smí**, ale **ukázat výsledky i na dalších uvedených datasetech** (Kuro Siwo + Sen1Floods11).
 2. **Vlastní zpracování dat je potřeba** — „smyslem je zpracovat surový tok dat ze satelitů“. Hotově zpracovaný radar ze Sentinel Hubu
-   tedy nejspíš nestačí → dotýká se kroku stahování (Sentinel Hub) a přípravy dat (D-031, D-M1-02, D-018). **Zatím nerozhodnuto, jak.**
+   tedy možná nestačí. **Uživatel 2026-10-11: Sentinel Hub nechat** (vlastní pipeline = výběr snímků, masky, model atd.).
 3. Porota účet ani klíč nemá → **video + pořádný návod v README (jak si založit účet)**; při živém hodnocení smíme pipeline ukázat **s naším účtem**.
 4. JRC (globální mapa vody) **smí**, ale **porovnat obě varianty a zdůvodnit** zvolený přístup → dosavadní „JRC nepoužívat“ už neplatí jako zákaz.
 5. Unstop **není potřeba**.
@@ -53,7 +53,7 @@ Odpověď (doslovně, včetně překlepů):
 | # | O co šlo | Odpověď | Čeho se to týká (rozhodnutí zatím NEZMĚNĚNA — rozhodne uživatel / master) |
 |---|---|---|---|
 | 1 | ImageNet váhy encoderu | **Ano**, ale ukázat výsledky i na dalších uvedených datasetech | D-021 platí. D-024 říká „metriky Sen1Floods11 nereportujeme“ → v rozporu s odpovědí. Pozn.: radarový model trénoval na všech výřezech Sen1Floods11 kromě Srí Lanky (včetně Bolívie, kterou autoři datasetu drží jako test) → nemá na Sen1Floods11 čistý test. |
-| 2 | Je S1 ze Sentinel Hubu (už terénně korigovaný a oříznutý) „raw data“? | Je potřeba **vlastní pipeline zpracování** („smyslem je zpracovat surový tok dat ze satelitů“) | D-031, D-M1-02 (Sentinel Hub dělá kalibraci, filtr šumu, geokódování), D-018 (jen výřezy, ne celé scény). Odpověď je nejednoznačná, jak moc musíme zpracovávat sami — rozhodnout. |
-| 3 | Mají porotci účet / klíč? | Nemají → **video + pořádný návod v README, jak si založit účet**; při živém hodnocení smíme ukázat pipeline **s naším účtem** | D-035 (klíč přes proměnné prostředí) platí; README a video musí návod obsahovat. Týká se i klíče k ohsome (OpenStreetMap). |
+| 2 | Je S1 ze Sentinel Hubu (už terénně korigovaný a oříznutý) „raw data“? | Je potřeba **vlastní pipeline zpracování** („smyslem je zpracovat surový tok dat ze satelitů“) | D-031, D-M1-02 (Sentinel Hub dělá kalibraci, filtr šumu, geokódování), D-018 (jen výřezy, ne celé scény). Odpověď je nejednoznačná. **Rozhodnutí uživatele 2026-10-11: Sentinel Hub nechat** (výřez + kalibrace od Sentinel Hubu; naše pipeline = výběr snímků, masky, model, škody, odříznutí). |
+| 3 | Mají porotci účet / klíč? | Nemají → **video + pořádný návod v README, jak si založit účet**; při živém hodnocení smíme ukázat pipeline **s naším účtem** | D-035 (klíč přes proměnné prostředí) platí; README a video musí návod obsahovat. Týká se i klíče k ohsome (OpenStreetMap). Uživatel 2026-10-11: vyřeší se ve videu. |
 | 4 | Globální mapa vody (JRC) | **Smí se**, ale **porovnat obě varianty a zdůvodnit** přístup | Dosavadní pokyn „JRC nepoužívat“ (tento soubor, PROGRESS) už není zákaz. Kdo JRC použije, musí ukázat srovnání s variantou bez JRC. |
 | 5 | Registrace na Unstopu | **Ne** | — |
