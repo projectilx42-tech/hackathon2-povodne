@@ -515,6 +515,7 @@ dokumentace vypíná 30. 11. 2026. Nová verze v2 (stejný autor HeiGIT, stejná
 - Trishuli 8×9 km + 15 km okraj: 18 s; 16 582 budov, 3 859 silnic, 83 mostů, 244 sídel, 16 zařízení/měst.
 - Porotce potřebuje druhý bezplatný účet (vedle CDSE) → otázka pro organizátory (návrh v chatu).
 - **Rozpor k vyřešení (master):** CLAUDE.md říká „pro case study ≤ 2026-07-27“ (byl to limit v1); kód bere obecné pravidlo < `event_date`.
+  → **Vyřešeno (master, 2026-10-11):** CLAUDE.md upraveno na pravidlo < `event_date` (den před událostí); ověřeno proti zadání („snapshot date before 26 Aug 2026“; 27. 7. byl jen tehdy nejnovější dostupný).
 
 ---
 

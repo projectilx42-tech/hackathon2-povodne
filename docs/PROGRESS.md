@@ -8,6 +8,10 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-11 — master: sloučeny satelity (hodina povodně, HAND jako ASF + maska vod z DEM, upozornění s kódy, OSM přes ohsome v2) do `main` → všichni `git fetch origin main && git merge origin/main`.**
+  Bez konfliktů, `check_docs` OK, testy 53/53. **Nové env `OHSOME_API_KEY`** (vedle CDSE). Snapshot OSM = den před událostí (CLAUDE.md sladěno, D-M1-06).
+  **UI:** satelity minimálně upravily `dashboard/` (políčko Flood time + `event_time`) — při slučování UI větve zkontrolovat; implementovat zobrazení `run.json.notices` podle `docs/NOTICES.md`.
+  **Skeleton:** CLI `--event-time` → `run.json.event_time`. **Preprocess:** `masks/hand.tif` přes `acquire.terrain.hand`.
 - **2026-10-09 — M1: OpenStreetMap přes ohsome v2 (D-M1-06), týká se všech:** v1 už tvary nevydává (403). Nově **env `OHSOME_API_KEY`** (bezplatný klíč z account.heigit.org; README). Výstup `osm/*.gpkg` beze změny. Nová knihovna `pyarrow` v `requirements.txt`. **Master:** CLAUDE.md „case study ≤ 2026-07-27“ byl limit v1 — v2 dává snapshot den před povodní (25. 8.), zadání to povoluje; sladit.
 - **2026-10-09 — M1: upozornění s kódy pro UI (D-M1-05), změna kontraktu, týká se M8 a M6:** nové `run.json.notices` (`step`, `code`, `severity` error/warning/info, `message`, `details`). **Seznam kódů a doporučené zobrazení: `docs/NOTICES.md`** — UI prosím implementovat (červený pruh / panel kvality dat / „How this was computed“; graf podílu vody z `pre_selection.series`). `run.json.warnings` zůstává (text).
 - **2026-10-09 — M1: HAND jako ASF + maska vod z DEM (D-M1-04), týká se M2, M3, M3d:** práh toku 100 buněk (dřív 1 km²) → HAND v horách sedí s globálním HAND od ASF (Trishuli rozdíl 120 m → 13 m). Nový `raw/dem/water.tif` (moře/jezera/řeky z Copernicus DEM = povolený zdroj trvalé vody místo JRC). **M2:** `masks/hand.tif` počítat `acquire.terrain.hand`.
@@ -94,6 +98,9 @@ Obtížnost a čas = odhad uživatele.
 4. Účty (CDSE, Kaggle…) zakládá uživatel až v příslušných sessions (D-011); údaje jen jako env proměnné prostředí, nikdy do repa.
 
 ## Log sessions
+### 2026-10-11 — master: sloučení satelitů — `claude/gallant-keller-vftpi2`
+- `claude/nice-fermi-i7qzk8` (12 commitů) sloučena do `main` bez konfliktů (main nebyl napřed). `check_docs` OK, `pytest tests training/tests`: 53 passed.
+- Vyřešen rozpor data OSM snapshotu (CLAUDE.md vs D-M1-06): platí < `event_date`.
 ### 2026-10-09 (2) — satelity: upozornění pro UI — `claude/nice-fermi-i7qzk8`
 - Všechna upozornění kroku stahování mají pevný kód, závažnost a podrobnosti (`acquire/notices.py`, `run.json.notices`), seznam pro UI
   v `docs/NOTICES.md` (D-M1-05). Ověřeno: běh bez klíče zapíše `cdse_credentials` + `failed`; běh Trishuli (z mezipaměti, 0,5 PU) zapsal
