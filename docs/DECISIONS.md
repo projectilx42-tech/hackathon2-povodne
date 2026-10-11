@@ -455,6 +455,19 @@ Rozhodnutí:
   (trvalá ∪ povodeň) a model dostane „před“ jako nodata (jako v tréninku, D-024); v reportu napsat, že je to jiné nasazení než v pipeline
   (bez snímku „před“). Jak se pravidla nasazení modelu (D-M9-05) uplatní na přetrénovaný model, rozhodne session AI modelu.
 
+## D-X-03 | 2026-10-11 | přijato (rozhodnutí uživatele: „může se to udělat do budoucnosti, ale nebudem to dělat teď“) — JRC mapa vody teď ne, možná do budoucna
+Kontext: organizátoři (Discord 2026-10-09, `docs/QUESTIONS.md` bod 4) JRC Global Surface Water (celosvětová mapa vody 1984–2021 z Landsatu)
+**povolili**, ale jen s porovnáním variant s JRC a bez JRC a se zdůvodněním. Odhad přínosu (ne měření): 0–3 body F1 povodně v nížinách
+(test v0.2 na Kuro Siwo: F1 vody celkem 0,82 vs. povodně 0,78 — rozdíl je zhruba strop, co by šlo získat lepším rozlišením trvalé vody
+od povodně), v Himálaji ~0 (u Trishuli se povodeň projevuje hlavně jako suť/bahno, řeka je úzká vůči pixelu JRC 30 m, JRC končí 2021).
+Riziko: sezónně zaplavovaná místa JRC vede jako „častá voda“ → jejich odfiltrování by smazalo skutečnou povodeň. Cena: implementace
++ povinné porovnání ≈ půl dne až den, 3 dny před deadlinem.
+Rozhodnutí:
+- **Teď JRC nepoužívat.** Trvalá voda dál ze snímku „před“ (model) a z masky vod Copernicus DEM. V reportu jednou větou zdůvodnit
+  (malý odhadovaný přínos, riziko u sezónních záplav, JRC končí 2021).
+- **Do budoucna (ne teď) možné:** změřit přínos na Kuro Siwo val (ne na EMS, D-006) — kde JRC říká „trvalá voda“, přepsat povodeň
+  na trvalou vodu a porovnat F1 s variantou bez JRC; použít jen při měřitelném zlepšení a s porovnáním obou variant v reportu.
+
 ---
 
 # Otevřené otázky (k rozhodnutí)
