@@ -8,6 +8,8 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-11 — AI model (D-X-02):** radarový model přetrénovat **bez Bolívie ze Sen1Floods11** a výsledky na Bolívii uvádět (požadavek organizátorů „ukázat výsledky i na dalších datasetech“; Bolívie je oficiální test Sen1Floods11, v0.2 ji viděl v tréninku). Dělá session AI modelu.
+- **2026-10-11 — přišly odpovědi organizátorů (Discord 9. 10.), týká se všech → přečti `docs/QUESTIONS.md` nahoře.** ImageNet ano, ale výsledky ukázat i na dalších datasetech (Sen1Floods11); **vlastní pipeline zpracování surových dat je potřeba** (Sentinel Hub už zpracovaný radar asi nestačí — nerozhodnuto); porota účet nemá → video + návod v README, živě smíme s naším účtem; **JRC smí, ale porovnat s variantou bez něj a zdůvodnit**; Unstop ne. Rozhodnutí se zatím nemění — rozhodne uživatel / master.
 - **2026-10-09 — M9: optický model vody v0.1 hotový** (test Bolívie F1 0,885): `python training/fetch_model.py` teď stáhne radarový i optický model
   (`models/floodseg_s2_v0.1/`); `run_ai.py` ho použije, když M2 dodá `aligned/s2_*.tif` + `masks/s2_*_valid.tif`.
 - **2026-10-09 — M3/M9: optika + stín z obou směrů (D-M9-11), změna kontraktu:** AI krok (`training/run_ai.py`) teď čte i `aligned/s2_pre|post.tif`
@@ -95,6 +97,9 @@ Obtížnost a čas = odhad uživatele.
 4. Účty (CDSE, Kaggle…) zakládá uživatel až v příslušných sessions (D-011); údaje jen jako env proměnné prostředí, nikdy do repa.
 
 ## Log sessions
+### 2026-10-11 — odpovědi organizátorů — `claude/funny-fermat-ukdqp8`
+- Přečtena předávka satelitní session (`docs/HANDOFF_SATELITY.md` na `claude/nice-fermi-i7qzk8`, zatím není v `main`).
+- Odpovědi z Discordu zapsány do `docs/QUESTIONS.md` (Zodpovězeno) + oznámení výše. Uživatel: Sentinel Hub nechat; radarový model bez Bolívie (D-X-02).
 ### 2026-10-09 (den) — M9/M3 vylepšení modelu — `claude/relaxed-johnson-wwj9s8`
 - **Podrobné předání pro další session: `docs/HANDOFF_M9.md`.**
 - Sen1Floods11 přefiltrován Lee 7×7 (zrnitost = Kuro Siwo, D-M9-09); kolo 9 nenasazeno podle předem daného pravidla (hory 0,47 < 0,51, D-M9-10) → dál v0.2.

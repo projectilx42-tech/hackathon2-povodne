@@ -490,6 +490,20 @@ Kolo 10 (recept v0.2, seed 42, val): **jen výřezy s vodou** val score 0,592, F
 → **výřezy bez vody v tréninku nechat** (učí model, kde voda není; val i nasazení obsahují hlavně suchou zemi). Test se nespouštěl.
 Přepínač `--max-dry-share` v `train.py` zůstává. Metriky `training/results/r10_*`.
 
+## D-X-02 | 2026-10-11 | přijato (rozhodnutí uživatele po odpovědi organizátorů) — Radarový model: Bolívie ze Sen1Floods11 mimo trénink, výsledky na Sen1Floods11 uvádět
+Kontext: organizátoři (Discord 2026-10-09, `docs/QUESTIONS.md` bod 1): ImageNet váhy ano, „but show results on other datasets which are
+mentioned“ → máme ukázat výsledky i na Sen1Floods11, nejen na Kuro Siwo. Radarový model (v0.2) se ale učil na **všech** výřezech
+Sen1Floods11 kromě Srí Lanky (D-024), **včetně Bolívie**. Bolívii drží autoři Sen1Floods11 (Bonafilia et al., 2020) stranou jako
+nezávislý test (povodeň, kterou model nikdy neviděl) a výsledky v literatuře se na ní uvádějí. Výsledek na obrázcích, které model viděl
+při tréninku, je nadhodnocený a nic neříká (porota by to poznala) → nutný čistý test.
+Rozhodnutí:
+- **Radarový model přetrénovat se stejným receptem bez Bolívie** (`prepare_sen1floods11.py`: Bolívie vyřazena z tréninku stejně jako Srí Lanka).
+- **Výsledky na Sen1Floods11 Bolívii uvádět** (README / report / model card) vedle Kuro Siwo testu. Nahrazuje bod D-024
+  „Metriky Sen1Floods11 nereportujeme“. Optický model (Sentinel-2) už Bolívii stranou má (test F1 0,885), takže tam se nic nemění.
+- Pozor při vyhodnocení (pro session AI modelu): Sen1Floods11 má jen snímek „po“ a popisky jen voda/ne-voda → měří se **voda celkem**
+  (trvalá ∪ povodeň) a model dostane „před“ jako nodata (jako v tréninku, D-024); v reportu napsat, že je to jiné nasazení než v pipeline
+  (bez snímku „před“). Jak se pravidla nasazení modelu (D-M9-05) uplatní na přetrénovaný model, rozhodne session AI modelu.
+
 ---
 
 # Otevřené otázky (k rozhodnutí)
