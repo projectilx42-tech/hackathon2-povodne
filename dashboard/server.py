@@ -165,6 +165,9 @@ def create_app() -> FastAPI:
             datetime.strptime(date, "%Y-%m-%d")
         except ValueError:
             raise HTTPException(422, "event_date is not a valid date") from None
+        sensitivity = body.get("sensitivity", "standard")
+        if sensitivity not in ("standard", "sensitive"):
+            raise HTTPException(422, "sensitivity must be 'standard' or 'sensitive'")
         windows = {}
         for key in ("pre_window", "post_window"):
             w = body.get(key)
@@ -172,7 +175,7 @@ def create_app() -> FastAPI:
                 if not (isinstance(w, list) and len(w) == 2 and all(isinstance(x, str) and DATE_RE.match(x) for x in w) and w[0] <= w[1]):
                     raise HTTPException(422, f"{key} must be [from, to] as YYYY-MM-DD")
                 windows[key] = w
-        digest = hashlib.sha1(json.dumps([aoi, date, windows], sort_keys=True).encode()).hexdigest()[:6]
+        digest = hashlib.sha1(json.dumps([aoi, date, windows, sensitivity], sort_keys=True).encode()).hexdigest()[:6]
         run_id = f"run_{date}_{digest}"
         d = RUNS_DIR / run_id
         with _lock:
@@ -180,12 +183,12 @@ def create_app() -> FastAPI:
                 return {"run_id": run_id, "already_running": True}
             (d / "logs").mkdir(parents=True, exist_ok=True)
             _write_json(d / "run.json", {
-                "run_id": run_id, "aoi": aoi, "event_date": date, "pre_window": windows.get("pre_window"), "post_window": windows.get("post_window"),
+                "run_id": run_id, "aoi": aoi, "event_date": date, "pre_window": windows.get("pre_window"), "post_window": windows.get("post_window"), "sensitivity": sensitivity,
                 "created_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "progress": {"state": "queued", "steps": [{"name": n, "state": "pending", "message": ""} for n in STEPS]},
             })
             _write_json(d / "aoi.geojson", {"type": "Feature", "properties": {}, "geometry": aoi})
-            cmd = [sys.executable, "-m", "povodne", "run", "--aoi", str(d / "aoi.geojson"), "--event-date", date, "--out", str(d)]
+            cmd = [sys.executable, "-m", "povodne", "run", "--aoi", str(d / "aoi.geojson"), "--event-date", date, "--out", str(d), "--sensitivity", sensitivity]
             for key, flag in (("pre_window", "--pre-window"), ("post_window", "--post-window")):
                 if key in windows:
                     cmd += [flag, ",".join(windows[key])]

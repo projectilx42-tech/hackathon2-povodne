@@ -32,6 +32,9 @@ What was damaged / Who is cut off). Ikony jsou inline SVG sprite v `index.html`,
 - **Search:** hledání místa (Nominatim) nebo zadání souřadnic; po Enteru posune mapu. Nikdy nevstupuje do pipeline.
 - **Run:** spustí pipeline; za běhu se mění na **Cancel**. Neaktivní, dokud není AOI + datum.
 
+- **Citlivost detekce** (v Advanced, D-M9-08): *Standard* (výchozí) / *Sensitive* — posílá se jako `sensitivity` v `POST /api/runs`, ukazuje se v hlavičce výsledku. Tečka u Advanced = nestandardní volba.
+- V *Data quality* UI ukazuje důvod výběru hlavní dráhy a snímku „před“ (`run.json.acquire.s1.primary_reason`, `pre_selection`), pokud existují.
+
 ## Mapa
 - **Podklady** (přepínač): Dark (OSM s inverzí barev, výchozí, viz D-027) · OpenStreetMap · OpenTopoMap · EOX Sentinel-2 cloudless 2024 (satelit).
 - **Panel vrstev:** zapnout/vypnout, průhlednost, pořadí. Vrstvy:

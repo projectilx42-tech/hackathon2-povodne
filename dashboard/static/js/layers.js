@@ -71,7 +71,7 @@ const DEFS = [
     add(map, d) {
       map.addSource('cuts', { type: 'geojson', data: d.cuts });
       map.addLayer({ id: 'cuts', type: 'line', source: 'cuts', layout: { 'line-cap': 'butt' }, paint: { 'line-color': C.cut, 'line-width': 5, 'line-dasharray': [1.2, 1], 'line-opacity': 1 } });
-      map.addLayer({ id: 'cuts-hl', type: 'line', source: 'cuts', filter: ['==', ['get', 'osm_id'], -1], layout: { 'line-cap': 'round' }, paint: { 'line-color': C.sel, 'line-width': 8, 'line-opacity': 0.9 } });
+      map.addLayer({ id: 'cuts-hl', type: 'line', source: 'cuts', filter: ['==', ['get', 'osm_id'], ''], layout: { 'line-cap': 'round' }, paint: { 'line-color': C.sel, 'line-width': 8, 'line-opacity': 0.9 } });
     }, extraIds: ['cuts-hl'] },
   { id: 'buildings', label: 'Buildings hit', group: 'Damage', base: 0.9,
     ok: d => !!d.buildings, why: 'No building data', legend: [{ t: 'fill', c: C.bldg, l: 'Building hit' }],
@@ -282,10 +282,10 @@ export function createLayers(map, { panelEl, legendEl, onSettlement, onFeatureIn
       if (fly) map.flyTo({ center: f.geometry.coordinates, zoom: Math.max(map.getZoom(), 13), duration: 700 });
       return f;
     },
-    clearSelection() { map.getSource('sel')?.setData(EMPTY); map.setFilter('cuts-hl', ['==', ['get', 'osm_id'], -1]); },
+    clearSelection() { map.getSource('sel')?.setData(EMPTY); map.setFilter('cuts-hl', ['==', ['get', 'osm_id'], '']); },
     highlightCuts(osmIds) {
       if (!map.getLayer('cuts-hl')) return;
-      map.setFilter('cuts-hl', ['in', ['get', 'osm_id'], ['literal', osmIds.length ? osmIds : [-1]]]);
+      map.setFilter('cuts-hl', ['in', ['get', 'osm_id'], ['literal', osmIds.length ? osmIds : ['']]]);
       this.setLayerOn('cuts', true);
       const feats = (current.data.cuts?.features ?? []).filter(f => osmIds.includes(f.properties.osm_id));
       const pts = feats.flatMap(f => f.geometry.coordinates);

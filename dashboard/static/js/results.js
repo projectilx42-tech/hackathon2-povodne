@@ -15,6 +15,18 @@ const rows = list => el('dl', { class: 'rows' }, ...list.map(([k, v, strong]) =>
 const bar = (label, v) => el('div', { class: 'bar-row' }, el('span', { class: 'bar-l', text: label }),
   el('span', { class: 'bar' }, el('i', { style: `width:${v == null ? 0 : Math.max(0, Math.min(100, v))}%` })), el('span', { class: 'bar-v', text: pct(v) }));
 
+// Why these radar images were chosen (run.json.acquire.s1), shown as plain sentences.
+function selectionNotes(run) {
+  const s1 = run.acquire?.s1 ?? {}, notes = [];
+  if (s1.primary_reason) notes.push(`Main radar pass: ${s1.primary_reason}.`);
+  const sel = s1.pre_selection;
+  if (sel) {
+    const dates = (sel.chosen_pre ?? []).join(' + ');
+    notes.push(`Before image${dates ? ` (${dates})` : ''}: ${sel.reason ?? 'selected automatically'}${sel.user_window ? ' — your window was only checked, not changed' : ''}.`);
+  }
+  return notes;
+}
+
 export function createResults(root, api) {
   // api: {layers, openSettlement, onBack, exportPng}
   function setView(...nodes) { root.replaceChildren(...nodes); root.parentElement.scrollTop = 0; }
@@ -51,7 +63,7 @@ export function createResults(root, api) {
     const head = sec(null,
       el('div', { class: `statusline ${v.cls}` }, icon(v.icon), el('span', { text: v.title }), run.mock ? el('span', { class: 'badge sample', text: 'SAMPLE DATA' }) : null),
       ...(stats.verdict_reasons ?? []).map(t => el('p', { class: 'reason', text: t })),
-      el('div', { class: 'run-meta' }, el('span', { text: `Flood date ${stats.event_date ?? run.event_date ?? '?'}` }), el('span', { text: `${num(stats.aoi_area_km2, 0)} km²` }), el('span', { class: 'mono', text: runId })),
+      el('div', { class: 'run-meta' }, el('span', { text: `Flood date ${stats.event_date ?? run.event_date ?? '?'}` }), el('span', { text: `${num(stats.aoi_area_km2, 0)} km²` }), el('span', { text: `Sensitivity: ${run.sensitivity === 'sensitive' ? 'sensitive' : 'standard'}` }), el('span', { class: 'mono', text: runId })),
       stats.verdict === 'flood_detected' ? (ac.settlements_total
         ? el('div', { class: 'hero' }, el('div', { class: 'hero-v' }, num(ac.cut_off, 0), el('small', { text: `of ${num(ac.settlements_total, 0)}` })),
             el('div', { class: 'hero-l', text: 'settlements cut off from the nearest town or hospital' }),
@@ -74,6 +86,7 @@ export function createResults(root, api) {
     const quality = sec('Data quality',
       bar('Radar (S1) valid', cov.s1_valid_pct), bar('Optical before, clear', cov.s2_pre_clear_pct), bar('Optical after, clear', cov.s2_post_clear_pct),
       el('div', { class: 'scene-list' }, ...Object.entries(stats.scenes ?? {}).map(([k, val]) => el('div', { class: 'scene' }, el('span', { class: 'muted', text: k.replace('_', ' ').toUpperCase() }), el('span', { class: 'mono', text: val ?? 'not available' })))),
+      ...selectionNotes(run).map(t => el('p', { class: 'fine', text: t })),
       ...(stats.warnings ?? run.warnings ?? []).map(w => el('p', { class: 'notice warn', text: w })));
 
     const [hasPdf, hasMd] = await Promise.all([fileExists(runId, 'report/sitrep_en.pdf'), fileExists(runId, 'report/sitrep_en.md')]);

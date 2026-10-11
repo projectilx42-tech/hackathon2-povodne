@@ -137,13 +137,13 @@ def main():
         ts = [t0 + (t1 - t0) * k / 30 for k in range(31)]
         pts = [offset(t, sides[i] * (ROAD_OFF + 0.0007 * math.sin(40 * t))) for t in ts]
         inside = sum(1 for t in ts if w_debris(t) >= ROAD_OFF) / len(ts)
-        segs.append({"id": 9000 + i, "t0": t0, "t1": t1, "pts": pts, "hit_fraction": round(inside, 2)})
+        segs.append({"id": f"way/{9000 + i}", "t0": t0, "t1": t1, "pts": pts, "hit_fraction": round(inside, 2)})
     for i in range(1, len(bounds) - 1):
         if sides[i - 1] != sides[i]:
             t = bounds[i]
             pts = [segs[i - 1]["pts"][-1], segs[i]["pts"][0]]
             hit = w_debris(t) > 0.002
-            bridges.append({"id": 9500 + i, "t": t, "pts": pts, "hit": hit})
+            bridges.append({"id": f"way/{9500 + i}", "t": t, "pts": pts, "hit": hit})
     THRESH = 0.2
     dmg_roads, cuts = [], []
     for s in segs:
@@ -172,11 +172,11 @@ def main():
         nx, ny = normal(t)
         pos = (round(base[0] + side * nx * 0.006, 6), round(base[1] + side * ny * 0.006, 6))
         branch = [base, pos]
-        dmg_roads.append(feat({"type": "LineString", "coordinates": branch}, osm_id=8000 + k, kind="road", name=None, hit=False, hit_fraction=0.0,
+        dmg_roads.append(feat({"type": "LineString", "coordinates": branch}, osm_id=f"way/{8000 + k}", kind="road", name=None, hit=False, hit_fraction=0.0,
                               hit_class=None, mean_prob=0.02, confidence="low"))
         place = "village" if k % 4 else "hamlet"
         pop = rnd.randint(120, 1800)
-        settlements.append(feat({"type": "Point", "coordinates": list(pos)}, osm_id=7000 + k, name=f"Sample village {names[k]}", place=place, population=pop))
+        settlements.append(feat({"type": "Point", "coordinates": list(pos)}, osm_id=f"node/{7000 + k}", name=f"Sample village {names[k]}", place=place, population=pop))
         # path to the south end (t = 1): segments after t, bridges after t
         path_segs = [s for s in segs if s["t1"] > t]
         path_bridges = [b for b in bridges if b["t"] > t]
@@ -185,7 +185,7 @@ def main():
         remaining = sum(s["length"] * (1 if s["t0"] >= t else (s["t1"] - t) / (s["t1"] - s["t0"])) for s in path_segs)
         dist = remaining + dist_m(base, pos)
         status = "cut_off" if blocking else "degraded" if degraded else "connected"
-        access.append(feat({"type": "Point", "coordinates": list(pos)}, osm_id=7000 + k, name=f"Sample village {names[k]}", place=place, population=pop,
+        access.append(feat({"type": "Point", "coordinates": list(pos)}, osm_id=f"node/{7000 + k}", name=f"Sample village {names[k]}", place=place, population=pop,
                            status=status, nearest_dest_pre="Sample District Hospital", dist_pre_m=round(dist), time_pre_s=round(dist / (40 / 3.6)),
                            nearest_dest_post=None if status == "cut_off" else "Sample District Hospital",
                            dist_post_m=None if status == "cut_off" else round(dist * (2.3 if status == "degraded" else 1)),
@@ -198,8 +198,9 @@ def main():
             ring = [[cx - h, cy - h], [cx + h, cy - h], [cx + h, cy + h], [cx - h, cy + h], [cx - h, cy - h]]
             cls = flood_class_at((cx, cy))
             bid += 1
-            buildings.append(feat({"type": "Polygon", "coordinates": [ring]}, osm_id=bid, building="yes"))
-            dmg_buildings.append(feat({"type": "Polygon", "coordinates": [ring]}, osm_id=bid, kind="building", name=None, hit=cls != 0, hit_fraction=1.0 if cls else 0.0,
+            bname = f"way/{bid}"
+            buildings.append(feat({"type": "Polygon", "coordinates": [ring]}, osm_id=bname, building="yes"))
+            dmg_buildings.append(feat({"type": "Polygon", "coordinates": [ring]}, osm_id=bname, kind="building", name=None, hit=cls != 0, hit_fraction=1.0 if cls else 0.0,
                                       hit_class={0: None, 2: "water", 3: "debris"}[cls], mean_prob=0.9 if cls else 0.05, confidence="high" if cls else "low"))
     # road cuts
     n_cut = {}
@@ -242,8 +243,9 @@ def main():
     write("stats.json", stats)
     write("run.json", {
         "run_id": "sample_synthetic", "mock": True, "aoi": {"type": "Polygon", "coordinates": [[[AOI[0], AOI[1]], [AOI[2], AOI[1]], [AOI[2], AOI[3]], [AOI[0], AOI[3]], [AOI[0], AOI[1]]]]},
-        "event_date": "2026-08-26", "osm_snapshot_date": "2026-07-27", "crs": "EPSG:32645", "created_utc": "2026-10-08T00:00:00Z", "code_version": "sample",
-        "acquire": {"s1": {"relative_orbit": 0, "orbit_direction": "SAMPLE", "pre": [{"id": "SAMPLE", "datetime": "2026-08-20T00:00:00Z"}],
+        "event_date": "2026-08-26", "sensitivity": "standard", "osm_snapshot_date": "2026-07-27", "crs": "EPSG:32645", "created_utc": "2026-10-08T00:00:00Z", "code_version": "sample",
+        "acquire": {"s1": {"relative_orbit": 0, "orbit_direction": "SAMPLE", "primary_reason": "SAMPLE: earliest post-event pass",
+                           "pre_selection": {"method": "water_fraction_series", "onset_date": "2026-08-24", "chosen_pre": ["2026-08-20"], "reason": "SAMPLE: last pass before the rise in water", "user_window": False}, "pre": [{"id": "SAMPLE", "datetime": "2026-08-20T00:00:00Z"}],
                            "post": [{"id": "SAMPLE", "datetime": "2026-09-01T00:00:00Z"}], "source": "synthetic"},
                     "s2": {"pre": [], "post": [], "max_cloud_pct": 40}, "dem": {"source": "synthetic", "product": "synthetic"}},
         "flood": {"method": "ai", "model": "synthetic", "params": {}}, "warnings": stats["warnings"],
