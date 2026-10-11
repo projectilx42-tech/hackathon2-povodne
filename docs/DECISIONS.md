@@ -468,6 +468,32 @@ Rozhodnutí:
 - **Do budoucna (ne teď) možné:** změřit přínos na Kuro Siwo val (ne na EMS, D-006) — kde JRC říká „trvalá voda“, přepsat povodeň
   na trvalou vodu a porovnat F1 s variantou bez JRC; použít jen při měřitelném zlepšení a s porovnáním obou variant v reportu.
 
+## D-X-04 | 2026-10-11 | přijato (rozhodnutí uživatele) — Algoritmus na suť a bahno pokrývá i zaplavenou vegetaci a zástavbu
+Kontext: voda pod stromy a mezi domy radar **zesvětlí** (dvojitý odraz voda → kmen/zeď → družice), model vody hledá tmavou vodu a tyto
+plochy přehlédne; optika pod koruny nevidí. Změřeno satelitní session (dno údolí, změna > 3 dB mimo historii pixelu): Opava 2024
+**zesvětlení 13,6 %** vs ztmavnutí 0,5 % (zaplavené město a vegetace), Trishuli 0,4 % / 6,3 %, Derna 3,2 % / 0,9 %. Zatím neřešeno nikde.
+Rozhodnutí:
+- **Algoritmus na suť a bahno (`flood/debris.py`) hledá změny povrchu na dně údolí oběma směry** a zahrne i zaplavenou vegetaci
+  a zástavbu (zesvětlení), ne jen suť a bahno. Třída 3 masky = „suť, bahno a jiná změna povrchu (vč. zaplavené vegetace / zástavby)“;
+  počítá se jako zasaženo (2 ∪ 3), hodnota třídy se nemění.
+- **Rozdělení na podtypy** (např. suť/bahno vs. zaplavená vegetace/zástavba) je povolené a doporučené, pokud ho algoritmus umí rozlišit
+  (napr. zesvětlení vs. ztmavnutí, vegetace ze Sentinel-2 / poměr VV/VH, zástavba z OSM budov). Způsob zápisu (atribut v
+  `flood_polygons.geojson` nebo nová třída) navrhne session suti jako změnu kontraktu (DECISIONS + ARCHITECTURE).
+- Více drah / úhlů pohledu: uživatel bere jako vyřešené současným spojením drah po pixelech (D-034); třetí dráha se dál nestahuje (D-035).
+ARCHITECTURE.md (popis třídy 3) upraven ve stejném commitu.
+
+## D-X-05 | 2026-10-11 | přijato (rozhodnutí uživatele) — Upozornění „lepší pohled za X dní“
+Kontext: radarový stín a layover v horách; druhý směr přeletu je vidí z druhé strany (D-033, D-034). U čerstvé povodně ale snímek „po“
+z druhé dráhy ještě nemusí existovat. Průlety jsou pravidelné (každá dráha jednou za 12 dní na jednu družici, se dvěma družicemi 6 dní),
+takže datum příštího průletu jde předpovědět (poslední průlet dráhy + interval zjištěný z katalogu).
+Rozhodnutí — **krok stahování přidá upozornění** (nový kód v `acquire/notices.py` + `docs/NOTICES.md`, dělá satelitní session):
+- Kdy: chybí snímek „po“ z druhého směru přeletu (nebo z dráhy, která vidí dno údolí výrazně líp), protože průlet ještě nenastal.
+- Obsah `message`: datum (místní čas) a počet dní do příštího průletu té dráhy + o kolik procentních bodů víc dna údolí bude vidět
+  (sjednocení viditelnosti obou drah z DEM a geometrie dráhy, bez stahování snímků), např. „The opposite pass on 31 Aug (in 3 days) will
+  show 12 % more of the valley floor. Re-run then for a fuller map.“
+- `details`: `track`, `direction`, `next_pass_date`, `days_until`, `visibility_now`, `visibility_with_track`.
+- Pro minulé povodně (oba snímky už existují) se nevydává — systém je stáhne a spojí sám.
+
 ---
 
 # Otevřené otázky (k rozhodnutí)

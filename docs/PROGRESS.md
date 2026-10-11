@@ -8,6 +8,8 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-11 — suť a bahno (D-X-04), týká se M3d, M3, M8, M6:** algoritmus na suť hledá změny povrchu na dně údolí **oběma směry** a zahrne i **zaplavenou vegetaci a zástavbu** (radar je zesvětlí, model vody je nevidí). Třída 3 = „suť, bahno a jiná změna povrchu“ (hodnota beze změny); podtypy navrhne session suti jako změnu kontraktu.
+- **2026-10-11 — satelity (D-X-05):** nové upozornění „lepší pohled za X dní“ (datum příštího průletu druhé dráhy + kolik dna údolí přibude). Dělá satelitní session (`acquire/notices.py`, `docs/NOTICES.md`), UI ho pak zobrazí.
 - **2026-10-11 — AI model (D-X-02):** radarový model přetrénovat **bez Bolívie ze Sen1Floods11** a výsledky na Bolívii uvádět (požadavek organizátorů „ukázat výsledky i na dalších datasetech“; Bolívie je oficiální test Sen1Floods11, v0.2 ji viděl v tréninku). Dělá session AI modelu.
 - **2026-10-11 — přišly odpovědi organizátorů (Discord 9. 10.), týká se všech → přečti `docs/QUESTIONS.md` nahoře.** ImageNet ano, ale výsledky ukázat i na dalších datasetech (→ D-X-02); vlastní pipeline zpracování je potřeba (**uživatel: Sentinel Hub nechat**); porota účet nemá → video + návod v README, živě smíme s naším účtem; JRC smí s porovnáním obou variant (**uživatel: teď ne, možná do budoucna — D-X-03**); Unstop ne.
 - **2026-10-09 — master: sloučeno do `main` (model, satelity, UI) → všichni `git fetch origin main && git merge origin/main`.** Bez kolizí čísel; testy 33/33 OK.
@@ -94,7 +96,7 @@ Obtížnost a čas = odhad uživatele.
 ## Log sessions
 ### 2026-10-11 — odpovědi organizátorů — `claude/funny-fermat-ukdqp8`
 - Přečtena předávka satelitní session (`docs/HANDOFF_SATELITY.md` na `claude/nice-fermi-i7qzk8`, zatím není v `main`).
-- Odpovědi z Discordu zapsány do `docs/QUESTIONS.md` (Zodpovězeno) + oznámení výše. Uživatel: Sentinel Hub nechat; radarový model bez Bolívie (D-X-02); JRC teď ne (D-X-03).
+- Odpovědi z Discordu zapsány do `docs/QUESTIONS.md` (Zodpovězeno) + oznámení výše. Uživatel: Sentinel Hub nechat; radarový model bez Bolívie (D-X-02); JRC teď ne (D-X-03); suť zahrne zaplavenou vegetaci (D-X-04); upozornění na příští průlet (D-X-05).
 ### 2026-10-09 — master: sloučení modelu, satelitů a UI — `claude/gallant-keller-vftpi2`
 - Sloučeny `claude/relaxed-johnson-wwj9s8` (model v0.2, citlivost, AI krok), `claude/nice-fermi-i7qzk8` (stahování dat, kalibrace S1), `ccr-d89d3cfb-ywooc4` (UI chybový detail).
 - Konflikty jen polohové (DECISIONS, PROGRESS), čísla rozhodnutí se zkratkou modulu nekolidovala. `check_docs` OK, `pytest tests training/tests`: 33 passed.

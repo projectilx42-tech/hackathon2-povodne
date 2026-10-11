@@ -129,7 +129,7 @@ runs/<run_id>/
 | 0 | nodata / nevyhodnoceno (mimo AOI, layover/shadow, chybí data) |
 | 1 | nezasaženo |
 | 2 | **flood water** — nová voda (nebyla před událostí) |
-| 3 | **debris / mud** — nánosy bahna a kamení, eroze koryta |
+| 3 | **debris / mud + jiná změna povrchu** — nánosy bahna a kamení, eroze koryta, zaplavená vegetace / zástavba (radar zesvětlí; D-X-04) |
 | 4 | permanentní voda (voda už před událostí) — **nepočítá se jako zasažené** |
 
 "Zasaženo" (pro M4/M5) = třídy **2 ∪ 3**. Nodata = 255 se nepoužívá; nodata je 0.
