@@ -1,6 +1,6 @@
 """Measure map clean-up rules on the validation events (never on test or EMS maps; D-006, D-025).
 
-  python training/eval_postprocess.py --model models/floodseg_v0.2/model.pt --data data/kurosiwo_compact --out pp.json
+  python training/eval_postprocess.py --model models/floodseg_v0.4/model.pt --data data/kurosiwo_compact --out pp.json
 
 Variants, all after the pipeline's slope rule (no water on slopes > 15 deg):
   base           most likely class (pipeline "standard")

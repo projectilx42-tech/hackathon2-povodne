@@ -516,6 +516,17 @@ Rozhodnutí:
   není rozbitý: F1 povodně na Kuro Siwo testu ≥ 0,765 (v0.2 − 0,01). Horské kritérium se nepoužije (kolísá 0,47–0,53 i u stejného
   receptu, D-M9-10), jen se uvede. Když pravidlo neprojde: druhý běh se seedem 1, vybrat podle val a ten otestovat jednou.
 
+## D-M9-14 | 2026-10-11 | přijato (M9) — výsledek kola 11: model v0.4 (bez Bolívie) nasazen podle D-M9-13
+- **Kuro Siwo test (jednorázově):** F1 povodně **0,780** (P 0,869, R 0,708; v0.2: 0,775) → pravidlo ≥ 0,765 ✓ → **v0.4 nahrazuje v0.2**.
+  Rovina 0,778, kopce 0,819, hory 0,484 (kolísá, D-M9-10). Val F1 povodně 0,696, teplota 0,9243.
+- **Sen1Floods11 Bolívie (jednorázově, model ji neviděl), voda celkem:** se snímkem „před“ = nodata (jako v tréninku) **F1 0,210**
+  (P 0,959, R 0,118, IoU 0,118). Ověřeno lokálně (stejné číslo) — nejde o chybu vyhodnocení; v0.2, který Bolívii viděl, má 0,276.
+  Příčina: bez snímku „před“ model vodu skoro nehlásí (naučil se spoléhat na změnu) a bolivijská voda je světlá (medián VV −16 dB).
+  Doplňkově: „před“ = „po“ (bez změny) F1 0,636 (P 0,889, R 0,495). Prostý práh VV < −15 dB by dal F1 0,74 — jen pro kontext,
+  není to model. Obě varianty vyhodnocení jsou mimo nasazení (pipeline má vždy snímek „před“); v reportu uvést obě s vysvětlením.
+- Váhy: Kaggle `floodseg-model` nová verze, `fetch_model.py` → `models/floodseg_v0.4/`, `run_ai.py` výchozí v0.4. Práh režimu
+  sensitive 0,25 převzat z v0.2 (stejný recept, nepřeladěn). Metriky `training/results/r11_*`.
+
 ---
 
 # Otevřené otázky (k rozhodnutí)

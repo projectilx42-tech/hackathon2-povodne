@@ -8,6 +8,7 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-11 — AI model v0.4 (D-M9-14):** radarový model přetrénován bez Bolívie; `python training/fetch_model.py` → `models/floodseg_v0.4/`, `run_ai.py` ho bere jako výchozí. Rozhraní beze změny. Kuro Siwo test F1 0,780; Bolívie viz D-M9-14.
 - **2026-10-11 — AI model (D-X-02):** radarový model přetrénovat **bez Bolívie ze Sen1Floods11** a výsledky na Bolívii uvádět (požadavek organizátorů „ukázat výsledky i na dalších datasetech“; Bolívie je oficiální test Sen1Floods11, v0.2 ji viděl v tréninku). Dělá session AI modelu.
 - **2026-10-11 — přišly odpovědi organizátorů (Discord 9. 10.), týká se všech → přečti `docs/QUESTIONS.md` nahoře.** ImageNet ano, ale výsledky ukázat i na dalších datasetech (Sen1Floods11); **vlastní pipeline zpracování surových dat je potřeba** (Sentinel Hub už zpracovaný radar asi nestačí — nerozhodnuto); porota účet nemá → video + návod v README, živě smíme s naším účtem; **JRC smí, ale porovnat s variantou bez něj a zdůvodnit**; Unstop ne. Rozhodnutí se zatím nemění — rozhodne uživatel / master.
 - **2026-10-09 — M9: optický model vody v0.1 hotový** (test Bolívie F1 0,885): `python training/fetch_model.py` teď stáhne radarový i optický model
@@ -81,7 +82,7 @@ Obtížnost a čas = odhad uživatele.
 | 0 Skeleton (pyproject, CLI, config, io/grid) | ⬜ | `feat/skeleton` | |
 | M1 Acquire (S1/S2/DEM/OSM) | 🟨 | `claude/nice-fermi-i7qzk8` | celý krok hotový (`python -m povodne.acquire`): katalog, hlavní dráha (D-X-01), DEM, kontrola čistoty pre (D-M1-01), S1 obě dráhy kalibrované (D-M1-02), S2, OSM; **OSM neotestováno (ohsome v údržbě)** |
 | M2 Preprocess | ⬜ | `feat/preprocess` | požadavky z M9: D-033 (layover/shadow maska pro oba tracky, slope, HAND) |
-| M9 AI trénink | ✅ | `claude/relaxed-johnson-wwj9s8` | v0.2 (`floodseg-model`), D-M9-01–11; optický model S2 a kolo 10 rozpracované; **předání: `docs/HANDOFF_M9.md`** |
+| M9 AI trénink | ✅ | `claude/zen-bell-a83s7a` | v0.4 bez Bolívie (`floodseg-model`, D-M9-14); dříve v0.2, D-M9-01–11; optický model S2 a kolo 10 rozpracované; **předání: `docs/HANDOFF_M9.md`** |
 | M3 AI inference (voda) | 🟨 | `claude/relaxed-johnson-wwj9s8` | `training/run_ai.py` (+ testy): dva směry, stín z obou směrů, optika S2, min. plocha, dvoustupňový práh (D-M9-11); přesun do `src/povodne/flood/` až bude skeleton |
 | M3d Suť a bahno | ⬜ | `feat/debris` | |
 | M4 Damage | ⬜ | `feat/damage` | |
@@ -100,7 +101,7 @@ Obtížnost a čas = odhad uživatele.
 ### 2026-10-11 — radarový model bez Bolívie (D-X-02, D-M9-13) — `claude/zen-bell-a83s7a`
 - Sloučeny větve modelu (`claude/relaxed-johnson-wwj9s8`) a odpovědí organizátorů (`claude/funny-fermat-ukdqp8`).
 - Kód: Bolívie nikdy v tréninku, test na Bolívii na konci tréninku i v `evaluate.py` (`training/floodseg/s1f11.py`, test). Testy 6/6 OK.
-- Připraveno kolo 11 (`training/kaggle/round11.json`, recept v0.2); pravidlo nasazení zapsáno předem. **Čeká na Kaggle token** v prostředí.
+- Kolo 11 na Kaggle doběhlo → **model v0.4 nasazen** (Kuro Siwo test F1 0,780; Bolívie bez snímku „před“ F1 0,21, s „před“ = „po“ 0,64; D-M9-14).
 - Dřívější průzkum (2026-10-09, jen v chatu): dlaždice Kuro Siwo jsou ve Web Mercatoru (pixel = 10 m × cos šířky), sklon v tréninku je
   proto podhodnocený proti pipeline — neopraveno, jen zjištěno.
 ### 2026-10-11 — odpovědi organizátorů — `claude/funny-fermat-ukdqp8`

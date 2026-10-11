@@ -8,27 +8,43 @@ Input: seven channels — Sentinel-1 GRD sigma0 in dB before and after the event
 (post − pre), and terrain slope from the DEM. Output per pixel: *no water*, *permanent water* or *flood*.
 Architecture: U-Net with an ImageNet-pretrained ResNet34 encoder (`segmentation-models-pytorch`).
 Training data: Kuro Siwo (official train events) plus Sen1Floods11 hand-labelled chips (post image only; the Sri Lanka
-event is excluded because it is a Kuro Siwo test flood). Loss: cross-entropy + Lovasz-Softmax (a direct IoU surrogate).
+event is excluded because it is a Kuro Siwo test flood, and Bolivia because it is the Sen1Floods11 test flood). Loss: cross-entropy + Lovasz-Softmax (a direct IoU surrogate).
 Sampling balances flood events. Augmentations: choice of pre image, calibration offsets, speckle, rescaling, rotations.
 The checkpoint is chosen on validation events by the mean per-event IoU; probabilities are temperature-calibrated.
 Data splits are by flood event (the official Kuro Siwo benchmark split), so test scores come from floods the model has
 never seen. Inference runs on CPU in overlapping tiles (~25 s for a 30 × 30 km valley).
 Design decisions and experiment results: `docs/DECISIONS.md` (D-020 – D-025, D-032 – D-034), per-run metrics in `results/`.
 
-## Results (model v0.2)
+## Results (model v0.4)
 **Held-out Kuro Siwo test events** — 10 floods on 6 continents the model never saw; 15,896 tiles including dry ones; pixels pooled:
 
 | | IoU | precision | recall | F1 |
 |---|---|---|---|---|
-| flood | 0.633 | 0.870 | 0.699 | **0.775** |
-| permanent water | – | – | – | 0.772 |
-| any water | – | – | – | 0.825 |
-| flood, flat tiles (relief < 50 m) | 0.629 | 0.873 | 0.692 | 0.772 |
-| flood, hilly tiles (50–200 m) | 0.699 | 0.831 | 0.814 | 0.823 |
-| flood, mountainous tiles (> 200 m) | 0.360 | 0.551 | 0.510 | 0.530 |
+| flood | 0.639 | 0.869 | 0.708 | **0.780** |
+| permanent water | 0.638 | 0.811 | 0.749 | 0.779 |
+| any water | 0.700 | 0.895 | 0.763 | 0.824 |
+| flood, flat tiles (relief < 50 m) | 0.636 | 0.874 | 0.700 | 0.778 |
+| flood, hilly tiles (50–200 m) | 0.693 | 0.812 | 0.826 | 0.819 |
+| flood, mountainous tiles (> 200 m) | 0.320 | 0.493 | 0.476 | 0.484 |
+
+**Held-out Sen1Floods11 test event (Bolivia)** — 15 hand-labelled chips the model never saw (`floodseg/s1f11.py`). Sen1Floods11
+has only the post-event image and water / no-water labels, so we score any water. This is not how the pipeline runs (it always
+has a pre-event image):
+
+| input | IoU | precision | recall | F1 |
+|---|---|---|---|---|
+| pre-event image missing (as in training) | 0.118 | 0.959 | 0.118 | 0.210 |
+| pre-event image = post image (no change) | 0.466 | 0.889 | 0.495 | 0.636 |
+
+Without a pre-event image the model almost never calls water: it learned to rely on the before/after change. Bolivian
+flood water is also not very dark (median VV −16 dB; dark-water rule VV < −15 dB would find 63 %), typical of shallow water
+in grass and shrubs. Mountain tiles fluctuate between versions of the same recipe (0.47–0.53, small sample).
+Model v0.2 (same recipe, but Bolivia in training) had Kuro Siwo flood F1 0.775.
 
 For reference, the best model of the Kuro Siwo paper (U-Net ResNet50, three images) reports flood F1 0.801 on these events.
 The model is conservative: when it says "flood" it is right 87 % of the time, and it finds 70 % of the flooded area.
+
+Per event (model v0.2):
 
 | test event | flood F1 | precision | recall |
 |---|---|---|---|
@@ -75,12 +91,12 @@ In the pipeline (`run_ai.py`), optical water is a flood where the pixel was dry 
 
 ## Use the current model (integration testing)
 ```bash
-python training/fetch_model.py              # -> models/floodseg_v0.2/ (needs KAGGLE_API_TOKEN in the environment)
+python training/fetch_model.py              # -> models/floodseg_v0.4/ (needs KAGGLE_API_TOKEN in the environment)
 python training/run_ai.py runs/<run_id>     # aligned/ + masks/ -> flood/ai_mask.tif, flood/ai_prob.tif, run.json "flood"
 ```
 `run_ai.py` is the interim M3 step (until `src/povodne/flood/ai.py` exists): per-track inference, layover/shadow -> nodata,
-water suppressed on steep slopes / high HAND, both pass directions averaged (D-034). Model v0.2 = `r6_r34_lovasz`
-(test flood F1 0.775, mountainous tiles 0.53; D-M9-04); later versions keep the same files and interface.
+water suppressed on steep slopes / high HAND, both pass directions averaged (D-034). Model v0.4 = `r11_r34_lovasz_nobolivia`
+(test flood F1 0.780, mountainous tiles 0.48; D-M9-13); later versions keep the same files and interface.
 Speed: a 30 × 30 km area (3000 × 3000 px) takes ~30 s per pass direction on 4 CPU cores with ~2 GB RAM.
 Sensitivity (`--sensitivity` or `run.json` `"sensitivity"`): `standard` takes the most likely class; `sensitive` reports flood
 from P(flood) ≥ 0.25 (threshold chosen on validation events, stored in `model_card.json`): on validation it finds 76 % instead
@@ -114,7 +130,7 @@ python training/prepare_kurosiwo.py --split train_GRD --shards 0 1 2 3 4 --out d
 python training/prepare_kurosiwo.py --split test_GRD --shards 0 1 2 3 4 5 6 7 8 9 10 11 --out data/kurosiwo_compact
 # 2) training (GPU recommended; we use a Kaggle notebook)
 python training/prepare_sen1floods11.py --src data/sen1floods11/v1.1 --out data/kurosiwo_compact
-python training/train.py --data data/kurosiwo_compact --out models/floodseg_v0.2 --slope --sen1floods11 --loss lovasz
+python training/train.py --data data/kurosiwo_compact --out models/floodseg_v0.4 --slope --sen1floods11 --loss lovasz
 ```
 A CPU smoke test: add `--max-tiles 64 --epochs 1 --device cpu`.
 

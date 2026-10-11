@@ -1,0 +1,119 @@
+{
+ "dataset": "Sen1Floods11 hand-labelled, hold-out events Bolivia",
+ "metric": "water (permanent + flood) vs no water, pixels pooled; post image only (pre missing)",
+ "n_chips": 15,
+ "water": {
+  "iou": 0.11750770064049072,
+  "precision": 0.9589951843599511,
+  "recall": 0.11810108851274947,
+  "f1": 0.21030316045811964,
+  "support": 451901
+ },
+ "per_chip": {
+  "Bolivia_103757": {
+   "iou": 0.3518920901882214,
+   "precision": 0.9940215225189318,
+   "recall": 0.352638425428426,
+   "f1": 0.5205919802951552,
+   "support": 35362
+  },
+  "Bolivia_129334": {
+   "iou": 0.10332461854141231,
+   "precision": 0.9775036284470247,
+   "recall": 0.10357090224070431,
+   "f1": 0.1872968604253692,
+   "support": 156067
+  },
+  "Bolivia_195474": {
+   "iou": 0.0,
+   "precision": null,
+   "recall": 0.0,
+   "f1": 0.0,
+   "support": 1551
+  },
+  "Bolivia_23014": {
+   "iou": 0.24023062139654067,
+   "precision": 0.9868421052631579,
+   "recall": 0.2410025706940874,
+   "f1": 0.38739669421487605,
+   "support": 7780
+  },
+  "Bolivia_233925": {
+   "iou": 0.0,
+   "precision": null,
+   "recall": 0.0,
+   "f1": 0.0,
+   "support": 1
+  },
+  "Bolivia_242570": {
+   "iou": 0.0,
+   "precision": null,
+   "recall": 0.0,
+   "f1": 0.0,
+   "support": 27346
+  },
+  "Bolivia_290290": {
+   "iou": 0.10017209961530674,
+   "precision": 0.9720039292730844,
+   "recall": 0.10046195238336972,
+   "f1": 0.18210259949390384,
+   "support": 19699
+  },
+  "Bolivia_294583": {
+   "iou": 0.7165622529043245,
+   "precision": 0.8915544119872862,
+   "recall": 0.784981343283582,
+   "f1": 0.8348805896109418,
+   "support": 15008
+  },
+  "Bolivia_312675": {
+   "iou": 0.0,
+   "precision": 0.0,
+   "recall": 0.0,
+   "f1": 0.0,
+   "support": 9575
+  },
+  "Bolivia_314919": {
+   "iou": 0.028975467596684422,
+   "precision": 0.9805982215036378,
+   "recall": 0.02899208872104974,
+   "f1": 0.05631906397994243,
+   "support": 83678
+  },
+  "Bolivia_360519": {
+   "iou": 0.0,
+   "precision": null,
+   "recall": 0.0,
+   "f1": 0.0,
+   "support": 414
+  },
+  "Bolivia_379434": {
+   "iou": 0.08368200836820083,
+   "precision": 0.8185053380782918,
+   "recall": 0.08526413345690455,
+   "f1": 0.15444015444015444,
+   "support": 10790
+  },
+  "Bolivia_432776": {
+   "iou": 0.03437235797147649,
+   "precision": 0.997586484312148,
+   "recall": 0.034375216577725416,
+   "f1": 0.06646031809837735,
+   "support": 72145
+  },
+  "Bolivia_60373": {
+   "iou": 0.2617278030847918,
+   "precision": 0.9900241837968561,
+   "recall": 0.2624198717948718,
+   "f1": 0.4148720547251077,
+   "support": 12480
+  },
+  "Bolivia_76104": {
+   "iou": 0.0,
+   "precision": null,
+   "recall": 0.0,
+   "f1": 0.0,
+   "support": 5
+  }
+ }
+}
