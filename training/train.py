@@ -33,6 +33,7 @@ from floodseg.features import CHANNELS, DB_MAX, DB_MIN, SLOPE_SCALE_DEG  # noqa:
 from floodseg.gpu_features import make_batch  # noqa: E402
 from floodseg.metrics import RELIEF_BINS, Confusion  # noqa: E402
 from floodseg.model import CLASS_NAMES, NUM_CLASSES, CEDiceLoss, build_model  # noqa: E402
+from floodseg.s1f11 import evaluate_holdout, holdout_mask  # noqa: E402
 
 
 def parse_args():
@@ -87,7 +88,7 @@ def split_index(index, split: str, max_tiles: int | None, seed: int, sen1floods1
     acts = index["actid"]
     sel = acts.isin(SPLIT_ACTS[split] + (SPLIT_ACTS["val"] if split == "train" and trainval else []))
     if split == "train" and sen1floods11:
-        sel |= acts >= SEN1FLOODS11_ACT_BASE
+        sel |= (acts >= SEN1FLOODS11_ACT_BASE) & ~holdout_mask(index)  # Bolivia = Sen1Floods11 test flood (D-X-02)
     df = index[sel]
     if max_tiles is not None and len(df) > max_tiles:
         df = df.sample(max_tiles, random_state=seed)
@@ -304,7 +305,7 @@ def main():
         "input_units": "dB of Sentinel-1 GRD sigma0 (linear -> 10*log10), Lee Sigma 3x3 speckle filter",
         "tile_size": 224,
         "trained_on": ["KuroSiwo GRD (official train events)"]
-        + (["Sen1Floods11 hand-labelled (without Sri Lanka = Kuro Siwo test event 205)"] if args.sen1floods11 else []),
+        + (["Sen1Floods11 hand-labelled (without Sri Lanka = Kuro Siwo test event 205, and without Bolivia = Sen1Floods11 test)"] if args.sen1floods11 else []),
         "split_events": {k: v for k, v in SPLIT_ACTS.items()},
         "val_metrics": json.loads((args.out / "val_metrics.json").read_text())["overall"],
         "created_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -326,6 +327,11 @@ def main():
         card["test_metrics"] = test["overall"]
         card["test_metrics_by_terrain"] = test.get("per_terrain")
         print("TEST flood IoU", test["overall"]["flood"]["iou"], "water IoU", test["overall"]["water (perm+flood)"]["iou"])
+        bolivia = evaluate_holdout(model, config, full_index, device)
+        if bolivia is not None:
+            (args.out / "test_sen1floods11.json").write_text(json.dumps(bolivia, indent=1))
+            card["test_metrics_sen1floods11"] = {k: v for k, v in bolivia.items() if k != "per_chip"}
+            print("TEST Sen1Floods11 Bolivia water", bolivia["water"])
     (args.out / "model_card.json").write_text(json.dumps(card, indent=1))
     print("done:", args.out)
 

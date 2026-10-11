@@ -504,6 +504,18 @@ Rozhodnutí:
   (trvalá ∪ povodeň) a model dostane „před“ jako nodata (jako v tréninku, D-024); v reportu napsat, že je to jiné nasazení než v pipeline
   (bez snímku „před“). Jak se pravidla nasazení modelu (D-M9-05) uplatní na přetrénovaný model, rozhodne session AI modelu.
 
+## D-M9-13 | 2026-10-11 | přijato (uživatel: „oprav to“ k D-X-02) — Radarový model bez Bolívie: provedení a pravidlo nasazení (stanoveno před výsledky)
+- **Kód:** `train.py` nikdy netrénuje na výřezech Sen1Floods11 Bolívie (`floodseg/s1f11.py`, `holdout_mask` podle `grid_id`), takže
+  Kaggle dataset `floodseg-sen1floods11` se nemusí znovu nahrávat. Na konci tréninku (a v `evaluate.py`) se model jednou vyhodnotí na
+  Bolívii: výřezy 512×512 se složí zpět z dlaždic (překryvy se nepočítají dvakrát), snímek „před“ = nodata, sklon = 0 (jako v tréninku),
+  metrika **voda celkem** (trvalá ∪ povodeň) vs ne-voda, pixely sečtené přes 15 výřezů. Výstup `test_sen1floods11.json`,
+  `model_card.json` → `test_metrics_sen1floods11`. Test `training/tests/test_s1f11.py`.
+- **Trénink:** recept v0.2 beze změny (R34, sklon, Sen1Floods11, Lovász, 10 epoch, seed 42 jako v0.2), kolo 11 `training/kaggle/round11.json`.
+  Jediný běh s pevným receptem → nic se nevybírá, test (Kuro Siwo + Bolívie) proběhne jednou v témže běhu.
+- **Pravidlo nasazení:** v0.2 viděl Bolívii při učení, takže pro poctivý výsledek na Sen1Floods11 se **nový model nasadí** (v0.4), pokud
+  není rozbitý: F1 povodně na Kuro Siwo testu ≥ 0,765 (v0.2 − 0,01). Horské kritérium se nepoužije (kolísá 0,47–0,53 i u stejného
+  receptu, D-M9-10), jen se uvede. Když pravidlo neprojde: druhý běh se seedem 1, vybrat podle val a ten otestovat jednou.
+
 ---
 
 # Otevřené otázky (k rozhodnutí)

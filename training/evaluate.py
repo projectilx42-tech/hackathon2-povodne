@@ -1,4 +1,4 @@
-"""Evaluate a trained checkpoint on the held-out Kuro Siwo test events (once, for the final model).
+"""Evaluate a trained checkpoint on the held-out Kuro Siwo test events and the Sen1Floods11 Bolivia chips (once, final model).
 
   python training/evaluate.py --model models/<name>/model.pt --data data/kurosiwo_compact --tta
 Writes test_metrics.json next to the checkpoint (overall, per event, per terrain class; with --tta also
@@ -16,6 +16,7 @@ import torch
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from floodseg.data import KuroSiwoDataset, load_arrays, load_index  # noqa: E402
 from floodseg.infer import load_model  # noqa: E402
+from floodseg.s1f11 import evaluate_holdout  # noqa: E402
 from train import evaluate, make_loader, name_terrain, split_index  # noqa: E402
 
 
@@ -43,10 +44,16 @@ def main() -> None:
         out["tta"] = name_terrain(evaluate(model, dl, args.device, norm, use_slope, tta=True).report())
         print("test flood (TTA):", out["tta"]["overall"]["flood"], flush=True)
     (args.model.parent / "test_metrics.json").write_text(json.dumps(out, indent=1))
+    bolivia = evaluate_holdout(model, cfg, load_index(args.data), args.device)  # Sen1Floods11 test flood (D-X-02)
+    if bolivia is not None:
+        (args.model.parent / "test_sen1floods11.json").write_text(json.dumps(bolivia, indent=1))
+        print("test Sen1Floods11 Bolivia water:", bolivia["water"], flush=True)
     card_path = args.model.parent / "model_card.json"
     card = json.loads(card_path.read_text())
     card["test_metrics"] = out["overall"]
     card["test_metrics_by_terrain"] = out.get("per_terrain")
+    if bolivia is not None:
+        card["test_metrics_sen1floods11"] = {k: v for k, v in bolivia.items() if k != "per_chip"}
     if args.tta:
         card["test_metrics_tta"] = out["tta"]["overall"]
     card_path.write_text(json.dumps(card, indent=1))

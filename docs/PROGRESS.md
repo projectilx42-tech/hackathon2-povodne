@@ -97,6 +97,12 @@ Obtížnost a čas = odhad uživatele.
 4. Účty (CDSE, Kaggle…) zakládá uživatel až v příslušných sessions (D-011); údaje jen jako env proměnné prostředí, nikdy do repa.
 
 ## Log sessions
+### 2026-10-11 — radarový model bez Bolívie (D-X-02, D-M9-13) — `claude/zen-bell-a83s7a`
+- Sloučeny větve modelu (`claude/relaxed-johnson-wwj9s8`) a odpovědí organizátorů (`claude/funny-fermat-ukdqp8`).
+- Kód: Bolívie nikdy v tréninku, test na Bolívii na konci tréninku i v `evaluate.py` (`training/floodseg/s1f11.py`, test). Testy 6/6 OK.
+- Připraveno kolo 11 (`training/kaggle/round11.json`, recept v0.2); pravidlo nasazení zapsáno předem. **Čeká na Kaggle token** v prostředí.
+- Dřívější průzkum (2026-10-09, jen v chatu): dlaždice Kuro Siwo jsou ve Web Mercatoru (pixel = 10 m × cos šířky), sklon v tréninku je
+  proto podhodnocený proti pipeline — neopraveno, jen zjištěno.
 ### 2026-10-11 — odpovědi organizátorů — `claude/funny-fermat-ukdqp8`
 - Přečtena předávka satelitní session (`docs/HANDOFF_SATELITY.md` na `claude/nice-fermi-i7qzk8`, zatím není v `main`).
 - Odpovědi z Discordu zapsány do `docs/QUESTIONS.md` (Zodpovězeno) + oznámení výše. Uživatel: Sentinel Hub nechat; radarový model bez Bolívie (D-X-02).

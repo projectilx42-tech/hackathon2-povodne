@@ -10,6 +10,8 @@ post-event Sentinel-1 image and a binary water label. So:
 
 Chips of the Sri Lanka event (2017-05-30) are EXCLUDED: it is the same flood as Kuro Siwo test event 205
 (10 km / 6 days apart), so training on it would leak into our test scores (D-024).
+Chips of Bolivia ARE written (marked by grid_id s1f11_Bolivia_*), but train.py never trains on them: Bolivia is the
+Sen1Floods11 test flood, scored by floodseg/s1f11.py (D-X-02).
 
 Input: the GCS bucket layout (gs://sen1floods11/v1.1), e.g. downloaded to data/sen1floods11/v1.1.
 Usage: python training/prepare_sen1floods11.py --src data/sen1floods11/v1.1 --out data/kurosiwo_compact
