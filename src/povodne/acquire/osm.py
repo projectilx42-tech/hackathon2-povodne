@@ -5,7 +5,8 @@ the event, capped to the newest date ohsome has. (The v1 API stopped serving geo
 Never Overpass or current OSM (post-event edits would break the data rules).
 
 Roads, settlements and facilities are fetched for the AOI plus a buffer (default 15 km): the nearest town or hospital
-of a cut-off village is often outside the drawn area and the road network must reach it. Buildings only inside the AOI.
+of a cut-off village is often outside the drawn area and the road network must reach it. Buildings and land use
+(for the surface-change step) only inside the AOI.
 Output layers follow docs/ARCHITECTURE.md (osm/*.gpkg in UTM); osm_id is the ohsome id, e.g. "way/123".
 """
 from __future__ import annotations
@@ -34,6 +35,11 @@ FILTERS = {
     "places": "place in (city, town, village, hamlet, locality)",
     "health": "amenity in (hospital, clinic, doctors) or healthcare in (hospital, clinic, centre, doctor)",
 }
+# Land use for the surface-change step (D-M3d-02): tells forest / fields / built-up apart where the optical image is cloudy.
+LANDUSE_KINDS = ("forest", "farmland", "orchard", "grass", "meadow", "vineyard", "residential", "industrial", "commercial", "retail")
+NATURAL_KINDS = ("wood", "scrub", "wetland")
+FILTERS["landuse"] = (f"(landuse in ({', '.join(LANDUSE_KINDS)}) or natural in ({', '.join(NATURAL_KINDS)})) "
+                      "and geometry:polygon")
 
 
 class MissingOhsomeKey(RuntimeError):
@@ -111,7 +117,7 @@ def extract(aoi: BaseGeometry, event: date, epsg: int, raw_dir: Path, osm_dir: P
     when = snapshot_date(event)
     crs = f"EPSG:{epsg}"
     big, small = _bbox(aoi, buffer_m), _bbox(aoi)
-    raw = {"buildings": fetch(small, when, FILTERS["buildings"])}
+    raw = {"buildings": fetch(small, when, FILTERS["buildings"]), "landuse": fetch(small, when, FILTERS["landuse"])}
     for name in ("roads", "bridge_polygons", "places", "health"):
         raw[name] = fetch(big, when, FILTERS[name])
     raw_dir.mkdir(parents=True, exist_ok=True)
@@ -154,8 +160,14 @@ def extract(aoi: BaseGeometry, event: date, epsg: int, raw_dir: Path, osm_dir: P
     ], ignore_index=True)
     facilities = gpd.GeoDataFrame(facilities, geometry="geometry", crs="EPSG:4326")
 
+    lu = raw["landuse"]
+    lu = lu[lu.geom_type.isin(["Polygon", "MultiPolygon"])].explode(index_parts=False)
+    lu_kind = _col(lu, "landuse").where(_col(lu, "landuse").isin(LANDUSE_KINDS), _col(lu, "natural"))
+    landuse = gpd.GeoDataFrame({"osm_id": lu["osm_id"], "kind": lu_kind}, geometry=lu.geometry, crs="EPSG:4326")
+    landuse = landuse[landuse["kind"].isin(LANDUSE_KINDS + NATURAL_KINDS)]
+
     counts = {}
-    for name, gdf in (("buildings", buildings), ("roads", roads), ("bridges", bridges),
+    for name, gdf in (("buildings", buildings), ("landuse", landuse), ("roads", roads), ("bridges", bridges),
                       ("settlements", settlements), ("facilities", facilities)):
         gdf = gdf.to_crs(crs)
         if name in ("settlements", "facilities"):

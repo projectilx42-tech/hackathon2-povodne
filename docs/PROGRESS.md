@@ -8,6 +8,7 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-11 — satelity: starší průlety + využití půdy pro krok změn povrchu (D-M1-07, splňuje D-M3d-02):** krok stahování ukládá `raw/s1[_alt]/hist_*.tif` (obvykle 2–3, max. 4 starší průlety, VV+VH, 20 m) a `osm/landuse.gpkg`; `run.json.acquire.s1.hist`. ohsome = 7 dotazů na běh. Naostro neověřeno (chybí klíče). Větev `claude/funny-fermat-ukdqp8` — **master: sloučit**.
 - **2026-10-11 — suť a bahno (D-X-04), týká se M3d, M3, M8, M6:** algoritmus na suť hledá změny povrchu na dně údolí **oběma směry** a zahrne i **zaplavenou vegetaci a zástavbu** (radar je zesvětlí, model vody je nevidí). Třída 3 = „suť, bahno a jiná změna povrchu“ (hodnota beze změny); podtypy navrhne session suti jako změnu kontraktu.
 - **2026-10-11 — satelity (D-X-05):** nové upozornění „lepší pohled za X dní“ (datum příštího průletu druhé dráhy + kolik dna údolí přibude). Dělá satelitní session (`acquire/notices.py`, `docs/NOTICES.md`), UI ho pak zobrazí.
 - **2026-10-11 — AI model (D-X-02):** radarový model přetrénovat **bez Bolívie ze Sen1Floods11** a výsledky na Bolívii uvádět (požadavek organizátorů „ukázat výsledky i na dalších datasetech“; Bolívie je oficiální test Sen1Floods11, v0.2 ji viděl v tréninku). Dělá session AI modelu.
@@ -110,6 +111,10 @@ Obtížnost a čas = odhad uživatele.
 4. Účty (CDSE, Kaggle…) zakládá uživatel až v příslušných sessions (D-011); údaje jen jako env proměnné prostředí, nikdy do repa.
 
 ## Log sessions
+### 2026-10-11 (2) — satelity: historie pixelu pro krok změn povrchu — `claude/funny-fermat-ukdqp8`
+- Sloučen `main` a větev kroku suti (`claude/affectionate-shannon-jrnssg`, požadavek `docs/REQUEST_M1_HISTORY.md`).
+- Hotovo (D-M1-07): `hist_*.tif` starších průletů obou drah (20 m, stejné kódování, znovupoužití při opakovaném běhu), `osm/landuse.gpkg`;
+  ověřeno, že krok suti soubory čte zpět na 10 m. Testy `pytest tests training/tests`: 66 passed. Naostro neověřeno (bez CDSE/ohsome klíčů).
 ### 2026-10-11 — odpovědi organizátorů — `claude/funny-fermat-ukdqp8`
 - Přečtena předávka satelitní session (`docs/HANDOFF_SATELITY.md` na `claude/nice-fermi-i7qzk8`, zatím není v `main`).
 - Odpovědi z Discordu zapsány do `docs/QUESTIONS.md` (Zodpovězeno) + oznámení výše. Uživatel: Sentinel Hub nechat; radarový model bez Bolívie (D-X-02); JRC teď ne (D-X-03); suť zahrne zaplavenou vegetaci (D-X-04); upozornění na příští průlet (D-X-05).

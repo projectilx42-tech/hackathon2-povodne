@@ -1,7 +1,7 @@
 """M1 acquire step: everything the later modules need, for any AOI and event date.
 
 Order (D-M1-01, D-X-01): catalogue -> DEM -> HAND + layover/shadow -> main track -> water-share series ->
-pre scenes -> S1 download (main + alt) -> S2 -> OSM. Writes raw/, osm/ and the `acquire` part of run.json.
+pre scenes -> S1 download (main + alt, with up to 4 older passes as pixel history, D-M3d-02) -> S2 -> OSM. Writes raw/, osm/ and the `acquire` part of run.json.
 Missing Sentinel Hub credentials stop the step with a clear message before anything is spent.
 """
 from __future__ import annotations
@@ -34,6 +34,8 @@ class AcquireConfig:
     osm: bool = True
     osm_buffer_m: float = 15000
     same_day_res_m: float = 20.0  # event-day check: VV at 20 m, 3x3 mean; ~11 PU per image for 30x30 km (5 images)
+    n_hist: int = 4  # earlier passes of the same track kept as pixel history for the surface-change step (D-M3d-02)
+    hist_res_m: float = 20.0  # ~22 PU per VV+VH image for 30x30 km
 
 
 # ---------- run.json helpers (until the skeleton provides them) ----------
@@ -110,6 +112,21 @@ def _s1(path: Path, grid: Grid, sh: SentinelHub, a: catalog.Acquisition, directi
         j.update(file=path.name, valid_pct=round(100 * float((data[0] > 0).mean()), 1))
         return j
     return _write_s1(path, fetch_s1(sh, grid, a.start, direction, speckle), grid, a)
+
+
+def hist_passes(candidates: list, pres: list, n: int) -> list:
+    """Up to n passes of the same track that are older than every chosen before-image (newest of them),
+    oldest first: the pixel history for the surface-change step (D-M3d-02)."""
+    if not pres or n <= 0:
+        return []
+    first_pre = min(a.start for a in pres)
+    return [a for a in candidates if a.start < first_pre][-n:]
+
+
+def coarse_grid(grid: Grid, res: float) -> Grid:
+    """Grid with a larger pixel that shares the reference grid's top-left corner (same x0, y1) and covers it fully."""
+    f = res / grid.res
+    return Grid(grid.epsg, grid.x0, grid.y1, int(np.ceil(grid.width / f)), int(np.ceil(grid.height / f)), res)
 
 
 def _store_warnings(rj: dict, notices: list[Notice]) -> None:
@@ -291,6 +308,14 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
         out_dir = run_dir / "raw" / folder
         blocks[key]["pre"] = [_s1(out_dir / f"pre_{a.start:%Y%m%d}.tif", grid, sh, a, t.direction, cfg.speckle) for a in pres]
         blocks[key]["post"] = [_s1(out_dir / f"post_{t.post.start:%Y%m%d}.tif", grid, sh, t.post, t.direction, cfg.speckle)]
+        # Older passes of the same track as pixel history for the surface-change step (D-M3d-02): VV+VH, same encoding, 20 m.
+        hist = hist_passes(t.pre_candidates, pres, cfg.n_hist)
+        if hist:
+            _progress(run_dir, "running", f"downloading {len(hist)} older passes of track {t.relative_orbit} (pixel history)")
+        hgrid = coarse_grid(grid, cfg.hist_res_m)
+        blocks[key]["hist"] = [{k: v for k, v in _s1(out_dir / f"hist_{a.start:%Y%m%d}.tif", hgrid, sh, a, t.direction,
+                                                    cfg.speckle).items() if k in ("id", "datetime", "file", "valid_pct")}
+                               for a in hist]
         blocks[key]["processing"] = {"backCoeff": "SIGMA0_ELLIPSOID", "orthorectify": True, "dem": "COPERNICUS_30",
                                      "speckle": (f"LEE {cfg.speckle}x{cfg.speckle} + 3x3 mean (linear)" if cfg.speckle else "none"),
                                      "encoding": "UINT16, dB = value*0.001-50, 0 = nodata"}
@@ -307,6 +332,7 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
         "reason": choice.reason, "user_window": user_window is not None}
     acq.update(blocks)
     acq["grid"] = {"crs": f"EPSG:{epsg}", "x0": grid.x0, "y1": grid.y1, "width": grid.width, "height": grid.height, "res": grid.res}
+    acq["hist_grid"] = {"x0": grid.x0, "y1": grid.y1, "res": cfg.hist_res_m}
     _save(run_dir, rj)
 
     if cfg.s2:

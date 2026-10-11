@@ -644,6 +644,24 @@ se zaplavené město hlásí jako zaplavená vegetace.
 třídy `debris` převezmou `subtype` + `confidence` z `debris_polygons.geojson`; statistiky (M6) — `flood.debris_by_type` z `run.json.debris.areas_km2`;
 UI (M8) — legenda podtypů, vrstva viditelnosti, věta `evidence` po kliknutí.
 
+## D-M1-07 | 2026-10-11 | přijato (uživatel: „udělej tohle“ = požadavek `docs/REQUEST_M1_HISTORY.md`) — Starší průlety a využití půdy pro krok změn povrchu
+Implementace požadavku kroku změn povrchu (D-M3d-02) v kroku stahování:
+- **`raw/s1/hist_YYYYMMDD.tif`, `raw/s1_alt/hist_YYYYMMDD.tif`:** až 4 (`AcquireConfig.n_hist`) průlety téže dráhy **starší než nejstarší
+  zvolený snímek „před“**, vybrané z kandidátů, které krok už prochází (`pre_candidates`, okno 60 dní). VV+VH, stejné zpracování a kódování
+  jako ostatní S1 (LEE 7×7 + průměr 3×3, UINT16 dB), **mřížka 20 m** se stejným levým horním rohem (`x0`, `y1`) jako 10m mřížka, pokrývá ji
+  celou (`pipeline.coarse_grid`). Opakovaný běh už stažené soubory nestahuje. `run.json.acquire.s1.hist` / `acquire.s1_alt.hist`
+  = `[{"id", "datetime", "file", "valid_pct"}]`, `acquire.hist_grid`.
+- **Kolik jich bude:** okno 60 dní = při jedné družici (průlet dráhy po 12 dnech) ~5 kandidátů, z toho 2 jsou „před“ → obvykle **2–3 starší
+  průlety**; 4 jen při dvou družicích nebo když „před“ vyšel novější. Okno se kvůli tomu nerozšiřuje (delší okno = víc sezónních změn
+  v historii, např. sklizeň). Krok suti bere historii `hist_*` + `pre_*`, tedy obvykle 4–5 snímků.
+- **Cena (odhad, neměřeno):** ~22 PU za snímek VV+VH 20 m na 30×30 km → s 2–3 průlety × 2 dráhy ~+90–130 PU na běh (max. +180 PU).
+  VV ze stejného dne už stažené kontrolou průletu v den povodně se nepřepoužívá (jiná mřížka, jen VV) — možná úspora do budoucna.
+- **`osm/landuse.gpkg`** (volitelná část požadavku): ohsome, stejný snapshot před událostí, filtr `landuse in (forest, farmland, orchard,
+  grass, meadow, vineyard, residential, industrial, commercial, retail) or natural in (wood, scrub, wetland)`, jen polygony, jen v oblasti;
+  `kind` = hodnota `landuse`, jinak `natural`. Běh = **7 dotazů** na ohsome (limit 250/den; README upraveno).
+- Testy: `tests/test_acquire_hist.py` (výběr průletů, 20m mřížka, čtení zpět krokem suti na 10 m, znovupoužití souboru, vrstva využití půdy).
+  **Naostro neověřeno** (v prostředí nejsou klíče CDSE / ohsome).
+
 ---
 
 # Otevřené otázky (k rozhodnutí)

@@ -124,6 +124,7 @@ runs/<run_id>/
     //   "series": [{"date": "YYYY-MM-DD", "water_frac": 0.0}], "onset_date": "YYYY-MM-DD|null",
     //   "chosen_pre": ["YYYY-MM-DD", ...], "reason": "...", "user_window": false}
     // acquire.s1.same_day / acquire.s1_alt.same_day (D-M1-03): {"datetime", "used_as_post", "reason", "change_frac", "baseline_frac"} | null
+    // acquire.s1.hist / acquire.s1_alt.hist (D-M3d-02, D-M1-07): [{"id", "datetime", "file", "valid_pct"}] — starší průlety (raw/s1*/hist_*.tif, 20 m); acquire.hist_grid {"x0","y1","res"}
     // acquire.s1.processing, acquire.grid (referenční mřížka), acquire.pu_spent, acquire.warnings (varování kroku), acquire.osm — D-M1-02
     "s2": {"pre": {"date": "...", "ids": [...], "clear_pct": 0, "scale": [...], "offset": [...]} | null, "post": {...} | null},
     "dem": {"source": "...", "product": "COP-DEM GLO-30", "water_mask": true, "hand_stream_cells": 100}   // D-M1-04
@@ -158,6 +159,7 @@ Zdroj: **ohsome API v2** `extraction/features.parquet` s `time=<osm_snapshot_dat
 - `bridges.gpkg`: `osm_id`, `highway`, `name`, `geometry` — silnice s `bridge=yes` (+ `man_made=bridge` polygony).
 - `settlements.gpkg`: `osm_id`, `name`, `place` (city/town/village/hamlet/locality), `population` (může chybět), `geometry` (Point).
 - `facilities.gpkg`: `osm_id`, `name`, `kind` (`hospital`/`clinic`/`health_post`/`town`), `geometry` (Point; polygony → centroid).
+- `landuse.gpkg` (D-M3d-02, D-M1-07): `osm_id`, `kind` ∈ {forest, wood, farmland, orchard, grass, meadow, scrub, wetland, vineyard, residential, industrial, commercial, retail} (`landuse=*`, jinak `natural=*`), `geometry` (Polygon); jen v oblasti.
 
 ## Výstupy M4 damage
 Každý prvek zasažený, pokud jeho geometrie (budova: polygon; silnice/most: linie s bufferem `road_buffer_m`, default 10 m)
