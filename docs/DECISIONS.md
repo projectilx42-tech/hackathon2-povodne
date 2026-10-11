@@ -441,6 +441,81 @@ Lee 3×3 (D-024), tj. výrazně zrnitější než Kuro Siwo i než naše data �
 Data (Element 84 earth-search, COG). Stejné produkty jako u ESA/Copernicus → v souladu s pravidly. S2 výběr: před = nejjasnější v 60 dnech,
 po = první po události s ≥ 30 % jasna nad oblastí (jinak nejjasnější; pod 5 % se nepoužije, varování).
 
+## D-M1-03 | 2026-10-09 | přijato (rozhodnutí uživatele: „udělej všechny 3 body“) — Místní čas, hodina povodně a průlet v den povodně
+Kontext: průlet družice v den povodně dřív program zahazoval (nevíme, zda byl před, nebo po povodni). Přitom je to nejdřívější možný snímek
+„po“ (zkracuje čekání o 2–5 dní); naopak snímek bez povodně nemá větší hodnotu než jakýkoli starší snímek „před“ (uživatel).
+1. **Data se porovnávají v místním čase oblasti** (časové pásmo středu oblasti přes `timezonefinder`, jinak sluneční čas = délka/15 h).
+   Dřív se porovnávalo v UTC → v Nepálu (+5:45) mohl průlet ve 23:00 UTC spadnout do špatného dne (chyba opravena).
+2. **Volitelná hodina povodně** `run.json.event_time` = `"HH:MM"` v místním čase oblasti (UI: Advanced → Flood time; API `POST /api/runs`
+   pole `event_time`; CLI `--event-time HH:MM`). Je-li zadána, průlet v den povodně se zařadí přesně: před hodinou = kandidát na „před“
+   (projde i kontrolou čistoty D-M1-01), po hodině = „po“.
+3. **Bez hodiny se průlet v den povodně zkontroluje** (`preselect.change_fraction` + `judge_same_day`): VV ve 20 m, průměr 3×3 (potlačí šum);
+   každý pixel souše na dně údolí (nízký HAND, sklon ≤ 15°, bez layover/shadow dané dráhy, **ne voda v historii** = medián > −15 dB) se porovná
+   s **vlastním rozsahem** z až 4 dřívějších průletů téže dráhy; změna = o > 3 dB mimo rozsah (ztmavnutí = voda, zesvětlení = suť).
+   „Běžná změna“ = totéž pro nejnovější dřívější průlet proti těm před ním. **Použije se jako „po“, jen když je změna ≥ 2 p. b. nad běžnou
+   a zároveň ≥ 3× větší** (bez běžné změny ≥ 5 %). Jinak se zahodí: nejde odlišit „před povodní“ od „povodeň není vidět“ a jako „před“ by
+   mohl povodeň schovat. Cena ~5 snímků × 11 PU pro 30×30 km.
+   **Ověřeno na 6 případech se známou odpovědí, 6/6 správně** (`tools/event_day_check/`): Derna 2023 a Opava 2024 před/po (podle nich
+   nastaveny prahy), Trishuli 2026 před/po jako nezávislá kontrola (neladěno, žádná EMS data). První verze (jen jeden předchozí snímek, bez
+   vyloučení vody, bez průměrování) měla 3/6 špatně — moře u Derny a zrnitý šum.
+   Výsledek v `run.json.acquire.s1.same_day` / `acquire.s1_alt.same_day` (`datetime`, `used_as_post`, `reason`, `change_frac`, `baseline_frac`).
+   Povýšený průlet se stává „po“ své dráhy a volba hlavní dráhy (D-X-01) proběhne až potom (může vyhrát jako nejdřívější).
+4. **Uživatelovo okno „po“ (`post_window`) se nově respektuje** (dřív ho krok stahování ignoroval).
+Kontrakt (ARCHITECTURE.md) upraven ve stejném commitu. **Skeleton:** `povodne run` musí přijmout `--event-time` a předat ho do `run.json`.
+
+## D-M1-04 | 2026-10-09 | přijato (uživatel: „podívej se, jak to dělají profesionální programy … zvýšit přesnost“) — HAND podle ASF, maska vody z DEM
+**Ověřeno proti profesionálnímu výsledku:** náš HAND (výška nad nejbližším tokem) jsme porovnali s globálním HAND od ASF (Alaska Satellite
+Facility, `s3://glo-30-hand`; stejný Copernicus DEM, stejné kroky v pysheds). Rozdíl byl jen v prahu, od kdy je buňka „tok“:
+my 1 km² povodí (1111 buněk), ASF **100 buněk** (`asf_tools … calculate_hand(acc_thresh=100)`). S 1 km² zůstanou boční údolí v horách bez
+toku a HAND tam vyjde o stovky metrů vyšší → dno údolí se podhodnotí.
+| oblast | rozdíl mediánu HAND (1 km² → 100 buněk) | korelace | shoda dna údolí (IoU) |
+|---|---|---|---|
+| Trishuli | 120 m → 13 m | 0,57 → 0,87 | 0,77 → 0,90 |
+| Melamchi (Nepál) | 88 m → 9 m | 0,55 → 0,91 | 0,68 → 0,88 |
+| Derna | 6,5 m → 1,4 m | 0,68 → 0,96 | 0,49 → 0,90 |
+| Opava | 2,5 m → 0,7 m | 0,67 → 0,93 | 0,93 → 0,99 |
+→ **`terrain.hand` používá práh 100 buněk (`HAND_STREAM_CELLS`), stejně jako ASF.** Skript a čísla: `tools/terrain_check/`.
+ASF HAND slouží jen ke kontrole (není to vstup pipeline; počítáme sami z povoleného Copernicus DEM pro jakoukoli oblast).
+**Maska vodních ploch z Copernicus DEM (WBM):** každá dlaždice DEM má pomocnou vrstvu WBM (0 souš, 1 moře, 2 jezero, 3 řeka) — je to součást
+produktu Copernicus DEM, tedy povolený vstup. Používá se:
+- **moře se nepočítá do dna údolí** (HAND je tam ~0, ale není to údolí; u Derny bylo moře 22 % oblasti a zkreslovalo viditelnost dna údolí);
+- **trvalá voda (moře, jezera, široké řeky) se vynechá z řady podílu vody** při kontrole čistoty „před“ (hledá se nová voda);
+- uloží se jako `raw/dem/water.tif` (uint8, stejná mřížka jako `dem.tif`) pro další moduly (zdroj trvalé vody bez JRC).
+Pozor: WBM je z let 2011–2015 (doba vzniku DEM), změny řek po té době nezná.
+**Oprava chyby:** dlaždice DEM, která se při stahování přechodně nepřečetla, se dřív tiše brala jako moře (výška 0). Teď se opakuje
+a za moře se bere jen dlaždice, která v bucketu neexistuje (HTTP 404).
+Po změně: kontrola průletu v den povodně (D-M1-03) dál 6/6 správně (čísla v `tools/event_day_check/README.md` přepočtena);
+viditelnost dna údolí u Trishuli 88 % vs 88 % (dřív 81 % vs 74 % — dno údolí teď zahrnuje i boční údolí).
+**Pro M2:** `masks/hand.tif` počítat stejnou funkcí `acquire.terrain.hand` (práh 100 buněk na 30 m DEM), ať HAND v kroku stahování a v masce sedí.
+`run.json.acquire.dem` navíc: `water_mask` (bool), `hand_stream_cells`.
+
+## D-M1-05 | 2026-10-09 | přijato (uživatel: „všechna varování a upozornění exportuj do souboru, ať je UI může implementovat“) — Upozornění s pevnými kódy
+**`run.json.notices`** = seznam `{"step", "code", "severity", "message", "details"}`; seznam kódů, jejich význam a doporučené zobrazení
+v UI je v **`docs/NOTICES.md`** (pro UI session). Kódy definuje `src/povodne/acquire/notices.py` (`SEVERITY`); test hlídá, že dokument
+obsahuje přesně všechny kódy.
+- `severity`: `error` = odpověď chybí (není mapa povodně, nebo škody/odříznuté obce), `warning` = odpověď je, ale méně spolehlivá,
+  `info` = co program rozhodl a proč (např. datum snímku „po“, použitý průlet v den povodně, dřívější začátek povodně).
+- `message` = hotová anglická věta s čísly z výpočtu; `details` = čísla pro chytřejší zobrazení (graf, data).
+- Zpětně kompatibilní: `error` a `warning` zůstávají jako text v `run.json.warnings` / `acquire.warnings`.
+- Krok nahradí jen své položky (`step = "acquire"`); další moduly můžou přidat vlastní kódy se svým `step` (a doplnit NOTICES.md).
+- Nově jako upozornění (dřív jen v textu důvodu nebo nikde): `pre_check_blind`, `pre_rise_detected`, `event_day_pass_used/dropped`,
+  `main_track_by_visibility`, `post_image_date`; chyba přihlášení a pád kroku se taky zapíšou (`cdse_credentials`, `acquire_failed`).
+- Oprava při té příležitosti: zápis `run.json` během kroku už nepřepíše průběh (`progress`) starší kopií.
+
+## D-M1-06 | 2026-10-09 | přijato (uživatel dodal klíč: „tady máš to API“) — OpenStreetMap přes ohsome API v2 s klíčem
+Kontext: ohsome API v1 (`api.ohsome.org/v1`, uvedené v zadání) od 9. 10. 2026 vrací na `elements/geometry` HTTP 403; v1 se podle
+dokumentace vypíná 30. 11. 2026. Nová verze v2 (stejný autor HeiGIT, stejná data a filtry) vyžaduje bezplatný API klíč.
+- **Zdroj:** `https://api.heigit.org/ohsome-api/v2/extraction/features.parquet` (POST `{"aoi": bbox, "filter", "time"}`), hlavička
+  `Authorization: <klíč>`, klíč z env **`OHSOME_API_KEY`** (account.heigit.org; nikdy v repu). Odpověď GeoParquet → knihovna `pyarrow`.
+- **Snímek před povodní:** `time` = jeden okamžik (snapshot) = 00:00 UTC dne před `event_date` (omezeno nejnovějšími daty ohsome).
+  v2 má data až do současnosti (v1 končila 27. 7. 2026) → pro Trishuli snapshot **25. 8. 2026** (zadání: „snapshot date before 26 Aug 2026“
+  → v pořádku). Ověřeno: nejnovější úprava ve stažených silnicích 9. 8. 2026 (= nic po snapshotu).
+- Výstup stejný jako dřív (`osm/*.gpkg`, `osm_id` = `way/123`), nově v `raw/osm/osm_raw.gpkg` sloupec `edit_timestamp` (kontrola).
+- Bez klíče: krok pokračuje, upozornění `osm_key_missing` (error, D-M1-05). Limit: 15 dotazů/min, 250/den; běh = 6 dotazů.
+- Trishuli 8×9 km + 15 km okraj: 18 s; 16 582 budov, 3 859 silnic, 83 mostů, 244 sídel, 16 zařízení/měst.
+- Porotce potřebuje druhý bezplatný účet (vedle CDSE) → otázka pro organizátory (návrh v chatu).
+- **Rozpor k vyřešení (master):** CLAUDE.md říká „pro case study ≤ 2026-07-27“ (byl to limit v1); kód bere obecné pravidlo < `event_date`.
+  → **Vyřešeno (master, 2026-10-11):** CLAUDE.md upraveno na pravidlo < `event_date` (den před událostí); ověřeno proti zadání („snapshot date before 26 Aug 2026“; 27. 7. byl jen tehdy nejnovější dostupný).
 ## D-X-02 | 2026-10-11 | přijato (rozhodnutí uživatele po odpovědi organizátorů) — Radarový model: Bolívie ze Sen1Floods11 mimo trénink, výsledky na Sen1Floods11 uvádět
 Kontext: organizátoři (Discord 2026-10-09, `docs/QUESTIONS.md` bod 1): ImageNet váhy ano, „but show results on other datasets which are
 mentioned“ → máme ukázat výsledky i na Sen1Floods11, nejen na Kuro Siwo. Radarový model (v0.2) se ale učil na **všech** výřezech

@@ -44,7 +44,7 @@ def test_hand_is_zero_in_channel_and_grows_uphill():
     pytest.importorskip("pysheds")
     rows, cols = np.mgrid[0:60, 0:60]
     z = (np.abs(cols - 30) * 5.0 + (60 - rows) * 1.0).astype(np.float32)  # V-shaped valley draining south
-    h = hand(Dem(z, from_origin(500000, 3000000, RES, RES), "EPSG:32645", RES), stream_area_km2=0.05)
+    h = hand(Dem(z, from_origin(500000, 3000000, RES, RES), "EPSG:32645", RES), stream_cells=50)
     assert np.nanmax(h[10:50, 30]) < 1.0 and np.nanmin(h[10:50, 45]) > 50
 
 
@@ -91,3 +91,14 @@ def test_acquire_json_has_reason_and_visibility():
     j = acquire_json(p)
     assert j["s1"]["primary_reason"] and j["s1"]["valley_visibility"] == 0.8 and j["s1_alt"]["valley_visibility"] == 0.7
     assert "primary_reason" not in j["s1_alt"]
+
+
+def test_valley_floor_leaves_out_the_sea_and_permanent_water_is_known():
+    from povodne.acquire.terrain import WBM_LAKE, WBM_OCEAN, permanent_water, valley_floor
+    hand_m, slope = np.zeros((2, 3), np.float32), np.zeros((2, 3), np.float32)
+    water = np.array([[0, WBM_OCEAN, WBM_LAKE], [0, 0, 0]], np.uint8)
+    floor = valley_floor(hand_m, slope, water=water)
+    assert floor.tolist() == [[True, False, True], [True, True, True]]
+    dem = Dem(hand_m, from_origin(500000, 3000000, RES, RES), "EPSG:32645", RES, water)
+    assert permanent_water(dem).tolist() == [[False, True, True], [False, False, False]]
+    assert not permanent_water(Dem(hand_m, dem.transform, dem.crs, RES)).any()

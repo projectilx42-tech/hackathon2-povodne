@@ -105,11 +105,12 @@ function validateWindows() {
   else if (d && w.pre && w.pre[1] >= d) msg = 'The “before” window should end before the flood date.';
   else if (d && w.post && w.post[0] < d) msg = 'The “after” window should not start before the flood date.';
   warn.textContent = msg; warn.hidden = !msg;
-  $('adv-dot').hidden = !w.any;
+  $('adv-dot').hidden = !(w.any || $('event-time').value);
   return { hard: !w.complete || /ends before it starts/.test(msg) };
 }
 winIds.forEach(i => $(i).addEventListener('input', validateWindows));
-$('adv-reset').addEventListener('click', () => { winIds.forEach(i => { $(i).value = ''; }); validateWindows(); });
+$('event-time').addEventListener('input', validateWindows);
+$('adv-reset').addEventListener('click', () => { winIds.forEach(i => { $(i).value = ''; }); $('event-time').value = ''; validateWindows(); });
 
 function updateRun() {
   const btn = $('run-btn');
@@ -127,6 +128,7 @@ $('run-btn').addEventListener('click', async () => {
   const body = { aoi, event_date: dateInput.value };
   if (w.pre) body.pre_window = w.pre;
   if (w.post) body.post_window = w.post;
+  if ($('event-time').value) body.event_time = $('event-time').value;
   try {
     const { run_id } = await startRun(body);
     resetResultView();
