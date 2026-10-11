@@ -8,9 +8,20 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-11 — satelity: starší průlety + využití půdy pro krok změn povrchu (D-M1-07, splňuje D-M3d-02):** krok stahování ukládá `raw/s1[_alt]/hist_*.tif` (obvykle 2–3, max. 4 starší průlety, VV+VH, 20 m) a `osm/landuse.gpkg`; `run.json.acquire.s1.hist`. ohsome = 7 dotazů na běh. Naostro neověřeno (chybí klíče). Větev `claude/funny-fermat-ukdqp8` — **master: sloučit**.
+- **2026-10-11 — suť a bahno (D-X-04), týká se M3d, M3, M8, M6:** algoritmus na suť hledá změny povrchu na dně údolí **oběma směry** a zahrne i **zaplavenou vegetaci a zástavbu** (radar je zesvětlí, model vody je nevidí). Třída 3 = „suť, bahno a jiná změna povrchu“ (hodnota beze změny); podtypy navrhne session suti jako změnu kontraktu.
+- **2026-10-11 — satelity (D-X-05):** nové upozornění „lepší pohled za X dní“ (datum příštího průletu druhé dráhy + kolik dna údolí přibude). Dělá satelitní session (`acquire/notices.py`, `docs/NOTICES.md`), UI ho pak zobrazí.
 - **2026-10-11 — AI model v0.4 (D-M9-14):** radarový model přetrénován bez Bolívie; `python training/fetch_model.py` → `models/floodseg_v0.4/`, `run_ai.py` ho bere jako výchozí. Rozhraní beze změny. Kuro Siwo test F1 0,780; Bolívie viz D-M9-14.
 - **2026-10-11 — AI model (D-X-02):** radarový model přetrénovat **bez Bolívie ze Sen1Floods11** a výsledky na Bolívii uvádět (požadavek organizátorů „ukázat výsledky i na dalších datasetech“; Bolívie je oficiální test Sen1Floods11, v0.2 ji viděl v tréninku). Dělá session AI modelu.
-- **2026-10-11 — přišly odpovědi organizátorů (Discord 9. 10.), týká se všech → přečti `docs/QUESTIONS.md` nahoře.** ImageNet ano, ale výsledky ukázat i na dalších datasetech (Sen1Floods11); **vlastní pipeline zpracování surových dat je potřeba** (Sentinel Hub už zpracovaný radar asi nestačí — nerozhodnuto); porota účet nemá → video + návod v README, živě smíme s naším účtem; **JRC smí, ale porovnat s variantou bez něj a zdůvodnit**; Unstop ne. Rozhodnutí se zatím nemění — rozhodne uživatel / master.
+- **2026-10-11 — přišly odpovědi organizátorů (Discord 9. 10.), týká se všech → přečti `docs/QUESTIONS.md` nahoře.** ImageNet ano, ale výsledky ukázat i na dalších datasetech (→ D-X-02); vlastní pipeline zpracování je potřeba (**uživatel: Sentinel Hub nechat**); porota účet nemá → video + návod v README, živě smíme s naším účtem; JRC smí s porovnáním obou variant (**uživatel: teď ne, možná do budoucna — D-X-03**); Unstop ne.
+- **2026-10-11 — M3d: krok změn povrchu hotový v kódu (D-M3d-01), změna kontraktu (D-M3d-02), týká se M1, M3, M6, M8:**
+  `python -m povodne.flood.debris runs/<id>` → `flood/debris_{mask,type,confidence,observability}.tif`, `flood/debris_polygons.geojson`,
+  `run.json.debris`, upozornění `step = "debris"` (`docs/NOTICES.md`). Podtypy: suť, bahno, eroze, zaplavená vegetace, zaplavená/poškozená zástavba, neznámá.
+  **M1 (uživatel schválil):** ukládat `raw/s1[_alt]/hist_YYYYMMDD.tif` = až 4 starší průlety téže dráhy (VV+VH, 20 m, stejné kódování,
+  ~+180 PU / 30×30 km) + `acquire.s1[_alt].hist`; volitelně `osm/landuse.gpkg` (`kind`). Bez nich krok běží, jen méně spolehlivě.
+  **M3 (combine):** třída 3 = `debris_mask`, voda má přednost; polygony třídy `debris` převzít s `subtype` + `confidence`.
+  **M6:** plochy po podtypech v `run.json.debris.areas_km2`. **M8:** legenda podtypů, vrstva viditelnosti, `evidence` po kliknutí.
+  **Master:** test `tests/test_acquire_notices.py` bere všechny řádky `| \`kód\` |` za „## Seznam kódů“ → kódy dalších kroků mají v tabulce první sloupec `step`.
 - **2026-10-09 — M9: optický model vody v0.1 hotový** (test Bolívie F1 0,885): `python training/fetch_model.py` teď stáhne radarový i optický model
   (`models/floodseg_s2_v0.1/`); `run_ai.py` ho použije, když M2 dodá `aligned/s2_*.tif` + `masks/s2_*_valid.tif`.
 - **2026-10-09 — M3/M9: optika + stín z obou směrů (D-M9-11), změna kontraktu:** AI krok (`training/run_ai.py`) teď čte i `aligned/s2_pre|post.tif`
@@ -74,7 +85,7 @@ Obtížnost a čas = odhad uživatele.
 | 4 | Najít zdroje, stránky atd. | 3 | 1–2 h | — | ⬜ |
 | 5 | Stahování dat ze satelitu | ~7 | ~4 h | M1, M2 | ⬜ |
 | 6 | Natrénovat AI (Kaggle) | 7 | 4 h + běh tréninku | M9, M3 | ✅ model v0.2 (test F1 0,775); himálajský test předběžně |
-| 7 | Algoritmus na suť a bahno | 8 | 4 h | M3d | ⬜ |
+| 7 | Algoritmus na suť a bahno | 8 | 4 h | M3d | 🟨 kód + syntetické testy; chybí ověření na skutečných datech |
 | 8 | Škody | 3 | 2 h | M4 | ⬜ |
 | 9 | Odříznuté obce | 3 | 2,5 h | M5 | ⬜ |
 | 10 | Stránka a UI | 4–5 | 3–4 h | M8 | ⬜ |
@@ -92,7 +103,7 @@ Obtížnost a čas = odhad uživatele.
 | M2 Preprocess | ⬜ | `feat/preprocess` | požadavky z M9: D-033 (layover/shadow maska pro oba tracky, slope, HAND) |
 | M9 AI trénink | ✅ | `claude/zen-bell-a83s7a` | v0.4 bez Bolívie (`floodseg-model`, D-M9-14); dříve v0.2, D-M9-01–11; optický model S2 a kolo 10 rozpracované; **předání: `docs/HANDOFF_M9.md`** |
 | M3 AI inference (voda) | 🟨 | `claude/relaxed-johnson-wwj9s8` | `training/run_ai.py` (+ testy): dva směry, stín z obou směrů, optika S2, min. plocha, dvoustupňový práh (D-M9-11); přesun do `src/povodne/flood/` až bude skeleton |
-| M3d Suť a bahno | ⬜ | `feat/debris` | |
+| M3d Suť a bahno + změny povrchu | 🟨 | `claude/affectionate-shannon-jrnssg` | kód hotový (`python -m povodne.flood.debris`), testy na syntetickém údolí; chybí běh na skutečných datech (Opava, Derna, Trishuli) a starší snímky od M1 (D-M3d-02) |
 | M4 Damage | ⬜ | `feat/damage` | |
 | M5 Network / cut-off | ⬜ | `feat/network` | |
 | M6 Stats + sitrep | ⬜ | `feat/report` | |
@@ -112,9 +123,23 @@ Obtížnost a čas = odhad uživatele.
 - Kolo 11 na Kaggle doběhlo → **model v0.4 nasazen** (Kuro Siwo test F1 0,780; Bolívie bez snímku „před“ F1 0,21, s „před“ = „po“ 0,64; D-M9-14).
 - Dřívější průzkum (2026-10-09, jen v chatu): dlaždice Kuro Siwo jsou ve Web Mercatoru (pixel = 10 m × cos šířky), sklon v tréninku je
   proto podhodnocený proti pipeline — neopraveno, jen zjištěno.
+### 2026-10-11 (2) — satelity: historie pixelu pro krok změn povrchu — `claude/funny-fermat-ukdqp8`
+- Sloučen `main` a větev kroku suti (`claude/affectionate-shannon-jrnssg`, požadavek `docs/REQUEST_M1_HISTORY.md`).
+- Hotovo (D-M1-07): `hist_*.tif` starších průletů obou drah (20 m, stejné kódování, znovupoužití při opakovaném běhu), `osm/landuse.gpkg`;
+  ověřeno, že krok suti soubory čte zpět na 10 m. Testy `pytest tests training/tests`: 66 passed. Naostro neověřeno (bez CDSE/ohsome klíčů).
 ### 2026-10-11 — odpovědi organizátorů — `claude/funny-fermat-ukdqp8`
 - Přečtena předávka satelitní session (`docs/HANDOFF_SATELITY.md` na `claude/nice-fermi-i7qzk8`, zatím není v `main`).
-- Odpovědi z Discordu zapsány do `docs/QUESTIONS.md` (Zodpovězeno) + oznámení výše. Uživatel: Sentinel Hub nechat; radarový model bez Bolívie (D-X-02).
+- Odpovědi z Discordu zapsány do `docs/QUESTIONS.md` (Zodpovězeno) + oznámení výše. Uživatel: Sentinel Hub nechat; radarový model bez Bolívie (D-X-02); JRC teď ne (D-X-03); suť zahrne zaplavenou vegetaci (D-X-04); upozornění na příští průlet (D-X-05).
+### 2026-10-11 — M3d: suť, bahno a změny povrchu — `claude/affectionate-shannon-jrnssg`
+- Průzkum (5 paralelních rešerší: provozní systémy, zaplavená vegetace/města, suťové proudy, statistika, optika) → nikdo to automaticky
+  nedělá (GFM vegetaci a města vyřazuje, OPERA jen mokřady, EMS ručně) → výsledky jako orientační s jistotou. Shrnutí v D-M3d-01.
+- Hotovo `src/povodne/flood/debris/` (D-M3d-01): test proti historii pixelu se smrštěním rozptylu k okolí, Fisher přes dvě dráhy,
+  semínka + růst, minimální plocha, rozhodovací strom 6 podtypů + neznámá, kontrola počasí nad údolím, autotest na dni bez povodně, jistota,
+  viditelnost, polygony s vysvětlením. Kontrakt D-M3d-02 (výstupy, požadavek na `hist_*` a `landuse.gpkg` od M1).
+- Testy `tests/test_debris.py` (8, syntetické údolí; všechny podtypy ≥ 90 %, déšť a změna nad údolím nenahlášeny, 0 falešných jinde,
+  déšť v celé oblasti < 1 %), `tests/test_debris_notices.py`. Plná oblast 30×30 km: ~2 min, ~4 GB RAM.
+- **Nevyzkoušeno na skutečných datech** (v prostředí není klíč CDSE). Další krok: běh na Opavě 2024 a Derně 2023 (prahy), Trishuli a Chamoli
+  jen kontrola; autotest bez povodně v různé krajině; M1 doplní starší snímky.
 ### 2026-10-09 (den) — M9/M3 vylepšení modelu — `claude/relaxed-johnson-wwj9s8`
 - **Podrobné předání pro další session: `docs/HANDOFF_M9.md`.**
 - Sen1Floods11 přefiltrován Lee 7×7 (zrnitost = Kuro Siwo, D-M9-09); kolo 9 nenasazeno podle předem daného pravidla (hory 0,47 < 0,51, D-M9-10) → dál v0.2.

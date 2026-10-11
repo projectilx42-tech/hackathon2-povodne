@@ -54,6 +54,8 @@ runs/<run_id>/
     s1/pre_YYYYMMDD.tif, post_YYYYMMDD.tif   # S1 GRD sigma0 (ne gamma0/RTC), VV+VH, LEE 7×7 + průměr 3×3 (= Kuro Siwo, D-M1-02);
                                  # UINT16, dB = v*0.001-50, 0 = nodata; už na referenční 10m mřížce — D-020, D-035, D-M1-02
     s1_alt/pre_*.tif, post_*.tif # totéž pro druhý směr přeletu (D-033)
+    s1/hist_YYYYMMDD.tif, s1_alt/hist_*.tif  # až 4 starší průlety téže dráhy před snímky „před“, VV+VH, stejné kódování, mřížka 20 m
+                                 # zarovnaná s 10m mřížkou — historie pixelu pro krok změn povrchu (D-M3d-02; dodá M1)
     s2/pre_YYYYMMDD.tif, post_YYYYMMDD.tif   # S2 L2A, UINT16 DN: B02,B03,B04,B08,B11,B12 + SCL (7. pásmo); odrazivost = DN*scale+offset (tagy), 10m mřížka (D-M1-02)
     dem/dem.tif                  # Copernicus DEM GLO-30, float32, UTM 30 m, oblast + 5 km okraj (D-M1-02)
     dem/water.tif                # maska vod z Copernicus DEM (WBM): uint8 0 souš, 1 moře, 2 jezero, 3 řeka; mřížka dem.tif (D-M1-04)
@@ -74,10 +76,16 @@ runs/<run_id>/
     flood_mask.tif               # uint8 třídy (viz níže) — FINÁLNÍ maska použitá dál
     flood_prob.tif               # float32 0–1, pravděpodobnost "zasaženo" (voda ∪ debris)
     ai_mask.tif ai_prob.tif      # výstup M3 (voda)
-    debris_mask.tif              # uint8 1 = suť/bahno, výstup M3d
+    debris_mask.tif              # uint8 1 = suť/bahno/změna povrchu (třída 3), výstup M3d
+    debris_type.tif              # uint8 podtyp: 1 suť, 2 bahno, 3 eroze, 4 zaplavená vegetace, 5 zaplavená zástavba,
+                                 #   6 poškozená zástavba, 9 neznámá změna, 0 nic (D-M3d-01, D-M3d-02)
+    debris_confidence.tif        # uint8 1 nízká, 2 střední, 3 vysoká, 0 nic
+    debris_observability.tif     # uint8 0 mimo oblast, 1 viděno, 2 nedá se vidět (stín, mraky), 3 necitlivé (hustý les/zástavba)
+    debris_polygons.geojson      # EPSG:4326: class "debris", subtype, confidence, area_m2, mean_dvv_db, mean_dvh_db, evidence
     flood_polygons.geojson       # EPSG:4326, polygonizace flood_mask (třídy 2,3), atributy: class ("water" | "debris"), area_m2 (D-035)
   osm/
     buildings.gpkg roads.gpkg bridges.gpkg settlements.gpkg facilities.gpkg   # UTM, čisté vrstvy (schéma níže)
+    landuse.gpkg                 # volitelně: osm_id, kind (forest/farmland/…/residential), polygony — D-M3d-02 (dodá M1)
   damage/
     buildings_damage.geojson roads_damage.geojson bridges_damage.geojson      # EPSG:4326
   network/
@@ -116,12 +124,16 @@ runs/<run_id>/
     //   "series": [{"date": "YYYY-MM-DD", "water_frac": 0.0}], "onset_date": "YYYY-MM-DD|null",
     //   "chosen_pre": ["YYYY-MM-DD", ...], "reason": "...", "user_window": false}
     // acquire.s1.same_day / acquire.s1_alt.same_day (D-M1-03): {"datetime", "used_as_post", "reason", "change_frac", "baseline_frac"} | null
+    // acquire.s1.hist / acquire.s1_alt.hist (D-M3d-02, D-M1-07): [{"id", "datetime", "file", "valid_pct"}] — starší průlety (raw/s1*/hist_*.tif, 20 m); acquire.hist_grid {"x0","y1","res"}
     // acquire.s1.processing, acquire.grid (referenční mřížka), acquire.pu_spent, acquire.warnings (varování kroku), acquire.osm — D-M1-02
     "s2": {"pre": {"date": "...", "ids": [...], "clear_pct": 0, "scale": [...], "offset": [...]} | null, "post": {...} | null},
     "dem": {"source": "...", "product": "COP-DEM GLO-30", "water_mask": true, "hand_stream_cells": 100}   // D-M1-04
   },
   "sensitivity": "standard",                                  // "standard" | "sensitive" (D-M9-08); píše UI/CLI, čte M3
   "flood": {"method": "ai", "model": "models/<name>", "params": {"sensitivity": "...", "flood_threshold": null, ...}},
+  "debris": {"method": "...", "params": {...}, "inputs": {...}, "placebo": {"available": true, "rate": 0.0, "flagged_km2": 0.0,
+             "estimated_false_share": 0.0, ...}, "areas_km2": {"debris": 0, "mud": 0, ...}, "total_km2": 0,
+             "confidence_km2": {...}, "observability": {...}, "background_change": {...}, "weather": {...}},   // M3d, D-M3d-02
   "warnings": ["S2 post scene >80 % cloud – S1 only", "..."],   // jen text (error + warning); zpětná kompatibilita
   "notices": [{"step": "acquire", "code": "pre_may_be_flooded", "severity": "error|warning|info",
                "message": "...", "details": {}}]                 // D-M1-05; kódy a zobrazení v docs/NOTICES.md
@@ -134,7 +146,7 @@ runs/<run_id>/
 | 0 | nodata / nevyhodnoceno (mimo AOI, layover/shadow, chybí data) |
 | 1 | nezasaženo |
 | 2 | **flood water** — nová voda (nebyla před událostí) |
-| 3 | **debris / mud** — nánosy bahna a kamení, eroze koryta |
+| 3 | **debris / mud + jiná změna povrchu** — nánosy bahna a kamení, eroze koryta, zaplavená vegetace / zástavba (radar zesvětlí; D-X-04) |
 | 4 | permanentní voda (voda už před událostí) — **nepočítá se jako zasažené** |
 
 "Zasaženo" (pro M4/M5) = třídy **2 ∪ 3**. Nodata = 255 se nepoužívá; nodata je 0.
@@ -147,6 +159,7 @@ Zdroj: **ohsome API v2** `extraction/features.parquet` s `time=<osm_snapshot_dat
 - `bridges.gpkg`: `osm_id`, `highway`, `name`, `geometry` — silnice s `bridge=yes` (+ `man_made=bridge` polygony).
 - `settlements.gpkg`: `osm_id`, `name`, `place` (city/town/village/hamlet/locality), `population` (může chybět), `geometry` (Point).
 - `facilities.gpkg`: `osm_id`, `name`, `kind` (`hospital`/`clinic`/`health_post`/`town`), `geometry` (Point; polygony → centroid).
+- `landuse.gpkg` (D-M3d-02, D-M1-07): `osm_id`, `kind` ∈ {forest, wood, farmland, orchard, grass, meadow, scrub, wetland, vineyard, residential, industrial, commercial, retail} (`landuse=*`, jinak `natural=*`), `geometry` (Polygon); jen v oblasti.
 
 ## Výstupy M4 damage
 Každý prvek zasažený, pokud jeho geometrie (budova: polygon; silnice/most: linie s bufferem `road_buffer_m`, default 10 m)
@@ -223,7 +236,7 @@ Pipeline spouští jako podproces `python -m povodne run ...`; průběh čte z `
 | M1 | Acquire (S1, S2, DEM, OSM) | `src/povodne/acquire/` | `feat/acquire` | AOI, datum | `raw/` |
 | M2 | Preprocess / coregistrace | `src/povodne/preprocess/` | `feat/preprocess` | `raw/` | `aligned/`, `masks/` |
 | M3 | AI inference (voda) + složení finální masky | `src/povodne/flood/ai.py`, `combine.py` | `feat/ai-model` | `aligned/`, `masks/`, `models/`, `flood/debris_mask.tif` | `flood/ai_*`, `flood/flood_*` |
-| M3d | Algoritmus suť/bahno | `src/povodne/flood/debris.py` | `feat/debris` | `aligned/`, `masks/` | `flood/debris_mask.tif` |
+| M3d | Algoritmus suť/bahno + změny povrchu | `src/povodne/flood/debris/` | `feat/debris` | `raw/s1*/` (vč. `hist_*`), `raw/s2/`, `raw/dem/`, `masks/`, `osm/buildings.gpkg`, `osm/landuse.gpkg`, `flood/ai_mask.tif` | `flood/debris_*` (D-M3d-02) |
 | M9 | AI trénink | `training/` | `feat/ai-model` | Kuro Siwo, Sen1Floods11 | `models/<name>/` |
 | M4 | Damage overlay | `src/povodne/damage/` | `feat/damage` | `flood/`, `osm/` | `damage/` |
 | M5 | Road network / cut-off | `src/povodne/network/` | `feat/network` | `osm/`, `damage/` | `network/` |

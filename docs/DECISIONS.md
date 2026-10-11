@@ -602,6 +602,137 @@ dokumentace vypíná 30. 11. 2026. Nová verze v2 (stejný autor HeiGIT, stejná
 - Porotce potřebuje druhý bezplatný účet (vedle CDSE) → otázka pro organizátory (návrh v chatu).
 - **Rozpor k vyřešení (master):** CLAUDE.md říká „pro case study ≤ 2026-07-27“ (byl to limit v1); kód bere obecné pravidlo < `event_date`.
   → **Vyřešeno (master, 2026-10-11):** CLAUDE.md upraveno na pravidlo < `event_date` (den před událostí); ověřeno proti zadání („snapshot date before 26 Aug 2026“; 27. 7. byl jen tehdy nejnovější dostupný).
+## D-X-03 | 2026-10-11 | přijato (rozhodnutí uživatele: „může se to udělat do budoucnosti, ale nebudem to dělat teď“) — JRC mapa vody teď ne, možná do budoucna
+Kontext: organizátoři (Discord 2026-10-09, `docs/QUESTIONS.md` bod 4) JRC Global Surface Water (celosvětová mapa vody 1984–2021 z Landsatu)
+**povolili**, ale jen s porovnáním variant s JRC a bez JRC a se zdůvodněním. Odhad přínosu (ne měření): 0–3 body F1 povodně v nížinách
+(test v0.2 na Kuro Siwo: F1 vody celkem 0,82 vs. povodně 0,78 — rozdíl je zhruba strop, co by šlo získat lepším rozlišením trvalé vody
+od povodně), v Himálaji ~0 (u Trishuli se povodeň projevuje hlavně jako suť/bahno, řeka je úzká vůči pixelu JRC 30 m, JRC končí 2021).
+Riziko: sezónně zaplavovaná místa JRC vede jako „častá voda“ → jejich odfiltrování by smazalo skutečnou povodeň. Cena: implementace
++ povinné porovnání ≈ půl dne až den, 3 dny před deadlinem.
+Rozhodnutí:
+- **Teď JRC nepoužívat.** Trvalá voda dál ze snímku „před“ (model) a z masky vod Copernicus DEM. V reportu jednou větou zdůvodnit
+  (malý odhadovaný přínos, riziko u sezónních záplav, JRC končí 2021).
+- **Do budoucna (ne teď) možné:** změřit přínos na Kuro Siwo val (ne na EMS, D-006) — kde JRC říká „trvalá voda“, přepsat povodeň
+  na trvalou vodu a porovnat F1 s variantou bez JRC; použít jen při měřitelném zlepšení a s porovnáním obou variant v reportu.
+
+## D-X-04 | 2026-10-11 | přijato (rozhodnutí uživatele) — Algoritmus na suť a bahno pokrývá i zaplavenou vegetaci a zástavbu
+Kontext: voda pod stromy a mezi domy radar **zesvětlí** (dvojitý odraz voda → kmen/zeď → družice), model vody hledá tmavou vodu a tyto
+plochy přehlédne; optika pod koruny nevidí. Změřeno satelitní session (dno údolí, změna > 3 dB mimo historii pixelu): Opava 2024
+**zesvětlení 13,6 %** vs ztmavnutí 0,5 % (zaplavené město a vegetace), Trishuli 0,4 % / 6,3 %, Derna 3,2 % / 0,9 %. Zatím neřešeno nikde.
+Rozhodnutí:
+- **Algoritmus na suť a bahno (`flood/debris.py`) hledá změny povrchu na dně údolí oběma směry** a zahrne i zaplavenou vegetaci
+  a zástavbu (zesvětlení), ne jen suť a bahno. Třída 3 masky = „suť, bahno a jiná změna povrchu (vč. zaplavené vegetace / zástavby)“;
+  počítá se jako zasaženo (2 ∪ 3), hodnota třídy se nemění.
+- **Rozdělení na podtypy** (např. suť/bahno vs. zaplavená vegetace/zástavba) je povolené a doporučené, pokud ho algoritmus umí rozlišit
+  (napr. zesvětlení vs. ztmavnutí, vegetace ze Sentinel-2 / poměr VV/VH, zástavba z OSM budov). Způsob zápisu (atribut v
+  `flood_polygons.geojson` nebo nová třída) navrhne session suti jako změnu kontraktu (DECISIONS + ARCHITECTURE).
+- Více drah / úhlů pohledu: uživatel bere jako vyřešené současným spojením drah po pixelech (D-034); třetí dráha se dál nestahuje (D-035).
+ARCHITECTURE.md (popis třídy 3) upraven ve stejném commitu.
+
+## D-X-05 | 2026-10-11 | přijato (rozhodnutí uživatele) — Upozornění „lepší pohled za X dní“
+Kontext: radarový stín a layover v horách; druhý směr přeletu je vidí z druhé strany (D-033, D-034). U čerstvé povodně ale snímek „po“
+z druhé dráhy ještě nemusí existovat. Průlety jsou pravidelné (každá dráha jednou za 12 dní na jednu družici, se dvěma družicemi 6 dní),
+takže datum příštího průletu jde předpovědět (poslední průlet dráhy + interval zjištěný z katalogu).
+Rozhodnutí — **krok stahování přidá upozornění** (nový kód v `acquire/notices.py` + `docs/NOTICES.md`, dělá satelitní session):
+- Kdy: chybí snímek „po“ z druhého směru přeletu (nebo z dráhy, která vidí dno údolí výrazně líp), protože průlet ještě nenastal.
+- Obsah `message`: datum (místní čas) a počet dní do příštího průletu té dráhy + o kolik procentních bodů víc dna údolí bude vidět
+  (sjednocení viditelnosti obou drah z DEM a geometrie dráhy, bez stahování snímků), např. „The opposite pass on 31 Aug (in 3 days) will
+  show 12 % more of the valley floor. Re-run then for a fuller map.“
+- `details`: `track`, `direction`, `next_pass_date`, `days_until`, `visibility_now`, `visibility_with_track`.
+- Pro minulé povodně (oba snímky už existují) se nevydává — systém je stáhne a spojí sám.
+
+## D-M3d-01 | 2026-10-11 | přijato (uživatel: „na všechno ti říkám ano, začni programovat“) — Algoritmus změn povrchu (suť, bahno, eroze, zaplavená vegetace a zástavba)
+Kontext: povodeň se často neprojeví jako tmavá voda, kterou hledá AI model: u Trishuli ztmavnutí 6,3 % dna údolí (bahno, smetená vegetace),
+v Opavě zesvětlení 13,6 % (voda pod stromy a mezi domy = dvojitý odraz). Master rozhodl, že krok suti pokrývá i zaplavenou vegetaci a zástavbu
+(třída 3 masky, podtypy doporučené). **Průzkum (literatura + provozní systémy, chat 2026-10-11):** nikdo to automaticky nedělá — Copernicus
+GFM vegetaci a města vyřazuje jako „bez citlivosti“, NASA OPERA DSWx-S1 mapuje zaplavenou vegetaci jen v mokřadech (potřebuje mapu pokryvu),
+Copernicus EMS kreslí stopy bahna ručně. Úspěšnost v literatuře: zaplavená vegetace 28–91 % podle místa (Tsyganskaya 2018), sesuvy z radaru
+AUC 0,62 (1 snímek po) – 0,83 (obě dráhy) (Handwerger 2022), z optiky 30–50 % falešných nálezů (NHESS 23/2625) → výsledky jsou **orientační
+s mírou jistoty**. Kód `src/povodne/flood/debris/`, testy `tests/test_debris.py` (syntetické údolí).
+**Postup (7 kroků):**
+1. **Kde lze něco tvrdit:** oblast, ne trvalá voda (maska vod DEM), ne voda z AI modelu (třídy 2, 4), ne sníh (SCL 11 / NDSI > 0,42),
+   pixel viditelný aspoň v jedné dráze (bez layover/shadow), historie VV v průměru nad −15 dB (pod tím vodě podobné povrchy, jako GFM).
+   Zóna hledání: HAND ≤ 40 m a sklon ≤ 25° (suť a eroze sahají výš než stojatá voda).
+2. **Test proti historii pixelu** (`stats.py`): rozdíl post − průměr historie (dB) zvlášť pro VV, VH a každou dráhu; rozptyl pixelu
+   se „smrští“ k typickému rozptylu okolí (dlaždice 640 m, empirical Bayes, ν0 = 10, minimum 0,5 dB) → Studentovo t → p-hodnota.
+   Důvod: dnešní test „mimo rozsah min–max ze 4 snímků“ překročí rozsah náhodou ve ~20 % na každou stranu, ochranu dělá jen rezerva 3 dB
+   (v Opavě před povodní 1,6–4,6 % plochy „změněno“).
+3. **Shoda drah:** p-hodnoty drah se sloučí Fisherovou metodou zvlášť pro VV/VH × zesvětlení/ztmavnutí, vyhraje nejsilnější
+   (korekce ×4 za čtyři pokusy). Dráha „souhlasí“, když její vlastní p < 0,01.
+4. **Semínka a růst** (jako OPERA a GFM): semínko p < 1e-4 a změna ≥ 3 dB, růst p < 0,01 a ≥ 1,5 dB, jen plochy se semínkem;
+   pak minimální plocha 10 px (0,1 ha).
+5. **Podtypy (rozhodovací strom)** — kód v `flood/debris_type.tif`:
+   | kód | podtyp | pravidlo |
+   |---|---|---|
+   | 5 | zaplavená zástavba | zesvětlení u budov OSM (±20 m) a voda tam může být (HAND ≤ 15 m, sklon ≤ 15°, pod hladinou okolní vody) |
+   | 4 | zaplavená vegetace | zesvětlení, VV o ≥ 1 dB víc než VH (Tsyganskaya 2018), před povodní vegetace (NDVI ≥ 0,4, bez optiky VH ≥ −16 dB, OSM les/pole), voda tam může být |
+   | 1 | suť | zesvětlení + optika: holá zem po (NDVI < 0,15, BSI > 0) nebo pokles NDVI ≥ 0,15; bez optiky jen v korytě (HAND ≤ 10 m), VV ≥ 3 dB a VH ≥ 1,5 dB |
+   | 6 | poškozená zástavba | ztmavnutí VV ≥ 3 dB u budov (zmizel dvojitý odraz zdí) |
+   | 3 | eroze / stržená vegetace | ztmavnutí, VH o ≥ 1,5 dB víc než VV (zmizel rozptyl v listí), před povodní vegetace |
+   | 2 | bahno | ztmavnutí + optika holá zem / kalná voda (MNDWI > 0,2) / pokles NDVI; bez optiky do HAND ≤ 15 m |
+   | 9 | neznámá změna | nesedí na žádný vzor nebo optika odporuje; jen když souhlasí obě dráhy |
+   „Pod hladinou okolní vody“ (Mason et al.): výška terénu (DEM, místní minimum 90 m kvůli stromům a střechám) ≤ výška nejbližšího okraje
+   otevřené povodně z AI modelu (do 2 km) + 2 m; bez otevřené vody v okolí jen koryto (HAND ≤ 10 m) a jistota nejvýš střední.
+   **Odmítá se:** zesvětlení VV i VH stejně na holé půdě mimo koryto, nebo když optika nevidí žádný nános (déšť, orba).
+6. **Kontrola počasí** (kontrolní území nad dnem údolí, HAND > 40 m): když tam stejně zesvětlí/ztmavne obě polarizace na ≥ 5 % plochy
+   (déšť, mokrý sníh, mráz), stejný podpis na dně údolí se bere jako počasí, pokud optika neukáže skutečný nános. Upozornění `debris_regional_change`.
+7. **Autotest na dni bez povodně (placebo):** celý postup znovu s nejnovějším starším snímkem jako „po“ → vše nalezené je falešné.
+   Když je falešných > 0,1 % prohledávané plochy, zpřísní se semínka (+1 řád p), ale jen dokud to falešné nálezy opravdu ubírá (o ≥ 20 %);
+   skutečné změny mezi staršími snímky (pole, stavba) zpřísnění neodstraní, ty se jen nahlásí. Výsledek jde do `run.json.debris.placebo`
+   a do upozornění („až X % nalezené plochy může být falešné“).
+**Jistota:** body = počet souhlasících drah (0–2; u zástavby stačí jedna, zdi vidí jen jeden směr) + 1 za potvrzení optikou (suť, bahno, eroze)
++ 1 za okolní otevřenou vodu (vegetace, zástavba); ≥ 3 vysoká, 2 střední, jinak nízká; neznámá změna vždy nízká.
+**Viditelnost** (`flood/debris_observability.tif`): viděno / nedá se vidět (stín, mraky) / necitlivé (NDVI ≥ 0,8 nebo hustota budov ≥ 50 %;
+podle GFM se tam nic nemaže, jen se to řekne).
+**Zamítnuto:** koherence radaru (SLC; nejlepší ukazatel zaplavených měst, ale do termínu nereálné), velké předtrénované modely (TerraMind,
+Prithvi, Clay, SAM — neověřené pro změny na radaru, nejasná legálnost, pomalé na CPU), hotové mapy pokryvu (WorldCover — nepovolený vstup),
+sezónní model z let historie (TU Wien; máme 4 snímky), optické prahy pro sníh a vodu jen z literatury (NDSI 0,42, MNDWI 0,2).
+**Ověření:** syntetické údolí (všech 6 podtypů ≥ 90 % plochy, déšť na poli a změna nad údolím nenahlášeny, 0 falešných pixelů jinde,
+déšť v celé oblasti < 1 % falešných, autotest zachytí změnu mezi staršími snímky); 30×30 km ~2 min a ~4 GB RAM na CPU.
+**Zbývá na skutečných datech** (potřebuje klíč CDSE): prahy kontrolovat jen na Opavě 2024 a Derně 2023, **Trishuli a Chamoli jen jako
+nezávislá kontrola**, žádné EMS (D-006); autotest na scénách bez povodně v různé krajině (pole v létě, monzun, sníh).
+**Omezení (do reportu):** C-pásmo (5,6 cm) hustým lesem neprojde; ulice natočené podél pohledu radaru zaplavení neukážou; bez optiky se suť
+a zmoklá půda rozlišují špatně; prahy jsou z literatury o sesuvech a záplavách, ne změřené na himálajských suťových proudech; bez budov z OSM
+se zaplavené město hlásí jako zaplavená vegetace.
+
+## D-M3d-02 | 2026-10-11 | přijato (uživatel: ano na uložení starších snímků i výstupy) — Kontrakt kroku změn povrchu
+**Vstupy (ARCHITECTURE upraveno ve stejném commitu):**
+- **Požadavek na krok stahování (M1):** `raw/s1/hist_YYYYMMDD.tif` a `raw/s1_alt/hist_YYYYMMDD.tif` = až **4 starší průlety téže dráhy**
+  před zvolenými snímky „před“ (kandidáti, které krok stejně prochází), VV+VH, stejné kódování jako ostatní S1 (UINT16 dB, LEE 7×7 + 3×3),
+  **mřížka 20 m** zarovnaná s referenční 10m mřížkou (stejné `x0`, `y1`); seznam v `run.json.acquire.s1.hist` / `acquire.s1_alt.hist`
+  (`{"id", "datetime", "file"}`). Odhad ceny ~+180 PU na 30×30 km (VV 20 m ≈ 11 PU za snímek podle kroku stahování, D-M1-03; VV+VH ×2; 4 snímky × 2 dráhy).
+  Krok suti bere jako historii `hist_*` + `pre_*`; bez `hist_*` funguje jen s 1–2 snímky „před“ (upozornění `debris_short_history` při < 2).
+- **Volitelně (M1):** `osm/landuse.gpkg` (snímek OSM před událostí, ohsome): `osm_id`, `kind` ∈ {forest, wood, farmland, orchard, grass,
+  meadow, scrub, wetland, vineyard, residential, industrial, commercial, retail}, polygony v UTM. Doplňuje vegetaci/zástavbu, kde je mrak.
+- Čte dál: `raw/s1[_alt]/pre_*, post_*`, `raw/s2/*`, `raw/dem/dem.tif`, `raw/dem/water.tif`, `osm/buildings.gpkg`, `flood/ai_mask.tif`
+  (pokud už je), `masks/hand.tif`, `masks/slope.tif`, `masks/s1[_alt]_layover_shadow.tif` (pokud je udělal krok přípravy dat; jinak si je
+  krok spočítá sám funkcemi kroku stahování, layover/shadow z přibližné geometrie podle směru přeletu).
+**Výstupy (`flood/`, mřížka 10 m):** `debris_mask.tif` (uint8 1 = změna povrchu, třída 3), `debris_type.tif` (kódy podtypů výše, 0 = nic),
+`debris_confidence.tif` (1 nízká, 2 střední, 3 vysoká), `debris_observability.tif` (0 mimo oblast, 1 viděno, 2 nedá se vidět, 3 necitlivé),
+`debris_polygons.geojson` (EPSG:4326; `class` = `"debris"`, `subtype`, `confidence`, `area_m2`, `mean_dvv_db`, `mean_dvh_db`, `evidence` = anglická věta).
+`run.json.debris` (metoda, parametry, vstupy, `placebo`, `areas_km2` po podtypech, `confidence_km2`, `observability`, `background_change`,
+`weather`), průběh kroku `debris` v `run.json.progress`, upozornění se `step = "debris"` (kódy v `docs/NOTICES.md`).
+**Návrhy pro ostatní (rozhodne master / jejich session):** skládání masky (M3) — třída 3 = `debris_mask`, voda (2, 4) má přednost, polygony
+třídy `debris` převezmou `subtype` + `confidence` z `debris_polygons.geojson`; statistiky (M6) — `flood.debris_by_type` z `run.json.debris.areas_km2`;
+UI (M8) — legenda podtypů, vrstva viditelnosti, věta `evidence` po kliknutí.
+
+## D-M1-07 | 2026-10-11 | přijato (uživatel: „udělej tohle“ = požadavek `docs/REQUEST_M1_HISTORY.md`) — Starší průlety a využití půdy pro krok změn povrchu
+Implementace požadavku kroku změn povrchu (D-M3d-02) v kroku stahování:
+- **`raw/s1/hist_YYYYMMDD.tif`, `raw/s1_alt/hist_YYYYMMDD.tif`:** až 4 (`AcquireConfig.n_hist`) průlety téže dráhy **starší než nejstarší
+  zvolený snímek „před“**, vybrané z kandidátů, které krok už prochází (`pre_candidates`, okno 60 dní). VV+VH, stejné zpracování a kódování
+  jako ostatní S1 (LEE 7×7 + průměr 3×3, UINT16 dB), **mřížka 20 m** se stejným levým horním rohem (`x0`, `y1`) jako 10m mřížka, pokrývá ji
+  celou (`pipeline.coarse_grid`). Opakovaný běh už stažené soubory nestahuje. `run.json.acquire.s1.hist` / `acquire.s1_alt.hist`
+  = `[{"id", "datetime", "file", "valid_pct"}]`, `acquire.hist_grid`.
+- **Kolik jich bude:** okno 60 dní = při jedné družici (průlet dráhy po 12 dnech) ~5 kandidátů, z toho 2 jsou „před“ → obvykle **2–3 starší
+  průlety**; 4 jen při dvou družicích nebo když „před“ vyšel novější. Okno se kvůli tomu nerozšiřuje (delší okno = víc sezónních změn
+  v historii, např. sklizeň). Krok suti bere historii `hist_*` + `pre_*`, tedy obvykle 4–5 snímků.
+- **Cena (odhad, neměřeno):** ~22 PU za snímek VV+VH 20 m na 30×30 km → s 2–3 průlety × 2 dráhy ~+90–130 PU na běh (max. +180 PU).
+  VV ze stejného dne už stažené kontrolou průletu v den povodně se nepřepoužívá (jiná mřížka, jen VV) — možná úspora do budoucna.
+- **`osm/landuse.gpkg`** (volitelná část požadavku): ohsome, stejný snapshot před událostí, filtr `landuse in (forest, farmland, orchard,
+  grass, meadow, vineyard, residential, industrial, commercial, retail) or natural in (wood, scrub, wetland)`, jen polygony, jen v oblasti;
+  `kind` = hodnota `landuse`, jinak `natural`. Běh = **7 dotazů** na ohsome (limit 250/den; README upraveno).
+- Testy: `tests/test_acquire_hist.py` (výběr průletů, 20m mřížka, čtení zpět krokem suti na 10 m, znovupoužití souboru, vrstva využití půdy).
+  **Naostro neověřeno** (v prostředí nejsou klíče CDSE / ohsome).
 
 ---
 
