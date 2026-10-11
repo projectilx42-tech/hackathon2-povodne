@@ -1,0 +1,92 @@
+[
+ {
+  "case": "derna_after",
+  "dates": [
+   "2023-07-26",
+   "2023-08-07",
+   "2023-08-19",
+   "2023-08-31",
+   "2023-09-12"
+  ],
+  "flood_present": true,
+  "change": 0.03,
+  "baseline": 0.003,
+  "used_as_post": true,
+  "correct": true
+ },
+ {
+  "case": "derna_before",
+  "dates": [
+   "2023-07-14",
+   "2023-07-26",
+   "2023-08-07",
+   "2023-08-19",
+   "2023-08-31"
+  ],
+  "flood_present": false,
+  "change": 0.0026,
+  "baseline": 0.0035,
+  "used_as_post": false,
+  "correct": true
+ },
+ {
+  "case": "opava_after",
+  "dates": [
+   "2024-07-29",
+   "2024-08-10",
+   "2024-08-22",
+   "2024-09-03",
+   "2024-09-15"
+  ],
+  "flood_present": true,
+  "change": 0.1452,
+  "baseline": 0.0172,
+  "used_as_post": true,
+  "correct": true
+ },
+ {
+  "case": "opava_before",
+  "dates": [
+   "2024-07-17",
+   "2024-07-29",
+   "2024-08-10",
+   "2024-08-22",
+   "2024-09-03"
+  ],
+  "flood_present": false,
+  "change": 0.0156,
+  "baseline": 0.0463,
+  "used_as_post": false,
+  "correct": true
+ },
+ {
+  "case": "trishuli_after",
+  "dates": [
+   "2026-07-11",
+   "2026-07-23",
+   "2026-08-04",
+   "2026-08-16",
+   "2026-08-28"
+  ],
+  "flood_present": true,
+  "change": 0.0532,
+  "baseline": 0.0017,
+  "used_as_post": true,
+  "correct": true
+ },
+ {
+  "case": "trishuli_before",
+  "dates": [
+   "2026-06-29",
+   "2026-07-11",
+   "2026-07-23",
+   "2026-08-04",
+   "2026-08-16"
+  ],
+  "flood_present": false,
+  "change": 0.0013,
+  "baseline": 0.0004,
+  "used_as_post": false,
+  "correct": true
+ }
+]

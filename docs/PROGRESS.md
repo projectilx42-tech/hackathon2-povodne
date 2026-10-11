@@ -16,6 +16,14 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 - **2026-10-09 — M3/M9: optika + stín z obou směrů (D-M9-11), změna kontraktu:** AI krok (`training/run_ai.py`) teď čte i `aligned/s2_pre|post.tif`
   a `masks/s2_*_valid.tif` (**M2 je musí dodat podle kontraktu**) a optický model `models/floodseg_s2_*`; pixel je vyhodnocený, když platí radar
   nebo je jasno. Nová pole `run.json.flood.params` (`s2`, `cross_shadow_px`, `min_flood_px`). Bez optiky běží dál jen radar.
+- **2026-10-11 — master: sloučeny satelity (hodina povodně, HAND jako ASF + maska vod z DEM, upozornění s kódy, OSM přes ohsome v2) do `main` → všichni `git fetch origin main && git merge origin/main`.**
+  Bez konfliktů, `check_docs` OK, testy 53/53. **Nové env `OHSOME_API_KEY`** (vedle CDSE). Snapshot OSM = den před událostí (CLAUDE.md sladěno, D-M1-06).
+  **UI:** satelity minimálně upravily `dashboard/` (políčko Flood time + `event_time`) — při slučování UI větve zkontrolovat; implementovat zobrazení `run.json.notices` podle `docs/NOTICES.md`.
+  **Skeleton:** CLI `--event-time` → `run.json.event_time`. **Preprocess:** `masks/hand.tif` přes `acquire.terrain.hand`.
+- **2026-10-09 — M1: OpenStreetMap přes ohsome v2 (D-M1-06), týká se všech:** v1 už tvary nevydává (403). Nově **env `OHSOME_API_KEY`** (bezplatný klíč z account.heigit.org; README). Výstup `osm/*.gpkg` beze změny. Nová knihovna `pyarrow` v `requirements.txt`. **Master:** CLAUDE.md „case study ≤ 2026-07-27“ byl limit v1 — v2 dává snapshot den před povodní (25. 8.), zadání to povoluje; sladit.
+- **2026-10-09 — M1: upozornění s kódy pro UI (D-M1-05), změna kontraktu, týká se M8 a M6:** nové `run.json.notices` (`step`, `code`, `severity` error/warning/info, `message`, `details`). **Seznam kódů a doporučené zobrazení: `docs/NOTICES.md`** — UI prosím implementovat (červený pruh / panel kvality dat / „How this was computed“; graf podílu vody z `pre_selection.series`). `run.json.warnings` zůstává (text).
+- **2026-10-09 — M1: HAND jako ASF + maska vod z DEM (D-M1-04), týká se M2, M3, M3d:** práh toku 100 buněk (dřív 1 km²) → HAND v horách sedí s globálním HAND od ASF (Trishuli rozdíl 120 m → 13 m). Nový `raw/dem/water.tif` (moře/jezera/řeky z Copernicus DEM = povolený zdroj trvalé vody místo JRC). **M2:** `masks/hand.tif` počítat `acquire.terrain.hand`.
+- **2026-10-09 — M1: hodina povodně + průlet v den povodně (D-M1-03), změna kontraktu:** nové volitelné `run.json.event_time` (`"HH:MM"`, místní čas oblasti), pole `event_time` v `POST /api/runs` a v UI (Advanced → Flood time; **M1 upravil `dashboard/` minimálně: 1 políčko + předání, ověřeno v Chromiu** — M8 prosím zkontrolovat), CLI `--event-time`. **Skeleton:** `povodne run --event-time` → `run.json`. Data se porovnávají v místním čase (oprava UTC). Nové `acquire.s1.same_day`. Okno „po“ se nově respektuje.
 - **2026-10-09 — master: sloučeno do `main` (model, satelity, UI) → všichni `git fetch origin main && git merge origin/main`.** Bez kolizí čísel; testy 33/33 OK.
   Zbývá navázat: **UI** — přepínač citlivosti `standard`/`sensitive` v UI + pole `sensitivity` v `POST /api/runs` (D-M9-08); ukázkový run přepsat na textové `osm_id`
   (`way/123`, D-M1-02 — UI porovnává `===`, s čísly ze vzorku by to s reálnými daty nesedělo). **Skeleton** — CLI `--sensitivity` → `run.json.sensitivity`.
@@ -80,7 +88,7 @@ Obtížnost a čas = odhad uživatele.
 | Repo init, docs, workflow | ✅ | `main` | CLAUDE.md, docs/, Stop hook |
 | M8 Dashboard / webové UI | 🟨 | `feat/dashboard` | UI hotové nad ukázkovým runem (kroky 1–5 z UI_SPEC); spouští pipeline přes `python -m povodne run`, která zatím neexistuje; chybí renderer PNG překryvů z GeoTIFF; spuštění `python -m dashboard` |
 | 0 Skeleton (pyproject, CLI, config, io/grid) | ⬜ | `feat/skeleton` | |
-| M1 Acquire (S1/S2/DEM/OSM) | 🟨 | `claude/nice-fermi-i7qzk8` | celý krok hotový (`python -m povodne.acquire`): katalog, hlavní dráha (D-X-01), DEM, kontrola čistoty pre (D-M1-01), S1 obě dráhy kalibrované (D-M1-02), S2, OSM; **OSM neotestováno (ohsome v údržbě)** |
+| M1 Acquire (S1/S2/DEM/OSM) | 🟨 | `claude/nice-fermi-i7qzk8` | celý krok hotový (`python -m povodne.acquire`): katalog, hlavní dráha (D-X-01), DEM, kontrola čistoty pre (D-M1-01), S1 obě dráhy kalibrované (D-M1-02), S2, OSM; OSM přes ohsome v2 s klíčem (D-M1-06), otestováno; **předávka: `docs/HANDOFF_SATELITY.md`** |
 | M2 Preprocess | ⬜ | `feat/preprocess` | požadavky z M9: D-033 (layover/shadow maska pro oba tracky, slope, HAND) |
 | M9 AI trénink | ✅ | `claude/zen-bell-a83s7a` | v0.4 bez Bolívie (`floodseg-model`, D-M9-14); dříve v0.2, D-M9-01–11; optický model S2 a kolo 10 rozpracované; **předání: `docs/HANDOFF_M9.md`** |
 | M3 AI inference (voda) | 🟨 | `claude/relaxed-johnson-wwj9s8` | `training/run_ai.py` (+ testy): dva směry, stín z obou směrů, optika S2, min. plocha, dvoustupňový práh (D-M9-11); přesun do `src/povodne/flood/` až bude skeleton |
@@ -116,6 +124,28 @@ Obtížnost a čas = odhad uživatele.
 - Rozpracováno: optický model (`training/train_s2.py`, trénink na CPU v kontejneru — v nové session pustit znovu), kolo 10 na Kaggle
   (méně výřezů bez vody, `floodseg-r10`).
 - Blokuje himálajský test se skutečnou pipeline: chybí CDSE klíč v této session a modul předzpracování (M2).
+### 2026-10-11 — master: sloučení satelitů — `claude/gallant-keller-vftpi2`
+- `claude/nice-fermi-i7qzk8` (12 commitů) sloučena do `main` bez konfliktů (main nebyl napřed). `check_docs` OK, `pytest tests training/tests`: 53 passed.
+- Vyřešen rozpor data OSM snapshotu (CLAUDE.md vs D-M1-06): platí < `event_date`.
+### 2026-10-09 (2) — satelity: upozornění pro UI — `claude/nice-fermi-i7qzk8`
+- Všechna upozornění kroku stahování mají pevný kód, závažnost a podrobnosti (`acquire/notices.py`, `run.json.notices`), seznam pro UI
+  v `docs/NOTICES.md` (D-M1-05). Ověřeno: běh bez klíče zapíše `cdse_credentials` + `failed`; běh Trishuli (z mezipaměti, 0,5 PU) zapsal
+  `post_image_date`, `pre_check_blind`, `osm_failed`. Opraveno přepisování `progress` při ukládání `run.json`. Testy 49/49.
+- **ohsome znovu běží (metadata, count = 200), ale `elements/geometry` vrací HTTP 403** (Apache, i pro malý dotaz) → OSM vrstvy pořád
+  neotestované. Pravděpodobná příčina: ohsome přechází na API v2 (`https://api.heigit.org/ohsome-api/v2-rc/extraction/features`,
+  **vyžaduje bezplatný API klíč** z account.heigit.org, odpověď GeoParquet), v1 se vypíná 30. 11. 2026. Neověřeno, čeká na rozhodnutí uživatele.
+- **Vyřešeno (D-M1-06):** uživatel dodal klíč → stahování přes ohsome v2 funguje (Trishuli: 16 582 budov, 3 859 silnic, 244 sídel, 18 s,
+  snapshot 25. 8. 2026, nejnovější úprava 9. 8.). Upozornění `osm_key_missing`. Klíč je jen v `/root/.ohsome_env` této session, ne v repu.
+### 2026-10-09 — satelity: přesnost terénu a vody podle profesionálních postupů — `claude/nice-fermi-i7qzk8`
+- Průzkum: NASA OPERA DSWx-S1 (parametry v `algorithm_parameter_s1.yaml`: HAND maska 200 m + plynulá 0–15 m, sklon 0,5–15°, prahování
+  Kittler–Illingworth po dlaždicích s testem bimodality, zaplavená vegetace přes poměr VV/VH, „tmavá souš“), GFM (vylučovací maska: HAND,
+  radarový stín, města a hustý les bez citlivosti; referenční voda z mediánů S1), ASF globální HAND (pysheds, práh 100 buněk), Hydro-Topo
+  Features (vypálení řek z OSM do DEM). Copernicus DEM je model povrchu (lesy a budovy zvedají HAND); FABDEM není povolený vstup.
+- Hotovo (D-M1-04): HAND s prahem 100 buněk jako ASF, ověřeno na 4 oblastech (`tools/terrain_check/`); maska vod z Copernicus DEM (moře mimo
+  dno údolí, trvalá voda mimo řadu podílu vody, `raw/dem/water.tif`); oprava: nepřečtená dlaždice DEM už není „moře“. Kontrola průletu
+  v den povodně dál 6/6. Testy 44/44.
+- Návrhy pro jiné moduly (jen v chatu, čekají na uživatele): plynulý HAND 0–15 m místo ostrého 30 m v pravidlech modelu, prahování
+  po dlaždicích, pravidlo zaplavené vegetace/měst (zesvětlení), vypálení řek z OSM do DEM.
 ### 2026-10-09 — master: sloučení modelu, satelitů a UI — `claude/gallant-keller-vftpi2`
 - Sloučeny `claude/relaxed-johnson-wwj9s8` (model v0.2, citlivost, AI krok), `claude/nice-fermi-i7qzk8` (stahování dat, kalibrace S1), `ccr-d89d3cfb-ywooc4` (UI chybový detail).
 - Konflikty jen polohové (DECISIONS, PROGRESS), čísla rozhodnutí se zkratkou modulu nekolidovala. `check_docs` OK, `pytest tests training/tests`: 33 passed.
@@ -169,6 +199,21 @@ Obtížnost a čas = odhad uživatele.
 - **ohsome API je v údržbě (HTTP 503, „Down For Maintenance“)** → OSM vrstvy zatím neotestované; krok to ohlásí varováním a pokračuje. Riziko pro den hodnocení.
 - **Zjištění:** na dně údolí u Trishuli (malý výřez) je podíl tmavé vody ~0 % i na snímku po povodni (60/30/20 m: 0,1/0,2/0,3 %) → povodeň se tu
   na radaru neprojevuje jako voda, spíš suť/bahno (důležité pro M3d); kontrola čistoty „před“ tu nic nevidí a jemnější rozlišení nepomůže (ponecháno 60 m).
+- **2026-10-09: místní čas, hodina povodně, průlet v den povodně (D-M1-03):** data průletů se porovnávají v místním čase oblasti (byla chyba: UTC);
+  volitelná hodina povodně v UI/API/CLI (`event_time`); bez ní se průlet v den povodně použije jako „po“ jen při jasné změně na dně údolí
+  proti běžnému kolísání (20 m, VV); okno „po“ z UI se nově respektuje. Testy 39 offline; políčko v UI ověřeno v Chromiu (odešle `event_time`,
+  server ho zapíše do `run.json`, nesmyslný čas odmítne). Spuštění z UI dál končí „No module named povodne“ — chybí skeleton (`povodne run`).
+- Kontrola průletu v den povodně přepracována po živém testu (1. verze 3/6 chyb: moře u Derny, šum) → srovnání s historií pixelu, bez vody,
+  průměr 3×3: **6/6 správně** (Derna, Opava, Trishuli před/po; `tools/event_day_check/`). Trishuli 28. 8.: změna 6,7 % dna údolí proti běžným
+  0,2 % → povodeň je na radaru vidět jako změna, i když „vodní“ tmavosti (< −18 dB) je ~0 %. Rozklad změn (souš, > 3 dB mimo historii):
+  **Trishuli 6,3 % ztmavnutí / 0,4 % zesvětlení** (povrch ztmavl, ale ne na úroveň vody: mokré bahno/nánosy nebo voda smíchaná v pixelu);
+  **Opava 0,5 % / 13,6 %** (zaplavené město a vegetace radar zesvětlí — „dvojitý odraz“ voda + stěny/kmeny); Derna 0,9 % / 3,2 %.
+  → Důležité pro M3d (suť) i M3: povodeň se neprojevuje jen jako tmavá voda; podnět pro ně, M1 to jen změřil.
+- **⚠️ NUTNO JEŠTĚ OVĚŘIT (uživatel 2026-10-09):** kontrola průletu v den povodně (v2) je ověřená jen offline nad uloženými daty
+  (6 případů, funkce stejné jako v programu). **Celý běh `python -m povodne.acquire` s v2 naostro neproběhl** (živě jen chybná v1) →
+  pustit na Derně 2023-09-12, Derně 2023-08-31 a Trishuli 2026-08-28 (`tools/event_day_check/`, ~100 PU, ~15 min) a zkontrolovat
+  `run.json.acquire.s1.same_day`. Dál: jen 6 případů (prahy z Derny a Opavy, nezávislá kontrola jen Trishuli) → ověřit na jiném typu
+  krajiny (poušť, rýžová pole/nížina v monzunu); stahování OSM neotestováno (ohsome byl v údržbě).
 
 ### 2026-10-08 — master: sloučení sessions do `main` — `claude/gallant-keller-vftpi2`
 - Sloučeny větve `claude/relaxed-johnson-wwj9s8` (M9), `ccr-d89d3cfb-ywooc4` (M8 UI), `claude/nice-fermi-i7qzk8` (satelity) do `main`.

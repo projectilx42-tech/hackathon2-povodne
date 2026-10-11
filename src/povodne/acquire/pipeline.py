@@ -18,6 +18,7 @@ import rasterio
 from rasterio.warp import Resampling, reproject, transform_bounds
 
 from . import catalog, osm, preselect, sentinel2, terrain
+from .notices import Notice
 from .sentinelhub import (S1_DB_OFFSET, S1_DB_SCALE, Grid, MissingCredentials, SentinelHub, decode_db, fetch_s1,
                           smooth_3x3, utm_grid)
 
@@ -32,6 +33,7 @@ class AcquireConfig:
     s2: bool = True
     osm: bool = True
     osm_buffer_m: float = 15000
+    same_day_res_m: float = 20.0  # event-day check: VV at 20 m, 3x3 mean; ~11 PU per image for 30x30 km (5 images)
 
 
 # ---------- run.json helpers (until the skeleton provides them) ----------
@@ -40,7 +42,10 @@ def _load(run_dir: Path) -> dict:
     return json.loads((run_dir / "run.json").read_text())
 
 
-def _save(run_dir: Path, rj: dict) -> None:
+def _save(run_dir: Path, rj: dict, keep_progress: bool = True) -> None:
+    current = run_dir / "run.json"
+    if keep_progress and current.exists():  # progress is written by _progress; never roll it back with an older copy
+        rj["progress"] = json.loads(current.read_text()).get("progress", rj.get("progress"))
     tmp = run_dir / "run.json.tmp"
     tmp.write_text(json.dumps(rj, indent=2, default=str))
     tmp.replace(run_dir / "run.json")
@@ -59,7 +64,7 @@ def _progress(run_dir: Path, state: str, message: str) -> None:
         prog["state"] = "failed"
     elif prog.get("state") in (None, "queued"):
         prog["state"] = "running"
-    _save(run_dir, rj)
+    _save(run_dir, rj, keep_progress=False)
 
 
 # ---------- helpers ----------
@@ -70,6 +75,13 @@ def _parse_window(w) -> tuple[datetime, datetime] | None:
     a, b = w
     return (datetime.fromisoformat(str(a)).replace(tzinfo=timezone.utc),
             datetime.fromisoformat(str(b)).replace(tzinfo=timezone.utc) + timedelta(days=1))
+
+
+def _parse_time(t):
+    if not t:
+        return None
+    from datetime import time
+    return time.fromisoformat(str(t))
 
 
 def _write_s1(path: Path, data: np.ndarray, grid: Grid, acq: catalog.Acquisition, bands=("VV", "VH")) -> dict:
@@ -100,10 +112,14 @@ def _s1(path: Path, grid: Grid, sh: SentinelHub, a: catalog.Acquisition, directi
     return _write_s1(path, fetch_s1(sh, grid, a.start, direction, speckle), grid, a)
 
 
-def _store_warnings(rj: dict, warnings: list[str]) -> None:
-    unique = list(dict.fromkeys(warnings))
-    rj.setdefault("acquire", {})["warnings"] = unique
-    rj["warnings"] = rj.get("warnings", []) + [w for w in unique if w not in rj.get("warnings", [])]
+def _store_warnings(rj: dict, notices: list[Notice]) -> None:
+    """All notices go to run.json.notices (with code, severity, details; D-M1-05); errors and warnings also stay as
+    plain text in acquire.warnings / run.json.warnings."""
+    unique = list(dict.fromkeys(notices))
+    texts = [str(n) for n in unique if n.severity != "info"]
+    rj.setdefault("acquire", {})["warnings"] = texts
+    rj["warnings"] = rj.get("warnings", []) + [w for w in texts if w not in rj.get("warnings", [])]
+    rj["notices"] = [n for n in rj.get("notices", []) if n.get("step") != "acquire"] + [n.to_json() for n in unique]
 
 
 def _to_grid(src: np.ndarray, dem: terrain.Dem, grid: Grid, resampling=Resampling.nearest) -> np.ndarray:
@@ -122,11 +138,14 @@ def run(run_dir: Path, cfg: AcquireConfig | None = None) -> None:
     # This step's warnings are kept in acquire.warnings and replaced on a re-run; other modules' warnings stay.
     previous = set((rj.get("acquire") or {}).get("warnings", []))
     rj["warnings"] = [w for w in rj.get("warnings", []) if w not in previous]
-    warnings: list[str] = []
+    rj["notices"] = [n for n in rj.get("notices", []) if n.get("step") != "acquire"]
+    warnings: list[Notice] = []
     _progress(run_dir, "running", "checking credentials")
     try:
         sh = SentinelHub()
     except MissingCredentials as exc:
+        _store_warnings(rj, [Notice("cdse_credentials", str(exc))])
+        _save(run_dir, rj)
         _progress(run_dir, "failed", str(exc))
         raise
     try:
@@ -135,11 +154,14 @@ def run(run_dir: Path, cfg: AcquireConfig | None = None) -> None:
         (run_dir / "logs").mkdir(exist_ok=True)
         with open(run_dir / "logs" / "pipeline.log", "a") as f:
             f.write(traceback.format_exc())
+        code = "cdse_credentials" if isinstance(exc, MissingCredentials) else "acquire_failed"
+        _store_warnings(rj, warnings + [Notice(code, f"Data download failed: {exc}", error=str(exc))])
+        _save(run_dir, rj)
         _progress(run_dir, "failed", f"acquire failed: {exc}")
         raise
 
 
-def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings: list[str]) -> None:
+def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings: list[Notice]) -> None:
     aoi = catalog.aoi_to_geometry(rj["aoi"])
     event = date.fromisoformat(rj["event_date"])
     epsg = terrain.utm_epsg(aoi.centroid.x, aoi.centroid.y)
@@ -147,9 +169,14 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
     acq: dict = rj.setdefault("acquire", {})
 
     _progress(run_dir, "running", "searching the Sentinel-1 catalogue")
-    plan = catalog.find_plan(aoi, event, cfg.lookback_days, cfg.post_horizon_days, visibility=False)
-    warnings += plan.warnings
-    if plan.main is None:
+    event_time = _parse_time(rj.get("event_time"))
+    pw = rj.get("post_window")
+    post_window = (date.fromisoformat(pw[0]), date.fromisoformat(pw[1])) if pw else None
+    plan = catalog.find_plan(aoi, event, cfg.lookback_days, cfg.post_horizon_days, visibility=False,
+                             event_time=event_time, post_window=post_window)
+    has_same_day = any(t.same_day is not None and t.pre_candidates for t in plan.tracks)
+    if plan.main is None and not has_same_day:
+        warnings += plan.warnings
         acq.update(s1=None, s1_alt=None)
         _store_warnings(rj, warnings)
         _save(run_dir, rj)
@@ -159,26 +186,75 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
     _progress(run_dir, "running", "downloading the Copernicus DEM, computing terrain")
     dem = terrain.fetch_dem(aoi)
     dem.save(run_dir / "raw" / "dem" / "dem.tif")
-    acq["dem"] = {"source": "AWS Open Data (copernicus-dem-30m)", "product": "COP-DEM GLO-30", "crs": dem.crs, "res_m": dem.res}
+    if dem.water is not None:
+        with rasterio.open(run_dir / "raw" / "dem" / "water.tif", "w", driver="GTiff", height=dem.water.shape[0],
+                           width=dem.water.shape[1], count=1, dtype="uint8", crs=dem.crs, transform=dem.transform,
+                           compress="deflate") as ds:
+            ds.write(dem.water, 1)
+    acq["dem"] = {"source": "AWS Open Data (copernicus-dem-30m)", "product": "COP-DEM GLO-30", "crs": dem.crs, "res_m": dem.res,
+                  "water_mask": dem.water is not None, "hand_stream_cells": terrain.HAND_STREAM_CELLS}
     hand = terrain.hand(dem)
-    floor = terrain.valley_floor(hand, terrain.slope_deg(dem.data, dem.res)) & terrain.aoi_mask(aoi, dem)
-    vis, masks = {}, {}
-    for t in (plan.main, plan.alt):
-        if t is None:
+    floor = terrain.valley_floor(hand, terrain.slope_deg(dem.data, dem.res), water=dem.water) & terrain.aoi_mask(aoi, dem)
+    masks: dict = {}
+
+    def track_mask(t: catalog.TrackPlan) -> np.ndarray:
+        if t.key not in masks:
+            a = t.post or t.same_day
+            scene = next((s for s in a.scenes if s.footprint.contains(aoi.centroid)), a.scenes[0])
+            g = catalog.track_geometry(scene.footprint, t.direction, aoi.centroid)
+            lay, sh_mask = terrain.layover_shadow(dem.data, dem.res, g.look_azimuth_deg, g.incidence_deg)
+            masks[t.key] = lay | sh_mask
+        return masks[t.key]
+
+    bounds = transform_bounds("EPSG:4326", f"EPSG:{epsg}", *aoi.bounds, densify_pts=21)
+
+    # A pass on the event day itself: use it as post only if the image clearly shows a change (D-M1-03).
+    for t in plan.tracks:
+        if t.same_day is None or not t.pre_candidates:
             continue
-        scene = next((s for s in t.post.scenes if s.footprint.contains(aoi.centroid)), t.post.scenes[0])
-        g = catalog.track_geometry(scene.footprint, t.direction, aoi.centroid)
-        lay, sh_mask = terrain.layover_shadow(dem.data, dem.res, g.look_azimuth_deg, g.incidence_deg)
-        masks[t.key] = lay | sh_mask
-        vis[t.key] = terrain.valley_visibility(floor, lay, sh_mask)
+        _progress(run_dir, "running", f"checking the event-day pass of track {t.relative_orbit} for flood signs")
+        cgrid = utm_grid(bounds, epsg, cfg.same_day_res_m)
+        usable_c = _to_grid((floor & ~track_mask(t)).astype(np.uint8), dem, cgrid) > 0
+        vv = lambda a: preselect.smooth_db(decode_db(fetch_s1(sh, cgrid, a.start, t.direction, cfg.speckle, bands=("VV",))[0]))
+        hist = [vv(a) for a in t.pre_candidates[-4:]]  # up to 4 earlier passes of the same track
+        change = preselect.change_fraction(vv(t.same_day), hist, usable_c)
+        baseline = preselect.change_fraction(hist[-1], hist[:-1], usable_c) if len(hist) >= 3 else None
+        dec = preselect.judge_same_day(change, baseline)
+        t.same_day_info = {"datetime": t.same_day.to_json()["datetime"], "used_as_post": dec.use_as_post, "reason": dec.reason,
+                           "change_frac": None if change is None else round(change, 4),
+                           "baseline_frac": None if baseline is None else round(baseline, 4)}
+        details = {"track": t.relative_orbit, "direction": t.direction, **t.same_day_info}
+        if dec.use_as_post:
+            t.post = t.same_day
+            warnings.append(Notice("event_day_pass_used", f"A radar pass on the flood day itself "
+                                   f"({t.same_day_info['datetime']}) already shows clear changes and is used as the "
+                                   f"after-image ({dec.reason}).", **details))
+        else:
+            warnings.append(Notice("event_day_pass_dropped", f"A radar pass on the flood day itself "
+                                   f"({t.same_day_info['datetime']}) is not used: {dec.reason}.", **details))
+    plan = catalog.order_tracks(plan)
+    warnings += plan.warnings
+    if plan.main is None:
+        acq.update(s1=None, s1_alt=None)
+        _store_warnings(rj, warnings)
+        _save(run_dir, rj)
+        _progress(run_dir, "done", "insufficient data: no Sentinel-1 pre/post pair for this area and date")
+        return
+    blocked = lambda t: track_mask(t)  # layover | shadow of the track
+    vis = {t.key: terrain.valley_visibility(floor, blocked(t), np.zeros_like(floor)) for t in (plan.main, plan.alt) if t}
     plan = catalog.choose_main(plan, vis)
     main, alt = plan.main, plan.alt
+    post_local = catalog.local_clock(aoi.centroid)(main.post.start)
+    days_after = (post_local.date() - event).days
+    warnings.append(Notice("post_image_date", f"The after-image is from {post_local:%Y-%m-%d %H:%M} local time, "
+                           f"{days_after} day(s) after the given flood date; changes after that are not visible.",
+                           datetime_local=f"{post_local:%Y-%m-%dT%H:%M}", days_after_event=days_after))
 
     # Water-share series on the main track's valley floor (D-M1-01).
-    bounds = transform_bounds("EPSG:4326", f"EPSG:{epsg}", *aoi.bounds, densify_pts=21)
     grid = utm_grid(bounds, epsg, 10.0)
     sgrid = utm_grid(bounds, epsg, cfg.series_res_m)
-    usable = _to_grid((floor & ~masks[main.key]).astype(np.uint8), dem, sgrid) > 0
+    # Known permanent water (sea, lakes, wide rivers from the DEM water mask) is left out: the series looks for new water.
+    usable = _to_grid((floor & ~track_mask(main) & ~terrain.permanent_water(dem)).astype(np.uint8), dem, sgrid) > 0
     cands = main.pre_candidates
     _progress(run_dir, "running", f"checking {len(cands)} earlier passes for flooding before the event date")
     fracs: list[float | None] = []
@@ -207,7 +283,9 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
         if t is None or not pres:
             blocks[key] = None
             if key == "s1_alt" and t is not None:
-                warnings.append("No pre-event image for the second flight direction: s1_alt is null.")
+                warnings.append(Notice("s1_alt_missing", "No flood-free before-image for the opposite flight direction: "
+                                       "areas hidden behind mountains for the main track stay unmapped.",
+                                       reason="no_pre_image"))
             continue
         _progress(run_dir, "running", f"downloading Sentinel-1 {t.direction.lower()} track {t.relative_orbit}")
         out_dir = run_dir / "raw" / folder
@@ -216,6 +294,11 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
         blocks[key]["processing"] = {"backCoeff": "SIGMA0_ELLIPSOID", "orthorectify": True, "dem": "COPERNICUS_30",
                                      "speckle": (f"LEE {cfg.speckle}x{cfg.speckle} + 3x3 mean (linear)" if cfg.speckle else "none"),
                                      "encoding": "UINT16, dB = value*0.001-50, 0 = nodata"}
+    for key, t in (("s1", main), ("s1_alt", alt)):
+        if blocks.get(key) is not None and t is not None:
+            blocks[key]["same_day"] = t.same_day_info
+            if event_time is not None:
+                blocks[key]["event_time_local"] = rj.get("event_time")
     blocks["s1"]["pre_selection"] = {
         "method": "water_fraction_series", "lookback_days": cfg.lookback_days, "resolution_m": cfg.series_res_m,
         "water_threshold_db": preselect.WATER_DB,
@@ -240,7 +323,8 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
                     s2[name] = sentinel2.download(d, grid, run_dir / "raw" / "s2" / f"{name}_{d.day:%Y%m%d}.tif")
             acq["s2"] = s2
         except Exception as exc:  # optical data is optional
-            warnings.append(f"Sentinel-2 step failed ({exc}); radar only.")
+            warnings.append(Notice("s2_failed", f"Optical Sentinel-2 images could not be downloaded ({exc}); radar only.",
+                                   error=str(exc)))
         _save(run_dir, rj)
 
     if cfg.osm:
@@ -249,8 +333,11 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
             info = osm.extract(aoi, event, epsg, run_dir / "raw" / "osm", run_dir / "osm", cfg.osm_buffer_m)
             rj["osm_snapshot_date"] = info["osm_snapshot_date"]
             acq["osm"] = info
+        except osm.MissingOhsomeKey as exc:
+            warnings.append(Notice("osm_key_missing", f"{exc} Without it, damage and cut-off analysis are not possible."))
         except Exception as exc:
-            warnings.append(f"OpenStreetMap download failed ({exc}); damage and cut-off analysis are not possible.")
+            warnings.append(Notice("osm_failed", f"OpenStreetMap (buildings, roads) could not be downloaded ({exc}); "
+                                   "damage and cut-off analysis are not possible.", error=str(exc)))
     acq["pu_spent"] = round(sh.pu_spent, 1)
     _store_warnings(rj, warnings)
     _save(run_dir, rj)
@@ -258,12 +345,13 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
                                f"({plan.primary_reason}); {sh.pu_spent:.0f} processing units")
 
 
-def new_run(out: Path, aoi, event: str, pre_window=None, post_window=None) -> Path:
+def new_run(out: Path, aoi, event: str, pre_window=None, post_window=None, event_time=None) -> Path:
     """Create a run directory with a minimal run.json (for using M1 before the skeleton exists)."""
     out.mkdir(parents=True, exist_ok=True)
     geom = catalog.aoi_to_geometry(aoi)
     from shapely.geometry import mapping
-    rj = {"run_id": out.name, "aoi": mapping(geom), "event_date": event, "pre_window": pre_window, "post_window": post_window,
+    rj = {"run_id": out.name, "aoi": mapping(geom), "event_date": event, "event_time": event_time,
+          "pre_window": pre_window, "post_window": post_window,
           "created_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "warnings": [],
           "progress": {"state": "queued", "steps": []}}
     (out / "run.json").write_text(json.dumps(rj, indent=2))

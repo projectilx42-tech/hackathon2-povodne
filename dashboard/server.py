@@ -172,7 +172,10 @@ def create_app() -> FastAPI:
                 if not (isinstance(w, list) and len(w) == 2 and all(isinstance(x, str) and DATE_RE.match(x) for x in w) and w[0] <= w[1]):
                     raise HTTPException(422, f"{key} must be [from, to] as YYYY-MM-DD")
                 windows[key] = w
-        digest = hashlib.sha1(json.dumps([aoi, date, windows], sort_keys=True).encode()).hexdigest()[:6]
+        event_time = body.get("event_time")
+        if event_time is not None and not (isinstance(event_time, str) and re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", event_time)):
+            raise HTTPException(422, "event_time must be HH:MM (local time of the area)")
+        digest = hashlib.sha1(json.dumps([aoi, date, windows, event_time], sort_keys=True).encode()).hexdigest()[:6]
         run_id = f"run_{date}_{digest}"
         d = RUNS_DIR / run_id
         with _lock:
@@ -180,7 +183,8 @@ def create_app() -> FastAPI:
                 return {"run_id": run_id, "already_running": True}
             (d / "logs").mkdir(parents=True, exist_ok=True)
             _write_json(d / "run.json", {
-                "run_id": run_id, "aoi": aoi, "event_date": date, "pre_window": windows.get("pre_window"), "post_window": windows.get("post_window"),
+                "run_id": run_id, "aoi": aoi, "event_date": date, "event_time": event_time,
+                "pre_window": windows.get("pre_window"), "post_window": windows.get("post_window"),
                 "created_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "progress": {"state": "queued", "steps": [{"name": n, "state": "pending", "message": ""} for n in STEPS]},
             })
@@ -189,6 +193,8 @@ def create_app() -> FastAPI:
             for key, flag in (("pre_window", "--pre-window"), ("post_window", "--post-window")):
                 if key in windows:
                     cmd += [flag, ",".join(windows[key])]
+            if event_time:
+                cmd += ["--event-time", event_time]
             log = open(d / "logs" / "pipeline.log", "ab")
             _procs[run_id] = subprocess.Popen(cmd, cwd=REPO_ROOT, stdout=log, stderr=subprocess.STDOUT)
         return {"run_id": run_id, "already_running": False}

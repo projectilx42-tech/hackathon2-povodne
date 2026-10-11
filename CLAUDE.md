@@ -17,7 +17,7 @@ Podrobnosti (načítají se automaticky):
 ## Datová pravidla — porušení = DISKVALIFIKACE
 - **Povolené vstupy:** Sentinel-1, Sentinel-2, Copernicus DEM (GLO-30), OpenStreetMap **jen jako stav před událostí**, tréninková data Kuro Siwo / Sen1Floods11.
 - **Copernicus EMS (EMSR927), UNOSAT ani žádné jiné publikované mapy škod NIKDY jako vstup** — ani do tréninku, ani do kalibrace prahů, ani do pipeline. Smí být jen v `validation/` pro porovnání výsledků. Kód pipeline (`src/povodne/`) nesmí importovat nic z `validation/` ani číst EMS soubory.
-- **OSM jen přes ohsome API se snapshotem před datem události** (pro case study ≤ 2026-07-27, obecně < `event_date`). Nikdy Overpass / `osmnx.graph_from_*` (vrací aktuální OSM s editacemi po události).
+- **OSM jen přes ohsome API se snapshotem před datem události** (obecně < `event_date`; kód bere 00:00 UTC dne před událostí, pro case study 25. 8. 2026 — zadání chce „before 26 Aug 2026“, D-M1-06). Nikdy Overpass / `osmnx.graph_from_*` (vrací aktuální OSM s editacemi po události).
 - Systém musí běžet **end-to-end ze surových satelitních dat pro libovolnou AOI a datum** (porotci volí live). Žádné natvrdo zadrátované výsledky pro Trishuli.
 - S1 change detection: pre/post **ze stejné relative orbit** (stejný track, stejný čas dne). Různé tracky nelze porovnávat pixel po pixelu.
 - Povinné atribuce (README, report, dashboard) — viz `docs/TASK.md`.

@@ -56,6 +56,7 @@ runs/<run_id>/
     s1_alt/pre_*.tif, post_*.tif # totéž pro druhý směr přeletu (D-033)
     s2/pre_YYYYMMDD.tif, post_YYYYMMDD.tif   # S2 L2A, UINT16 DN: B02,B03,B04,B08,B11,B12 + SCL (7. pásmo); odrazivost = DN*scale+offset (tagy), 10m mřížka (D-M1-02)
     dem/dem.tif                  # Copernicus DEM GLO-30, float32, UTM 30 m, oblast + 5 km okraj (D-M1-02)
+    dem/water.tif                # maska vod z Copernicus DEM (WBM): uint8 0 souš, 1 moře, 2 jezero, 3 řeka; mřížka dem.tif (D-M1-04)
     osm/osm_raw.gpkg             # ohsome extrakt (vrstvy), snapshot < event_date; silnice/sídla/zařízení pro oblast + 15 km (D-M1-02)
   aligned/
     grid.json                    # {"crs":"EPSG:32645","transform":[...],"width":..,"height":..,"res":10}
@@ -67,7 +68,7 @@ runs/<run_id>/
     s1_layover_shadow.tif        # uint8 1 = layover/shadow (nepoužitelné) pro hlavní track
     s1_alt_layover_shadow.tif    # totéž pro druhý směr (jen pokud existuje s1_alt_*)
     slope.tif                    # float32, stupně — `features.slope_from_dem` z DEM na 10 m mřížce (D-035)
-    hand.tif                     # float32, Height Above Nearest Drainage, m
+    hand.tif                     # float32, Height Above Nearest Drainage, m — `acquire.terrain.hand` (práh toku 100 buněk jako ASF, D-M1-04)
     s2_pre_valid.tif s2_post_valid.tif   # uint8 1 = čistý pixel (bez mraků/stínů/sněhu dle SCL)
   flood/
     flood_mask.tif               # uint8 třídy (viz níže) — FINÁLNÍ maska použitá dál
@@ -100,6 +101,7 @@ runs/<run_id>/
   "run_id": "trishuli_2026-08-26",
   "aoi": {"type": "Polygon", "coordinates": [...]},          // EPSG:4326
   "event_date": "2026-08-26",
+  "event_time": "14:30",                                      // volitelné, místní čas oblasti (D-M1-03); null = neznámý
   "osm_snapshot_date": "2026-07-27",                          // vždy < event_date
   "crs": "EPSG:32645",
   "created_utc": "...",
@@ -113,13 +115,16 @@ runs/<run_id>/
     // acquire.s1.pre_selection (D-M1-01): {"method": "water_fraction_series", "lookback_days": 60, "resolution_m": 60,
     //   "series": [{"date": "YYYY-MM-DD", "water_frac": 0.0}], "onset_date": "YYYY-MM-DD|null",
     //   "chosen_pre": ["YYYY-MM-DD", ...], "reason": "...", "user_window": false}
+    // acquire.s1.same_day / acquire.s1_alt.same_day (D-M1-03): {"datetime", "used_as_post", "reason", "change_frac", "baseline_frac"} | null
     // acquire.s1.processing, acquire.grid (referenční mřížka), acquire.pu_spent, acquire.warnings (varování kroku), acquire.osm — D-M1-02
     "s2": {"pre": {"date": "...", "ids": [...], "clear_pct": 0, "scale": [...], "offset": [...]} | null, "post": {...} | null},
-    "dem": {"source": "...", "product": "COP-DEM GLO-30"}
+    "dem": {"source": "...", "product": "COP-DEM GLO-30", "water_mask": true, "hand_stream_cells": 100}   // D-M1-04
   },
   "sensitivity": "standard",                                  // "standard" | "sensitive" (D-M9-08); píše UI/CLI, čte M3
   "flood": {"method": "ai", "model": "models/<name>", "params": {"sensitivity": "...", "flood_threshold": null, ...}},
-  "warnings": ["S2 post scene >80 % cloud – S1 only", "..."]
+  "warnings": ["S2 post scene >80 % cloud – S1 only", "..."],   // jen text (error + warning); zpětná kompatibilita
+  "notices": [{"step": "acquire", "code": "pre_may_be_flooded", "severity": "error|warning|info",
+               "message": "...", "details": {}}]                 // D-M1-05; kódy a zobrazení v docs/NOTICES.md
 }
 ```
 
@@ -135,7 +140,7 @@ runs/<run_id>/
 "Zasaženo" (pro M4/M5) = třídy **2 ∪ 3**. Nodata = 255 se nepoužívá; nodata je 0.
 
 ## Schémata OSM vrstev (`osm/*.gpkg`, UTM)
-Zdroj: **ohsome API** `elements/geometry` s `time=<osm_snapshot_date>`. Nikdy Overpass/aktuální OSM.
+Zdroj: **ohsome API v2** `extraction/features.parquet` s `time=<osm_snapshot_date>T00:00:00Z` (klíč `OHSOME_API_KEY`, D-M1-06). Nikdy Overpass/aktuální OSM.
 - **`osm_id` je text** ve tvaru z ohsome (`way/123`, `node/45`) ve všech vrstvách i výstupech (`blocking_cuts`, `road_cuts`) — D-M1-02.
 - `buildings.gpkg`: `osm_id`, `building`, `geometry` (Polygon)
 - `roads.gpkg`: `osm_id`, `highway`, `name`, `bridge` (bool), `tunnel` (bool), `geometry` (LineString). Filtr: motorway…track, bez footway/path (konfigurovatelné).
@@ -188,7 +193,7 @@ Pipeline spouští jako podproces `python -m povodne run ...`; průběh čte z `
 
 | Metoda + cesta | Význam |
 |---|---|
-| `POST /api/runs` | tělo `{"aoi": <GeoJSON|bbox>, "event_date": "YYYY-MM-DD", "pre_window": [from,to]?, "post_window": [from,to]?, "sensitivity": "standard"|"sensitive"?}` → `{"run_id": "..."}` (D-M9-08) |
+| `POST /api/runs` | tělo `{"aoi": <GeoJSON|bbox>, "event_date": "YYYY-MM-DD", "pre_window": [from,to]?, "post_window": [from,to]?, "sensitivity": "standard"|"sensitive"?, "event_time": "HH:MM"?}` → `{"run_id": "..."}` (D-M9-08; `event_time` = místní čas oblasti, D-M1-03) |
 | `GET /api/runs` | seznam běhů z `runs/`: `[{"run_id","event_date","created_utc","aoi_area_km2","verdict","state","mock"}]` |
 | `GET /api/runs/{run_id}` | `run.json` (+ `stats.json`, pokud existuje) |
 | `GET /api/runs/{run_id}/status` | `{"state","steps":[...],"log_tail":[...],"error"}` (z `run.json.progress`, `logs/pipeline.log`) |
@@ -202,7 +207,7 @@ Pipeline spouští jako podproces `python -m povodne run ...`; průběh čte z `
   z `flood/flood_polygons.geojson` (třídy `water`, `debris`), ne z PNG.
 - **Spuštění z UI:** `POST /api/runs` založí `runs/run_<date>_<hash6>/` s `run.json` (`aoi`, `event_date`, `pre_window`, `post_window`,
   `progress.state=queued`) a `aoi.geojson`, pak spustí `python -m povodne run --aoi <run>/aoi.geojson --event-date D --out <run>
-  [--pre-window FROM,TO] [--post-window FROM,TO]`; stdout/stderr jde do `logs/pipeline.log`. Pipeline aktualizuje `run.json.progress`.
+  [--pre-window FROM,TO] [--post-window FROM,TO] [--event-time HH:MM]`; stdout/stderr jde do `logs/pipeline.log`. Pipeline aktualizuje `run.json.progress`.
   Když podproces skončí s chybou, `status` vrací `failed` + poslední řádek logu (nebo srozumitelnou hlášku, pokud modul `povodne` neexistuje).
 - Soubory pro UI: `damage/*_damage.geojson` obsahují **všechny** prvky (i `hit=false`), UI z nich kreslí silnice, mosty i budovy.
 - **`run.json.progress`** (píše pipeline/CLI, čte dashboard):
