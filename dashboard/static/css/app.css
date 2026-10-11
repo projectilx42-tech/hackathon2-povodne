@@ -268,3 +268,6 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border-radius: 
 .segmented.wide { display: flex; margin: 6px 0 8px; }
 .segmented.wide button { flex: 1; justify-content: center; }
 .fine { color: var(--muted); font-size: 12px; margin: 8px 0 0; line-height: 1.45; }
+
+.gaps { margin: 8px 0 0; padding-left: 18px; color: var(--text-2); line-height: 1.5; }
+.gaps li { margin: 2px 0; }

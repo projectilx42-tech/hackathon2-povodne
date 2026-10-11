@@ -13,6 +13,7 @@ import re
 import subprocess
 import sys
 import threading
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -28,6 +29,7 @@ RUNS_DIR = Path(os.environ.get("POVODNE_RUNS_DIR", REPO_ROOT / "runs"))
 SAMPLE_RUN = HERE / "sample_run"
 RUN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,100}$")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+STALE_MINUTES = 15  # a "running" run with no file activity for this long is reported as interrupted
 STEPS = ["acquire", "preprocess", "flood_ai", "debris", "damage", "network", "report"]
 
 _procs: dict[str, subprocess.Popen] = {}
@@ -111,6 +113,14 @@ def run_status(run_id: str) -> dict:
         if rc is not None and rc != 0:
             state = "failed"
             error = _friendly_error(_log_tail(d))
+    if state in (None, "queued", "running") and (proc is None or proc.poll() is not None):
+        # No live process we started: the app may have been restarted or the pipeline died without saying so.
+        newest = max((f.stat().st_mtime for f in (d / "run.json", d / "logs" / "pipeline.log") if f.exists()), default=0)
+        idle_min = (time.time() - newest) / 60
+        if idle_min > STALE_MINUTES and d != SAMPLE_RUN:
+            state = "failed"
+            error = (f"This run has not reported any progress for {int(idle_min)} minutes, so it was probably interrupted "
+                     "(for example the app was closed). Start it again.")
     if state == "failed" and error is None:
         error = progress.get("error") or _friendly_error(_log_tail(d))
     return {"run_id": run_id, "state": state or "unknown", "steps": steps, "log_tail": _log_tail(d), "error": error}

@@ -91,6 +91,10 @@ Obtížnost a čas = odhad uživatele.
 4. Účty (CDSE, Kaggle…) zakládá uživatel až v příslušných sessions (D-011); údaje jen jako env proměnné prostředí, nikdy do repa.
 
 ## Log sessions
+### 2026-10-11 — M8: typy hlášek (nedostatek dat, nic nenalezeno, chyby) — `ccr-d89d3cfb-ywooc4`
+- UI rozlišuje verdikty (`no_significant_flooding` s kontextem pokrytí, `insufficient_data` se seznamem, co chybí), sbírá varování ze všech míst, nepíše „0 of 0“ při chybějících
+  mapových datech, u chyb běhu dává lidskou radu podle typu a backend hlásí přerušený běh (bez aktivity > 15 min). Popsáno v `UI_SPEC.md` (Typy hlášek). Kontrakt beze změny.
+- Ověřeno headless Chromiem na simulovaných runech (nic nenalezeno, nedostatek dat, chybějící klíč, nenalezené snímky, přerušený běh).
 ### 2026-10-11 — M8: nové požadavky z main (citlivost, textová osm_id) — `ccr-d89d3cfb-ywooc4`
 - Sloučen `origin/main`; prošel jsem DECISIONS/PROGRESS/ARCHITECTURE kvůli požadavkům na UI. Splněno: přepínač citlivosti (Standard/Sensitive) v UI + backend,
   textová `osm_id` v ukázkovém runu a ve filtrech mapy, v *Data quality* důvod výběru dráhy a snímku „před“ (`primary_reason`, `pre_selection`).

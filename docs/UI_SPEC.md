@@ -71,6 +71,17 @@ What was damaged / Who is cut off). Ikony jsou inline SVG sprite v `index.html`,
 5. **Chyba / chybějící data:** srozumitelná hláška (např. „No Sentinel-1 pair from the same orbit track“) — nikdy tichá prázdná mapa (TASK.md bod 5).
    Nabídnout, co zkusit (jiné okno pre/post, větší AOI).
 
+## Typy hlášek (co UI řekne, když něco chybí nebo selže)
+- **Verdikt `flood_detected`**: hlavní číslo + všechny sekce. **`no_significant_flooding`**: zelený stav + věta „nic nenalezeno ≠ nic se nestalo“, hned pod ním *Data quality*
+  (pokrytí radaru/optiky, použité scény) — „nic“ nesmí znamenat „nemáme data“. **`insufficient_data`**: žlutý stav + seznam, co chybí (chybí snímek před/po ze stejné dráhy,
+  radar vidí < 50 % oblasti, žádný čistý optický snímek po události), žádná mapa povodně ani čísla škod; rada, co zkusit.
+- **Varování** se sbírají z `stats.warnings`, `run.warnings` a `run.acquire.warnings` (bez duplicit) a ukazují v *Data quality*.
+- **Chybějící mapová data** (OSM): místo „0 of 0“ se napíše „no map data for this area“ a vysvětlení, že škody a odříznutá sídla jsou neúplné; bez sídel/silnic hláška u *Who is cut off*.
+- **Chyba běhu** (`failed`): krok, kde to skončilo, zpráva z pipeline a lidská rada podle typu (chybí CDSE klíč, nenalezeny snímky, model nenalezen,
+  OSM/ohsome služba neodpovídá, časový limit/síť, nedostatek paměti).
+- **Přerušený běh**: „running“/„queued“ bez aktivity > 15 min a bez procesu spuštěného backendem se hlásí jako `failed` s větou, že byl pravděpodobně přerušen (např. zavřená aplikace).
+- **Zrušený běh**: „Run cancelled“, nic nevzniklo.
+
 ## Ukázkový (mock) režim
 Dokud pipeline neexistuje, UI běží nad ukázkovým run adresářem podle kontraktu (`dashboard/sample_run/`, < 5 MB, v gitu), `run.json.mock = true`.
 V UI je vždy viditelný štítek **SAMPLE DATA**. Kontrakt se kvůli mocku nemění — UI čte stejné soubory jako u reálného běhu.
