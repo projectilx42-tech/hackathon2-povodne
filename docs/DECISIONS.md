@@ -835,6 +835,11 @@ souhrnná čísla + sitrep a obrázky pro mapu. Do odevzdání 2,5 dne → pevn�
    **Úkryt** = `amenity=shelter` (bez zastávek, pikniků a přístřešků před počasím: `shelter_type` ∈ public_transport, picnic_shelter, weather_shelter, bicycle_parking)
    nebo `emergency=assembly_point`. `subtype` = hodnota tagu (např. zdroj elektrárny). Běh = **8 dotazů** na ohsome (limit 250/den). `run.json.acquire.osm.counts.pois`.
 
+## D-DLV-01 | 2026-10-12 | přijato (session odevzdání) — Jak report uvádí výsledky modelu na Bolívii
+Report a Devpost uvádějí **obě čísla** ze Sen1Floods11 Bolívie (D-M9-14): F1 0,21 bez snímku „před“ a 0,64 při „před“ = „po“, s vysvětlením (model je detektor změny,
+ne obecný detektor vody; pipeline má vždy snímek „před“). Optický model F1 0,885. Himálajská čísla jsou zatím předběžná (proxy radar), v reportu označena TODO na úterý.
+**Finální podání čísel schvaluje uživatel.** Report je 3 strany PDF (limit 6), generuje se `pandoc` + Chromium z `deliverables/report/report.md`.
+
 ---
 
 # Otevřené otázky (k rozhodnutí)
