@@ -812,9 +812,9 @@ souhrnná čísla + sitrep a obrázky pro mapu. Do odevzdání 2,5 dne → pevn�
    podproces s `PYTHONPATH=<repo>/src`, aby to fungovalo i bez instalace (jediná změna v `dashboard/server.py`, udělá session spojení).
 6. **Trasa povodně z UI:** `POST /api/runs/{run_id}/floodpath` `{"lon","lat"}` → `python -m povodne.floodpath <run> --lon --lat`,
    odpověď = obsah `floodpath/*.geojson` (session UI).
-8. **Geometrie dráhy do `run.json`:** krok stahování uloží `acquire.s1[_alt].geometry` = `{heading_deg, look_azimuth_deg, incidence_deg}`
+7. **Geometrie dráhy do `run.json`:** krok stahování uloží `acquire.s1[_alt].geometry` = `{heading_deg, look_azimuth_deg, incidence_deg}`
    (už ji počítá pro výběr dráhy); předzpracování z ní spočítá masku layover/shadow stejnou funkcí `acquire.terrain.layover_shadow`.
-7. Sdílené pomocné funkce (`io.py`: čtení/zápis `run.json` atomicky, průběh, upozornění) dodá skeleton; stávající moduly mají vlastní kopie
+8. Sdílené pomocné funkce (`io.py`: čtení/zápis `run.json` atomicky, průběh, upozornění) dodá skeleton; stávající moduly mají vlastní kopie
    a **teď se nepřepisují** (riziko před termínem) — sjednocení až po odevzdání, pokud vůbec.
 
 ---

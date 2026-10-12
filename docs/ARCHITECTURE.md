@@ -133,7 +133,7 @@ runs/<run_id>/
     // acquire.s1.same_day / acquire.s1_alt.same_day (D-M1-03): {"datetime", "used_as_post", "reason", "change_frac", "baseline_frac"} | null
     // acquire.s1.hist / acquire.s1_alt.hist (D-M3d-02, D-M1-07): [{"id", "datetime", "file", "valid_pct"}] — starší průlety (raw/s1*/hist_*.tif, 20 m); acquire.hist_grid {"x0","y1","res"}
     // acquire.s1.processing, acquire.grid (referenční mřížka), acquire.pu_spent, acquire.warnings (varování kroku), acquire.osm — D-M1-02
-    // acquire.s1.geometry / acquire.s1_alt.geometry (D-X-06): {"heading_deg", "look_azimuth_deg", "incidence_deg"} ve středu oblasti
+    // acquire.s1.geometry / acquire.s1_alt.geometry (D-X-06 bod 7): {"heading_deg", "look_azimuth_deg", "incidence_deg"} ve středu oblasti
     //   (= `catalog.track_geometry`, už se počítá); čte předzpracování pro masku layover/shadow. Chybí-li, předzpracování použije směr přeletu + 39° (jako krok suti).
     "s2": {"pre": {"date": "...", "ids": [...], "clear_pct": 0, "scale": [...], "offset": [...]} | null, "post": {...} | null},
     "dem": {"source": "...", "product": "COP-DEM GLO-30", "water_mask": true, "hand_stream_cells": 100}   // D-M1-04
