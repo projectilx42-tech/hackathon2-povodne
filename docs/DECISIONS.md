@@ -1052,3 +1052,18 @@ Cíl: porotci spouštějí živě; celé údolí ~30–60 min, malá oblast má 
 - **Mezipaměť mezi běhy** (`acquire/cache.py`, `data/cache/`, v `.gitignore`; `POVODNE_CACHE` mění adresář, `POVODNE_NO_CACHE=1` vypíná): klíč = hash všeho, co určuje obsah (S1: scéna, dráha, mřížka, polarizace, filtr, zpracování; S2: ID scén + mřížka + verze;
   OSM: oblast, snímek, okraj). Zápis dočasný soubor + `os.replace` (atomické, bezpečné při souběhu), poškozený soubor = vynechání cache.
 - **Inference AI:** model v paměťovém formátu `channels_last` (1,8× rychlejší na CPU, rozdíl pravděpodobností ≤ 2,4·10⁻⁷) a `torch.inference_mode()`.
+**Výsledky (Trishuli, celé údolí 84.93,27.78,85.36,28.20, 4 jádra CPU, ~19 000 px × 4 500 px na 10 m):**
+| krok | před (první běh) | po, bez cache | po, s cache |
+|---|---|---|---|
+| stahování | 15,7 min | 5,3 min | 1,1 min |
+| předzpracování | 1,8 | 2,1 | 1,8 (HAND z cache) |
+| AI (voda) | 4,6 | 4,2 | 4,4 |
+| suť a bahno | 8,5 | 9,0 | 9,0 |
+| škody + sítě + report + složení | ~2,2 | ~3,0 | ~2,8 |
+| **celkem** | **~33 min** | **23,4 min** | **19,2 min** |
+Malá oblast (8×9 km): 113 s bez cache, 78 s s cache (0 PU).
+- **Výsledky se nezměnily vlivem zrychlení:** maska vody z AI kroku je s `channels_last` bit po bitu stejná (0 odlišných px, pravděpodobnosti ≤ 1,3·10⁻⁶); běh s cache dává stejnou `flood_mask` jako běh bez cache.
+  Rozdíl F1 0,759 (nový běh) vs 0,772 (dřív) pochází z opravy Sentinel-2 (D-M11-01) sloučené mezitím z `main`, ne ze zrychlení.
+- **Co nejde dál zrychlit stahováním:** Sentinel Hub počítá ~1 800 PU na běh (S1 10 m VV+VH × 6 snímků ≈ 1 160, historie ≈ 290, roční reference ≈ 245) a limit je 300 PU/min → stahování radaru má dolní mez ~5 min; víc vláken nepomůže.
+  Hrubší roční reference (40 m) by ušetřila ~180 PU (~0,6 min) za cenu úzkých řek (D-M10-02) → ponecháno 20 m (netestováno proti 40 m).
+- **Co zbývá:** nejdelší je krok suti (9 min = 47 % běhu, kód mimo tuto změnu) a AI inference (4,3 min na 4 jádrech; ~210 s tvoří dlaždice dvou radarových drah a dvou optických snímků).
