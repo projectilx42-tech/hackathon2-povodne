@@ -8,6 +8,12 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-12 — škody + odříznutá sídla (D-M4-01, D-M5-01–04, D-M7-01), změna kontraktu, týká se M1, M6, M8:** nové výstupy
+  `damage/{facilities_damage,settlement_areas}.geojson`, `damage/damage_summary.json`, `network/{facilities_access,landing_zones}.geojson`, `network/repair_priority.json`,
+  rozšířené `*_damage.geojson` (`grade` / `status`), `settlements_access.geojson` (stav `possibly_cut_off`, `detour_pct`, doba pěšky, silnice v obci, stupeň zasažení,
+  pořadí naléhavosti), `road_cuts.geojson` (pořadí oprav), `floodpath/along_path.json`. **M1:** nová vrstva `osm/pois.gpkg` + `amenity=health_post` — požadavek
+  `docs/REQUEST_M1_POIS.md`. **M8:** zobrazit nová pole a vrstvy; trasa povodně z kliknutého bodu (`python -m povodne.floodpath <run> --lon --lat`) — napojení navrhne UI.
+  **M6:** čísla brát z `damage/damage_summary.json` a `network/graph_stats.json`. Větev `claude/cool-cray-jfyu4h` — **master: sloučit**.
 - **2026-10-11 (večer) — master: sloučeno do `main` — AI model v0.4 + optický model (`claude/zen-bell-a83s7a`), satelity 2 + suť/bahno + odpovědi organizátorů (`claude/funny-fermat-ukdqp8`, obsahuje `claude/affectionate-shannon-jrnssg`), UI (`ccr-d89d3cfb-ywooc4`) → všichni `git fetch origin main && git merge origin/main`.**
   Konflikty jen polohové (DECISIONS, PROGRESS) + `dashboard/` (citlivost z UI a hodina povodně ze satelitů spojeny; ověřeno v Chromiu: obě políčka, `POST /api/runs` zapíše `sensitivity` i `event_time`). D-X-02 byl v obou větvích stejný → jednou. `check_docs` OK, testy 69/69.
   **Otevřené po sloučení:** upozornění „lepší pohled za X dní“ (D-X-05) zatím v kódu není (satelity); UI zatím neukazuje `run.json.notices`, podtypy suti ani vrstvu viditelnosti (D-M3d-02);

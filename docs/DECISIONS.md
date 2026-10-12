@@ -734,6 +734,56 @@ Implementace požadavku kroku změn povrchu (D-M3d-02) v kroku stahování:
 - Testy: `tests/test_acquire_hist.py` (výběr průletů, 20m mřížka, čtení zpět krokem suti na 10 m, znovupoužití souboru, vrstva využití půdy).
   **Naostro neověřeno** (v prostředí nejsou klíče CDSE / ohsome).
 
+## D-M4-01 | 2026-10-12 | přijato (uživatel: „líbí se mi to … pusť se do toho“) — Jak se počítají škody na budovách, silnicích a mostech
+Podklad: rešerše (Copernicus EMS / IWG-SEM 2018, UNOSAT, Kasmalkar 2020, Loreti 2022). Pravidla a výchozí prahy: ARCHITECTURE.md → *Výstupy M4 damage*.
+- **Budova po budově** (ne jen podíl pixelů vesnice): vesnice v mapě zahrnuje pole a řeku, zaplavené pole by vyšlo jako „zasažená vesnice“;
+  zadání chce vědět, *které* budovy jsou zasažené. Test celým obrysem + okraj 10 m (= 1 pixel; posun OSM ~4 m, silnic 3–8 m, S1/S2 ~1 pixel).
+  Podíl zaplavené plochy území sídla (návrh uživatele) se počítá navíc (`flooded_area_pct`).
+- **Stupně podle Copernicus EMS / IWG-SEM** (jemnější stupně EMS samy nedoporučují): `affected`, `likely_destroyed` (suť/eroze pod obrysem —
+  u suťových proudů bývají budovy zničené; je to naše heuristika, hloubku ani rychlost proudu neznáme), `possibly_affected` (nízká jistota), `none`.
+- **Silnice:** blokovaná při ≥ 17 % délky v zasažené zóně (Kasmalkar 2020: přísnější pravidla snížila falešně uzavřené cesty z 16 % na 5 %)
+  nebo ≥ 30 m souvisle (jeden 30m výmol horskou silnici zavře). Slovník stavů jako Logistics Cluster: passable / possibly blocked / blocked.
+- **Most:** voda pod mostem není důkaz škody (Loreti 2022); testují se nájezdy a suť u mostu → `blocked` / `suspect` / `passable`.
+- **Čísla jako rozsah** (jen jisté zásahy – všechny vč. „možná“), jako UNOSAT („potentially affected“, předběžné, neověřené v terénu).
+- **Území sídla** = budovy přiřazené nejbližšímu bodu sídla v dosahu podle typu (osada 500 m, vesnice 1 km, město 2 km, velkoměsto 3 km; náš odhad);
+  hranice obcí z OSM jsou ve většině zemí neúplné a příliš hrubé.
+- **Žádný odhad počtu obyvatel** (uživatel 2026-10-12): mapy obyvatel (WorldPop, GHSL) nejsou povolený vstup a počet osob na budovu se liší podle země.
+  Ukazuje se počet budov; počet obyvatel jen tam, kde je v OSM (`population`). Pozn. pro report: Copernicus EMS bere počty lidí z GHSL → nesrovnatelné.
+- Systém je pro celý svět: žádná pravidla vázaná na Nepál/Himálaj. Prahy se neladí na EMSR927 (D-006).
+
+## D-M5-01 | 2026-10-12 | přijato (uživatel) — Silniční síť a stavy odříznutí
+- **Síť stavíme sami ze snapshotu před povodní** (`osm/roads.gpkg`), routing dělá networkx. OSMnx umí hotovou síť jen z aktuální OSM (Overpass)
+  = zakázaný vstup (D-005). ohsome nevrací id uzlů → linie se spojí ve společných vrcholech; geometrické křížení se nespojuje (most nad silnicí).
+- **Neorientovaný graf** (v nouzi se jednosměrky nedodržují), rychlosti podle typu silnice (ARCHITECTURE), doba pěšky 5 km/h po stejných silnicích.
+- **Lávky a pěšiny se nepřidávají** (uživatel 2026-10-12: „na lávky bych se vykašlal“). Uvést v limitacích: obec spojená jen pěšinou vyjde jako `no_road_pre_event`.
+- Stavy: `connected`, `degraded` (objížďka > 2×), `possibly_cut_off` (odříznutá jen bez podezřelých mostů / možná blokovaných silnic), `cut_off`,
+  `no_road_pre_event` (nikdy se nepočítá jako odříznutá). Navíc čísla, která chtěl uživatel: „X z Y silnic v obci zasaženo“, objížďka v % (`detour_pct`),
+  počet nezávislých cest před/po.
+- Cílem je i okraj stažené sítě, aby to fungovalo všude na světě, i bez nemocnice/města v okolí 15 km.
+
+## D-M5-02 | 2026-10-12 | přijato (uživatel: „pět stupňů se mi líbí“) — Stupeň zasažení sídla, pořadí naléhavosti, co opravit první
+- **5 stupňů** none / low / moderate / severe / critical, pravidla v ARCHITECTURE. Princip humanitárních škál (INFORM Severity, OCHA JIAF): pořadové stupně,
+  průhledná pravidla, rozhoduje nejhorší ukazatel (žádný vážený součet). Prahy jsou naše, žádná norma pro satelitní hodnocení vesnic neexistuje.
+  Každé sídlo má `impact_reasons` (proč má daný stupeň).
+- **Pořadí naléhavosti** = stupeň, pak počet budov (populace z OSM, je-li). Hlavní tabulka sitrepu.
+- **Co opravit první:** každý přerušený úsek se zkusmo vrátí a spočítá se, kolik sídel/budov znovu připojí (princip „link importance“, Jenelius 2006;
+  Gangwal 2023, Deltares RA2CE). Žebříček top 10 v `repair_priority.json`.
+
+## D-M5-03 | 2026-10-12 | přijato (uživatel) — Důležitá místa
+Tabulka nemocnic, klinik, zdravotních středisek, škol (úkryty), policie, hasičů, elektráren, rozvoden, přehrad, heliportů, letišť: zasažené / odříznuté.
+Data z OSM před povodní: nová vrstva `osm/pois.gpkg` + `amenity=health_post` ve `facilities.gpkg` — **stahování patří satelitní session**,
+požadavek `docs/REQUEST_M1_POIS.md` (uživatel ho předá). Do té doby krok běží jen s `facilities.gpkg` (nemocnice, kliniky, města).
+
+## D-M5-04 | 2026-10-12 | přijato (uživatel) — Kandidátní plochy pro přistání vrtulníku
+Z DEM: sklon ≤ 7° vhodné, 7–15° s opatrností (pásma podle US Army FM 3-21.38, jak je cituje Esri), aspoň ~90 × 90 m (3×3 pixely 30m DEM; jeden vrtulník
+potřebuje ~30 m rovné plochy + volný příletový koridor), mimo zasaženou plochu, budovy a vodu; do 3 km od odříznutého sídla; heliporty z OSM přednostně.
+**Vždy označeno „neověřeno“**: DEM nevidí stromy, dráty ani terénní překážky (studie z hor: z kandidátů z DEM bylo použitelných jen 55 %).
+
+## D-M7-01 | 2026-10-12 | přijato (uživatel) — Trasa povodně z bodu (bonus ze zadání)
+Směr odtoku D8 z Copernicus DEM (pysheds, stejně jako HAND), trasa po proudu z kliknutého bodu, koridor = HAND ≤ 20 m podél trasy, seznam sídel, mostů
+a důležitých míst seřazený po proudu se vzdáleností. Bez hydrauliky (žádné časy příchodu vody). Na vyžádání (CLI; napojení do UI navrhne UI session).
+Body „možné zahrazení řeky“ a „dostupnost do 30/60/120 min“ uživatel zamítl.
+
 ---
 
 # Otevřené otázky (k rozhodnutí)
@@ -792,7 +842,7 @@ Rozložení: nahoře lišta (výběr oblasti na mapě, datum povodně, tlačítk
 - Všechna čísla v panelu ze `stats.json` / výstupních GeoJSON (žádná čísla mimo ně).
 - Tvar výběru oblasti: viz D-019.
 
-## O-008 | do budoucna (uživatel 2026-10-08: teď nedělat) — Úroveň zasažení obce
+## O-008 | uzavřeno → D-M5-02 (uživatel 2026-10-12) — Úroveň zasažení obce
 Nápad rozšířit detail obce o „jak moc je obec zasažena“: zasažené budovy obce / celkem, zaplavená plocha v okolí,
 počet a délka blokovaných cest, zasažené mosty. Problém: obec je v OSM jen bod → území obce by se určilo přiřazením
 každé budovy nejbližší obci (Voronoi), případně kruhem kolem bodu. Vyžadovalo by nová pole v `settlements_access.geojson`

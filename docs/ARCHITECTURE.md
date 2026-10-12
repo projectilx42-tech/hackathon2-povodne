@@ -86,14 +86,21 @@ runs/<run_id>/
   osm/
     buildings.gpkg roads.gpkg bridges.gpkg settlements.gpkg facilities.gpkg   # UTM, čisté vrstvy (schéma níže)
     landuse.gpkg                 # volitelně: osm_id, kind (forest/farmland/…/residential), polygony — D-M3d-02 (dodá M1)
+    pois.gpkg                    # volitelně: důležitá místa (školy, elektrárny, přehrady, heliporty…) — D-M5-03 (dodá M1)
   damage/
     buildings_damage.geojson roads_damage.geojson bridges_damage.geojson      # EPSG:4326
+    facilities_damage.geojson    # EPSG:4326, důležitá místa (facilities + pois) se zasažením — D-M4-01
+    settlement_areas.geojson     # EPSG:4326, území sídel (z přiřazených budov) + škody na sídlo — D-M4-01
+    damage_summary.json          # souhrnná čísla škod (rozsahy jisté–všechny) — D-M4-01
   network/
-    settlements_access.geojson   # EPSG:4326, stav dostupnosti každého sídla
-    road_cuts.geojson            # EPSG:4326, přerušené úseky silnic
+    settlements_access.geojson   # EPSG:4326, stav dostupnosti + stupeň zasažení + pořadí naléhavosti každého sídla (D-M5-01, D-M5-02)
+    road_cuts.geojson            # EPSG:4326, přerušené úseky silnic + pořadí oprav (D-M5-02)
+    facilities_access.geojson    # EPSG:4326, důležitá místa: zasažené / odříznuté (D-M5-03)
+    landing_zones.geojson        # EPSG:4326, kandidátní plochy pro vrtulník u odříznutých sídel, NEOVĚŘENÉ (D-M5-04)
+    repair_priority.json         # žebříček „co opravit první“ (D-M5-02)
     graph_stats.json
-  floodpath/                     # bonus M7
-    path.geojson settlements_on_path.geojson
+  floodpath/                     # bonus M7, počítá se na vyžádání pro zvolený bod (D-M7-01)
+    path.geojson settlements_on_path.geojson along_path.json
   stats.json                     # M6 — VŠECHNA čísla pro sitrep/dashboard (jediný zdroj čísel)
   report/
     sitrep_en.md sitrep_en.pdf   # 1 strana; volitelně sitrep_ne.*
@@ -159,28 +166,93 @@ Zdroj: **ohsome API v2** `extraction/features.parquet` s `time=<osm_snapshot_dat
 - `bridges.gpkg`: `osm_id`, `highway`, `name`, `geometry` — silnice s `bridge=yes` (+ `man_made=bridge` polygony).
 - `settlements.gpkg`: `osm_id`, `name`, `place` (city/town/village/hamlet/locality), `population` (může chybět), `geometry` (Point).
 - `facilities.gpkg`: `osm_id`, `name`, `kind` (`hospital`/`clinic`/`health_post`/`town`), `geometry` (Point; polygony → centroid).
+- `pois.gpkg` (D-M5-03, volitelná, dodá M1 podle `docs/REQUEST_M1_POIS.md`; oblast + 15 km): `osm_id`, `kind` ∈ {hospital, clinic, health_post,
+  school, police, fire_station, shelter, power_plant, substation, dam, helipad, airfield}, `name`, `subtype` (nepovinné), `geometry` (původní tvar:
+  Point / LineString / Polygon). `facilities.gpkg` navíc obsahuje `amenity=health_post` jako `kind = health_post`.
 - `landuse.gpkg` (D-M3d-02, D-M1-07): `osm_id`, `kind` ∈ {forest, wood, farmland, orchard, grass, meadow, scrub, wetland, vineyard, residential, industrial, commercial, retail} (`landuse=*`, jinak `natural=*`), `geometry` (Polygon); jen v oblasti.
 
-## Výstupy M4 damage
-Každý prvek zasažený, pokud jeho geometrie (budova: polygon; silnice/most: linie s bufferem `road_buffer_m`, default 10 m)
-překrývá zasažené pixely. Atributy:
-- `osm_id`, `kind` (`building`/`road`/`bridge`), `name`, `hit` (bool), `hit_fraction` (0–1, podíl plochy/délky v zasažené zóně),
-  `hit_class` (`water`/`debris`/`both`), `mean_prob` (průměr `flood_prob` přes prvek), `confidence` (`high`/`medium`/`low`).
-- Mosty: `hit=true`, pokud zasažen most nebo jeho nájezdy (buffer 30 m) — most přes zasažené koryto je **podezřelý**, ne jistě zničený;
-  zapsat jako `confidence`.
+## Výstupy M4 damage (D-M4-01)
+Zasaženo = pixely `flood_mask` ∈ {2, 3}. Prvky se testují **celým tvarem** (ne středem), s okrajem kvůli posunu mapy a satelitu.
+Všechny prahy jsou v configu (`DamageConfig`), výchozí hodnoty níže; **neladí se na EMSR927** (D-006).
+- **Budova:** obrys + okraj `building_buffer_m` (10 m). `hit_fraction` = podíl pixelů obrysu+okraje v zasažené ploše.
+  `grade` (stupně podle Copernicus EMS / IWG-SEM):
+  `likely_destroyed` = pod obrysem (bez okraje) suť nebo eroze (`debris_type` ∈ {1, 3}, nebo 6 poškozená zástavba) s jistotou ≥ střední;
+  `affected` = obrys zasažen, nebo `hit_fraction` ≥ 0,25, a `mean_prob` ≥ 0,5;
+  `possibly_affected` = zasažen jen okraj, nebo nízká jistota (`mean_prob` < 0,5 / `debris_confidence` = 1);
+  `none` jinak. `hit` = `grade` ≠ `none`. Navíc `settlement_id` (osm_id sídla, kterému je budova přiřazena, nebo null).
+- **Silnice:** každá OSM linie zvlášť, okraj `road_buffer_m` (10 m). `hit_length_m` = délka linie v zasažené zóně, `max_run_m` = nejdelší souvislý zasažený kus.
+  `status` (slovník Logistics Cluster): `blocked` = `hit_fraction` ≥ 0,17 **nebo** `max_run_m` ≥ 30 m (s jistotou ≥ střední);
+  `possibly_blocked` = splní to jen s nízkou jistotou, nebo zasaženo < prahu; `passable` jinak. `hit` = `status` = `blocked`.
+- **Most:** voda pod mostem se **nepočítá**. Testují se nájezdy (konce mostu ± 30 m) a suť (třída 3) v okolí mostu `bridge_buffer_m` (30 m).
+  `status` ∈ {`blocked` (nájezd blokovaný), `suspect` (suť nebo nová voda u mostu, nájezdy průjezdné), `passable`}; `hit` = `status` ≠ `passable`.
+- Společné atributy všech `*_damage.geojson`: `osm_id`, `kind` (`building`/`road`/`bridge`/`facility`), `name`, `hit`, `hit_fraction`,
+  `hit_class` (`water`/`debris`/`both`/null), `mean_prob`, `confidence` (`high`/`medium`/`low`), + `grade` (budovy, důležitá místa) nebo `status` (silnice, mosty).
+  Silnice navíc `highway`, `bridge`, `length_m`, `hit_length_m`, `max_run_m`.
+- **`facilities_damage.geojson`:** `facilities.gpkg` ∪ `pois.gpkg` (pokud existuje; duplicity podle `osm_id`), `kind` = jejich `kind`, `grade` jako budova.
+- **Území sídla (`settlement_areas.geojson`):** každá budova se přiřadí nejbližšímu sídlu v dosahu podle `place`
+  (hamlet/locality 500 m, village 1 km, town 2 km, city 3 km). Území = obálka přiřazených budov s okrajem 50 m; sídlo bez budov = kruh 200 m.
+  Atributy: `osm_id`, `name`, `place`, `area_km2`, `buildings_total`, `buildings_affected`, `buildings_likely_destroyed`, `buildings_possibly`,
+  `buildings_hit_pct` (affected + likely_destroyed, %), `flooded_area_pct` (% území v zasažené ploše), `facilities_hit` (seznam `kind` zasažených míst v území).
+- **`damage_summary.json`:** `buildings_total`, `buildings_hit_low`/`_high` (jen jisté / všechny vč. `possibly_affected`), `buildings_likely_destroyed`,
+  `roads_total_km`, `roads_blocked_km`, `roads_possibly_blocked_km`, `bridges_total`, `bridges_blocked`, `bridges_suspect`, `facilities_hit` (počty podle `kind`).
+- Bez `flood_mask.tif` krok skončí chybou; bez `debris_type.tif`/`debris_confidence.tif` bere třídu 3 jako „suť“ se střední jistotou.
 
-## Výstupy M5 network
-Graf: uzly = křižovatky/konce silnic z `roads.gpkg`, hrany = úseky s délkou (m) a `travel_time_s` (rychlost podle `highway`).
-Post-event graf = pre-event graf **bez hran** s `roads_damage.hit=true` (konfigurovatelný práh `hit_fraction`) a bez zasažených mostů.
-Cíle ("destinations"): `facilities.kind ∈ {hospital, town}` (town = place=city/town). Sídla se přichytí na nejbližší uzel (max 500 m, jinak `unreachable_snap`).
+## Výstupy M5 network (D-M5-01, D-M5-02)
+Graf se staví z `osm/roads.gpkg` (snapshot před povodní, **nikdy** OSMnx/Overpass): linie se spojí jen ve **společných vrcholech**
+(ohsome nevrací id uzlů; mosty a tunely se silnicí pod nimi nespojit), rozdělí se v každém vrcholu sdíleném s jinou linií, graf je **neorientovaný**.
+Hrany: `length_m`, `travel_time_s` (rychlost podle `highway`: motorway 80, trunk 60, primary 50, secondary 40, tertiary 30,
+unclassified/residential/living_street 25, service 15, track 10 km/h; konfigurovatelné), `walk_time_s` (5 km/h), `osm_id`.
+**Post-event graf** = pre-event graf bez hran se `status = blocked` a bez mostů se `status = blocked`.
+**„Možná“ graf** = navíc bez `possibly_blocked` silnic a `suspect` mostů.
+Cíle: `facilities.kind ∈ {hospital, town}` + **okraj stažené sítě** (uzly do 500 m od hranice oblasti + 15 km, jméno „edge of mapped area“),
+aby oblast bez města a nemocnice v dosahu nevyšla celá jako „bez silnice“ (konfigurovatelné). Sídla se přichytí na nejbližší bod sítě (max 500 m, jinak `no_road_pre_event` s `snap_dist_m`).
+Nejbližší cíl pro všechna sídla najednou (Dijkstra z více zdrojů), před i po.
 
 `settlements_access.geojson` (EPSG:4326), jeden prvek na sídlo:
-`osm_id`, `name`, `place`, `population`, `status` (`connected` / `cut_off` / `degraded` / `no_road_pre_event`),
-`nearest_dest_pre` (name), `dist_pre_m`, `time_pre_s`, `nearest_dest_post`, `dist_post_m`, `time_post_s`
-(null, pokud nedostupné), `detour_factor`, `blocking_cuts` (seznam `osm_id` přerušených úseků na původní trase).
-`degraded` = dostupné, ale objížďka > 2× (konfigurovatelné).
+`osm_id`, `name`, `place`, `population` (z OSM, může chybět), `status`
+(`connected` / `degraded` / `possibly_cut_off` / `cut_off` / `no_road_pre_event`),
+`nearest_dest_pre` (name), `dist_pre_m`, `time_pre_s`, `walk_time_pre_s`, `nearest_dest_post`, `dist_post_m`, `time_post_s`, `walk_time_post_s`
+(null, pokud nedostupné), `detour_factor`, `detour_pct` (= (time_post / time_pre − 1) × 100), `blocking_cuts` (seznam `osm_id` přerušených úseků na původní trase),
+`snap_dist_m`, `roads_total` / `roads_hit` (počet OSM silnic v území sídla a z nich `blocked`), `routes_pre` / `routes_post`
+(počet nezávislých cest k cílům — bez společného úseku, max. 3).
+`degraded` = dostupné, objížďka > 2× (konfigurovatelné); `possibly_cut_off` = dostupné v post-event grafu, ale ne v „možná“ grafu.
+**Zasažení sídla** (z `damage/settlement_areas.geojson`): `buildings_total`, `buildings_hit`, `buildings_likely_destroyed`, `buildings_hit_pct`,
+`flooded_area_pct`, `facilities_hit`, `impact_level` ∈ {`none`, `low`, `moderate`, `severe`, `critical`}, `impact_reasons` (seznam anglických vět „proč“).
+Pravidla stupně (první, které platí; prahy v configu):
+critical = cut_off a (buildings_hit_pct ≥ 25 nebo buildings_likely_destroyed > 0), nebo zasažená nemocnice/klinika/zdravotní středisko v území;
+severe = cut_off, nebo buildings_hit_pct ≥ 25, nebo buildings_likely_destroyed ≥ 10;
+moderate = degraded nebo possibly_cut_off, nebo 5 ≤ buildings_hit_pct < 25;
+low = cokoli zasaženo (budova, silnice v území, flooded_area_pct > 0);
+none = jinak.
+**Pořadí naléhavosti:** `priority_score` = váha stupně (critical 4, severe 3, moderate 2, low 1) × 1000 + `buildings_total` (populace z OSM, je-li),
+`priority_rank` = pořadí mezi sídly se stupněm ≥ moderate (1 = nejnaléhavější), jinak null.
 
-`road_cuts.geojson`: přerušené úseky (`osm_id`, `highway`, `name`, `is_bridge`, `length_m`, `n_settlements_cut` – kolik sídel kvůli úseku ztratilo spojení).
+`road_cuts.geojson`: přerušené úseky (`osm_id`, `highway`, `name`, `is_bridge`, `length_m`, `status`, `n_settlements_cut`, `n_buildings_cut`,
+`repair_rank` (null, pokud oprava nic nepřipojí), `reconnects_settlements`, `reconnects_buildings`).
+**Pořadí oprav** (`repair_priority.json`, D-M5-02): každý přerušený úsek se zkusmo vrátí sám do post-event grafu a spočítá se,
+kolik odříznutých sídel (a budov v nich) se tím připojí k cíli; seřazeno podle budov. `[{"rank","osm_id","name","is_bridge","reconnects_settlements",
+"reconnects_buildings","settlements":[names]}]` (top 10).
+
+`facilities_access.geojson` (D-M5-03): prvky z `damage/facilities_damage.geojson` + `access` ∈ {`connected`, `possibly_cut_off`, `cut_off`, `no_road_pre_event`}.
+Místo se přichytí na síť jako sídlo; `connected` = po povodni se dostane k jinému cíli (nemocnice/město, ne k sobě samému) nebo na okraj stažené sítě
+(oblast + 15 km = „vnější svět“). Tím je odříznutá i nemocnice, ke které se nikdo zvenku nedostane.
+
+`landing_zones.geojson` (D-M5-04), **jen kandidáti, neověřeno**: pro sídla `cut_off` / `possibly_cut_off` hledá do 3 km plochy z DEM se sklonem ≤ 7° (`suitable`)
+nebo ≤ 15° (`caution`), souvislé aspoň 3×3 pixely 30m DEM (~90 × 90 m), mimo zasaženou plochu (+ 30 m), mimo budovy (+ 30 m), mimo vodu.
+Plus heliporty z `pois.gpkg` (`source = "osm_helipad"`). Atributy: `id`, `class` (`suitable`/`caution`/`known_helipad`), `area_m2`, `mean_slope_deg`,
+`settlement_id`, `settlement_name`, `dist_m`, `source` (`dem`/`osm_helipad`), `verified` (vždy false). Max. 3 nejlepší na sídlo.
+
+`graph_stats.json`: počty uzlů/hran, komponent před/po, km silnic v grafu, počty sídel podle `status` a `impact_level`, parametry (rychlosti, prahy).
+
+## Výstupy M7 flood path (D-M7-01)
+Na vyžádání pro zvolený bod: `python -m povodne.floodpath <run_dir> --lon X --lat Y [--max-km 50]`. Čte `raw/dem/dem.tif`
+(nebo `aligned/dem.tif`), směr odtoku D8 (pysheds, jako HAND), sleduje tok po proudu do `max_km` nebo k okraji DEM.
+- `floodpath/path.geojson`: linie trasy (EPSG:4326) + atributy `start_lon`, `start_lat`, `length_km`; a koridor (polygon) = pixely podél trasy s HAND ≤ 20 m
+  (konfigurovatelné) — `kind` ∈ {`path`, `corridor`}.
+- `floodpath/settlements_on_path.geojson`: sídla v koridoru, `osm_id`, `name`, `place`, `dist_along_km` (vzdálenost po proudu od bodu), `height_above_path_m`,
+  seřazeno po proudu; + status/stupeň ze `network/settlements_access.geojson`, pokud existuje.
+- `floodpath/along_path.json`: totéž pro mosty (z `osm/bridges.gpkg`) a důležitá místa (`facilities`, `pois`) v koridoru, seřazeno po proudu.
+Bez hydrauliky: žádné časy příchodu vody, jen pořadí a vzdálenost (uvést v limitacích).
 
 ## `stats.json` (M6) — jediný zdroj čísel
 Sitrep, dashboard i případný copilot berou čísla **výhradně odsud** (žádná čísla vymyšlená textem).
@@ -238,10 +310,10 @@ Pipeline spouští jako podproces `python -m povodne run ...`; průběh čte z `
 | M3 | AI inference (voda) + složení finální masky | `src/povodne/flood/ai.py`, `combine.py` | `feat/ai-model` | `aligned/`, `masks/`, `models/`, `flood/debris_mask.tif` | `flood/ai_*`, `flood/flood_*` |
 | M3d | Algoritmus suť/bahno + změny povrchu | `src/povodne/flood/debris/` | `feat/debris` | `raw/s1*/` (vč. `hist_*`), `raw/s2/`, `raw/dem/`, `masks/`, `osm/buildings.gpkg`, `osm/landuse.gpkg`, `flood/ai_mask.tif` | `flood/debris_*` (D-M3d-02) |
 | M9 | AI trénink | `training/` | `feat/ai-model` | Kuro Siwo, Sen1Floods11 | `models/<name>/` |
-| M4 | Damage overlay | `src/povodne/damage/` | `feat/damage` | `flood/`, `osm/` | `damage/` |
-| M5 | Road network / cut-off | `src/povodne/network/` | `feat/network` | `osm/`, `damage/` | `network/` |
+| M4 | Damage overlay + území sídel | `src/povodne/damage/` | `feat/damage` | `flood/`, `osm/` (vč. `pois.gpkg`) | `damage/` |
+| M5 | Road network / cut-off, zasažení sídel, pořadí, plochy pro vrtulník | `src/povodne/network/` | `feat/network` | `osm/`, `damage/`, `flood/flood_mask.tif`, `raw/dem/` | `network/` |
 | M6 | Stats + sitrep | `src/povodne/report/` | `feat/report` | vše | `stats.json`, `report/` |
-| M7 | Flood path (bonus) | `src/povodne/floodpath/` | `feat/floodpath` | `aligned/dem.tif`, `osm/` | `floodpath/` |
+| M7 | Flood path (bonus) | `src/povodne/floodpath/` | `feat/floodpath` | `raw/dem/dem.tif` (nebo `aligned/dem.tif`), `osm/`, `network/` | `floodpath/` |
 | M8 | Dashboard (backend FastAPI + frontend) | `dashboard/` | `feat/dashboard` | run adresář | `runs/<id>/overlays/` (cache), spouští pipeline |
 | M10 | Validace vs EMSR927 | `validation/` | `feat/validation` | run adresář + EMS | `validation/results/` |
 | — | Report (6 stran), video | `deliverables/` | `docs/report` | — | — |
