@@ -730,7 +730,7 @@ Implementace požadavku kroku změn povrchu (D-M3d-02) v kroku stahování:
   VV ze stejného dne už stažené kontrolou průletu v den povodně se nepřepoužívá (jiná mřížka, jen VV) — možná úspora do budoucna.
 - **`osm/landuse.gpkg`** (volitelná část požadavku): ohsome, stejný snapshot před událostí, filtr `landuse in (forest, farmland, orchard,
   grass, meadow, vineyard, residential, industrial, commercial, retail) or natural in (wood, scrub, wetland)`, jen polygony, jen v oblasti;
-  `kind` = hodnota `landuse`, jinak `natural`. Běh = **7 dotazů** na ohsome (limit 250/den; README upraveno).
+  `kind` = hodnota `landuse`, jinak `natural`. Běh = **8 dotazů** (7 + důležitá místa, D-M1-08) na ohsome (limit 250/den; README upraveno).
 - Testy: `tests/test_acquire_hist.py` (výběr průletů, 20m mřížka, čtení zpět krokem suti na 10 m, znovupoužití souboru, vrstva využití půdy).
   **Naostro neověřeno** (v prostředí nejsou klíče CDSE / ohsome).
 
@@ -817,6 +817,41 @@ souhrnná čísla + sitrep a obrázky pro mapu. Do odevzdání 2,5 dne → pevn�
 8. Sdílené pomocné funkce (`io.py`: čtení/zápis `run.json` atomicky, průběh, upozornění) dodá skeleton; stávající moduly mají vlastní kopie
    a **teď se nepřepisují** (riziko před termínem) — sjednocení až po odevzdání, pokud vůbec.
 
+## D-M1-08 | 2026-10-12 | přijato (uživatel: úkoly master session; D-X-05, D-X-06 bod 7, `docs/REQUEST_M1_POIS.md`) — Geometrie dráhy, polygon, upozornění na příští průlet, důležitá místa
+1. **Geometrie dráhy do `run.json`** (D-X-06 bod 7): `acquire.s1.geometry` a `acquire.s1_alt.geometry` = `{heading_deg, look_azimuth_deg, incidence_deg}`
+   ve středu oblasti (`catalog.track_geometry`, tatáž hodnota, ze které se počítá maska stínu při výběru dráhy); předzpracování z ní spočítá masku
+   stejnou funkcí `terrain.layover_shadow`. Zaokrouhleno na 0,01°.
+2. **Oblast jako polygon:** `catalog.aoi_to_geometry` bere GeoJSON geometrii, Feature, FeatureCollection i bbox a vrací vždy **platný** Polygon / MultiPolygon
+   (křížící se ručně nakreslený tvar se opraví `make_valid`; přímka nebo oblast s nulovou plochou skončí srozumitelnou chybou). Sítě se stahují
+   na **obdélníku kolem tvaru** (výřez, D-018); maska oblasti (`terrain.aoi_mask`) a pokrytí průletů se počítají z tvaru. Zkoušeno offline na polygonu,
+   nekonvexním tvaru, MultiPolygonu a tvaru, který se kříží (`tests/test_acquire_polygon.py`). Naostro neověřeno.
+3. **Upozornění `better_view_soon`** (D-X-05, kód v `docs/NOTICES.md`, závažnost `warning`): jen u čerstvé povodně (od události uplynulo nejvýš `post_horizon_days` = 20 dní)
+   a jen pro dráhu, která už má starší průlety, ale ještě nemá snímek „po“. **Příští průlet** = poslední známý průlet dráhy + obvyklý odstup (medián odstupů
+   z katalogu, jinak 12 dní; nejvýš 24 dní dopředu; když je poslední známý průlet starší než 3 odstupy, nepředpovídá se). **Přínos** = o kolik procentních bodů se zvýší
+   podíl dna údolí, které vidí aspoň jedna dráha (pixel je skrytý, jen když ho stín/layover skrývá všem použitým drahám); upozornění od +3 p. b. (`better_view_min_gain`,
+   odhad, neladěno na EMS). Z více kandidátů se vybere ten s nejlepší viditelností. Počítá se z DEM a geometrie, bez stahování snímků.
+4. **Důležitá místa z OSM** (D-M5-03): vrstva `osm/pois.gpkg` (snapshot před povodní, oblast + 15 km, původní tvar) a `amenity=health_post` ve `facilities.gpkg`
+   (jako požadavek). Jedno `kind` na prvek v pevném pořadí (nemocnice → klinika → zdravotní středisko → policie → hasiči → úkryt → škola → elektrárna → rozvodna → přehrada → heliport → letiště).
+   **Úkryt** = `amenity=shelter` (bez zastávek, pikniků a přístřešků před počasím: `shelter_type` ∈ public_transport, picnic_shelter, weather_shelter, bicycle_parking)
+   nebo `emergency=assembly_point`. `subtype` = hodnota tagu (např. zdroj elektrárny). Běh = **8 dotazů** na ohsome (limit 250/den). `run.json.acquire.osm.counts.pois`.
+
+## D-DLV-01 | 2026-10-12 | přijato (session odevzdání) — Jak report uvádí výsledky modelu na Bolívii
+Report a Devpost uvádějí **obě čísla** ze Sen1Floods11 Bolívie (D-M9-14): F1 0,21 bez snímku „před“ a 0,64 při „před“ = „po“, s vysvětlením (model je detektor změny,
+ne obecný detektor vody; pipeline má vždy snímek „před“). Optický model F1 0,885. Himálajská čísla jsou zatím předběžná (proxy radar), v reportu označena TODO na úterý.
+**Finální podání čísel schvaluje uživatel.** Report je 3 strany PDF (limit 6), generuje se `pandoc` + Chromium z `deliverables/report/report.md`.
+
+## D-M10-01 | 2026-10-12 | přijato (úkol od master session) — Srovnání s Copernicus EMS (EMSR927)
+- **Zdroj:** veřejné API EMS Rapid Mapping (`dashboard-api/public-activations/?code=EMSR927`), vektorové balíčky (shapefile, EPSG:4326),
+  `validation/fetch_ems.py` → `validation/data/` (není v gitu). Dodány 4 ze 6 oblastí (Syapru Besi, Timure, Bidur, Phosretar; Bharatpur
+  a Kyundi zrušeny kvůli mrakům), ruční fotointerpretace z VHR optiky 27. 8. (Phosretar 31. 8.), Bidur a Phosretar mají i pozdější aktualizaci.
+- **Co EMS mapuje:** zasaženou plochu jako jednu třídu „sesuv / mass movement“ (voda vs suť se nedá hodnotit zvlášť → hodnotí se 2 ∪ 3 a uvádí
+  se, jak se náš zásah dělí na vodu a suť); **jen poškozené budovy** (body) → u budov jen recall, ne precision; silnice i se stavem
+  „No visible damage“ → u silnic i podíl falešných; mosty jako body.
+- **Výchozí produkt = první dodaný v každé oblasti** (snímky nejblíž našemu prvnímu průletu Sentinel-1); `--products latest` = aktualizace.
+- **Porovnávaná plocha** = oblast EMS minus „not analysed“, jen kde má naše mapa data; po pixelech na naší 10m mřížce.
+  Párování budov/silnic/mostů vzdáleností (budova 10 m, silnice 20 m, most 50 m) — zvoleno předem, neladí se.
+- Porovnání finálního běhu **jednou**, čísla do reportu bez úprav; žádné ladění pipeline podle výsledku (D-006).
+
 ---
 
 # Otevřené otázky (k rozhodnutí)
@@ -891,3 +926,22 @@ Všechny otázky na organizátory jsou jen v `docs/QUESTIONS.md` (D-035).
 Váhy (~100 MB) teď existují jen jako výstupy Kaggle kernelů a v dočasném kontejneru. Pro porotu (D-016) potřebujeme stabilní
 odkaz: GitHub Release tohoto repa, nebo HF Hub (potřebuje HF účet/token). GitHub nepřijme soubor > 100 MB přímo do repa.
 Rozhodnout, až bude finální model.
+
+## D-M2-01 | 2026-10-12 | přijato (zadání master session, D-X-06) — Předzpracování `raw/` → `aligned/`, `masks/`
+Kód `src/povodne/preprocess/`, CLI `python -m povodne.preprocess <run_dir>`, testy `tests/test_preprocess.py`. Kontrakt beze změny (ARCHITECTURE: run adresář).
+- **Mřížka** z `run.json.acquire.grid` (krok stahování na ní už všechno uložil → nic se nepřevzorkovává); bez ní z prvního 10m snímku. `aligned/grid.json`.
+- **Radar:** UINT16 dB → lineární sigma0 (float32, NaN = nodata). Víc snímků „před“ = průměr v lineární škále po pixelech (pixel platný jen v jednom
+  snímku si nechá jeho hodnotu), jako v tréninku (D-030). Žádný další filtr (krok stahování už dal LEE 7×7 + 3×3, D-M1-02). Dráha `s1_alt` bez úplné
+  dvojice → soubory se nevytvoří (a staré z předchozího běhu se smažou, ať je AI krok nepoužije).
+- **Optika:** odrazivost = DN × scale + offset z tagů GeoTIFF (záloha `run.json.acquire.s2`, pak 1e-4), oříznuto na 0–1. Čistý pixel = SCL 4/5/6, ne do
+  2 pixelů od mraku/stínu mraku/cirru (SCL 3, 8, 9, 10), ne sníh (SCL 11 nebo NDSI > 0,42) — **stejná pravidla jako krok suti**; SCL 2 (tmavé/stín terénu),
+  7 (nezařazeno), 1 (saturace) se nepočítají jako čisté.
+- **Terén:** `aligned/dem.tif` bilineárně z 30 m; `masks/slope.tif` = `features.slope_from_dem` na 10m DEM (jako trénink, D-035);
+  `masks/hand.tif` = `acquire.terrain.hand` na 30m DEM (100 buněk, D-M1-04), pak bilineárně na 10 m — test ověřuje shodu s výpočtem kroku suti.
+- **Layover/shadow:** `acquire.terrain.layover_shadow` na 30m DEM s úhlem pohledu a dopadu z `run.json.acquire.s1[_alt].geometry` (D-X-06 bod 7);
+  chybí-li, typický úhel 39° a směr podle přeletu (stejně jako krok suti) + upozornění `preprocess_approx_geometry`.
+- `run.json.preprocess`: `s1_valid_pct` (podíl oblasti, kde radar vidí aspoň jednou dráhou), po drahách `data_pct`, `layover_shadow_pct`, `usable_pct`,
+  použitá geometrie; `s2.<pre|post>.clear_pct`. Upozornění `step = "preprocess"` v `docs/NOTICES.md`.
+- Výkon (syntetická oblast 30×30 km, 2 dráhy × 3 snímky + 2 optické): 46 s, 1,4 GB RAM na CPU.
+- Omezení: maska layover/shadow je z 30m DEM (úzké soutěsky pod rozlišením DEM chybí); geometrie dráhy je jeden úhel pro celou oblast (úhel dopadu se
+  napříč pásem mění o ~1° na 10 km); DEM je model povrchu (lesy, budovy zvedají sklon i HAND).

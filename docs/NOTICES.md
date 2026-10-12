@@ -41,6 +41,7 @@ Sloupec „Titulek pro UI“ je návrh krátkého anglického nadpisu. Celou vě
 | `osm_key_missing` | error | Chybí nebo nefunguje klíč k ohsome (služba se stavem OpenStreetMap před povodní; porotce si ho založí zdarma podle README). Škody a odříznuté obce nejdou spočítat, mapa povodně funguje. | OpenStreetMap key missing | — |
 | `s1_partial_coverage` | warning | Žádný průlet radaru nepokrývá aspoň 90 % oblasti; menší průlety se nepoužijí. Často to vede i k `s1_no_pair`. | Radar covers only part of the area | `best_coverage` (0–1) |
 | `s1_alt_missing` | warning | Chybí druhý směr přeletu (opačná dráha), nebo pro něj chybí snímek „před“. Místa schovaná za horami pro hlavní dráhu zůstanou nezmapovaná. | Only one radar viewing direction | `reason`: `no_opposite_track` / `no_pre_image` |
+| `better_view_soon` | warning | Čerstvá povodeň: jedna dráha radaru ještě nemá snímek „po“, ale podle jejího pravidelného rozvrhu přeletí brzy a uvidí část dna údolí, kterou použité dráhy nevidí (horský stín). Zpráva řekne datum, za kolik dní a o kolik procent víc dna údolí bude vidět. Nevydává se u starších povodní. | Better radar view soon | `track`, `direction`, `next_pass_date` (`YYYY-MM-DD`, místní čas), `days_until`, `visibility_now`, `visibility_with_track` (0–1) |
 | `pre_may_be_flooded` | warning | **Oblast byla na začátku kontrolovaného období (60 dní) mokřejší a od té doby vysychá.** Mokré období tedy asi začalo dřív, snímek „před“ už může obsahovat vodu a zaplavená plocha může vyjít menší. | Before-image may already be flooded | `start_water_frac`, `min_water_frac` (podíl vody na dně údolí, 0–1) |
 | `pre_window_after_rise` | warning | Uživatel zadal vlastní okno „před“ (Advanced), ale to obsahuje dny po začátku nárůstu vody. Okno se respektuje, jen se varuje. | Chosen before-window includes flooding | `rise_date` |
 | `pre_check_blind` | warning | Kontrola „není povodeň už na snímku před?“ tu nevidí skoro žádnou vodu (řeky užší než pixel 60 m), takže čistotu snímku „před“ nepotvrdí ani nevyvrátí. Typické pro horská údolí. | Before-image could not be verified | `max_water_frac` |
@@ -114,3 +115,16 @@ Kódy definuje `src/povodne/network/pipeline.py`.
 | network | `network_snap_failed` | info | Některá sídla jsou dál než 500 m od silnice (vedou k nim jen pěšiny nebo chybí v mapě); počítají se jako „bez silnice už před povodní“. | Settlements without a road | počet |
 | network | `network_edge_destinations` | info | Okraj stažené mapy (oblast + 15 km) se počítá jako „vnější svět“ — kdo se tam dostane, není odříznutý. | Map edge used as destination | počet uzlů |
 | network | `network_possibly_cut_off` | info | Některé obce jsou odříznuté, jen pokud nejdou použít podezřelé mosty nebo možná zablokované silnice. | Possibly cut off settlements | počet |
+
+### Krok předzpracování (`step = "preprocess"`, D-M2-01)
+Kódy definuje `src/povodne/preprocess/pipeline.py` (`SEVERITY`), test `tests/test_preprocess.py` hlídá, že tabulka obsahuje přesně je.
+
+| step | kód | závažnost | kdy nastane (česky) | titulek pro UI (EN) | `details` |
+|---|---|---|---|---|---|
+| preprocess | `preprocess_failed` | error | Krok předzpracování spadl (např. chybí výšková mapa). Mapa povodně nevznikne. | Data preparation failed | `error` |
+| preprocess | `preprocess_no_s1` | error | V `raw/s1` chybí dvojice radarových snímků „před“ a „po“: mapu povodně nejde udělat. | No radar image pair | — |
+| preprocess | `preprocess_low_s1_coverage` | warning | Radar (obě dráhy dohromady) vidí méně než 50 % oblasti (stín hor, layover, chybějící data): jinde povodeň radarem nejde zmapovat. | Radar sees little of the area | `s1_valid_pct` |
+| preprocess | `preprocess_approx_geometry` | info | V `run.json` chybí úhel pohledu dráhy; maska stínu a layoveru použila typický úhel 39° podle směru přeletu. | Typical radar angle used | `track`, `look_azimuth_deg`, `incidence_deg` |
+| preprocess | `preprocess_no_s2` | info | Chybí optický snímek „po“: voda jen z radaru. | Radar-only water map | `available` |
+
+Pro UI dál: `run.json.preprocess.s1_valid_pct` (kolik oblasti radar vidí aspoň jednou dráhou), `tracks.<dráha>.layover_shadow_pct`, `s2.<pre|post>.clear_pct`.

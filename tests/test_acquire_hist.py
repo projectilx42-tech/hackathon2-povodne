@@ -74,3 +74,41 @@ def test_landuse_layer_keeps_only_known_kinds(tmp_path, monkeypatch):
     lu = gpd.read_file(tmp_path / "osm" / "landuse.gpkg")
     assert sorted(lu["kind"]) == ["farmland", "wood"] and info["counts"]["landuse"] == 2
     assert lu.crs.to_epsg() == 32645
+
+
+def test_important_places_get_one_kind_and_keep_their_shape(tmp_path, monkeypatch):
+    import pandas as pd
+    from shapely.geometry import LineString, Point
+    n = None
+    feats = gpd.GeoDataFrame({
+        "osm_id": [f"way/{i}" for i in range(1, 12)],
+        "amenity": ["hospital", "doctors", "health_post", "school", "shelter", "shelter", "police", n, n, n, n],
+        "healthcare": [n, n, n, n, n, n, n, n, n, n, n],
+        "building": ["yes"] + [n] * 10,
+        "power": [n, n, n, n, n, n, n, "plant", "substation", n, n],
+        "plant:source": [n, n, n, n, n, n, n, "hydro", n, n, n],
+        "waterway": [n] * 9 + ["weir", n],
+        "aeroway": [n] * 10 + ["heliport"],
+        "shelter_type": [n, n, n, n, "public_transport", "basic_hut", n, n, n, n, n],
+        "name": ["Central", "Dr X", "Post", "School", "Bus stop", "Hut", "Police", "Plant", "Sub", "Weir", "Heli"],
+    }, geometry=[box(85, 28, 85.001, 28.001), Point(85.01, 28.01), Point(85.02, 28.02), box(85.03, 28.03, 85.031, 28.031),
+                 Point(85.04, 28.04), Point(85.05, 28.05), Point(85.06, 28.06), box(85.07, 28.07, 85.08, 28.08),
+                 Point(85.09, 28.09), LineString([(85.1, 28.1), (85.11, 28.1)]), Point(85.12, 28.12)], crs="EPSG:4326")
+    out = osm.poi_layer(feats)
+    got = dict(zip(out["osm_id"], out["kind"]))
+    assert got == {"way/1": "hospital", "way/2": "clinic", "way/3": "health_post", "way/4": "school", "way/6": "shelter",
+                   "way/7": "police", "way/8": "power_plant", "way/9": "substation", "way/10": "dam", "way/11": "helipad"}
+    assert "way/5" not in got  # a bus shelter is no place for people in need
+    assert set(out["kind"]) <= set(osm.POI_KINDS)
+    assert out.set_index("osm_id").loc["way/8", "subtype"] == "hydro"
+    assert out.set_index("osm_id").loc["way/10", "geometry"].geom_type == "LineString"  # original shape, not just a point
+    assert out.set_index("osm_id").loc["way/1", "geometry"].geom_type == "Polygon"
+
+    # through extract(): the layer is written in UTM and counted
+    monkeypatch.setattr(osm, "snapshot_date", lambda event: event - timedelta(days=1))
+    empty = gpd.GeoDataFrame({"osm_id": []}, geometry=[], crs="EPSG:4326")
+    monkeypatch.setattr(osm, "fetch", lambda bbox, when, flt: feats if flt == osm.FILTERS["pois"] else empty)
+    info = osm.extract(box(85.0, 28.0, 85.2, 28.2), date(2026, 8, 26), 32645, tmp_path / "raw", tmp_path / "osm")
+    layer = gpd.read_file(tmp_path / "osm" / "pois.gpkg")
+    assert info["counts"]["pois"] == 10 and layer.crs.to_epsg() == 32645 and set(layer.geom_type) == {"Polygon", "Point", "LineString"}
+    assert "health_post" in osm.FILTERS["health"]  # small health posts also reach facilities.gpkg

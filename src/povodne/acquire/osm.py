@@ -33,11 +33,18 @@ FILTERS = {
     "roads": f"highway in ({', '.join(ROAD_TYPES)}) and geometry:line",
     "bridge_polygons": "man_made=bridge and geometry:polygon",
     "places": "place in (city, town, village, hamlet, locality)",
-    "health": "amenity in (hospital, clinic, doctors) or healthcare in (hospital, clinic, centre, doctor)",
+    "health": "amenity in (hospital, clinic, doctors, health_post) or healthcare in (hospital, clinic, centre, doctor)",
 }
 # Land use for the surface-change step (D-M3d-02): tells forest / fields / built-up apart where the optical image is cloudy.
 LANDUSE_KINDS = ("forest", "farmland", "orchard", "grass", "meadow", "vineyard", "residential", "industrial", "commercial", "retail")
 NATURAL_KINDS = ("wood", "scrub", "wetland")
+# Important places for the damage / cut-off tables and helicopter landing candidates (D-M5-03, docs/REQUEST_M1_POIS.md).
+FILTERS["pois"] = ("amenity in (hospital, clinic, doctors, health_post, school, college, university, kindergarten, police, "
+                   "fire_station, shelter) or healthcare in (hospital, clinic, centre, doctor) or emergency=assembly_point or "
+                   "power in (plant, substation) or man_made=dam or waterway in (dam, weir) or aeroway in (helipad, heliport, aerodrome)")
+POI_KINDS = ("hospital", "clinic", "health_post", "school", "police", "fire_station", "shelter", "power_plant", "substation",
+             "dam", "helipad", "airfield")
+NOT_A_SHELTER = ("public_transport", "picnic_shelter", "weather_shelter", "bicycle_parking")  # amenity=shelter that is not for people in need
 FILTERS["landuse"] = (f"(landuse in ({', '.join(LANDUSE_KINDS)}) or natural in ({', '.join(NATURAL_KINDS)})) "
                       "and geometry:polygon")
 
@@ -104,6 +111,39 @@ def fetch(bbox: list[float], when: date, flt: str) -> gpd.GeoDataFrame:
     return out
 
 
+def poi_layer(raw: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """Important places from the raw ohsome features: one `kind` per feature (first match in a fixed order, so a hospital
+    that is also a building stays a hospital), original geometry (point, line or polygon), `subtype` = the matching tag value."""
+    amen, hc = _col(raw, "amenity").fillna("").astype(str), _col(raw, "healthcare").fillna("").astype(str)
+    power, aero = _col(raw, "power").fillna("").astype(str), _col(raw, "aeroway").fillna("").astype(str)
+    man, way = _col(raw, "man_made").fillna("").astype(str), _col(raw, "waterway").fillna("").astype(str)
+    emerg, st = _col(raw, "emergency").fillna("").astype(str), _col(raw, "shelter_type").fillna("").astype(str)
+    plant_src = _col(raw, "plant:source").fillna(_col(raw, "generator:source")).fillna("").astype(str)
+    rules = [  # (kind, mask, subtype source); order matters
+        ("hospital", (amen == "hospital") | (hc == "hospital"), amen.where(amen != "", hc)),
+        ("clinic", amen.isin(["clinic", "doctors"]) | hc.isin(["clinic", "centre", "doctor"]), amen.where(amen != "", hc)),
+        ("health_post", amen == "health_post", amen),
+        ("police", amen == "police", amen),
+        ("fire_station", amen == "fire_station", amen),
+        ("shelter", ((amen == "shelter") & ~st.isin(NOT_A_SHELTER)) | (emerg == "assembly_point"), st.where(st != "", emerg)),
+        ("school", amen.isin(["school", "college", "university", "kindergarten"]), amen),
+        ("power_plant", power == "plant", plant_src),
+        ("substation", power == "substation", power),
+        ("dam", (man == "dam") | way.isin(["dam", "weir"]), man.where(man != "", way)),
+        ("helipad", aero.isin(["helipad", "heliport"]), aero),
+        ("airfield", aero == "aerodrome", aero),
+    ]
+    kind = pd.Series(pd.NA, index=raw.index, dtype="object")
+    sub = pd.Series("", index=raw.index, dtype="object")
+    for k, mask, subtype in rules:
+        free = mask & kind.isna()
+        kind[free], sub[free] = k, subtype[free]
+    keep = kind.notna() & raw.geometry.notna() & ~raw.geometry.is_empty
+    out = gpd.GeoDataFrame({"osm_id": raw["osm_id"][keep], "kind": kind[keep], "name": _col(raw, "name")[keep],
+                            "subtype": sub[keep].replace("", None)}, geometry=raw.geometry[keep], crs="EPSG:4326")
+    return out.reset_index(drop=True)
+
+
 def _col(gdf, name, default=None):
     return gdf[name] if name in gdf.columns else pd.Series([default] * len(gdf), index=gdf.index)
 
@@ -118,7 +158,7 @@ def extract(aoi: BaseGeometry, event: date, epsg: int, raw_dir: Path, osm_dir: P
     crs = f"EPSG:{epsg}"
     big, small = _bbox(aoi, buffer_m), _bbox(aoi)
     raw = {"buildings": fetch(small, when, FILTERS["buildings"]), "landuse": fetch(small, when, FILTERS["landuse"])}
-    for name in ("roads", "bridge_polygons", "places", "health"):
+    for name in ("roads", "bridge_polygons", "places", "health", "pois"):
         raw[name] = fetch(big, when, FILTERS[name])
     raw_dir.mkdir(parents=True, exist_ok=True)
     osm_dir.mkdir(parents=True, exist_ok=True)
@@ -166,8 +206,10 @@ def extract(aoi: BaseGeometry, event: date, epsg: int, raw_dir: Path, osm_dir: P
     landuse = gpd.GeoDataFrame({"osm_id": lu["osm_id"], "kind": lu_kind}, geometry=lu.geometry, crs="EPSG:4326")
     landuse = landuse[landuse["kind"].isin(LANDUSE_KINDS + NATURAL_KINDS)]
 
+    pois = poi_layer(raw["pois"])
+
     counts = {}
-    for name, gdf in (("buildings", buildings), ("landuse", landuse), ("roads", roads), ("bridges", bridges),
+    for name, gdf in (("buildings", buildings), ("landuse", landuse), ("pois", pois), ("roads", roads), ("bridges", bridges),
                       ("settlements", settlements), ("facilities", facilities)):
         gdf = gdf.to_crs(crs)
         if name in ("settlements", "facilities"):

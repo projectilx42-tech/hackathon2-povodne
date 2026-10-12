@@ -8,6 +8,8 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-12 — předzpracování hotové (D-M2-01), kontrakt beze změny:** `python -m povodne.preprocess <run>` → `aligned/`, `masks/`, `run.json.preprocess`, upozornění `step = "preprocess"`. Větev `feat/preprocess` — **master: sloučit**.
+- **2026-10-12 — satelity (D-M1-08), týká se M2, M5, M8:** `run.json.acquire.s1[_alt].geometry` (směr letu, směr pohledu, úhel dopadu) pro masku stínu v předzpracování; oblast smí být polygon / MultiPolygon (opraví se i křížící se tvar); nové upozornění `better_view_soon` (D-X-05, `docs/NOTICES.md`); nová vrstva `osm/pois.gpkg` + `health_post` ve `facilities.gpkg` (`docs/REQUEST_M1_POIS.md`), běh = 8 dotazů na ohsome. Podklad do reportu: `deliverables/report/sections/data_acquisition.md`. Naostro neověřeno (čekají klíče). Větev `claude/funny-fermat-ukdqp8` — **master: sloučit**.
 - **2026-10-12 — master: sloučeny škody, odříznuté obce, zasažení obcí a trasa povodně (`claude/cool-cray-jfyu4h`) do `main` → všichni `git fetch origin main && git merge origin/main`.**
   **Nový kontrakt spojení (D-X-06, ARCHITECTURE → *Orchestrátor*):** pořadí kroků a moduly `povodne.acquire → preprocess → flood.ai → flood.debris → flood.combine
   → damage → network → report`; **nový krok průběhu `combine`**; **PNG překryvy píše krok report** (ne UI); `flood/combine.py` patří session spojení (ne modelu);
@@ -133,7 +135,7 @@ Obtížnost a čas = odhad uživatele.
 | M8 Dashboard / webové UI | 🟨 | `ccr-d89d3cfb-ywooc4` | UI hotové nad ukázkovým runem; citlivost, hodina povodně, typy hlášek; chybí: upozornění z `notices`, podtypy suti, nové výstupy škod/sítě, trasa povodně, krok `combine` (D-X-06) |
 | 0 Skeleton + orchestrátor + složení masky | ⬜ | session spojení | zadáno 2026-10-12 (D-X-06) |
 | M1 Acquire (S1/S2/DEM/OSM) | 🟨 | `claude/funny-fermat-ukdqp8` | celý krok hotový (`python -m povodne.acquire`): katalog, hlavní dráha (D-X-01), DEM, kontrola čistoty pre (D-M1-01), S1 obě dráhy kalibrované (D-M1-02), S2, OSM; OSM přes ohsome v2 s klíčem (D-M1-06), otestováno; **předávka: `docs/HANDOFF_SATELITY.md`** |
-| M2 Preprocess | ⬜ | session předzpracování | zadáno 2026-10-12; požadavky D-033, D-035, D-M1-04 (HAND přes `acquire.terrain.hand`), D-M9-11 (S2) |
+| M2 Preprocess | ✅ | `feat/preprocess` | `python -m povodne.preprocess <run>` (D-M2-01): radar, optika, DEM, sklon, HAND, layover/shadow; testy 10/10; ověřeno jen na syntetických datech |
 | M9 AI trénink | ✅ | `claude/zen-bell-a83s7a` | v0.4 bez Bolívie (`floodseg-model`, D-M9-14); dříve v0.2, D-M9-01–11; optický model S2 a kolo 10 rozpracované; **předání: `docs/HANDOFF_M9.md`** |
 | M3 AI inference (voda) | 🟨 | `claude/zen-bell-a83s7a` | `training/run_ai.py` (+ testy): dva směry, stín z obou směrů, optika S2, min. plocha, dvoustupňový práh (D-M9-11); přesun do `src/povodne/flood/` až bude skeleton |
 | M3d Suť a bahno + změny povrchu | 🟨 | `claude/affectionate-shannon-jrnssg` | kód hotový (`python -m povodne.flood.debris`), testy na syntetickém údolí; chybí běh na skutečných datech (Opava, Derna, Trishuli) a starší snímky od M1 (D-M3d-02) |
@@ -141,7 +143,7 @@ Obtížnost a čas = odhad uživatele.
 | M5 Network / cut-off | 🟨 | `claude/cool-cray-jfyu4h` | kód hotový (`python -m povodne.network`): stavy, objížďka %, doba pěšky, stupně zasažení, pořadí naléhavosti, plán oprav, důležitá místa, plochy pro vrtulník; testy; čeká na skutečnou mapu povodně (D-M5-01–04) |
 | M6 Stats + sitrep + překryvy | ⬜ | session hlášení | zadáno 2026-10-12 (D-X-06) |
 | M7 Flood path (bonus) | 🟨 | `claude/cool-cray-jfyu4h` | kód hotový (`python -m povodne.floodpath <run> --lon --lat`), testy; UI napojení chybí (D-M7-01) |
-| M10 Validace vs EMSR927 | ⬜ | session validace | zadáno 2026-10-12 |
+| M10 Validace vs EMSR927 | 🟨 | `feat/validation` | kód + testy hotové (`validation/fetch_ems.py`, `validation/compare.py`, D-M10-01); čeká na finální běh Trishuli (porovnat jednou) |
 
 ## Blokery / známé problémy
 1. ~~Síťová politika blokuje datové zdroje~~ **VYŘEŠENO 2026-10-07**: Network access = Full.
@@ -150,6 +152,22 @@ Obtížnost a čas = odhad uživatele.
 4. Účty (CDSE, Kaggle…) zakládá uživatel až v příslušných sessions (D-011); údaje jen jako env proměnné prostředí, nikdy do repa.
 
 ## Log sessions
+### 2026-10-12 — předzpracování — `feat/preprocess`
+- Hotovo `src/povodne/preprocess/` (D-M2-01): `aligned/` (radar lineárně, průměr „před“, optika 0–1, DEM 10 m, `grid.json`) a `masks/` (sklon jako trénink,
+  HAND jako krok stahování, layover/shadow s geometrií dráhy z `run.json` nebo typickým úhlem, čisté pixely optiky stejně jako krok suti); `run.json.preprocess`,
+  průběh `preprocess`, upozornění (`docs/NOTICES.md`).
+- Testy `tests/test_preprocess.py` 10/10: převody, průměr, NaN, masky, shoda sklonu s tréninkem a HAND s krokem suti, AI krok načte vstupy (bez modelu), krok suti
+  použije masky. Syntetická oblast 30×30 km: 46 s, 1,4 GB. **Naostro neověřeno** (v prostředí nejsou klíče CDSE/ohsome).
+- Část reportu: `deliverables/report/sections/preprocessing.md`.
+### 2026-10-12 — validace vs EMSR927 — `feat/validation`
+- Nalezeny a staženy produkty EMSR927 (4 oblasti dodány, 2 zrušeny kvůli mrakům), zapsáno v `validation/README.md` a D-M10-01.
+- `validation/compare.py <run>`: plocha (IoU/P/R/F1), budovy (recall), silnice (délka, i falešné), mosty; výstupy `metrics.json`, PNG, README.
+  Ověřen formát na skutečných souborech EMS s prázdnou mapou (bez výsledků). Testy `tests/test_validation.py` (syntetika + kontrola, že pipeline nečte EMS).
+- Kostra části reportu `deliverables/report/sections/case_study.md` (čísla až po jediném porovnání finálního běhu).
+### 2026-10-12 — odevzdání: README, report, video, Devpost — `feat/deliverables`
+- Hotovo: `README.md` (instalace, klíče, spuštění, chyby, atribuce, AI assistance), `deliverables/report/report.{md,pdf}` (kostra s čísly z DECISIONS; TODO: případová studie EMSR927, himálajská čísla z reálného běhu, čas/PU na běh),
+  `deliverables/video_script.md`, `deliverables/devpost.md`, `deliverables/ui_methods_text.md` (pro UI session). Rozhodnutí D-DLV-01.
+- Zbývá: veřejné stažení vah (README má místo), `pip install -e .` a `povodne run` až je dodá session spojení, čísla z úterních běhů, odkaz na video.
 ### 2026-10-12 — master: kontext, sloučení škod/sítě, plán do odevzdání — `ccr-20f0eb8e-hlztw5`
 - Přečten kontext všech sessions a větví. Sloučena `claude/cool-cray-jfyu4h` (bez konfliktů). Zapsáno D-X-06 (spojení kroků) + ARCHITECTURE *Orchestrátor*, plán výše.
 - Zadány úkoly: nové sessions spojení, předzpracování, hlášení, validace, odevzdání; zprávy stávajícím (satelity, suť, AI model, UI, škody/síť).
@@ -182,6 +200,9 @@ Obtížnost a čas = odhad uživatele.
 - Kolo 11 na Kaggle doběhlo → **model v0.4 nasazen** (Kuro Siwo test F1 0,780; Bolívie bez snímku „před“ F1 0,21, s „před“ = „po“ 0,64; D-M9-14).
 - Dřívější průzkum (2026-10-09, jen v chatu): dlaždice Kuro Siwo jsou ve Web Mercatoru (pixel = 10 m × cos šířky), sklon v tréninku je
   proto podhodnocený proti pipeline — neopraveno, jen zjištěno.
+### 2026-10-12 — satelity: geometrie dráhy, polygon, příští průlet, důležitá místa — `claude/funny-fermat-ukdqp8`
+- Úkoly master session (D-X-06) 1–5 hotové (D-M1-08), testy `tests/test_acquire_polygon.py` (polygon, nekonvexní tvar, MultiPolygon, křížící se tvar proti celé cestě `run()` s falešnou sítí; upozornění na příští průlet) a `tests/test_acquire_hist.py` (důležitá místa).
+- Zbývá úkol 6: běh naostro (Trishuli 26. 8. 2026 malá oblast, Derna) — potřebuje `CDSE_CLIENT_ID`, `CDSE_CLIENT_SECRET`, `OHSOME_API_KEY` v prostředí.
 ### 2026-10-11 (2) — satelity: historie pixelu pro krok změn povrchu — `claude/funny-fermat-ukdqp8`
 - Sloučen `main` a větev kroku suti (`claude/affectionate-shannon-jrnssg`, požadavek `docs/REQUEST_M1_HISTORY.md`).
 - Hotovo (D-M1-07): `hist_*.tif` starších průletů obou drah (20 m, stejné kódování, znovupoužití při opakovaném běhu), `osm/landuse.gpkg`;
