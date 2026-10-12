@@ -995,7 +995,7 @@ Kontext: u Trishuli jsou snímky „před“ ze 4. a 16. 8. (vrchol monzunu, roz
 (ai_mask 4, nepočítá se jako zasažené): `flood_mask` 4 = 7,1 km² vs. povodeň 4,0 km². Proti EMSR927 (jen zpětná kontrola) je ~70 % chybějící plochy
 v údolním terénu právě ai_mask = 4.
 Rozhodnutí:
-- **Trvalá voda = pixel, který je otevřenou vodou (VV < −18 dB, 3×3 průměr) aspoň v 70 % radarových průletů téže dráhy za 365 dní před událostí**
+- **Trvalá voda = pixel, který je otevřenou vodou (VV < −15 dB = `preselect.WATER_DB`, 3×3 průměr) aspoň v 70 % radarových průletů téže dráhy za 365 dní před událostí**
   (stejná myšlenka jako referenční voda JRC / GFM, jen ze S1). Výběr: až 10 průletů rovnoměrně rozložených v roce (`acquire/permwater.py`, VV, LEE 7×7).
   **Rozlišení 20 m** (60 m by úzké řeky < 60 m vynechalo a celé koryto by se po události hlásilo jako zasažené); cena ≈ 11 PU za průlet pro 30×30 km
   → ~110 PU na běh (odhad, neměřeno). Pixely v layover/shadow hlavní dráhy = neznámo (255, jsou tmavé ve všech průletech).
@@ -1006,6 +1006,6 @@ Rozhodnutí:
   a `stats.json` → `flood.seasonal_high_water_km2` („z toho X km² bylo vodou už v monzunu před událostí“).
 - **Fallback:** < 4 průletů v katalogu (nebo chyba) → soubor se nevytvoří, upozornění `perm_water_ref_short` (warning), model zůstává beze změny.
   Referenci mají jen hlavní dráha; `s1_alt` ji nemá (jde o fyzickou vlastnost místa, ne dráhy).
-- Prahy (70 %, −18 dB, 365 dní, 10 průletů) jsou obecné a **neladí se na EMSR927** (D-006).
+- Prahy (70 %, −15 dB, 365 dní, 10 průletů) jsou obecné a **neladí se na EMSR927** (D-006).
 Omezení (do reportu): sezónní jezera a ledovcové tůně, které jsou vodou > 70 % roku, zůstanou „trvalé“; v roce s 10 průlety je frekvence hrubá (±~10 p. b.);
 řeka, která se po dubnu změnila (nový tok), může být v referenci podhodnocena.
