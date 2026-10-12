@@ -730,7 +730,7 @@ Implementace požadavku kroku změn povrchu (D-M3d-02) v kroku stahování:
   VV ze stejného dne už stažené kontrolou průletu v den povodně se nepřepoužívá (jiná mřížka, jen VV) — možná úspora do budoucna.
 - **`osm/landuse.gpkg`** (volitelná část požadavku): ohsome, stejný snapshot před událostí, filtr `landuse in (forest, farmland, orchard,
   grass, meadow, vineyard, residential, industrial, commercial, retail) or natural in (wood, scrub, wetland)`, jen polygony, jen v oblasti;
-  `kind` = hodnota `landuse`, jinak `natural`. Běh = **7 dotazů** na ohsome (limit 250/den; README upraveno).
+  `kind` = hodnota `landuse`, jinak `natural`. Běh = **8 dotazů** (7 + důležitá místa, D-M1-08) na ohsome (limit 250/den; README upraveno).
 - Testy: `tests/test_acquire_hist.py` (výběr průletů, 20m mřížka, čtení zpět krokem suti na 10 m, znovupoužití souboru, vrstva využití půdy).
   **Naostro neověřeno** (v prostředí nejsou klíče CDSE / ohsome).
 
@@ -816,6 +816,24 @@ souhrnná čísla + sitrep a obrázky pro mapu. Do odevzdání 2,5 dne → pevn�
    (už ji počítá pro výběr dráhy); předzpracování z ní spočítá masku layover/shadow stejnou funkcí `acquire.terrain.layover_shadow`.
 8. Sdílené pomocné funkce (`io.py`: čtení/zápis `run.json` atomicky, průběh, upozornění) dodá skeleton; stávající moduly mají vlastní kopie
    a **teď se nepřepisují** (riziko před termínem) — sjednocení až po odevzdání, pokud vůbec.
+
+## D-M1-08 | 2026-10-12 | přijato (uživatel: úkoly master session; D-X-05, D-X-06 bod 7, `docs/REQUEST_M1_POIS.md`) — Geometrie dráhy, polygon, upozornění na příští průlet, důležitá místa
+1. **Geometrie dráhy do `run.json`** (D-X-06 bod 7): `acquire.s1.geometry` a `acquire.s1_alt.geometry` = `{heading_deg, look_azimuth_deg, incidence_deg}`
+   ve středu oblasti (`catalog.track_geometry`, tatáž hodnota, ze které se počítá maska stínu při výběru dráhy); předzpracování z ní spočítá masku
+   stejnou funkcí `terrain.layover_shadow`. Zaokrouhleno na 0,01°.
+2. **Oblast jako polygon:** `catalog.aoi_to_geometry` bere GeoJSON geometrii, Feature, FeatureCollection i bbox a vrací vždy **platný** Polygon / MultiPolygon
+   (křížící se ručně nakreslený tvar se opraví `make_valid`; přímka nebo oblast s nulovou plochou skončí srozumitelnou chybou). Sítě se stahují
+   na **obdélníku kolem tvaru** (výřez, D-018); maska oblasti (`terrain.aoi_mask`) a pokrytí průletů se počítají z tvaru. Zkoušeno offline na polygonu,
+   nekonvexním tvaru, MultiPolygonu a tvaru, který se kříží (`tests/test_acquire_polygon.py`). Naostro neověřeno.
+3. **Upozornění `better_view_soon`** (D-X-05, kód v `docs/NOTICES.md`, závažnost `warning`): jen u čerstvé povodně (od události uplynulo nejvýš `post_horizon_days` = 20 dní)
+   a jen pro dráhu, která už má starší průlety, ale ještě nemá snímek „po“. **Příští průlet** = poslední známý průlet dráhy + obvyklý odstup (medián odstupů
+   z katalogu, jinak 12 dní; nejvýš 24 dní dopředu; když je poslední známý průlet starší než 3 odstupy, nepředpovídá se). **Přínos** = o kolik procentních bodů se zvýší
+   podíl dna údolí, které vidí aspoň jedna dráha (pixel je skrytý, jen když ho stín/layover skrývá všem použitým drahám); upozornění od +3 p. b. (`better_view_min_gain`,
+   odhad, neladěno na EMS). Z více kandidátů se vybere ten s nejlepší viditelností. Počítá se z DEM a geometrie, bez stahování snímků.
+4. **Důležitá místa z OSM** (D-M5-03): vrstva `osm/pois.gpkg` (snapshot před povodní, oblast + 15 km, původní tvar) a `amenity=health_post` ve `facilities.gpkg`
+   (jako požadavek). Jedno `kind` na prvek v pevném pořadí (nemocnice → klinika → zdravotní středisko → policie → hasiči → úkryt → škola → elektrárna → rozvodna → přehrada → heliport → letiště).
+   **Úkryt** = `amenity=shelter` (bez zastávek, pikniků a přístřešků před počasím: `shelter_type` ∈ public_transport, picnic_shelter, weather_shelter, bicycle_parking)
+   nebo `emergency=assembly_point`. `subtype` = hodnota tagu (např. zdroj elektrárny). Běh = **8 dotazů** na ohsome (limit 250/den). `run.json.acquire.osm.counts.pois`.
 
 ## D-DLV-01 | 2026-10-12 | přijato (session odevzdání) — Jak report uvádí výsledky modelu na Bolívii
 Report a Devpost uvádějí **obě čísla** ze Sen1Floods11 Bolívie (D-M9-14): F1 0,21 bez snímku „před“ a 0,64 při „před“ = „po“, s vysvětlením (model je detektor změny,

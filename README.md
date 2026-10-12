@@ -52,6 +52,7 @@ environment variables**; they are never typed into the app and never stored in t
 | CARTO (optional) | dark base map; without it an inverted OSM map is used | https://carto.com/basemaps/ | `CARTO_API_KEY` |
 
 The Copernicus DEM is downloaded from the public AWS Open Data bucket and needs no account.
+One run uses 8 ohsome requests; the free key allows 250 per day.
 
 **Copernicus key (Sentinel Hub OAuth client):**
 1. Register at https://dataspace.copernicus.eu (top right → *Register*) and confirm the e-mail.
