@@ -12,10 +12,10 @@ from povodne.acquire import permwater  # noqa: E402
 
 def test_water_frequency_and_nodata():
     dry, wet = np.full((2, 3), -8.0, np.float32), np.full((2, 3), -22.0, np.float32)
-    imgs = [wet, wet, wet, dry, dry]
+    imgs = [wet.copy(), wet.copy(), wet.copy(), dry, dry]
     imgs[0][0, 0] = np.nan  # one missing value
     f = permwater.water_frequency(imgs)
-    assert f[0, 1] == 60 and f[0, 0] == 75  # 3 of 5, 3 of 4 valid
+    assert f[0, 1] == 60 and f[0, 0] == 50  # 3 of 5; 2 of 4 valid
     assert (permwater.water_frequency(imgs, min_obs=6) == permwater.NODATA).all()
 
 
