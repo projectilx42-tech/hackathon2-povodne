@@ -204,6 +204,9 @@ class Destinations:
     def add(self, node: int, dest_id: str, name, kind: str):
         self.at.setdefault(int(node), []).append((dest_id, name, kind))
 
+    def ids(self) -> set:
+        return {d for lst in self.at.values() for d, _, _ in lst}
+
     def nodes(self, exclude: set = frozenset()) -> set:
         return {n for n, lst in self.at.items() if any(d not in exclude for d, _, _ in lst)}
 
@@ -246,10 +249,12 @@ def settlement_access(router: Router, settlements: pd.DataFrame, snap: dict, des
     cache: dict = {}
     rc_cache: dict = {}
     rows = []
+    dest_ids = dests.ids()
     for osm_id in settlements["osm_id"]:
         node, sd = snap.get(osm_id, (None, None))
         row = {"snap_dist_m": None if sd is None else round(sd, 1), "_node": node}
-        exclude = {str(osm_id)}
+        # a town is itself a destination: it must reach *another* one (same rule as facilities, D-M5-03)
+        exclude = {str(osm_id)} if str(osm_id) in dest_ids else set()
         r = _routes(router, dests, exclude, cache) if node is not None else None
         if node is None or not np.isfinite(r["pre"]["time"][node]):
             row.update(status="no_road_pre_event", nearest_dest_pre=None, dist_pre_m=None, time_pre_s=None,

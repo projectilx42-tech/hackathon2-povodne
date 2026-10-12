@@ -250,9 +250,10 @@ Na vyžádání pro zvolený bod: `python -m povodne.floodpath <run_dir> --lon X
 (nebo `aligned/dem.tif`), směr odtoku D8 (pysheds, jako HAND), sleduje tok po proudu do `max_km` nebo k okraji DEM.
 - `floodpath/path.geojson`: linie trasy (EPSG:4326) + atributy `start_lon`, `start_lat`, `length_km`; a koridor (polygon) = pixely podél trasy s HAND ≤ 20 m
   (konfigurovatelné) — `kind` ∈ {`path`, `corridor`}.
-- `floodpath/settlements_on_path.geojson`: sídla v koridoru, `osm_id`, `name`, `place`, `dist_along_km` (vzdálenost po proudu od bodu), `height_above_path_m`,
-  seřazeno po proudu; + status/stupeň ze `network/settlements_access.geojson`, pokud existuje.
-- `floodpath/along_path.json`: totéž pro mosty (z `osm/bridges.gpkg`) a důležitá místa (`facilities`, `pois`) v koridoru, seřazeno po proudu.
+- `floodpath/settlements_on_path.geojson`: sídla, která odtékají do trasy (po proudu od bodu) a leží do `near_m` (1500 m, `--near-m`) od ní, **v jakékoli výšce**
+  (horské obce stojí na terasách 100–300 m nad řekou): `osm_id`, `name`, `place`, `dist_along_km`, `dist_from_path_m`, `height_above_path_m`,
+  `in_corridor` (= výška ≤ `hand_max_m`), seřazeno po proudu; + status/stupeň/pořadí ze `network/settlements_access.geojson`, pokud existuje.
+- `floodpath/along_path.json`: totéž pro mosty (z `osm/bridges.gpkg`) a důležitá místa (`facilities`, `pois`), seřazeno po proudu.
 Bez hydrauliky: žádné časy příchodu vody, jen pořadí a vzdálenost (uvést v limitacích).
 
 ## `stats.json` (M6) — jediný zdroj čísel

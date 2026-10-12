@@ -37,6 +37,7 @@ SEVERITY = {
     "network_no_settlement_areas": "warning",
     "network_impact_skipped": "warning",
     "network_landing_skipped": "warning",
+    "network_whole_line_damage": "warning",
     "network_edge_destinations": "info",
     "network_snap_failed": "info",
     "network_possibly_cut_off": "info",
@@ -160,19 +161,65 @@ def _status_map(gdf, worst_order: list[str]) -> dict:
     return out
 
 
-def _apply_damage(G, road_status: dict, bridge_status: dict, bridges_dmg, crs) -> None:
+_RANK = {STATE_OK: 0, STATE_POSSIBLE: 1, STATE_BLOCKED: 2}
+
+
+def _edge_measure(run_dir: Path, G, edges: list) -> list | None:
+    """Re-measure single graph edges with the damage step's road rule (D-M4-01): >= 17 % of the edge or a 30 m
+    continuous stretch confidently hit -> blocked, any hit -> possibly_blocked. None if the flood mask is unusable."""
+    try:
+        from povodne.damage.pipeline import DamageConfig, _load_layers, eval_roads
+        dcfg = DamageConfig()
+        L, _, _ = _load_layers(run_dir, dcfg)
+    except Exception as exc:  # no flood mask / damage module: fall back to whole-line status
+        log.warning("per-edge damage measurement unavailable: %s", exc)
+        return None
+    gdf = gpd.GeoDataFrame({"osm_id": [G.edges[e]["osm_id"] for e in edges], "highway": [G.edges[e]["highway"] for e in edges],
+                            "bridge": False, "tunnel": False}, geometry=[G.edges[e]["geometry"] for e in edges])
+    res = eval_roads(gdf, L, dcfg, {})
+    return list(res["status"])
+
+
+def _apply_damage(G, road_status: dict, bridge_status: dict, bridges_dmg, crs, run_dir: Path | None = None) -> bool:
+    """Set edge states. The damage step gives one status per whole OSM line, so a 30 m washout would mark an 8 km
+    line blocked; ordinary road edges of a damaged line are therefore re-measured one by one (an edge never gets a
+    worse state than its line). Bridge and tunnel edges keep the line/bridge status (the bridge rule tests
+    approaches and debris, not water under the deck). Returns True if the per-edge measurement was used."""
+    remeasure = []
     for u, v, k, d in G.edges(keys=True, data=True):
         rs, bs = road_status.get(d["osm_id"]), bridge_status.get(d["osm_id"])
         if rs == "blocked" or bs == "blocked":
             d["state"] = STATE_BLOCKED
         elif rs == "possibly_blocked" or bs == "suspect":
             d["state"] = STATE_POSSIBLE
+        if d["state"] != STATE_OK and not d["bridge"] and not d["tunnel"] and bs is None:
+            remeasure.append((u, v, k))
+    per_edge = False
+    if remeasure and run_dir is not None:
+        sts = _edge_measure(run_dir, G, remeasure)
+        if sts is not None:
+            per_edge = True
+            m = {"blocked": STATE_BLOCKED, "possibly_blocked": STATE_POSSIBLE, "passable": STATE_OK}
+            new = {e: m.get(st, STATE_OK) for e, st in zip(remeasure, sts)}
+            by_line: dict = {}
+            for e in remeasure:
+                by_line.setdefault(G.edges[e]["osm_id"], []).append(e)
+            for oid, es in by_line.items():
+                line_state = G.edges[es[0]]["state"]
+                states = {e: min(new[e], line_state, key=_RANK.get) for e in es}
+                # the line's hit may straddle a junction (e.g. 2 x 15 m): then every hit edge of a blocked line stays blocked
+                if line_state == STATE_BLOCKED and not any(s_ == STATE_BLOCKED for s_ in states.values()):
+                    hit = [e for e in es if new[e] != STATE_OK] or es
+                    for e in hit:
+                        states[e] = STATE_BLOCKED
+                for e, st in states.items():
+                    G.edges[e]["state"] = st
     # man_made=bridge polygons: apply their status to bridge roads running over them
     if bridges_dmg is None or bridges_dmg.empty or "status" not in bridges_dmg.columns:
-        return
+        return per_edge
     poly = bridges_dmg[bridges_dmg.geom_type.isin(["Polygon", "MultiPolygon"]) & (bridges_dmg["status"] != "passable")]
     if poly.empty:
-        return
+        return per_edge
     poly = poly.to_crs(crs)
     from shapely import STRtree
     tree = STRtree(list(poly.geometry.values))
@@ -185,6 +232,7 @@ def _apply_damage(G, road_status: dict, bridge_status: dict, bridges_dmg, crs) -
                 d["state"] = STATE_BLOCKED
             elif sts[i] == "suspect" and d["state"] == STATE_OK:
                 d["state"] = STATE_POSSIBLE
+    return per_edge
 
 
 def _pt(geom):
@@ -264,7 +312,10 @@ def _run(run_dir: Path, cfg: NetworkConfig, notices: list, t0: float) -> dict:
     n_nodes0, n_edges0 = G.number_of_nodes(), G.number_of_edges()
     road_status = _status_map(roads_dmg, ["passable", "possibly_blocked", "blocked"])
     bridge_status = _status_map(bridges_dmg, ["passable", "suspect", "blocked"])
-    _apply_damage(G, road_status, bridge_status, bridges_dmg, roads.crs)
+    per_edge = _apply_damage(G, road_status, bridge_status, bridges_dmg, roads.crs, run_dir)
+    if roads_dmg is not None and not per_edge and any(st != "passable" for st in road_status.values()):
+        notices.append(_notice("network_whole_line_damage", "The flood mask could not be read, so a damaged road "
+                               "line is closed along its whole length (settlements along intact parts may show as cut off)."))
     _progress(run_dir, "running", f"road graph: {n_nodes0} junctions, {n_edges0} road sections; snapping settlements")
 
     # --- snapping (settlements + facilities in one pass, so edges are split consistently) -------------------
@@ -445,6 +496,7 @@ def _run(run_dir: Path, cfg: NetworkConfig, notices: list, t0: float) -> dict:
         "settlements_by_impact": {k: int(v) for k, v in impact_counts.items()},
         "facilities_by_access": {k: int(v) for k, v in fa["access"].value_counts().to_dict().items()} if len(fa) else {},
         "landing_zones": n_lz,
+        "per_edge_damage": per_edge,
         "damage_inputs": {"roads_damage": roads_dmg is not None, "bridges_damage": bridges_dmg is not None,
                           "settlement_areas": areas is not None, "facilities_damage": fac_dmg is not None},
         "params": cfg.to_json(),

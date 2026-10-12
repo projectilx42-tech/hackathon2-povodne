@@ -15,7 +15,7 @@ from shapely.geometry import LineString, Point
 
 from povodne.floodpath import trace
 
-RES, NROW, NCOL, RIVER_COL = 30.0, 120, 81, 40
+RES, NROW, NCOL, RIVER_COL = 30.0, 120, 141, 40
 X0, Y0, CRS = 500000.0, 5000000.0, "EPSG:32633"
 
 
@@ -37,9 +37,10 @@ def run_dir(tmp_path):
         ds.write(dem, 1)
     (tmp_path / "osm").mkdir()
     settl = gpd.GeoDataFrame(
-        {"osm_id": ["node/3", "node/1", "node/2"], "name": ["Downstream", "Upstream", "Hilltop"],
-         "place": ["village", "village", "hamlet"], "population": [None, None, None]},
-        geometry=[Point(cell_xy(90, 41)), Point(cell_xy(30, 39)), Point(cell_xy(60, 70))], crs=CRS)
+        {"osm_id": ["node/3", "node/1", "node/2", "node/4"], "name": ["Downstream", "Upstream", "Hilltop", "FarRidge"],
+         "place": ["village", "village", "hamlet", "hamlet"], "population": [None, None, None, None]},
+        # Hilltop: 30 cells = 900 m from the river, 90 m above it; FarRidge: 1.8 km from the river (> near_m 1500 m)
+        geometry=[Point(cell_xy(90, 41)), Point(cell_xy(30, 39)), Point(cell_xy(60, 70)), Point(cell_xy(50, 100))], crs=CRS)
     settl.to_file(tmp_path / "osm" / "settlements.gpkg", driver="GPKG")
     bridges = gpd.GeoDataFrame({"osm_id": ["way/9"], "highway": ["primary"], "name": ["River bridge"]},
                                geometry=[LineString([cell_xy(70, 36), cell_xy(70, 44)])], crs=CRS)
@@ -69,19 +70,33 @@ def test_trace_follows_valley_and_lists_settlements(run_dir):
     assert kinds["corridor"]["geometry"]["type"] in ("Polygon", "MultiPolygon")
 
     settl = json.loads((run_dir / "floodpath" / "settlements_on_path.geojson").read_text())["features"]
+    props = {f["properties"]["name"]: f["properties"] for f in settl}
     names = [f["properties"]["name"] for f in settl]
-    assert names == ["Upstream", "Downstream"]               # downstream order, hilltop excluded
+    assert names == ["Upstream", "Hilltop", "Downstream"]    # downstream order; FarRidge (> near_m) excluded
     d = [f["properties"]["dist_along_km"] for f in settl]
-    assert d[0] < d[1]
-    assert all(0 <= f["properties"]["height_above_path_m"] <= 20 for f in settl)
-    assert settl[1]["properties"]["status"] == "cut_off" and settl[0]["properties"]["status"] is None
+    assert d == sorted(d)
+    for n in ("Upstream", "Downstream"):
+        assert props[n]["in_corridor"] is True and 0 <= props[n]["height_above_path_m"] <= 20
+        assert props[n]["dist_from_path_m"] <= 31
+    assert props["Hilltop"]["in_corridor"] is False
+    assert props["Hilltop"]["height_above_path_m"] == pytest.approx(90, abs=3)
+    assert props["Hilltop"]["dist_from_path_m"] == pytest.approx(900, abs=1)
+    assert props["Downstream"]["status"] == "cut_off" and props["Upstream"]["status"] is None
 
     along = json.loads((run_dir / "floodpath" / "along_path.json").read_text())
     assert [b["osm_id"] for b in along["bridges"]] == ["way/9"]
     assert along["bridges"][0]["dist_along_km"] == pytest.approx((70 - start_row) * RES / 1000, abs=0.01)
 
     run = json.loads((run_dir / "run.json").read_text())
-    assert run["run_id"] == "synthetic" and run["floodpath"]["n_settlements"] == 2
+    assert run["run_id"] == "synthetic" and run["floodpath"]["n_settlements"] == 3
+    assert run["floodpath"]["n_settlements_in_corridor"] == 2
+
+
+def test_near_m_limits_listing(run_dir):
+    lon, lat = to_ll(*cell_xy(5, RIVER_COL))
+    trace(run_dir, lon, lat, near_m=500)
+    settl = json.loads((run_dir / "floodpath" / "settlements_on_path.geojson").read_text())["features"]
+    assert [f["properties"]["name"] for f in settl] == ["Upstream", "Downstream"]  # Hilltop (900 m) now too far
 
 
 def test_max_km_limits_path(run_dir):
@@ -89,7 +104,7 @@ def test_max_km_limits_path(run_dir):
     s = trace(run_dir, lon, lat, max_km=0.5)
     assert s["stop_reason"] == "max_km" and s["length_km"] <= 0.5
     settl = json.loads((run_dir / "floodpath" / "settlements_on_path.geojson").read_text())["features"]
-    assert settl == []                                       # both valley villages are below the end of the 0.5 km path
+    assert settl == []                                       # all settlements drain in below the end of the 0.5 km path
 
 
 def test_point_outside_dem(run_dir):
