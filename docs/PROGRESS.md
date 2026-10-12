@@ -8,6 +8,7 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-12 — satelity (D-M1-08), týká se M2, M5, M8:** `run.json.acquire.s1[_alt].geometry` (směr letu, směr pohledu, úhel dopadu) pro masku stínu v předzpracování; oblast smí být polygon / MultiPolygon (opraví se i křížící se tvar); nové upozornění `better_view_soon` (D-X-05, `docs/NOTICES.md`); nová vrstva `osm/pois.gpkg` + `health_post` ve `facilities.gpkg` (`docs/REQUEST_M1_POIS.md`), běh = 8 dotazů na ohsome. Podklad do reportu: `deliverables/report/sections/data_acquisition.md`. Naostro neověřeno (čekají klíče). Větev `claude/funny-fermat-ukdqp8` — **master: sloučit**.
 - **2026-10-12 — master: sloučeny škody, odříznuté obce, zasažení obcí a trasa povodně (`claude/cool-cray-jfyu4h`) do `main` → všichni `git fetch origin main && git merge origin/main`.**
   **Nový kontrakt spojení (D-X-06, ARCHITECTURE → *Orchestrátor*):** pořadí kroků a moduly `povodne.acquire → preprocess → flood.ai → flood.debris → flood.combine
   → damage → network → report`; **nový krok průběhu `combine`**; **PNG překryvy píše krok report** (ne UI); `flood/combine.py` patří session spojení (ne modelu);
@@ -186,6 +187,9 @@ Obtížnost a čas = odhad uživatele.
 - Kolo 11 na Kaggle doběhlo → **model v0.4 nasazen** (Kuro Siwo test F1 0,780; Bolívie bez snímku „před“ F1 0,21, s „před“ = „po“ 0,64; D-M9-14).
 - Dřívější průzkum (2026-10-09, jen v chatu): dlaždice Kuro Siwo jsou ve Web Mercatoru (pixel = 10 m × cos šířky), sklon v tréninku je
   proto podhodnocený proti pipeline — neopraveno, jen zjištěno.
+### 2026-10-12 — satelity: geometrie dráhy, polygon, příští průlet, důležitá místa — `claude/funny-fermat-ukdqp8`
+- Úkoly master session (D-X-06) 1–5 hotové (D-M1-08), testy `tests/test_acquire_polygon.py` (polygon, nekonvexní tvar, MultiPolygon, křížící se tvar proti celé cestě `run()` s falešnou sítí; upozornění na příští průlet) a `tests/test_acquire_hist.py` (důležitá místa).
+- Zbývá úkol 6: běh naostro (Trishuli 26. 8. 2026 malá oblast, Derna) — potřebuje `CDSE_CLIENT_ID`, `CDSE_CLIENT_SECRET`, `OHSOME_API_KEY` v prostředí.
 ### 2026-10-11 (2) — satelity: historie pixelu pro krok změn povrchu — `claude/funny-fermat-ukdqp8`
 - Sloučen `main` a větev kroku suti (`claude/affectionate-shannon-jrnssg`, požadavek `docs/REQUEST_M1_HISTORY.md`).
 - Hotovo (D-M1-07): `hist_*.tif` starších průletů obou drah (20 m, stejné kódování, znovupoužití při opakovaném běhu), `osm/landuse.gpkg`;
