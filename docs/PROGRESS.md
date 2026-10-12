@@ -153,6 +153,8 @@ Obtížnost a čas = odhad uživatele.
 ### 2026-10-12 — master: kontext, sloučení škod/sítě, plán do odevzdání — `ccr-20f0eb8e-hlztw5`
 - Přečten kontext všech sessions a větví. Sloučena `claude/cool-cray-jfyu4h` (bez konfliktů). Zapsáno D-X-06 (spojení kroků) + ARCHITECTURE *Orchestrátor*, plán výše.
 - Zadány úkoly: nové sessions spojení, předzpracování, hlášení, validace, odevzdání; zprávy stávajícím (satelity, suť, AI model, UI, škody/síť).
+- Nové sessions (prostředí „hackathon 2“): spojení `feat/integration`, předzpracování `feat/preprocess`, hlášení `feat/report`, validace `feat/validation`, odevzdání `feat/deliverables`. Stávající: satelity `claude/funny-fermat-ukdqp8`, suť `claude/affectionate-shannon-jrnssg`, AI model `claude/zen-bell-a83s7a`, UI `ccr-d89d3cfb-ywooc4`, škody/síť `claude/cool-cray-jfyu4h`. Hotové větve hlásí master session (`session_012vfQAzPUiicnY1LGkusJjV`), ta slučuje do `main`.
+- Kontrakt doplněn: `acquire.s1[_alt].geometry` (geometrie dráhy pro masku radarového stínu, D-X-06 bod 7).
 ### 2026-10-12 — škody, odříznuté obce, zasažení obcí, trasa povodně — `claude/cool-cray-jfyu4h`
 - Rešerše (3 agenti: odříznutí po povodních, stupně škod EMS/UNOSAT, potřeby záchranářů) → návrh probrán s uživatelem; rozhodnutí D-M4-01, D-M5-01–04, D-M7-01, kontrakt v ARCHITECTURE.
   Uživatel: celý svět (nic nepálského), bez lávek/pěšin, bez odhadu obyvatel, 5 stupňů zasažení, body „zahrazení řeky“ a „dostupnost za X min“ ne.
