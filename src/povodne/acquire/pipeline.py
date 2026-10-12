@@ -7,6 +7,9 @@ Missing Sentinel Hub credentials stop the step with a clear message before anyth
 from __future__ import annotations
 
 import json
+import shutil
+import threading
+import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -17,7 +20,7 @@ import numpy as np
 import rasterio
 from rasterio.warp import Resampling, reproject, transform_bounds
 
-from . import permwater, catalog, osm, preselect, sentinel2, terrain
+from . import cache, permwater, catalog, osm, preselect, sentinel2, terrain
 from .notices import Notice
 from .sentinelhub import (S1_DB_OFFSET, S1_DB_SCALE, Grid, MissingCredentials, SentinelHub, decode_db, fetch_s1,
                           smooth_3x3, utm_grid)
@@ -38,6 +41,8 @@ class AcquireConfig:
     now: datetime | None = None  # test hook: pretend it is this moment (UTC) when judging whether a pass is still to come
     n_hist: int = 4  # earlier passes of the same track kept as pixel history for the surface-change step (D-M3d-02)
     perm_lookback_days: int = 365  # reference record for permanent water (D-M10-02)
+    perm_res_m: float = 20.0  # resolution of the reference; narrow rivers need 20 m (D-M10-02)
+    workers: int = 6  # parallel Sentinel Hub requests in flight (SentinelHub itself allows MAX_PARALLEL_REQUESTS at once)
     perm_n_passes: int = 10  # passes sampled from it (~11 PU each for 30x30 km at 20 m, VV only)
     hist_res_m: float = 20.0  # ~22 PU per VV+VH image for 30x30 km
 
@@ -49,6 +54,11 @@ def _load(run_dir: Path) -> dict:
 
 
 def _save(run_dir: Path, rj: dict, keep_progress: bool = True) -> None:
+    with _LOCK:
+        _save_locked(run_dir, rj, keep_progress)
+
+
+def _save_locked(run_dir: Path, rj: dict, keep_progress: bool) -> None:
     current = run_dir / "run.json"
     if keep_progress and current.exists():  # progress is written by _progress; never roll it back with an older copy
         rj["progress"] = json.loads(current.read_text()).get("progress", rj.get("progress"))
@@ -57,7 +67,27 @@ def _save(run_dir: Path, rj: dict, keep_progress: bool = True) -> None:
     tmp.replace(run_dir / "run.json")
 
 
+_PHASES: list[tuple[float, str]] = []  # (monotonic time, message) of every "running" progress message of this run
+_LOCK = threading.RLock()  # run.json is read-modify-written by _progress / _save
+
+
+def phase_timings(end: float | None = None) -> dict[str, float]:
+    """Seconds spent in each phase (from one progress message to the next); repeated messages are summed."""
+    end = time.monotonic() if end is None else end
+    out: dict[str, float] = {}
+    for (t0, msg), nxt in zip(_PHASES, [t for t, _ in _PHASES[1:]] + [end]):
+        out[msg] = round(out.get(msg, 0.0) + nxt - t0, 1)
+    return out
+
+
 def _progress(run_dir: Path, state: str, message: str) -> None:
+    with _LOCK:
+        if state == "running":
+            _PHASES.append((time.monotonic(), message))
+        _write_progress(run_dir, state, message)
+
+
+def _write_progress(run_dir: Path, state: str, message: str) -> None:
     rj = _load(run_dir)
     prog = rj.setdefault("progress", {"state": "running", "steps": []})
     steps = prog.setdefault("steps", [])
@@ -185,6 +215,7 @@ def _to_grid(src: np.ndarray, dem: terrain.Dem, grid: Grid, resampling=Resamplin
 def run(run_dir: Path, cfg: AcquireConfig | None = None) -> None:
     cfg = cfg or AcquireConfig()
     run_dir = Path(run_dir)
+    _PHASES.clear()
     rj = _load(run_dir)
     # This step's warnings are kept in acquire.warnings and replaced on a re-run; other modules' warnings stay.
     previous = set((rj.get("acquire") or {}).get("warnings", []))
@@ -212,13 +243,95 @@ def run(run_dir: Path, cfg: AcquireConfig | None = None) -> None:
         raise
 
 
+def _s2_job(aoi, event, grid, dem, run_dir: Path, cfg: AcquireConfig):
+    """Choose and download the Sentinel-2 images (runs in a background thread; returns (run.json block | None, warnings))."""
+    warnings: list[Notice] = []
+    try:
+        aoi_m = _to_grid(terrain.aoi_mask(aoi, dem).astype(np.uint8), dem, grid) > 0
+        ch = sentinel2.choose(aoi, event, grid, aoi_m, cfg.lookback_days, cfg.post_horizon_days)
+        warnings += ch.warnings
+        s2 = {"source": "AWS Open Data (earth-search sentinel-2-l2a)", "pre": None, "post": None,
+              "bands": list(sentinel2.BANDS) + ["SCL"]}
+        for name, d in (("pre", ch.pre), ("post", ch.post)):
+            if d is not None:
+                s2[name] = _s2_download(d, grid, run_dir / "raw" / "s2" / f"{name}_{d.day:%Y%m%d}.tif")
+        return s2, warnings
+    except Exception as exc:  # optical data is optional
+        warnings.append(Notice("s2_failed", f"Optical Sentinel-2 images could not be downloaded ({exc}); radar only.",
+                               error=str(exc)))
+        return None, warnings
+
+
+S2_CACHE_VERSION = "v2-boa-offset-fix"  # part of the cache key; bump when sentinel2.download changes its output
+
+
+def _s2_download(d, grid: Grid, path: Path) -> dict:
+    """sentinel2.download through the cross-run cache (D-M10-04): the image file and its scale/offset record."""
+    ck = cache.key("s2", S2_CACHE_VERSION, list(d.ids), (grid.epsg, grid.x0, grid.y1, grid.width, grid.height, grid.res))
+    meta = run_meta = None
+    if cache.get_file("s2", ck, path, ".tif"):
+        tmp = path.with_suffix(".json.tmp")
+        if cache.get_file("s2", ck, tmp, ".json"):
+            run_meta = json.loads(tmp.read_text())
+            tmp.unlink(missing_ok=True)
+            return run_meta
+        path.unlink(missing_ok=True)  # image without its record: download again
+    meta = sentinel2.download(d, grid, path)
+    tmp = path.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(meta))
+    cache.put_file("s2", ck, path, ".tif")
+    cache.put_file("s2", ck, tmp, ".json")
+    tmp.unlink(missing_ok=True)
+    return meta
+
+
+def _osm_job(aoi, event, epsg, run_dir: Path, cfg: AcquireConfig):
+    """Pre-event OpenStreetMap through ohsome (background thread; returns (info | None, warnings))."""
+    try:
+        ck = cache.key("osm", aoi.wkb_hex, event.isoformat(), epsg, cfg.osm_buffer_m, "v1")
+        stage = run_dir / ".osm_cache_tmp"
+        if cache.get_dir("osm", ck, stage) and (stage / "info.json").exists():
+            info = json.loads((stage / "info.json").read_text())
+            for part in ("raw/osm", "osm"):
+                if (stage / part).exists():
+                    shutil.copytree(stage / part, run_dir / part, dirs_exist_ok=True)
+            shutil.rmtree(stage, ignore_errors=True)
+            return info, []
+        shutil.rmtree(stage, ignore_errors=True)
+        info = osm.extract(aoi, event, epsg, run_dir / "raw" / "osm", run_dir / "osm", cfg.osm_buffer_m)
+        bundle = run_dir / ".osm_bundle_tmp"
+        shutil.rmtree(bundle, ignore_errors=True)
+        for part in ("raw/osm", "osm"):
+            if (run_dir / part).exists():
+                shutil.copytree(run_dir / part, bundle / part)
+        (bundle).mkdir(exist_ok=True)
+        (bundle / "info.json").write_text(json.dumps(info, default=str))
+        cache.put_dir("osm", ck, bundle)
+        shutil.rmtree(bundle, ignore_errors=True)
+        return info, []
+    except osm.MissingOhsomeKey as exc:
+        return None, [Notice("osm_key_missing", f"{exc} Without it, damage and cut-off analysis are not possible.")]
+    except Exception as exc:
+        return None, [Notice("osm_failed", f"OpenStreetMap (buildings, roads) could not be downloaded ({exc}); "
+                             "damage and cut-off analysis are not possible.", error=str(exc))]
+
+
 def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings: list[Notice]) -> None:
     aoi = catalog.aoi_to_geometry(rj["aoi"])
     event = date.fromisoformat(rj["event_date"])
     epsg = terrain.utm_epsg(aoi.centroid.x, aoi.centroid.y)
     rj["crs"] = f"EPSG:{epsg}"
     acq: dict = rj.setdefault("acquire", {})
+    pool = ThreadPoolExecutor(max_workers=cfg.workers)  # fan-out of Sentinel Hub requests (limited by SentinelHub's slots)
+    bg = ThreadPoolExecutor(max_workers=3)  # independent long jobs: OpenStreetMap, Sentinel-2, permanent-water reference
+    try:
+        _run_with_pools(run_dir, rj, cfg, sh, warnings, aoi, event, epsg, acq, pool, bg)
+    finally:
+        pool.shutdown(wait=False, cancel_futures=True)
+        bg.shutdown(wait=False, cancel_futures=True)
 
+
+def _run_with_pools(run_dir, rj, cfg, sh, warnings, aoi, event, epsg, acq, pool, bg) -> None:
     _progress(run_dir, "running", "searching the Sentinel-1 catalogue")
     event_time = _parse_time(rj.get("event_time"))
     pw = rj.get("post_window")
@@ -234,6 +347,7 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
         _progress(run_dir, "done", "insufficient data: no Sentinel-1 pre/post pair for this area and date")
         return
 
+    osm_job = bg.submit(_osm_job, aoi, event, epsg, run_dir, cfg) if cfg.osm else None  # ohsome runs while radar is fetched
     _progress(run_dir, "running", "downloading the Copernicus DEM, computing terrain")
     dem = terrain.fetch_dem(aoi)
     dem.save(run_dir / "raw" / "dem" / "dem.tif")
@@ -244,6 +358,9 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
             ds.write(dem.water, 1)
     acq["dem"] = {"source": "AWS Open Data (copernicus-dem-30m)", "product": "COP-DEM GLO-30", "crs": dem.crs, "res_m": dem.res,
                   "water_mask": dem.water is not None, "hand_stream_cells": terrain.HAND_STREAM_CELLS}
+    bounds = transform_bounds("EPSG:4326", f"EPSG:{epsg}", *aoi.bounds, densify_pts=21)
+    grid = utm_grid(bounds, epsg, 10.0)
+    s2_job = bg.submit(_s2_job, aoi, event, grid, dem, run_dir, cfg) if cfg.s2 else None
     hand = terrain.hand(dem)
     floor = terrain.valley_floor(hand, terrain.slope_deg(dem.data, dem.res), water=dem.water) & terrain.aoi_mask(aoi, dem)
     masks: dict = {}
@@ -259,8 +376,6 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
             masks[t.key] = lay | sh_mask
         return masks[t.key]
 
-    bounds = transform_bounds("EPSG:4326", f"EPSG:{epsg}", *aoi.bounds, densify_pts=21)
-
     # A pass on the event day itself: use it as post only if the image clearly shows a change (D-M1-03).
     for t in plan.tracks:
         if t.same_day is None or not t.pre_candidates:
@@ -269,8 +384,9 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
         cgrid = utm_grid(bounds, epsg, cfg.same_day_res_m)
         usable_c = _to_grid((floor & ~track_mask(t)).astype(np.uint8), dem, cgrid) > 0
         vv = lambda a: preselect.smooth_db(decode_db(fetch_s1(sh, cgrid, a.start, t.direction, cfg.speckle, bands=("VV",))[0]))
-        hist = [vv(a) for a in t.pre_candidates[-4:]]  # up to 4 earlier passes of the same track
-        change = preselect.change_fraction(vv(t.same_day), hist, usable_c)
+        got = list(pool.map(vv, t.pre_candidates[-4:] + [t.same_day]))  # up to 4 earlier passes + the event-day pass
+        hist, same = got[:-1], got[-1]
+        change = preselect.change_fraction(same, hist, usable_c)
         baseline = preselect.change_fraction(hist[-1], hist[:-1], usable_c) if len(hist) >= 3 else None
         dec = preselect.judge_same_day(change, baseline)
         t.same_day_info = {"datetime": t.same_day.to_json()["datetime"], "used_as_post": dec.use_as_post, "reason": dec.reason,
@@ -297,6 +413,11 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
     vis = {t.key: terrain.valley_visibility(floor, blocked(t), np.zeros_like(floor)) for t in (plan.main, plan.alt) if t}
     plan = catalog.choose_main(plan, vis)
     main, alt = plan.main, plan.alt
+    # Permanent-water reference (D-M10-02): a year of passes of the main track, built in the background (4 Sentinel Hub slots shared)
+    pgrid = coarse_grid(utm_grid(bounds, epsg, 10.0), cfg.perm_res_m)
+    perm_job = bg.submit(permwater.build, run_dir, sh, aoi, event, main.key, catalog.local_clock(aoi.centroid), pgrid,
+                         _to_grid(track_mask(main).astype(np.uint8), dem, pgrid) > 0, cfg.perm_lookback_days,
+                         cfg.perm_n_passes, cfg.speckle, pool)
     # D-X-05: a track without an after-image yet (fresh flood) may show hidden valley floor when it passes next.
     now = cfg.now or datetime.now(timezone.utc)
     if (now.date() - event).days <= cfg.post_horizon_days:
@@ -321,16 +442,14 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
                            datetime_local=f"{post_local:%Y-%m-%dT%H:%M}", days_after_event=days_after))
 
     # Water-share series on the main track's valley floor (D-M1-01).
-    grid = utm_grid(bounds, epsg, 10.0)
     sgrid = utm_grid(bounds, epsg, cfg.series_res_m)
     # Known permanent water (sea, lakes, wide rivers from the DEM water mask) is left out: the series looks for new water.
     usable = _to_grid((floor & ~track_mask(main) & ~terrain.permanent_water(dem)).astype(np.uint8), dem, sgrid) > 0
     cands = main.pre_candidates
     _progress(run_dir, "running", f"checking {len(cands)} earlier passes for flooding before the event date")
-    fracs: list[float | None] = []
-    for a in cands:
-        vv = decode_db(fetch_s1(sh, sgrid, a.start, main.direction, cfg.speckle, bands=("VV",))[0])
-        fracs.append(preselect.water_fraction(vv, usable))
+    fracs: list[float | None] = list(pool.map(
+        lambda a: preselect.water_fraction(
+            decode_db(fetch_s1(sh, sgrid, a.start, main.direction, cfg.speckle, bands=("VV",))[0]), usable), cands))
     user_window = _parse_window(rj.get("pre_window"))
     choice = preselect.choose_pre([a.start for a in cands], fracs, cfg.n_pre, user_window)
     warnings += choice.warnings
@@ -359,27 +478,27 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
             continue
         _progress(run_dir, "running", f"downloading Sentinel-1 {t.direction.lower()} track {t.relative_orbit}")
         out_dir = run_dir / "raw" / folder
-        blocks[key]["pre"] = [_s1(out_dir / f"pre_{a.start:%Y%m%d}.tif", grid, sh, a, t.direction, cfg.speckle) for a in pres]
-        blocks[key]["post"] = [_s1(out_dir / f"post_{t.post.start:%Y%m%d}.tif", grid, sh, t.post, t.direction, cfg.speckle)]
-        # Older passes of the same track as pixel history for the surface-change step (D-M3d-02): VV+VH, same encoding, 20 m.
         hist = hist_passes(t.pre_candidates, pres, cfg.n_hist)
         if hist:
             _progress(run_dir, "running", f"downloading {len(hist)} older passes of track {t.relative_orbit} (pixel history)")
         hgrid = coarse_grid(grid, cfg.hist_res_m)
-        blocks[key]["hist"] = [{k: v for k, v in _s1(out_dir / f"hist_{a.start:%Y%m%d}.tif", hgrid, sh, a, t.direction,
-                                                    cfg.speckle).items() if k in ("id", "datetime", "file", "valid_pct")}
-                               for a in hist]
+        # before-, after-image and the older passes (pixel history for the surface-change step, D-M3d-02: VV+VH, 20 m) in parallel
+        jobs = ([(out_dir / f"pre_{a.start:%Y%m%d}.tif", grid, a) for a in pres]
+                + [(out_dir / f"post_{t.post.start:%Y%m%d}.tif", grid, t.post)]
+                + [(out_dir / f"hist_{a.start:%Y%m%d}.tif", hgrid, a) for a in hist])
+        res = list(pool.map(lambda j: _s1(j[0], j[1], sh, j[2], t.direction, cfg.speckle), jobs))
+        blocks[key]["pre"], blocks[key]["post"] = res[:len(pres)], res[len(pres):len(pres) + 1]
+        blocks[key]["hist"] = [{k: v for k, v in r.items() if k in ("id", "datetime", "file", "valid_pct")}
+                               for r in res[len(pres) + 1:]]
         blocks[key]["processing"] = {"backCoeff": "SIGMA0_ELLIPSOID", "orthorectify": True, "dem": "COPERNICUS_30",
                                      "speckle": (f"LEE {cfg.speckle}x{cfg.speckle} + 3x3 mean (linear)" if cfg.speckle else "none"),
                                      "encoding": "UINT16, dB = value*0.001-50, 0 = nodata"}
-    # Permanent-water reference: water frequency over the year before the event (D-M10-02).
+    # Permanent-water reference: water frequency over the year before the event (D-M10-02); it was started in the
+    # background once the main track was known and has been running while the other images were downloaded.
     if blocks.get("s1") is not None:
-        _progress(run_dir, "running", "building the permanent-water reference from a year of Sentinel-1 passes")
+        _progress(run_dir, "running", "waiting for the permanent-water reference")
         try:
-            pgrid = coarse_grid(grid, cfg.hist_res_m)
-            hidden = _to_grid(track_mask(main).astype(np.uint8), dem, pgrid) > 0
-            ref = permwater.build(run_dir, sh, aoi, event, main.key, catalog.local_clock(aoi.centroid), pgrid, hidden,
-                                  cfg.perm_lookback_days, cfg.perm_n_passes, cfg.speckle)
+            ref = perm_job.result()
         except Exception as exc:  # the reference is an improvement, never a reason to lose the run
             ref = {"file": None, "error": str(exc)}
         blocks["s1"]["perm_ref"] = ref
@@ -406,36 +525,22 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
     acq["hist_grid"] = {"x0": grid.x0, "y1": grid.y1, "res": cfg.hist_res_m}
     _save(run_dir, rj)
 
-    if cfg.s2:
-        _progress(run_dir, "running", "choosing Sentinel-2 images (clouds)")
-        try:
-            aoi_m = _to_grid(terrain.aoi_mask(aoi, dem).astype(np.uint8), dem, grid) > 0
-            ch = sentinel2.choose(aoi, event, grid, aoi_m, cfg.lookback_days, cfg.post_horizon_days)
-            warnings += ch.warnings
-            s2 = {"source": "AWS Open Data (earth-search sentinel-2-l2a)", "pre": None, "post": None,
-                  "bands": list(sentinel2.BANDS) + ["SCL"]}
-            for name, d in (("pre", ch.pre), ("post", ch.post)):
-                if d is not None:
-                    _progress(run_dir, "running", f"downloading Sentinel-2 {name}-event image {d.day}")
-                    s2[name] = sentinel2.download(d, grid, run_dir / "raw" / "s2" / f"{name}_{d.day:%Y%m%d}.tif")
-            acq["s2"] = s2
-        except Exception as exc:  # optical data is optional
-            warnings.append(Notice("s2_failed", f"Optical Sentinel-2 images could not be downloaded ({exc}); radar only.",
-                                   error=str(exc)))
+    if s2_job is not None:  # Sentinel-2 and OpenStreetMap were downloaded in the background
+        _progress(run_dir, "running", "waiting for Sentinel-2")
+        s2_info, s2_warn = s2_job.result()
+        warnings += s2_warn
+        if s2_info is not None:
+            acq["s2"] = s2_info
         _save(run_dir, rj)
-
-    if cfg.osm:
-        _progress(run_dir, "running", "downloading pre-event OpenStreetMap (ohsome)")
-        try:
-            info = osm.extract(aoi, event, epsg, run_dir / "raw" / "osm", run_dir / "osm", cfg.osm_buffer_m)
+    if osm_job is not None:
+        _progress(run_dir, "running", "waiting for OpenStreetMap")
+        info, osm_warn = osm_job.result()
+        warnings += osm_warn
+        if info is not None:
             rj["osm_snapshot_date"] = info["osm_snapshot_date"]
             acq["osm"] = info
-        except osm.MissingOhsomeKey as exc:
-            warnings.append(Notice("osm_key_missing", f"{exc} Without it, damage and cut-off analysis are not possible."))
-        except Exception as exc:
-            warnings.append(Notice("osm_failed", f"OpenStreetMap (buildings, roads) could not be downloaded ({exc}); "
-                                   "damage and cut-off analysis are not possible.", error=str(exc)))
     acq["pu_spent"] = round(sh.pu_spent, 1)
+    acq["timings_s"] = phase_timings()  # where the time went (seconds per phase), for the UI and for speed work
     _store_warnings(rj, warnings)
     _save(run_dir, rj)
     _progress(run_dir, "done", f"acquired: main track {main.relative_orbit} {main.direction.lower()} "

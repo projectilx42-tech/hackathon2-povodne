@@ -1043,3 +1043,12 @@ Jedna dráha pravidlo nespustí. Žádná mapa EMS jako vstup; k se nevybíralo 
 Zkušební čísla proti EMSR927 (jen měření; před pravidlem P 0,973 R 0,628 F1 0,763): k = 1,0 → R 0,656 / P 0,970; **k = 1,5 → R 0,646 / P 0,973 / F1 0,777**; k = 2,0 → R 0,640 / P 0,973.
 **Obě dráhy po události už se používají:** hlavní 85 ASC (post 28. 8.), druhá 19 DESC (post 5. 9.), model i změny se spojují po pixelech (D-034); jiná dráha s pokrytím ≥ 90 % v katalogu není.
 Omezení (do reportu): zbytek minuté plochy je převážně na svazích > 15° (sesuvy, jiný krok) a v radarovém stínu; slabý signál na okraji nejde odlišit od zemědělských změn bez optiky.
+
+## D-M10-04 | 2026-10-12 | přijato (úkol od master session) — Zrychlení běhu (souběžné stahování, mezipaměť, rychlejší inference)
+Cíl: porotci spouštějí živě; celé údolí ~30–60 min, malá oblast má jít pod ~5 min. Výsledky se nesmí změnit (F1 0,772 ± šum).
+- **Měření:** `run.json.timings_s` (sekundy na krok, píše `cli`) a `run.json.acquire.timings_s` (sekundy na fázi stahování; klíč = text hlášky o průběhu).
+- **Souběžné stahování:** vlákna ve `acquire/pipeline.py` — OSM (ohsome) a Sentinel-2 běží na pozadí vedle radaru, roční reference trvalé vody taky; snímky S1 (před, po, historie obou drah, řada pro výběr „před“, kontrola dne povodně) se stahují paralelně.
+  `SentinelHub` je bezpečný pro vlákna (zámek na token a počítadlo PU) a pouští najednou nejvýš 4 požadavky (limit služby je 300/min). Zápis `run.json` je pod zámkem; vlákna nezapisují průběh (jen hlavní vlákno).
+- **Mezipaměť mezi běhy** (`acquire/cache.py`, `data/cache/`, v `.gitignore`; `POVODNE_CACHE` mění adresář, `POVODNE_NO_CACHE=1` vypíná): klíč = hash všeho, co určuje obsah (S1: scéna, dráha, mřížka, polarizace, filtr, zpracování; S2: ID scén + mřížka + verze;
+  OSM: oblast, snímek, okraj). Zápis dočasný soubor + `os.replace` (atomické, bezpečné při souběhu), poškozený soubor = vynechání cache.
+- **Inference AI:** model v paměťovém formátu `channels_last` (1,8× rychlejší na CPU, rozdíl pravděpodobností ≤ 2,4·10⁻⁷) a `torch.inference_mode()`.

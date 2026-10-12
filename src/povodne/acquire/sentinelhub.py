@@ -11,12 +11,15 @@ from __future__ import annotations
 
 import math
 import os
+import threading
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 import numpy as np
 import requests
+
+from . import cache
 
 TOKEN_URL = "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token"
 PROCESS_URL = "https://sh.dataspace.copernicus.eu/api/v1/process"
@@ -61,6 +64,10 @@ class Grid:
                 yield r, c, Grid(self.epsg, self.x0 + c * self.res, self.y1 - r * self.res, w, h, self.res)
 
 
+S1_PROCESSING = "SIGMA0_ELLIPSOID+orthorectify+COPERNICUS_30+UINT16dB"  # part of the cache key; change it with the request body
+MAX_PARALLEL_REQUESTS = 4  # simultaneous Process API requests (the limit is 300/min, a 512x512 tile takes seconds)
+
+
 class SentinelHub:
     def __init__(self, client_id: str | None = None, client_secret: str | None = None):
         self.client_id = client_id or os.environ.get("CDSE_CLIENT_ID", "")
@@ -69,8 +76,14 @@ class SentinelHub:
             raise MissingCredentials(CREDENTIALS_HELP)
         self._token, self._expires = "", 0.0
         self.pu_spent = 0.0
+        self._lock = threading.Lock()  # token and PU counter are shared by the download threads
+        self._slots = threading.BoundedSemaphore(MAX_PARALLEL_REQUESTS)  # stay well below the 300 requests/min limit
 
     def _auth(self) -> str:
+        with self._lock:
+            return self._auth_locked()
+
+    def _auth_locked(self) -> str:
         if time.time() > self._expires - 60:  # tokens live ~30 min; reuse, refresh shortly before expiry
             r = requests.post(TOKEN_URL, data={"grant_type": "client_credentials", "client_id": self.client_id,
                                                "client_secret": self.client_secret}, timeout=60)
@@ -85,10 +98,12 @@ class SentinelHub:
     def process(self, body: dict, retries: int = 6) -> bytes:
         """POST a Process API request; retries on rate limits (429) and server errors."""
         for attempt in range(retries):
-            r = requests.post(PROCESS_URL, headers={"Authorization": "Bearer " + self._auth(), "Accept": "image/tiff"},
-                              json=body, timeout=600)
+            with self._slots:
+                r = requests.post(PROCESS_URL, headers={"Authorization": "Bearer " + self._auth(), "Accept": "image/tiff"},
+                                  json=body, timeout=600)
             if r.status_code == 200:
-                self.pu_spent += float(r.headers.get("x-processingunits-spent") or 0)
+                with self._lock:
+                    self.pu_spent += float(r.headers.get("x-processingunits-spent") or 0)
                 return r.content
             if r.status_code == 401:
                 self._expires = 0  # token expired early: fetch a new one
@@ -164,12 +179,19 @@ def fetch_s1(sh: SentinelHub, grid: Grid, acquired: datetime, direction: str, sp
     import rasterio
     from rasterio.io import MemoryFile
 
+    # Download cache shared by all runs (D-M10-04): same pass + grid + processing = same bytes.
+    ck = cache.key("s1", S1_PROCESSING, s1_evalscript(bands), acquired.isoformat(), direction, speckle, list(bands),
+                   (grid.epsg, grid.x0, grid.y1, grid.width, grid.height, grid.res))
+    hit = cache.get_array("s1", ck)
+    if hit is not None and hit.shape == (len(bands), grid.height, grid.width):
+        return hit
     out = np.zeros((len(bands), grid.height, grid.width), np.uint16)
     start, end = acquired - timedelta(minutes=2), acquired + timedelta(minutes=5)
     for r, c, sub in grid.tiles():
         content = sh.process(s1_body(sub, start, end, direction, speckle, bands))
         with MemoryFile(content) as mem, mem.open() as ds:
             out[:, r:r + sub.height, c:c + sub.width] = ds.read()
+    cache.put_array("s1", ck, out)
     return out
 
 

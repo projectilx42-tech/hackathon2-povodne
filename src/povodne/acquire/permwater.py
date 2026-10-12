@@ -57,7 +57,7 @@ def water_frequency(vv_db_stack: list[np.ndarray], water_db: float = preselect.W
 
 
 def build(run_dir: Path, sh: SentinelHub, aoi, event: date, key: tuple[int, str], local, grid, hidden: np.ndarray | None,
-          lookback_days: int = 365, n_max: int = 10, speckle: int | None = 7) -> dict:
+          lookback_days: int = 365, n_max: int = 10, speckle: int | None = 7, pool=None) -> dict:
     """Download the reference passes on `grid` (20 m), write `raw/s1/perm_water.tif`, return the run.json block.
 
     `hidden` = layover/shadow of the main track on `grid` (those pixels get 255: they are dark in every pass).
@@ -73,10 +73,11 @@ def build(run_dir: Path, sh: SentinelHub, aoi, event: date, key: tuple[int, str]
             "n_passes": len(passes), "dates": [f"{a.start:%Y-%m-%d}" for a in passes], "min_obs": MIN_OBS}
     if len(passes) < MIN_OBS:
         return {**info, "file": None}
-    imgs = []
-    for a in passes:
+    def one(a):
         vv = decode_db(fetch_s1(sh, grid, a.start, key[1], speckle, bands=("VV",))[0])
-        imgs.append(preselect.smooth_db(vv))
+        return preselect.smooth_db(vv)
+
+    imgs = list(pool.map(one, passes)) if pool is not None else [one(a) for a in passes]
     freq = water_frequency(imgs)
     if hidden is not None:
         freq[hidden] = NODATA

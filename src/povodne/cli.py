@@ -16,6 +16,7 @@ import re
 import signal
 import subprocess
 import sys
+import time
 from datetime import date, datetime, timezone
 from pathlib import Path
 
@@ -163,6 +164,7 @@ class Orchestrator:
             log.write(f"\n=== {datetime.now(timezone.utc):%Y-%m-%d %H:%M:%S}Z step {name}: {' '.join(cmd[1:])}\n".encode())
             log.flush()
             offset = log.tell()
+            t0 = time.monotonic()
             self.child = subprocess.Popen(cmd, cwd=config.REPO_ROOT, env=env, stdout=log, stderr=subprocess.STDOUT)
             try:
                 rc = self.child.wait()
@@ -170,6 +172,11 @@ class Orchestrator:
                 self._on_signal(signal.SIGINT, None)
                 rc = self.child.wait()
             self.child = None
+            elapsed = round(time.monotonic() - t0, 1)
+        try:  # seconds per step in run.json.timings_s (for the UI and for speed work, D-M10-04)
+            update_run(self.run_dir, lambda rj: rj.setdefault("timings_s", {}).__setitem__(name, elapsed))
+        except Exception:  # timing is informational; never fail a step because of it
+            pass
         if self.cancelled:
             return False, "cancelled"
         if rc != 0:

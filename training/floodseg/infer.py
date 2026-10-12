@@ -21,7 +21,8 @@ def load_model(path: str | Path, device: str = "cpu") -> tuple[torch.nn.Module, 
     model = build_model(cfg["in_channels"], cfg["arch"], cfg["encoder"], pretrained=False,
                         classes=cfg.get("num_classes", NUM_CLASSES))
     model.load_state_dict(ckpt["state_dict"])
-    return model.to(device).eval(), cfg
+    # channels_last is ~1.8x faster for the U-Net on CPU with the same output (D-M10-04)
+    return model.to(device).eval().to(memory_format=torch.channels_last), cfg
 
 
 def _weights(tile: int, overlap: int) -> np.ndarray:
@@ -40,7 +41,7 @@ def _starts(size: int, tile: int, step: int) -> list[int]:
     return s + [size - tile]
 
 
-@torch.no_grad()
+@torch.inference_mode()
 def predict_probs(model: torch.nn.Module, x: np.ndarray, tile: int = 512, overlap: int = 64,
                   batch_size: int = 4, device: str = "cpu", temperature: float = 1.0) -> np.ndarray:
     """Class probabilities [n_classes, H, W] float32 for features x [C, H, W] (n_classes = model output channels).
@@ -60,6 +61,7 @@ def predict_probs(model: torch.nn.Module, x: np.ndarray, tile: int = 512, overla
     for b in range(0, len(coords), batch_size):
         batch = coords[b:b + batch_size]
         xb = torch.from_numpy(np.stack([x[:, i:i + tile, j:j + tile] for i, j in batch])).to(device)
+        xb = xb.contiguous(memory_format=torch.channels_last)
         probs = (model(xb).float() / temperature).softmax(1).cpu().numpy()
         if acc is None:
             acc = np.zeros((probs.shape[1], ph, pw), np.float32)
