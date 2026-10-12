@@ -30,3 +30,6 @@ for c in col:
   for v in ev[c].dropna().unique()[:8]:
     m_=rasterize(list(ev[ev[c]==v].geometry),sh,T)&E_
     if m_.sum(): print(c,v,'px',m_.sum(),'missed %.0f%%'%(100*(m_&miss).sum()/m_.sum()))
+print('--- recall restricted to terrain where flood/debris deposits are expected ---')
+for nm,c in [('slope<=15',sl<=15),('slope<=15 & HAND<=15',(sl<=15)&(h<=15)),('slope<=10 & HAND<=10',(sl<=10)&(h<=10)),('above + radar visible',(sl<=15)&(h<=15)&(ls==0))]:
+  e=E_&c; print(f"{nm:28s} EMS {e.sum()*1e-4:6.2f} km2 ({100*e.sum()/E_.sum():3.0f}% of EMS)  recall {100*(e&O).sum()/e.sum():4.1f}%")
