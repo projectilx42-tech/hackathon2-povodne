@@ -8,6 +8,7 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-12 — spojení: `python -m povodne run` / `serve`, kostra balíku a složení finální mapy hotové (větev `feat/integration`, master: sloučit).** Nové `src/povodne/{cli,io,config}.py`, `pyproject.toml` (`pip install -e .`), `flood/combine.py` (D-M0-01): voda z AI má přednost, suť i tam, kam AI nevidělo; pravděpodobnost suti 0,35/0,65/0,85; polygony suti nesou `subtype`, `confidence`, `evidence`; nové `run.json.combine` a upozornění `step = "combine"` (`docs/NOTICES.md`). Orchestrátor (D-M0-02): krok bez hlavního výstupu = `failed`, `progress.error`, `progress.finished_utc`; chybějící modul = `failed` se srozumitelnou zprávou. **Všichni:** v `io.py` jsou sdílené `load_run`, `update_run`, `set_step`, `set_notices` (nepovinné). **UI:** `dashboard/server.py` změněn jen v předání `PYTHONPATH`; seznam `STEPS` v UI ještě nemá `combine`.
 - **2026-10-12 — master: sloučeny škody, odříznuté obce, zasažení obcí a trasa povodně (`claude/cool-cray-jfyu4h`) do `main` → všichni `git fetch origin main && git merge origin/main`.**
   **Nový kontrakt spojení (D-X-06, ARCHITECTURE → *Orchestrátor*):** pořadí kroků a moduly `povodne.acquire → preprocess → flood.ai → flood.debris → flood.combine
   → damage → network → report`; **nový krok průběhu `combine`**; **PNG překryvy píše krok report** (ne UI); `flood/combine.py` patří session spojení (ne modelu);
@@ -131,7 +132,7 @@ Obtížnost a čas = odhad uživatele.
 |---|---|---|---|
 | Repo init, docs, workflow | ✅ | `main` | CLAUDE.md, docs/, Stop hook |
 | M8 Dashboard / webové UI | 🟨 | `ccr-d89d3cfb-ywooc4` | UI hotové nad ukázkovým runem; citlivost, hodina povodně, typy hlášek; chybí: upozornění z `notices`, podtypy suti, nové výstupy škod/sítě, trasa povodně, krok `combine` (D-X-06) |
-| 0 Skeleton + orchestrátor + složení masky | ⬜ | session spojení | zadáno 2026-10-12 (D-X-06) |
+| 0 Skeleton + orchestrátor + složení masky | 🟨 | `feat/integration` | hotovo v kódu + testy (falešné kroky, syntetické rastry, řetězec složení → škody → síť); naostro neběželo (chybí klíče, předzpracování, report) |
 | M1 Acquire (S1/S2/DEM/OSM) | 🟨 | `claude/funny-fermat-ukdqp8` | celý krok hotový (`python -m povodne.acquire`): katalog, hlavní dráha (D-X-01), DEM, kontrola čistoty pre (D-M1-01), S1 obě dráhy kalibrované (D-M1-02), S2, OSM; OSM přes ohsome v2 s klíčem (D-M1-06), otestováno; **předávka: `docs/HANDOFF_SATELITY.md`** |
 | M2 Preprocess | ⬜ | session předzpracování | zadáno 2026-10-12; požadavky D-033, D-035, D-M1-04 (HAND přes `acquire.terrain.hand`), D-M9-11 (S2) |
 | M9 AI trénink | ✅ | `claude/zen-bell-a83s7a` | v0.4 bez Bolívie (`floodseg-model`, D-M9-14); dříve v0.2, D-M9-01–11; optický model S2 a kolo 10 rozpracované; **předání: `docs/HANDOFF_M9.md`** |
@@ -141,7 +142,7 @@ Obtížnost a čas = odhad uživatele.
 | M5 Network / cut-off | 🟨 | `claude/cool-cray-jfyu4h` | kód hotový (`python -m povodne.network`): stavy, objížďka %, doba pěšky, stupně zasažení, pořadí naléhavosti, plán oprav, důležitá místa, plochy pro vrtulník; testy; čeká na skutečnou mapu povodně (D-M5-01–04) |
 | M6 Stats + sitrep + překryvy | ⬜ | session hlášení | zadáno 2026-10-12 (D-X-06) |
 | M7 Flood path (bonus) | 🟨 | `claude/cool-cray-jfyu4h` | kód hotový (`python -m povodne.floodpath <run> --lon --lat`), testy; UI napojení chybí (D-M7-01) |
-| M10 Validace vs EMSR927 | ⬜ | session validace | zadáno 2026-10-12 |
+| M10 Validace vs EMSR927 | 🟨 | `feat/validation` | kód + testy hotové (`validation/fetch_ems.py`, `validation/compare.py`, D-M10-01); čeká na finální běh Trishuli (porovnat jednou) |
 
 ## Blokery / známé problémy
 1. ~~Síťová politika blokuje datové zdroje~~ **VYŘEŠENO 2026-10-07**: Network access = Full.
@@ -150,6 +151,22 @@ Obtížnost a čas = odhad uživatele.
 4. Účty (CDSE, Kaggle…) zakládá uživatel až v příslušných sessions (D-011); údaje jen jako env proměnné prostředí, nikdy do repa.
 
 ## Log sessions
+### 2026-10-12 — spojení: hlavní příkaz, kostra balíku, složení finální mapy — `feat/integration`
+- Hotovo: `python -m povodne run` (orchestrátor podle D-X-06, D-M0-02), `python -m povodne serve`, `io.py`/`config.py`, `pyproject.toml`, `flood/combine.py` (D-M0-01),
+  `PYTHONPATH` v `dashboard/server.py`, README (instalace, AI assistance), `deliverables/report/sections/pipeline.md`.
+- Testy: `tests/test_combine.py`, `test_orchestrator.py` (pořadí, selhání, zrušení, založení `run.json` z obdélníku i GeoJSON), `test_combine_chain.py`; `pytest tests training/tests` 129 passed, `check_docs` OK.
+- Ověřeno naostro bez klíčů: běh skončí `failed` se zprávou o chybějícím klíči Copernicus, report `failed` (modul zatím neexistuje); `serve` odpovídá na `/api/health`.
+- Krok stahování s mnohoúhelníkem v `run.json.aoi`: podle kódu funguje (`aoi_to_geometry` bere GeoJSON, maska oblasti rasterizuje tvar), naostro neověřeno.
+- Zbývá: první celý běh (master), UI doplní krok `combine` do svého seznamu kroků.
+### 2026-10-12 — validace vs EMSR927 — `feat/validation`
+- Nalezeny a staženy produkty EMSR927 (4 oblasti dodány, 2 zrušeny kvůli mrakům), zapsáno v `validation/README.md` a D-M10-01.
+- `validation/compare.py <run>`: plocha (IoU/P/R/F1), budovy (recall), silnice (délka, i falešné), mosty; výstupy `metrics.json`, PNG, README.
+  Ověřen formát na skutečných souborech EMS s prázdnou mapou (bez výsledků). Testy `tests/test_validation.py` (syntetika + kontrola, že pipeline nečte EMS).
+- Kostra části reportu `deliverables/report/sections/case_study.md` (čísla až po jediném porovnání finálního běhu).
+### 2026-10-12 — odevzdání: README, report, video, Devpost — `feat/deliverables`
+- Hotovo: `README.md` (instalace, klíče, spuštění, chyby, atribuce, AI assistance), `deliverables/report/report.{md,pdf}` (kostra s čísly z DECISIONS; TODO: případová studie EMSR927, himálajská čísla z reálného běhu, čas/PU na běh),
+  `deliverables/video_script.md`, `deliverables/devpost.md`, `deliverables/ui_methods_text.md` (pro UI session). Rozhodnutí D-DLV-01.
+- Zbývá: veřejné stažení vah (README má místo), `pip install -e .` a `povodne run` až je dodá session spojení, čísla z úterních běhů, odkaz na video.
 ### 2026-10-12 — master: kontext, sloučení škod/sítě, plán do odevzdání — `ccr-20f0eb8e-hlztw5`
 - Přečten kontext všech sessions a větví. Sloučena `claude/cool-cray-jfyu4h` (bez konfliktů). Zapsáno D-X-06 (spojení kroků) + ARCHITECTURE *Orchestrátor*, plán výše.
 - Zadány úkoly: nové sessions spojení, předzpracování, hlášení, validace, odevzdání; zprávy stávajícím (satelity, suť, AI model, UI, škody/síť).
