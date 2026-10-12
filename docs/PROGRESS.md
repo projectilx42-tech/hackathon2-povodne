@@ -8,6 +8,7 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-12 — suť z optiky i mimo radarový stín (D-M11-02), `fix/s2-scaling`:** Trishuli vs EMS plocha F1 0,60 → 0,616 (R 0,452); optical-only suť 0,70 km²; výsledky `validation/results/tf2`.
 - **2026-10-12 — S2 opraveno (D-M11-01), větev `fix/s2-scaling`:** offset BOA se odečítal podruhé → nuly v B02–B04. Teď 0 % nul, NDVI lesa 0,83. Kontrakt raw/s2 beze změny; stará `raw/s2` stáhnout znovu. Trishuli F1 vůči EMS beze změny (0,589).
 - **2026-10-12 — master: celé údolí (bbox 84.93,27.78,85.36,28.20) prošlo po opravě OSM** (budovy 1838–2100, silnice 137.6 km, mosty 20, odříznuto 28 z 2202). Vs EMSR927: plocha P 0.97 R 0.43 F1 0.60; budovy recall 0.64; poškozené silnice 0.78 (plané 0.17); mosty 12/14. EMS vrstva „event“ = celá sesuvy (Mass Movement/Landslide); minuté px častěji na svazích >15° (35 % vs 12 %), 44 % do 30 m od naší hranice (`validation/miss_analysis.py`).
 - **2026-10-12 — master: první celý běh Trishuli (bbox 85.15,27.95,85.23,28.03) prošel všemi kroky** (voda 1.07 km², suť 0.67 km², budovy 876–923, 3 odříznutá sídla z 244). Nutné `python training/fetch_model.py` (přidán `kaggle` do requirements).
