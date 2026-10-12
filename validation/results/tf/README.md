@@ -11,18 +11,18 @@ Reference: European Union, Copernicus Emergency Management Service data. Used **
 | | km² |
 |---|---|
 | ems affected | 11.5976 |
-| ours affected | 7.4606 |
-| both | 7.2618 |
-| only ours | 0.1988 |
-| only ems | 4.3358 |
+| ours affected | 7.6457 |
+| both | 7.4296 |
+| only ours | 0.2161 |
+| only ems | 4.168 |
 
-IoU 0.616, precision 0.973, recall 0.626, F1 0.762.
-EMS maps the whole event as one class (mass movement), so water and debris are not scored separately; inside the EMS footprint our affected pixels are water 4.3316 km², debris 2.9302 km².
+IoU 0.629, precision 0.972, recall 0.641, F1 0.772.
+EMS maps the whole event as one class (mass movement), so water and debris are not scored separately; inside the EMS footprint our affected pixels are water 4.3316 km², debris 3.098 km².
 
 ## Buildings
 
 EMS damaged buildings in compared area: 3375 {'Destroyed': 2433, 'Possibly damaged': 621, 'Damaged': 321}.
-Share inside our affected area (±10 m): 62.8 % (destroyed/damaged only: 75.0 %).
+Share inside our affected area (±10 m): 63.6 % (destroyed/damaged only: 75.9 %).
 Matched to an OSM building: 2509; of those flagged by us: 64.5 %. Our hit buildings in the area: 1536, of which not listed by EMS: 239 (EMS lists only damaged buildings, so these are either our false alarms or EMS omissions).
 
 ## Roads
