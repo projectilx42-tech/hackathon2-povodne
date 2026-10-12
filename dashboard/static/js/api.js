@@ -29,3 +29,6 @@ export async function getFileJson(runId, path) {
 export async function fileExists(runId, path) {
   try { return (await fetch(fileUrl(runId, path), { method: 'HEAD' })).ok; } catch { return false; }
 }
+
+/** Trace the flood path downstream of a clicked point; resolves with {path, settlements, along, mock}. */
+export const postFloodpath = (id, lon, lat) => json(`/api/runs/${encodeURIComponent(id)}/floodpath`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lon, lat }) });

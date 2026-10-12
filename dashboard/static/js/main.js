@@ -8,7 +8,7 @@ import { popover, renderExamples, renderHistory, setupSearch } from './menus.js'
 import { METHODS_HTML } from './methods.js';
 import { BASEMAPS, DEFAULT_BASEMAP, AREA_WARN_KM2, applyConfig } from './config.js';
 import { polygonAreaKm2, polygonBbox } from './geo.js';
-import { startRun, getRun, getStatus, cancelRun } from './api.js';
+import { startRun, getRun, getStatus, cancelRun, postFloodpath } from './api.js';
 import { $, el, safeStore, icon } from './util.js';
 
 try { applyConfig(await (await fetch('/api/config')).json()); } catch { /* keep the default base maps */ }
@@ -159,8 +159,11 @@ function resetResultView() {
   if (compare?.active) toggleCompare();
   layers?.clear();
   $('layers-card').hidden = true;
+  setFloodpathMode(false);
+  $('fp-btn').disabled = true;
   $('cmp-btn').disabled = true;
   overviewNodes = null;
+  results?.setAlert(null);
   $('state').replaceChildren();
 }
 function stopPolling() { clearInterval(pollTimer); pollTimer = null; }
@@ -198,6 +201,7 @@ async function showResults(runId) {
   // keep drawing / measuring layers above the result layers
   for (const l of map.getStyle().layers) if (l.id.startsWith('td-') || l.id.startsWith('measure')) map.moveLayer(l.id);
   $('layers-card').hidden = false;
+  $('fp-btn').disabled = false;
   const ov = layers.overlays ?? {};
   $('cmp-btn').disabled = !(ov.s2_pre && ov.s2_post);
   overviewNodes = null;
@@ -257,6 +261,31 @@ async function toggleCompare() {
 }
 $('cmp-btn').addEventListener('click', toggleCompare);
 
+// ---------- flood path: click a point on the map ----------
+let fpOn = false, fpBusy = false;
+function hint(text) { const h = $('map-hint'); h.textContent = text ?? ''; h.hidden = !text; }
+function setFloodpathMode(on) {
+  fpOn = on && !!currentRunId && layers?.isLoaded();
+  $('fp-btn').setAttribute('aria-pressed', String(fpOn));
+  wrap.classList.toggle('measuring', fpOn);
+  if (fpOn) { if (measure?.active) measure.off(); areaTool.pause(); hint('Click a point on the map (for example on a river or a glacier lake) to trace the flood path. Esc to cancel.'); }
+  else { if (!measure?.active) areaTool?.resume(); hint(null); }
+}
+async function onFloodpathClick(e) {
+  if (!fpOn || fpBusy) return;
+  fpBusy = true;
+  hint('Tracing the flood path…');
+  try {
+    const res = await postFloodpath(currentRunId, e.lngLat.lng, e.lngLat.lat);
+    layers.setFloodpath(res);
+    results.renderFloodpath(res);
+    toast(`Flood path: ${(res.settlements?.features ?? []).length} settlement(s) nearby.`);
+  } catch (err) { toast(`Could not trace the flood path: ${err.message}`, 7000); }
+  finally { fpBusy = false; setFloodpathMode(false); }
+}
+$('fp-btn').addEventListener('click', () => setFloodpathMode(!fpOn));
+window.addEventListener('keydown', e => { if (e.key === 'Escape' && fpOn) setFloodpathMode(false); });
+
 // ---------- panels & misc ----------
 $('layers-toggle').addEventListener('click', () => {
   const card = $('layers-card');
@@ -293,9 +322,10 @@ map.on('load', () => {
     onSettlement: openSettlement,
     onFeatureInfo: (layer, props) => results.featureInfo(layer, props),
   });
-  results = createResults($('state'), { layers, openSettlement, onBack: backToOverview, exportPng });
+  results = createResults($('state'), { layers, openSettlement, onBack: backToOverview, exportPng, onFloodpathClear: () => layers.clearFloodpath() });
   compare = createCompare({ map, wrap, handle: $('cmp-handle'), tags: $('cmp-tags') });
-  measure = createMeasure({ map, wrap, button: $('measure-btn'), readout: $('measure-readout'), onActive: on => (on ? areaTool.pause() : areaTool.resume()) });
+  measure = createMeasure({ map, wrap, button: $('measure-btn'), readout: $('measure-readout'), onActive: on => { if (on) { setFloodpathMode(false); areaTool.pause(); } else if (!fpOn) areaTool.resume(); } });
+  map.on('click', onFloodpathClick);
   renderAoi();
 });
 renderAoi();
