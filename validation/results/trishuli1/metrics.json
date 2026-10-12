@@ -1,0 +1,136 @@
+{
+ "run_id": "trishuli1",
+ "ems_activation": "EMSR927",
+ "ems_products": [
+  "AOI01_GRA_PRODUCT_v1",
+  "AOI02_GRA_PRODUCT_v2",
+  "AOI03_GRA_PRODUCT_v1",
+  "AOI05_GRA_PRODUCT_v3"
+ ],
+ "product_choice": "first",
+ "attribution": "European Union, Copernicus Emergency Management Service data",
+ "params": {
+  "building_buffer_m": 10.0,
+  "road_match_m": 20.0,
+  "bridge_match_m": 50.0,
+  "point_buffer_m": 10.0
+ },
+ "dates": {
+  "ours_post": "2026-08-28",
+  "ems_images": {
+   "AOI01_GRA_PRODUCT_v1": [
+    "2026-08-27"
+   ],
+   "AOI02_GRA_PRODUCT_v2": [
+    "2026-08-27"
+   ],
+   "AOI03_GRA_PRODUCT_v1": [
+    "2026-08-27"
+   ],
+   "AOI05_GRA_PRODUCT_v3": [
+    "2026-08-31"
+   ]
+  }
+ },
+ "coverage": {
+  "ems_analysed_km2": 3.0076,
+  "ems_analysed_outside_our_grid_km2": 46.1525,
+  "ems_analysed_our_nodata_km2": 0.0035
+ },
+ "area": {
+  "pixels": {
+   "tp": 8534,
+   "fp": 282,
+   "fn": 7450,
+   "tn": 13770
+  },
+  "km2": {
+   "region": 3.0036,
+   "ems_affected": 1.5984,
+   "ours_affected": 0.8816,
+   "both": 0.8534,
+   "only_ours": 0.0282,
+   "only_ems": 0.745
+  },
+  "iou": 0.5247,
+  "precision": 0.968,
+  "recall": 0.5339,
+  "f1": 0.6882,
+  "ours_class_split_inside_ems_km2": {
+   "water": 0.56,
+   "debris": 0.2934
+  }
+ },
+ "buildings": {
+  "ems_damaged_in_region": 750,
+  "ems_by_grade": {
+   "Destroyed": 673,
+   "Damaged": 45,
+   "Possibly damaged": 32
+  },
+  "recall_pixel": 0.876,
+  "recall_pixel_sure": 0.9067,
+  "matched_to_osm": 584,
+  "recall_osm": 0.8921,
+  "ours_hit_in_region": 497,
+  "ours_hit_not_in_ems": 78
+ },
+ "roads": {
+  "ours_blocked": {
+   "ems_damaged": {
+    "km": 10.462,
+    "km_flagged_by_us": 9.179,
+    "share_flagged": 0.8774
+   },
+   "ems_damaged_sure": {
+    "km": 8.888,
+    "km_flagged_by_us": 8.525,
+    "share_flagged": 0.9592
+   },
+   "ems_no_damage": {
+    "km": 4.714,
+    "km_flagged_by_us": 1.387,
+    "share_flagged": 0.2943
+   }
+  },
+  "ours_blocked_or_possibly": {
+   "ems_damaged": {
+    "km": 10.462,
+    "km_flagged_by_us": 9.382,
+    "share_flagged": 0.8968
+   },
+   "ems_damaged_sure": {
+    "km": 8.888,
+    "km_flagged_by_us": 8.624,
+    "share_flagged": 0.9703
+   },
+   "ems_no_damage": {
+    "km": 4.714,
+    "km_flagged_by_us": 1.651,
+    "share_flagged": 0.3502
+   }
+  },
+  "note": "share_flagged on ems_damaged = recall; on ems_no_damage = false-alarm share"
+ },
+ "bridges": {
+  "ems_bridges_in_region": 6,
+  "ems_by_grade": {
+   "Destroyed": 6
+  },
+  "matched_to_osm": 3,
+  "table": {
+   "Destroyed": {
+    "blocked": 3
+   }
+  },
+  "recall": 1.0
+ },
+ "limitations": [
+  "EMS maps were drawn by hand (photo-interpretation) from very-high-resolution optical images (~0.3\u20131 m); we use 10 m Sentinel data. Narrow features (single houses, roads, small channels) are below our resolution.",
+  "Image dates differ: EMS images and our post-event Sentinel-1 pass are not from the same day; changes in between (receding water, new slides, clean-up) count as disagreement.",
+  "EMS labels the whole event as 'mass movement / landslide'; our map separates new water and debris, so only the union is scored.",
+  "EMS lists only damaged buildings (points), so building precision cannot be computed; our extra hits may be EMS omissions.",
+  "Our buildings, roads and bridges come from the pre-event OpenStreetMap snapshot; EMS uses its own reference layers. Objects that exist in only one source are matched by distance (buffers listed under params).",
+  "Only the EMS mapped areas are compared (small parts of the valley); results elsewhere are not checked."
+ ]
+}
