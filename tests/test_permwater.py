@@ -49,3 +49,29 @@ def test_dem_water_mask_protects_permanent_water():
     dem[:, 2:3] = 3  # river: not protected, the record decides
     s = seasonal_high_water(mask, ref, dem, 70, grow_px=0)
     assert not s[:, :2].any() and s[:, 2:].all()
+
+
+def test_vh_agreement_grows_only_what_both_tracks_see_and_touches_flood():
+    from povodne.flood import vhagree
+
+    rng = np.random.default_rng(0)
+    shape = (60, 60)
+    a = rng.normal(0, 1.0, shape).astype(np.float32)
+    b = rng.normal(0, 1.0, shape).astype(np.float32)
+    floor = np.ones(shape, bool)
+    flood = np.zeros(shape, bool)
+    flood[20:40, 20:30] = True
+    for arr in (a, b):
+        arr[20:40, 30:34] -= 4.0      # edge strip next to the flood: both tracks drop
+    a[45:55, 5:15] -= 4.0             # elsewhere only one track drops
+    b[5:12, 45:55] -= 4.0             # and a region only in the other track
+    both_far = (slice(45, 55), slice(40, 50))
+    a[both_far] -= 4.0
+    b[both_far] -= 4.0                # both tracks, but not connected to the flood
+    grown, info = vhagree.grow(a, b, floor, flood, np.zeros(shape, bool), k=1.5)
+    assert info["used"] and grown[20:40, 30:34].mean() > 0.9
+    assert not grown[45:55, 5:15].any() and not grown[5:12, 45:55].any() and not grown[both_far].any()
+    assert not (grown & flood).any()
+    # one weak pass alone adds nothing
+    g2, _ = vhagree.grow(a, np.zeros(shape, np.float32), floor, flood, np.zeros(shape, bool))
+    assert not g2.any()

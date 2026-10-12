@@ -1030,3 +1030,16 @@ Rozhodnutí:
   zdůvodnění, ne ladění prahu; zjištěno ale diagnostikou chybějících pixelů proti EMSR927 — pro poctivost uvedeno.
 Omezení (do reportu): sezónní jezera a ledovcové tůně, které jsou vodou > 70 % roku, zůstanou „trvalé“; v roce s 10 průlety je frekvence hrubá (±~10 p. b.);
 řeka, která se po dubnu změnila (nový tok), může být v referenci podhodnocena.
+
+## D-M10-03 | 2026-10-12 | přijato (úkol od master session) — Okraje zasažených míst: slabá změna VH potvrzená oběma směry přeletu
+Diagnóza chybějící plochy v údolí po D-M10-02 (sklon ≤ 15°, HAND ≤ 15 m; ~17 tis. px = 1,7 km²): 77 % minutých pixelů leží do 30 m od naší hranice a model tam dává P(povodeň)
+v průměru 0,05 → **není to otázka prahu** (režim sensitive přidal jen +0,3 km², R 0,626 → 0,628) ani překryvu dlaždic; je to slabý signál na okraji (smíšený pixel;
+radar je navíc vyhlazen LEE 7×7 + 3×3 jako trénink). 33 % z nich je „trvalá voda“ uvnitř koryta (reference ≥ 70 %), zbytek model „suchý“.
+Je tam ale slabý signál: pokles VH po–před je v **obou drahách** u minutých pixelů v mediánu −1 dB (kontrola ~0 dB).
+Rozhodnutí: **pravidlo „hystereze“ v `flood/vhagree.py` (volá `combine`)** — kandidát = dno údolí (sklon/HAND jako pravidla vody D-034), vidí ho obě dráhy (bez layover/shadow),
+není voda, pokles VH ≤ −k·σ **v obou drahách** (σ = robustní rozptyl MAD změny VH na nezasaženém dně údolí, per dráha; k = 1,5 **předem stanoveno**: dva nezávislé pohledy →
+šance šumu ≈ P(z>1,5)² ≈ 0,4 %); přidají se jen kandidáti **spojení s dosavadní povodní** (8-okolí). Výsledek = třída 3, podtyp „unknown“, jistota nízká (P 0,35).
+Jedna dráha pravidlo nespustí. Žádná mapa EMS jako vstup; k se nevybíralo podle výsledku (zkoušeno k = 1,0 / 1,5 / 2,0 — viz níže, jen pro citlivost).
+Zkušební čísla proti EMSR927 (jen měření; před pravidlem P 0,973 R 0,628 F1 0,763): k = 1,0 → R 0,656 / P 0,970; **k = 1,5 → R 0,646 / P 0,973 / F1 0,777**; k = 2,0 → R 0,640 / P 0,973.
+**Obě dráhy po události už se používají:** hlavní 85 ASC (post 28. 8.), druhá 19 DESC (post 5. 9.), model i změny se spojují po pixelech (D-034); jiná dráha s pokrytím ≥ 90 % v katalogu není.
+Omezení (do reportu): zbytek minuté plochy je převážně na svazích > 15° (sesuvy, jiný krok) a v radarovém stínu; slabý signál na okraji nejde odlišit od zemědělských změn bez optiky.

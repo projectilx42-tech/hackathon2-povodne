@@ -28,6 +28,7 @@ from pathlib import Path
 import numpy as np
 import rasterio
 
+from . import vhagree
 from ..io import get_step, load_run, set_notices, set_step, update_run, write_json_atomic
 
 NODATA, DRY, WATER, DEBRIS, PERMANENT = 0, 1, 2, 3, 4
@@ -164,6 +165,15 @@ def run(run_dir: Path) -> dict:
                                "No debris / mud map (the step failed or did not run): the flood map shows open water only, "
                                "so debris flows, mud and flooded vegetation or buildings are missing."))
 
+    # Edges: weak change confirmed by both look directions, connected to the flood found so far (D-M10-03).
+    seeds = (ai_mask == WATER) | (debris_mask == 1 if debris_mask is not None else False)
+    grown, vh_info = vhagree.run(run_dir, seeds, np.isin(ai_mask, (NODATA, WATER, PERMANENT)))
+    if grown.any():
+        debris_mask = grown.astype(np.uint8) if debris_mask is None else np.where(grown, 1, debris_mask).astype(np.uint8)
+        dtype_r = np.where(grown, 9, dtype_r if dtype_r is not None else 0).astype(np.uint8)
+        conf_r = np.where(grown, 1, conf_r if conf_r is not None else 0).astype(np.uint8)
+    vh_info["grown_km2"] = round(float(grown.sum()) * abs(transform.a * transform.e) / 1e6, 4)
+
     mask, prob = combine_arrays(ai_mask, ai_prob, debris_mask, conf_r)
     px_km2 = abs(transform.a * transform.e) / 1e6
     blind = int(((ai_mask == NODATA) & (mask == DEBRIS)).sum())
@@ -190,6 +200,7 @@ def run(run_dir: Path) -> dict:
     section = {
         "method": "AI water (classes 2, 4) has priority; debris step class 3 elsewhere, also where the AI step was blind (D-M0-01)",
         "debris_used": debris_mask is not None,
+        "vh_agreement": vh_info,
         "debris_prob_by_confidence": {CONF_NAMES[k]: v for k, v in CONF_PROB.items()},
         "areas_km2": {"flood_water": round(float((mask == WATER).sum()) * px_km2, 4),
                       "debris": round(float((mask == DEBRIS).sum()) * px_km2, 4),
