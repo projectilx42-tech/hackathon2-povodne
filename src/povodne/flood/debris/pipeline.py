@@ -113,7 +113,9 @@ def _evidence(t: int, dvv: float, dvh: float, agree: float, valid: float, optica
                      f"{agree:.0f} of {valid:.0f} pass direction(s) agree")
     else:
         parts.append("radar cannot see this place (mountain shadow); optical evidence only")
-    if optical >= 0.5:
+    if agree == 0 and valid > 0 and optical >= 0.5:
+        parts.append("optical-only: Sentinel-2 shows vegetation turned to bare ground, radar sees no change (lower confidence)")
+    elif optical >= 0.5:
         parts.append("confirmed or checked with the Sentinel-2 optical image")
     return "; ".join(parts)
 
