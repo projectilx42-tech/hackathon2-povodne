@@ -23,6 +23,7 @@ from datetime import time as time_of_day
 import requests
 from shapely.geometry import box, shape
 from shapely.geometry.base import BaseGeometry
+from shapely.validation import make_valid
 from shapely.ops import unary_union
 
 from .notices import Notice
@@ -126,6 +127,25 @@ def track_geometry(footprint: BaseGeometry, direction: str, point) -> TrackGeome
     return TrackGeometry(heading, look, IW_INCIDENCE_NEAR + frac * (IW_INCIDENCE_FAR - IW_INCIDENCE_NEAR))
 
 
+def predict_next_pass(passes: list[Acquisition], now: datetime, max_days: float = 24.0) -> datetime | None:
+    """When a track will pass the area next (UTC), from its known passes: the last pass plus the usual gap.
+
+    A track repeats on a fixed schedule (12 days for one satellite, 6 with two); the gap is the median of the
+    gaps seen in the catalogue, 12 days if only one pass is known. Returns the first predicted time after `now`,
+    or None if there is no pass, the last known one is more than three gaps old, or the next is later than `max_days` from now."""
+    times = sorted(a.start for a in passes)
+    if not times:
+        return None
+    gaps = sorted((b - a).total_seconds() / 86400 for a, b in zip(times, times[1:]) if (b - a).total_seconds() > 3 * 3600)
+    gap = min(max(gaps[len(gaps) // 2], 1.0), 24.0) if gaps else 12.0
+    nxt = times[-1]
+    if now - nxt > timedelta(days=3 * gap):  # the last known pass is long ago: a schedule extrapolated from it is a guess
+        return None
+    while nxt <= now:
+        nxt += timedelta(days=gap)
+    return nxt if (nxt - now).total_seconds() / 86400 <= max_days else None
+
+
 def local_clock(point) -> "callable":
     """UTC datetime -> local wall-clock datetime (naive) of the AOI.
 
@@ -149,12 +169,25 @@ def local_clock(point) -> "callable":
 
 
 def aoi_to_geometry(aoi) -> BaseGeometry:
-    """AOI as GeoJSON geometry/Feature or bbox [minlon, minlat, maxlon, maxlat] (EPSG:4326)."""
+    """AOI as GeoJSON geometry / Feature / FeatureCollection or bbox [minlon, minlat, maxlon, maxlat] (EPSG:4326).
+
+    The result is always a valid Polygon or MultiPolygon: a hand-drawn shape from the UI may cross itself, and a
+    self-intersecting ring would make the coverage and mask calculations fail."""
     if isinstance(aoi, (list, tuple)) and len(aoi) == 4:
         return box(*aoi)
-    if isinstance(aoi, dict) and aoi.get("type") == "Feature":
-        aoi = aoi["geometry"]
-    return shape(aoi)
+    if isinstance(aoi, dict) and aoi.get("type") == "FeatureCollection":
+        geom = unary_union([shape(f["geometry"]) for f in aoi["features"]])
+    else:
+        if isinstance(aoi, dict) and aoi.get("type") == "Feature":
+            aoi = aoi["geometry"]
+        geom = shape(aoi)
+    if not geom.is_valid:
+        geom = make_valid(geom)
+    if geom.geom_type == "GeometryCollection":  # make_valid can return polygons + stray lines/points
+        geom = unary_union([g for g in geom.geoms if g.geom_type in ("Polygon", "MultiPolygon")])
+    if geom.geom_type not in ("Polygon", "MultiPolygon") or geom.is_empty or geom.area <= 0:
+        raise ValueError("The area must be a polygon (or a bounding box) with a non-zero area.")
+    return geom
 
 
 def _wkt_envelope(geom: BaseGeometry) -> str:

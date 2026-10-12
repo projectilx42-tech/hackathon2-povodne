@@ -36,7 +36,7 @@ The free tier has 10,000 processing units per month; one run for a 30x30 km area
 **ohsome API key (needed for pre-event OpenStreetMap buildings and roads, free):**
 sign up at https://account.heigit.org/signup, create an API key and set `export OHSOME_API_KEY=...`
 (Windows PowerShell: `$env:OHSOME_API_KEY="..."`). Without it the flood map still works, but damage and cut-off analysis do not.
-One run uses 7 requests; the free key allows 250 per day.
+One run uses 8 requests; the free key allows 250 per day.
 
 **Download all input data for an area and date (Sentinel-1, Sentinel-2, DEM, pre-event OSM):**
 ```bash

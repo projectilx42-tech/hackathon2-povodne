@@ -34,6 +34,8 @@ class AcquireConfig:
     osm: bool = True
     osm_buffer_m: float = 15000
     same_day_res_m: float = 20.0  # event-day check: VV at 20 m, 3x3 mean; ~11 PU per image for 30x30 km (5 images)
+    better_view_min_gain: float = 0.03  # notice "better view in X days" only if the next pass adds >= 3 points of valley floor
+    now: datetime | None = None  # test hook: pretend it is this moment (UTC) when judging whether a pass is still to come
     n_hist: int = 4  # earlier passes of the same track kept as pixel history for the surface-change step (D-M3d-02)
     hist_res_m: float = 20.0  # ~22 PU per VV+VH image for 30x30 km
 
@@ -121,6 +123,36 @@ def hist_passes(candidates: list, pres: list, n: int) -> list:
         return []
     first_pre = min(a.start for a in pres)
     return [a for a in candidates if a.start < first_pre][-n:]
+
+
+def better_view_notice(floor: np.ndarray, used_blocked: list[np.ndarray], cand_blocked: np.ndarray, cand: catalog.TrackPlan,
+                       next_pass: datetime, now: datetime, local, min_gain: float = 0.03) -> Notice | None:
+    """D-X-05: tell the user that a pass still to come would show more of the valley floor (a pixel is hidden only if
+    layover/shadow hides it for every track in use). Returns None if the gain is below `min_gain` or there is no valley floor."""
+    if not floor.any():
+        return None
+    hidden = np.logical_and.reduce(used_blocked)
+    now_vis = float((floor & ~hidden).sum() / floor.sum())
+    with_vis = float((floor & ~(hidden & cand_blocked)).sum() / floor.sum())
+    if with_vis - now_vis < min_gain:
+        return None
+    nl = local(next_pass)
+    days = (nl.date() - local(now).date()).days
+    gain = round(100 * (with_vis - now_vis))
+    return Notice("better_view_soon", f"The {cand.direction.lower()} radar pass of track {cand.relative_orbit} on {nl:%d %b %Y} "
+                  f"(in {days} day{'s' if days != 1 else ''}) will show {gain}% more of the valley floor, which the passes "
+                  f"used now cannot see because of mountain shadow. Run the analysis again after that date for a fuller map.",
+                  track=cand.relative_orbit, direction=cand.direction, next_pass_date=f"{nl:%Y-%m-%d}", days_until=days,
+                  visibility_now=round(now_vis, 3), visibility_with_track=round(with_vis, 3))
+
+
+def geometry_json(g) -> dict | None:
+    """Track geometry at the AOI centre for run.json (acquire.s1[_alt].geometry); the preprocess step turns it into the
+    layover/shadow mask with the same function the acquire step uses."""
+    if g is None:
+        return None
+    return {"heading_deg": round(g.heading_deg, 2), "look_azimuth_deg": round(g.look_azimuth_deg, 2),
+            "incidence_deg": round(g.incidence_deg, 2)}
 
 
 def coarse_grid(grid: Grid, res: float) -> Grid:
@@ -213,12 +245,14 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
     hand = terrain.hand(dem)
     floor = terrain.valley_floor(hand, terrain.slope_deg(dem.data, dem.res), water=dem.water) & terrain.aoi_mask(aoi, dem)
     masks: dict = {}
+    geoms: dict = {}  # track key -> catalog.TrackGeometry (stored in run.json for the preprocess step, D-X-06)
 
     def track_mask(t: catalog.TrackPlan) -> np.ndarray:
         if t.key not in masks:
-            a = t.post or t.same_day
+            a = t.post or t.same_day or t.pre_candidates[-1]  # footprint of any pass of the track will do
             scene = next((s for s in a.scenes if s.footprint.contains(aoi.centroid)), a.scenes[0])
             g = catalog.track_geometry(scene.footprint, t.direction, aoi.centroid)
+            geoms[t.key] = g
             lay, sh_mask = terrain.layover_shadow(dem.data, dem.res, g.look_azimuth_deg, g.incidence_deg)
             masks[t.key] = lay | sh_mask
         return masks[t.key]
@@ -261,6 +295,23 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
     vis = {t.key: terrain.valley_visibility(floor, blocked(t), np.zeros_like(floor)) for t in (plan.main, plan.alt) if t}
     plan = catalog.choose_main(plan, vis)
     main, alt = plan.main, plan.alt
+    # D-X-05: a track without an after-image yet (fresh flood) may show hidden valley floor when it passes next.
+    now = cfg.now or datetime.now(timezone.utc)
+    if (now.date() - event).days <= cfg.post_horizon_days:
+        local = catalog.local_clock(aoi.centroid)
+        used = [track_mask(x) for x in (main, alt) if x is not None]
+        best = None
+        for cand in plan.tracks:
+            if cand is main or cand is alt or cand.post is not None or not cand.pre_candidates:
+                continue
+            nxt = catalog.predict_next_pass(cand.pre_candidates + ([cand.same_day] if cand.same_day else []), now)
+            if nxt is None:
+                continue
+            note = better_view_notice(floor, used, track_mask(cand), cand, nxt, now, local, cfg.better_view_min_gain)
+            if note is not None and (best is None or note.details["visibility_with_track"] > best.details["visibility_with_track"]):
+                best = note
+        if best is not None:
+            warnings.append(best)
     post_local = catalog.local_clock(aoi.centroid)(main.post.start)
     days_after = (post_local.date() - event).days
     warnings.append(Notice("post_image_date", f"The after-image is from {post_local:%Y-%m-%d %H:%M} local time, "
@@ -322,6 +373,7 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
     for key, t in (("s1", main), ("s1_alt", alt)):
         if blocks.get(key) is not None and t is not None:
             blocks[key]["same_day"] = t.same_day_info
+            blocks[key]["geometry"] = geometry_json(geoms.get(t.key))
             if event_time is not None:
                 blocks[key]["event_time_local"] = rj.get("event_time")
     blocks["s1"]["pre_selection"] = {
