@@ -54,6 +54,8 @@ runs/<run_id>/
     s1/pre_YYYYMMDD.tif, post_YYYYMMDD.tif   # S1 GRD sigma0 (ne gamma0/RTC), VV+VH, LEE 7×7 + průměr 3×3 (= Kuro Siwo, D-M1-02);
                                  # UINT16, dB = v*0.001-50, 0 = nodata; už na referenční 10m mřížce — D-020, D-035, D-M1-02
     s1_alt/pre_*.tif, post_*.tif # totéž pro druhý směr přeletu (D-033)
+    s1/perm_water.tif            # frekvence vody v % (uint8, 255 = neznámo / stín) za ~365 dní před událostí, VV, hlavní dráha, mřížka 20 m
+                                 # zarovnaná s 10m mřížkou; + perm_water.json; volitelné — chybí-li, nic se nepřepisuje (D-M10-02)
     s1/hist_YYYYMMDD.tif, s1_alt/hist_*.tif  # až 4 starší průlety téže dráhy před snímky „před“, VV+VH, stejné kódování, mřížka 20 m
                                  # zarovnaná s 10m mřížkou — historie pixelu pro krok změn povrchu (D-M3d-02; dodá M1)
     s2/pre_YYYYMMDD.tif, post_YYYYMMDD.tif   # S2 L2A, UINT16 DN: B02,B03,B04,B08,B11,B12 + SCL (7. pásmo); odrazivost = DN*scale+offset (tagy), 10m mřížka (D-M1-02)
@@ -84,6 +86,8 @@ runs/<run_id>/
     debris_polygons.geojson      # EPSG:4326: class "debris", subtype, confidence, area_m2, mean_dvv_db, mean_dvh_db, evidence
     flood_polygons.geojson       # EPSG:4326, polygonizace flood_mask (třídy 2,3), atributy: class ("water" | "debris"), area_m2 (D-035);
                                  #   debris navíc subtype, confidence, evidence (D-M0-01). flood_prob.tif: nodata = NaN
+                                 #   water navíc `seasonal_high_water` (bool, D-M10-02): voda, kterou model označil za trvalou jen proto, že snímek „před“
+                                 #   byl rozvodněný; třída zůstává 2. `flood/seasonal_high_water.tif` (uint8, 1 = ano) píše AI krok
   osm/
     buildings.gpkg roads.gpkg bridges.gpkg settlements.gpkg facilities.gpkg   # UTM, čisté vrstvy (schéma níže)
     landuse.gpkg                 # volitelně: osm_id, kind (forest/farmland/…/residential), polygony — D-M3d-02 (dodá M1)
@@ -283,7 +287,7 @@ Původní pole (verze 1) zůstávají se stejným významem; rozšíření D-M6-
   "steps": {"acquire": "done", "preprocess": "done", "flood_ai": "done", "debris": "failed", "combine": "done",
             "damage": "done", "network": "done"},                                              // z run.json.progress
   "flood": {"flooded_water_km2": 0, "debris_km2": 0, "affected_km2": 0, "nodata_pct": 0, "method": "ai",
-            "permanent_water_km2": 0, "model": "models/<name>|null",
+            "permanent_water_km2": 0, "seasonal_high_water_km2": 0, "model": "models/<name>|null",
             "debris_by_type_km2": {"debris": 0, "mud": 0, ...} | null,     // = run.json.debris.areas_km2
             "debris_confidence_km2": {...} | null,                         // = run.json.debris.confidence_km2
             "debris_false_share_est": 0.0 | null} | null,                  // autotest suti: odhad podílu falešných nálezů (0–1)

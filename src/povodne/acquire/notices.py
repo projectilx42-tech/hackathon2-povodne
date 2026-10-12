@@ -32,6 +32,7 @@ SEVERITY = {
     "s2_failed": "warning",
     # info
     "post_image_date": "info",
+    "perm_water_ref_short": "warning",
     "pre_rise_detected": "info",
     "event_day_pass_used": "info",
     "event_day_pass_dropped": "info",

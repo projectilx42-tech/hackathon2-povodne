@@ -54,6 +54,44 @@ def _read(path: Path) -> tuple[np.ndarray, dict] | tuple[None, None]:
         return r.read(1).astype(np.float32), r.profile
 
 
+PERM_MIN_FREQ = 70  # % of reference passes a pixel must be open water in to count as permanent water (D-M10-02)
+
+
+def load_on_grid(path: Path, profile: dict, resampling=None):
+    """Read band 1 of `path` resampled (nearest) onto the AI step's grid; None if the file is missing."""
+    from rasterio.warp import Resampling, reproject
+
+    if not path.exists():
+        return None
+    with rasterio.open(path) as ds:
+        out = np.full((profile["height"], profile["width"]), ds.nodata if ds.nodata is not None else 0, ds.dtypes[0])
+        reproject(rasterio.band(ds, 1), out, dst_transform=profile["transform"], dst_crs=profile["crs"],
+                  resampling=resampling or Resampling.nearest)
+    return out
+
+
+def seasonal_high_water(mask: np.ndarray, ref_freq: np.ndarray | None, dem_water: np.ndarray | None,
+                        min_freq: float = PERM_MIN_FREQ, grow_px: int = 1) -> np.ndarray:
+    """Pixels the model called permanent water (4) that are not permanent by the year-long record (D-M10-02).
+
+    `ref_freq` = water frequency in % over a year of passes (255 = unknown, from acquire/permwater.py); a pixel stays
+    permanent where it is water in >= `min_freq` % of the passes (grown by `grow_px` pixels so narrow rivers and
+    co-registration error do not leak) or where the Copernicus DEM water mask says sea/lake/river. Where the record is
+    unknown the model's label is kept. Returns a bool array of pixels to turn into flood (2); the caller applies it.
+    """
+    if ref_freq is None:
+        return np.zeros(mask.shape, bool)
+    from scipy.ndimage import binary_dilation
+
+    known = ref_freq != 255
+    permanent = known & (ref_freq >= min_freq)
+    if grow_px > 0:
+        permanent = binary_dilation(permanent, iterations=grow_px)
+    if dem_water is not None:
+        permanent |= np.isin(dem_water, (1, 2, 3))
+    return (mask == 4) & known & ~permanent
+
+
 def track_probs(model, cfg, run: Path, prefix: str, slope: np.ndarray, device: str):
     """Class probabilities [3,H,W] for one track, its validity mask and pre-event VV in dB; None if the track is missing."""
     bands = {}
@@ -124,6 +162,8 @@ def main() -> None:
     ap.add_argument("--model", type=Path, default=DEFAULT_MODEL)
     ap.add_argument("--max-water-slope-deg", type=float, default=15.0)
     ap.add_argument("--max-water-hand-m", type=float, default=30.0)
+    ap.add_argument("--perm-min-freq", type=float, default=PERM_MIN_FREQ,
+                    help="%% of the year's passes a pixel must be water in to be permanent water (D-M10-02)")
     ap.add_argument("--device", default="cpu")
     ap.add_argument("--sensitivity", choices=["standard", "sensitive"], default=None,
                     help="standard = most likely class; sensitive = flood already from P(flood) >= the model's "
@@ -219,6 +259,10 @@ def main() -> None:
                            "pre_clear_pct": round(100 * float(clear_pre.mean()), 1),
                            "optical_flood_km2": round(float(s2_flood.sum()) * 1e-4, 3),
                            "optical_water_unknown_before_km2": round(float((wet_post & ~known_before).sum()) * 1e-4, 3)}
+    # Seasonal high water (D-M10-02): "permanent" by the model only because the before-image was already swollen.
+    ref = load_on_grid(run / "raw" / "s1" / "perm_water.tif", profile)
+    seasonal = seasonal_high_water(mask, ref, load_on_grid(run / "raw" / "dem" / "water.tif", profile), args.perm_min_freq)
+    mask[seasonal] = 2
     any_valid = mask > 0
     impossible = slope > args.max_water_slope_deg
     if hand is not None:
@@ -234,6 +278,9 @@ def main() -> None:
     prof = {**profile, "count": 1, "compress": "deflate"}
     with rasterio.open(out / "ai_prob.tif", "w", **{**prof, "dtype": "float32", "nodata": np.nan}) as w:
         w.write(p_flood, 1)
+    seasonal &= mask == 2  # only what survived the terrain rules and the minimum area
+    with rasterio.open(out / "seasonal_high_water.tif", "w", **{**prof, "dtype": "uint8", "nodata": 0}) as w:
+        w.write(seasonal.astype(np.uint8), 1)
     with rasterio.open(out / "ai_mask.tif", "w", **{**prof, "dtype": "uint8", "nodata": 0}) as w:
         w.write(mask, 1)
 
@@ -242,7 +289,9 @@ def main() -> None:
                                 "cross_shadow_px": cross_shadow_px, "min_flood_px": args.min_flood_px,
                                 "small_patches_removed_px": int(small.sum()), "s2": s2_info,
                                 "max_water_slope_deg": args.max_water_slope_deg,
-                                "max_water_hand_m": args.max_water_hand_m, "temperature": cfg.get("temperature", 1.0)}}
+                                "max_water_hand_m": args.max_water_hand_m,
+                                "perm_ref": {"used": ref is not None, "min_freq": args.perm_min_freq,
+                                             "seasonal_high_water_km2": round(float(seasonal.sum()) * 1e-4, 3)}, "temperature": cfg.get("temperature", 1.0)}}
     run_json.write_text(json.dumps(meta, indent=2))
     px = mask.size
     print(f"ai: tracks={used} flood={int((mask == 2).sum()) * 1e-4:.2f} km2 perm={int((mask == 4).sum()) * 1e-4:.2f} km2 "

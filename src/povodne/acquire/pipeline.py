@@ -17,7 +17,7 @@ import numpy as np
 import rasterio
 from rasterio.warp import Resampling, reproject, transform_bounds
 
-from . import catalog, osm, preselect, sentinel2, terrain
+from . import permwater, catalog, osm, preselect, sentinel2, terrain
 from .notices import Notice
 from .sentinelhub import (S1_DB_OFFSET, S1_DB_SCALE, Grid, MissingCredentials, SentinelHub, decode_db, fetch_s1,
                           smooth_3x3, utm_grid)
@@ -37,6 +37,8 @@ class AcquireConfig:
     better_view_min_gain: float = 0.03  # notice "better view in X days" only if the next pass adds >= 3 points of valley floor
     now: datetime | None = None  # test hook: pretend it is this moment (UTC) when judging whether a pass is still to come
     n_hist: int = 4  # earlier passes of the same track kept as pixel history for the surface-change step (D-M3d-02)
+    perm_lookback_days: int = 365  # reference record for permanent water (D-M10-02)
+    perm_n_passes: int = 10  # passes sampled from it (~11 PU each for 30x30 km at 20 m, VV only)
     hist_res_m: float = 20.0  # ~22 PU per VV+VH image for 30x30 km
 
 
@@ -370,6 +372,23 @@ def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings:
         blocks[key]["processing"] = {"backCoeff": "SIGMA0_ELLIPSOID", "orthorectify": True, "dem": "COPERNICUS_30",
                                      "speckle": (f"LEE {cfg.speckle}x{cfg.speckle} + 3x3 mean (linear)" if cfg.speckle else "none"),
                                      "encoding": "UINT16, dB = value*0.001-50, 0 = nodata"}
+    # Permanent-water reference: water frequency over the year before the event (D-M10-02).
+    if blocks.get("s1") is not None:
+        _progress(run_dir, "running", "building the permanent-water reference from a year of Sentinel-1 passes")
+        try:
+            pgrid = coarse_grid(grid, cfg.hist_res_m)
+            hidden = _to_grid(track_mask(main).astype(np.uint8), dem, pgrid) > 0
+            ref = permwater.build(run_dir, sh, aoi, event, main.key, catalog.local_clock(aoi.centroid), pgrid, hidden,
+                                  cfg.perm_lookback_days, cfg.perm_n_passes, cfg.speckle)
+        except Exception as exc:  # the reference is an improvement, never a reason to lose the run
+            ref = {"file": None, "error": str(exc)}
+        blocks["s1"]["perm_ref"] = ref
+        if ref.get("file") is None:
+            warnings.append(Notice("perm_water_ref_short", "Not enough Sentinel-1 passes of the main track in the year "
+                                   "before the event to tell permanent water from seasonal high water; a swollen river "
+                                   "in the before-image may be counted as permanent water (not flooded).",
+                                   n_passes=ref.get("n_passes", 0), lookback_days=cfg.perm_lookback_days,
+                                   **({"error": ref["error"]} if ref.get("error") else {})))
     for key, t in (("s1", main), ("s1_alt", alt)):
         if blocks.get(key) is not None and t is not None:
             blocks[key]["same_day"] = t.same_day_info

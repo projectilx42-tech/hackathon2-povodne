@@ -77,7 +77,7 @@ def combine_arrays(ai_mask: np.ndarray, ai_prob: np.ndarray, debris_mask: np.nda
 
 
 def polygons(mask: np.ndarray, transform, crs, dtype_raster: np.ndarray | None, conf_raster: np.ndarray | None,
-             debris_polys_path: Path | None) -> dict:
+             debris_polys_path: Path | None, seasonal: np.ndarray | None = None) -> dict:
     """Polygonize classes 2 (water) and 3 (debris) to a GeoJSON FeatureCollection in EPSG:4326.
     Debris polygons are split by subtype + confidence and take evidence from the debris step's polygon they overlap most."""
     import geopandas as gpd
@@ -87,8 +87,11 @@ def polygons(mask: np.ndarray, transform, crs, dtype_raster: np.ndarray | None, 
     px_area = abs(transform.a * transform.e)
     rows = []
     water = (mask == WATER)
-    for geom, _ in shapes(water.astype(np.uint8), mask=water, transform=transform):
-        rows.append({"class": "water", "geometry": shape(geom)})
+    # Water that the model had called permanent only because the before-image was already swollen is a separate polygon
+    # with seasonal_high_water = true (D-M10-02); the class stays 2.
+    sea = (seasonal & water) if seasonal is not None else np.zeros_like(water)
+    for geom, val in shapes(sea.astype(np.uint8) + 1, mask=water, transform=transform):
+        rows.append({"class": "water", "seasonal_high_water": bool(val == 2), "geometry": shape(geom)})
     deb = (mask == DEBRIS)
     if deb.any():
         t = dtype_raster if dtype_raster is not None else np.zeros_like(mask)
@@ -115,12 +118,13 @@ def polygons(mask: np.ndarray, transform, crs, dtype_raster: np.ndarray | None, 
         except Exception as exc:  # evidence is a nice-to-have; never lose the map because of it
             print(f"combine: could not read evidence from {debris_polys_path.name}: {exc}", file=sys.stderr)
     gdf = gdf.to_crs("EPSG:4326")
-    cols = ["class", "subtype", "confidence", "evidence", "area_m2", "geometry"]
+    cols = ["class", "seasonal_high_water", "subtype", "confidence", "evidence", "area_m2", "geometry"]
     gdf = gdf[[c for c in cols if c in gdf.columns]]
     fc = json.loads(gdf.to_json(drop_id=True))
     for f in fc["features"]:  # water polygons carry only class + area_m2
         if f["properties"]["class"] == "water":
-            f["properties"] = {"class": "water", "area_m2": f["properties"]["area_m2"]}
+            f["properties"] = {"class": "water", "seasonal_high_water": bool(f["properties"].get("seasonal_high_water")),
+                               "area_m2": f["properties"]["area_m2"]}
     return fc
 
 
@@ -174,8 +178,12 @@ def run(run_dir: Path) -> dict:
         w.write(mask, 1)
     with rasterio.open(fdir / "flood_prob.tif", "w", **{**prof, "dtype": "float32", "nodata": np.nan}) as w:
         w.write(prob, 1)
+    seasonal = None
+    if (fdir / "seasonal_high_water.tif").exists():
+        seasonal = _read(fdir / "seasonal_high_water.tif")[0]
+        seasonal = (seasonal == 1) if seasonal.shape == mask.shape else None
     fc = polygons(mask, transform, crs, dtype_r if debris_mask is not None else None, conf_r,
-                  fdir / "debris_polygons.geojson" if debris_mask is not None else None)
+                  fdir / "debris_polygons.geojson" if debris_mask is not None else None, seasonal)
     write_json_atomic(fdir / "flood_polygons.geojson", fc)
 
     n = mask.size
@@ -186,6 +194,7 @@ def run(run_dir: Path) -> dict:
         "areas_km2": {"flood_water": round(float((mask == WATER).sum()) * px_km2, 4),
                       "debris": round(float((mask == DEBRIS).sum()) * px_km2, 4),
                       "permanent_water": round(float((mask == PERMANENT).sum()) * px_km2, 4),
+                      "seasonal_high_water": round(float((seasonal & (mask == WATER)).sum()) * px_km2, 4) if seasonal is not None else None,
                       "debris_where_ai_blind": round(blind * px_km2, 4)},
         "nodata_pct": round(100.0 * float((mask == NODATA).sum()) / n, 2) if n else None,
         "n_polygons": {"water": sum(f["properties"]["class"] == "water" for f in fc["features"]),

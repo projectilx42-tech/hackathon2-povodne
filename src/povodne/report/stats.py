@@ -347,6 +347,7 @@ def build(run_dir: Path, rj: dict, cfg: ReportConfig) -> tuple[dict, list[dict]]
         flood = {"flooded_water_km2": _r(fl["water_km2"], 3), "debris_km2": _r(fl["debris_km2"], 3),
                  "affected_km2": _r(fl["water_km2"] + fl["debris_km2"], 3), "nodata_pct": _r(fl["nodata_pct"], 1),
                  "method": fsec.get("method") or "ai", "permanent_water_km2": _r(fl["permanent_km2"], 3),
+                 "seasonal_high_water_km2": _r(((rj.get("combine") or {}).get("areas_km2") or {}).get("seasonal_high_water"), 3),
                  "model": fsec.get("model"), "debris_by_type_km2": deb.get("areas_km2"),
                  "debris_confidence_km2": deb.get("confidence_km2"),
                  "debris_false_share_est": placebo.get("estimated_false_share")}
