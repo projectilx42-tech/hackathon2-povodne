@@ -8,6 +8,7 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-12 — okraje zasažených míst (D-M10-03), týká se M3/combine, M8:** `flood/vhagree.py` — slabý pokles VH potvrzený oběma směry přeletu a navazující na dosavadní povodeň se přidá jako třída 3 (podtyp `unknown`, nízká jistota); `run.json.combine.vh_agreement`. Trishuli vs EMS: R 0,626 → 0,641, P 0,972, recall v údolí 77 → 79 %. Kontrakt beze změny.
 - **2026-10-12 — rozvodněné koryto už není „trvalá voda“ (D-M10-02), změna kontraktu, týká se M1, M3, M6, M8:** nový `raw/s1/perm_water.tif` (roční frekvence vody, 20 m), `acquire.s1.perm_ref`, upozornění `perm_water_ref_short`; AI krok přepíše „trvalou“ vodu mimo referenci na povodeň; `flood_polygons.geojson` (water) má `seasonal_high_water`, `stats.flood.seasonal_high_water_km2`. Větev `fix/permanent-water` — **master: sloučit**. Trishuli vs EMS plocha F1 0,60 → 0,76 (R 0,43 → 0,63, P 0,97), recall v údolí 48 → 77 %.
 - **2026-10-12 — suť z optiky i mimo radarový stín (D-M11-02), `fix/s2-scaling`:** Trishuli vs EMS plocha F1 0,60 → 0,616 (R 0,452); optical-only suť 0,70 km²; výsledky `validation/results/tf2`.
 - **2026-10-12 — S2 opraveno (D-M11-01), větev `fix/s2-scaling`:** offset BOA se odečítal podruhé → nuly v B02–B04. Teď 0 % nul, NDVI lesa 0,83. Kontrakt raw/s2 beze změny; stará `raw/s2` stáhnout znovu. Trishuli F1 vůči EMS beze změny (0,589).
