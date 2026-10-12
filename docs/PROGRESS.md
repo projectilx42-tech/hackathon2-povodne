@@ -142,7 +142,7 @@ Obtížnost a čas = odhad uživatele.
 | M3d Suť a bahno + změny povrchu | 🟨 | `claude/affectionate-shannon-jrnssg` | kód hotový (`python -m povodne.flood.debris`), testy na syntetickém údolí; chybí běh na skutečných datech (Opava, Derna, Trishuli) a starší snímky od M1 (D-M3d-02) |
 | M4 Damage | 🟨 | `claude/cool-cray-jfyu4h` | kód hotový (`python -m povodne.damage`), testy; ověřeno jen na skutečné OSM + uměle vyrobené povodni (D-M4-01) |
 | M5 Network / cut-off | 🟨 | `claude/cool-cray-jfyu4h` | kód hotový (`python -m povodne.network`): stavy, objížďka %, doba pěšky, stupně zasažení, pořadí naléhavosti, plán oprav, důležitá místa, plochy pro vrtulník; testy; čeká na skutečnou mapu povodně (D-M5-01–04) |
-| M6 Stats + sitrep + překryvy | ⬜ | session hlášení | zadáno 2026-10-12 (D-X-06) |
+| M6 Stats + sitrep + překryvy | 🟨 | `feat/report` | kód hotový (`python -m povodne.report <run>`): `stats.json` v2, verdikt, sitrep md + pdf (1 strana), obrázky vrstev, upozornění; testy na syntetickém runu (D-M6-01); chybí běh na skutečných datech |
 | M7 Flood path (bonus) | 🟨 | `claude/cool-cray-jfyu4h` | kód hotový (`python -m povodne.floodpath <run> --lon --lat`), testy; UI napojení chybí (D-M7-01) |
 | M10 Validace vs EMSR927 | 🟨 | `feat/validation` | kód + testy hotové (`validation/fetch_ems.py`, `validation/compare.py`, D-M10-01); čeká na finální běh Trishuli (porovnat jednou) |
 
@@ -153,6 +153,12 @@ Obtížnost a čas = odhad uživatele.
 4. Účty (CDSE, Kaggle…) zakládá uživatel až v příslušných sessions (D-011); údaje jen jako env proměnné prostředí, nikdy do repa.
 
 ## Log sessions
+### 2026-10-12 — hlášení: stats.json, sitrep, obrázky vrstev — `feat/report`
+- Hotovo `src/povodne/report/` (D-M6-01): `stats.json` verze 2 (pole v1 beze změny, chybějící část = `null`), verdikt (nedostatek dat < 20 % pozorované plochy nebo bez mapy; povodeň ≥ 0,1 km²),
+  sitrep `report/sitrep_en.md` + `.pdf` (fpdf2, 1 strana A4, tabulky se zkracují, mapa z matplotlibu), `overlays/*.png` + `index.json` přeprojektované do EPSG:4326, upozornění `step = report` v `docs/NOTICES.md`.
+- Testy `tests/test_report.py` (9: vše hotové, bez mapy povodně, bez škod a sítě, nic nenalezeno, malé pokrytí, práh, bounds obrázků, dlouhý obsah = 1 strana, kódy upozornění); `pytest tests` 119+ OK.
+- Nevyzkoušeno na skutečném běhu (chybí celý průchod pipeline). Část reportu: `deliverables/report/sections/sitrep.md`.
+- **Pro UI:** nová pole `stats.json` (ARCHITECTURE); `damage`/`access` může být `null` → zobrazit „not assessed“, ne „no map data“.
 ### 2026-10-12 — předzpracování — `feat/preprocess`
 - Hotovo `src/povodne/preprocess/` (D-M2-01): `aligned/` (radar lineárně, průměr „před“, optika 0–1, DEM 10 m, `grid.json`) a `masks/` (sklon jako trénink,
   HAND jako krok stahování, layover/shadow s geometrií dráhy z `run.json` nebo typickým úhlem, čisté pixely optiky stejně jako krok suti); `run.json.preprocess`,
