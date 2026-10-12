@@ -183,6 +183,10 @@ documentation and implementation. Per-module notes on which parts were AI-assist
   code and the tests (`tests/test_damage.py`, `test_network.py`, `test_impact.py`, `test_landing.py`, `test_floodpath.py`) were written
   with Claude Code; rules and sources are in `docs/DECISIONS.md` (D-M4-01, D-M5-01 – D-M5-04, D-M7-01).
 
+- **Preprocessing (`src/povodne/preprocess/`)** — conversion of the downloaded radar and optical images to model inputs on one
+  10 m grid, slope, HAND and radar layover/shadow masks, and the synthetic tests (`tests/test_preprocess.py`) were written with
+  Claude Code; choices are in `docs/DECISIONS.md` (D-M2-01).
+
 - **Validation against Copernicus EMS (`validation/`)** — EMS product download, the comparison script (area, buildings, roads,
   bridges) and synthetic tests (`tests/test_validation.py`) were written with Claude Code; EMS data are used only to check results.
 

@@ -318,6 +318,10 @@ def _run(run_dir: Path, notices: list[dict]) -> dict:
     for key in ("s1", "s1_alt"):
         log.info("radar %s", key)
         info = s1_track(run_dir, key, grid)
+        if info is None and key == "s1":
+            notices.append(_notice("preprocess_no_s1", "No Sentinel-1 before/after pair in raw/s1: the flood map "
+                                   "cannot be made."))
+            raise FileNotFoundError("no Sentinel-1 before/after pair in raw/s1 (acquire step)")
         if info is None:
             _remove_track(run_dir, key)
             continue
@@ -334,10 +338,6 @@ def _run(run_dir: Path, notices: list[dict]) -> dict:
                                             "from_run_json": exact},
                        "data_pct": pct(valid), "layover_shadow_pct": pct(blocked), "usable_pct": pct(valid & ~blocked),
                        "_usable": valid & ~blocked}
-    if "s1" not in tracks:
-        notices.append(_notice("preprocess_no_s1", "No Sentinel-1 before/after pair in raw/s1: the flood map cannot "
-                               "be made."))
-        raise FileNotFoundError("no Sentinel-1 before/after pair in raw/s1 (acquire step)")
     usable = tracks["s1"].pop("_usable")
     if "s1_alt" in tracks:
         usable = usable | tracks["s1_alt"].pop("_usable")

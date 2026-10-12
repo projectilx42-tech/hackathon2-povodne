@@ -8,6 +8,7 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-12 — předzpracování hotové (D-M2-01), kontrakt beze změny:** `python -m povodne.preprocess <run>` → `aligned/`, `masks/`, `run.json.preprocess`, upozornění `step = "preprocess"`. Větev `feat/preprocess` — **master: sloučit**.
 - **2026-10-12 — master: sloučeny škody, odříznuté obce, zasažení obcí a trasa povodně (`claude/cool-cray-jfyu4h`) do `main` → všichni `git fetch origin main && git merge origin/main`.**
   **Nový kontrakt spojení (D-X-06, ARCHITECTURE → *Orchestrátor*):** pořadí kroků a moduly `povodne.acquire → preprocess → flood.ai → flood.debris → flood.combine
   → damage → network → report`; **nový krok průběhu `combine`**; **PNG překryvy píše krok report** (ne UI); `flood/combine.py` patří session spojení (ne modelu);
@@ -133,7 +134,7 @@ Obtížnost a čas = odhad uživatele.
 | M8 Dashboard / webové UI | 🟨 | `ccr-d89d3cfb-ywooc4` | UI hotové nad ukázkovým runem; citlivost, hodina povodně, typy hlášek; chybí: upozornění z `notices`, podtypy suti, nové výstupy škod/sítě, trasa povodně, krok `combine` (D-X-06) |
 | 0 Skeleton + orchestrátor + složení masky | ⬜ | session spojení | zadáno 2026-10-12 (D-X-06) |
 | M1 Acquire (S1/S2/DEM/OSM) | 🟨 | `claude/funny-fermat-ukdqp8` | celý krok hotový (`python -m povodne.acquire`): katalog, hlavní dráha (D-X-01), DEM, kontrola čistoty pre (D-M1-01), S1 obě dráhy kalibrované (D-M1-02), S2, OSM; OSM přes ohsome v2 s klíčem (D-M1-06), otestováno; **předávka: `docs/HANDOFF_SATELITY.md`** |
-| M2 Preprocess | ⬜ | session předzpracování | zadáno 2026-10-12; požadavky D-033, D-035, D-M1-04 (HAND přes `acquire.terrain.hand`), D-M9-11 (S2) |
+| M2 Preprocess | ✅ | `feat/preprocess` | `python -m povodne.preprocess <run>` (D-M2-01): radar, optika, DEM, sklon, HAND, layover/shadow; testy 10/10; ověřeno jen na syntetických datech |
 | M9 AI trénink | ✅ | `claude/zen-bell-a83s7a` | v0.4 bez Bolívie (`floodseg-model`, D-M9-14); dříve v0.2, D-M9-01–11; optický model S2 a kolo 10 rozpracované; **předání: `docs/HANDOFF_M9.md`** |
 | M3 AI inference (voda) | 🟨 | `claude/zen-bell-a83s7a` | `training/run_ai.py` (+ testy): dva směry, stín z obou směrů, optika S2, min. plocha, dvoustupňový práh (D-M9-11); přesun do `src/povodne/flood/` až bude skeleton |
 | M3d Suť a bahno + změny povrchu | 🟨 | `claude/affectionate-shannon-jrnssg` | kód hotový (`python -m povodne.flood.debris`), testy na syntetickém údolí; chybí běh na skutečných datech (Opava, Derna, Trishuli) a starší snímky od M1 (D-M3d-02) |
@@ -150,6 +151,13 @@ Obtížnost a čas = odhad uživatele.
 4. Účty (CDSE, Kaggle…) zakládá uživatel až v příslušných sessions (D-011); údaje jen jako env proměnné prostředí, nikdy do repa.
 
 ## Log sessions
+### 2026-10-12 — předzpracování — `feat/preprocess`
+- Hotovo `src/povodne/preprocess/` (D-M2-01): `aligned/` (radar lineárně, průměr „před“, optika 0–1, DEM 10 m, `grid.json`) a `masks/` (sklon jako trénink,
+  HAND jako krok stahování, layover/shadow s geometrií dráhy z `run.json` nebo typickým úhlem, čisté pixely optiky stejně jako krok suti); `run.json.preprocess`,
+  průběh `preprocess`, upozornění (`docs/NOTICES.md`).
+- Testy `tests/test_preprocess.py` 10/10: převody, průměr, NaN, masky, shoda sklonu s tréninkem a HAND s krokem suti, AI krok načte vstupy (bez modelu), krok suti
+  použije masky. Syntetická oblast 30×30 km: 46 s, 1,4 GB. **Naostro neověřeno** (v prostředí nejsou klíče CDSE/ohsome).
+- Část reportu: `deliverables/report/sections/preprocessing.md`.
 ### 2026-10-12 — validace vs EMSR927 — `feat/validation`
 - Nalezeny a staženy produkty EMSR927 (4 oblasti dodány, 2 zrušeny kvůli mrakům), zapsáno v `validation/README.md` a D-M10-01.
 - `validation/compare.py <run>`: plocha (IoU/P/R/F1), budovy (recall), silnice (délka, i falešné), mosty; výstupy `metrics.json`, PNG, README.
