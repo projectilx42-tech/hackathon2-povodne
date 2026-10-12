@@ -1000,12 +1000,15 @@ Rozhodnutí:
   **Rozlišení 20 m** (60 m by úzké řeky < 60 m vynechalo a celé koryto by se po události hlásilo jako zasažené); cena ≈ 11 PU za průlet pro 30×30 km
   → ~110 PU na běh (odhad, neměřeno). Pixely v layover/shadow hlavní dráhy = neznámo (255, jsou tmavé ve všech průletech).
 - **AI krok** (`training/run_ai.py`, to je skutečně spouštěná cesta — `src/povodne/flood/ai.py` zatím neexistuje, orchestrátor volá `FALLBACK_SCRIPTS`):
-  pixel s třídou 4, který není permanentní podle reference (práh 70 %, zvětšeno o 1 px kvůli úzkým řekám a posunu) ani podle masky vod Copernicus DEM (třídy 1–3),
+  pixel s třídou 4, který není permanentní podle reference (práh 70 %, zvětšeno o 1 px kvůli úzkým řekám a posunu) ani podle masky vod Copernicus DEM (jen moře a jezera, třídy 1–2; řeka ne — viz zpřesnění níže),
   se přepíše na **2 (zasaženo)** a označí v `flood/seasonal_high_water.tif`. Pravidla svahu/HAND a minimální plocha platí po přepisu. Třídy `flood_mask` se nemění.
 - **Označení pro report:** polygony vody mají `seasonal_high_water: true|false`; `run.json.combine.areas_km2.seasonal_high_water`, `run.json.flood.params.perm_ref`
   a `stats.json` → `flood.seasonal_high_water_km2` („z toho X km² bylo vodou už v monzunu před událostí“).
 - **Fallback:** < 4 průletů v katalogu (nebo chyba) → soubor se nevytvoří, upozornění `perm_water_ref_short` (warning), model zůstává beze změny.
   Referenci mají jen hlavní dráha; `s1_alt` ji nemá (jde o fyzickou vlastnost místa, ne dráhy).
 - Prahy (70 %, −15 dB, 365 dní, 10 průletů) jsou obecné a **neladí se na EMSR927** (D-006).
+- **Zpřesnění po prvním běhu:** s třídou „řeka“ (3) v masce DEM zůstávalo 90 % chybějících pixelů třídy 4 v údolí chráněno — maska je z let 2011–15, hrubá (30 m)
+  a řeka je právě to, co se při povodni rozlije. Řeku proto maska DEM nechrání; rozhoduje roční záznam (kde chybí = 255, zůstává label modelu). Je to fyzikální
+  zdůvodnění, ne ladění prahu; zjištěno ale diagnostikou chybějících pixelů proti EMSR927 — pro poctivost uvedeno.
 Omezení (do reportu): sezónní jezera a ledovcové tůně, které jsou vodou > 70 % roku, zůstanou „trvalé“; v roce s 10 průlety je frekvence hrubá (±~10 p. b.);
 řeka, která se po dubnu změnila (nový tok), může být v referenci podhodnocena.

@@ -45,6 +45,7 @@ def test_dem_water_mask_protects_permanent_water():
     mask = np.full((4, 4), 4, np.uint8)
     ref = np.zeros((4, 4), np.uint8)
     dem = np.zeros((4, 4), np.uint8)
-    dem[:, :2] = 3
+    dem[:, :2] = 2  # lake
+    dem[:, 2:3] = 3  # river: not protected, the record decides
     s = seasonal_high_water(mask, ref, dem, 70, grow_px=0)
     assert not s[:, :2].any() and s[:, 2:].all()

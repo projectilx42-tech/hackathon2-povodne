@@ -76,7 +76,8 @@ def seasonal_high_water(mask: np.ndarray, ref_freq: np.ndarray | None, dem_water
 
     `ref_freq` = water frequency in % over a year of passes (255 = unknown, from acquire/permwater.py); a pixel stays
     permanent where it is water in >= `min_freq` % of the passes (grown by `grow_px` pixels so narrow rivers and
-    co-registration error do not leak) or where the Copernicus DEM water mask says sea/lake/river. Where the record is
+    co-registration error do not leak) or where the Copernicus DEM water mask (2011-15) says sea or lake (its river class is not used: a river is
+    what swells, and the mask is old and coarse). Where the record is
     unknown the model's label is kept. Returns a bool array of pixels to turn into flood (2); the caller applies it.
     """
     if ref_freq is None:
@@ -88,7 +89,7 @@ def seasonal_high_water(mask: np.ndarray, ref_freq: np.ndarray | None, dem_water
     if grow_px > 0:
         permanent = binary_dilation(permanent, iterations=grow_px)
     if dem_water is not None:
-        permanent |= np.isin(dem_water, (1, 2, 3))
+        permanent |= np.isin(dem_water, (1, 2))  # sea, lake; rivers (3) swell, the record decides (D-M10-02)
     return (mask == 4) & known & ~permanent
 
 
