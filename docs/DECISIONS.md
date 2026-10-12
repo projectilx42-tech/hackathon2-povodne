@@ -926,3 +926,22 @@ Všechny otázky na organizátory jsou jen v `docs/QUESTIONS.md` (D-035).
 Váhy (~100 MB) teď existují jen jako výstupy Kaggle kernelů a v dočasném kontejneru. Pro porotu (D-016) potřebujeme stabilní
 odkaz: GitHub Release tohoto repa, nebo HF Hub (potřebuje HF účet/token). GitHub nepřijme soubor > 100 MB přímo do repa.
 Rozhodnout, až bude finální model.
+
+## D-M2-01 | 2026-10-12 | přijato (zadání master session, D-X-06) — Předzpracování `raw/` → `aligned/`, `masks/`
+Kód `src/povodne/preprocess/`, CLI `python -m povodne.preprocess <run_dir>`, testy `tests/test_preprocess.py`. Kontrakt beze změny (ARCHITECTURE: run adresář).
+- **Mřížka** z `run.json.acquire.grid` (krok stahování na ní už všechno uložil → nic se nepřevzorkovává); bez ní z prvního 10m snímku. `aligned/grid.json`.
+- **Radar:** UINT16 dB → lineární sigma0 (float32, NaN = nodata). Víc snímků „před“ = průměr v lineární škále po pixelech (pixel platný jen v jednom
+  snímku si nechá jeho hodnotu), jako v tréninku (D-030). Žádný další filtr (krok stahování už dal LEE 7×7 + 3×3, D-M1-02). Dráha `s1_alt` bez úplné
+  dvojice → soubory se nevytvoří (a staré z předchozího běhu se smažou, ať je AI krok nepoužije).
+- **Optika:** odrazivost = DN × scale + offset z tagů GeoTIFF (záloha `run.json.acquire.s2`, pak 1e-4), oříznuto na 0–1. Čistý pixel = SCL 4/5/6, ne do
+  2 pixelů od mraku/stínu mraku/cirru (SCL 3, 8, 9, 10), ne sníh (SCL 11 nebo NDSI > 0,42) — **stejná pravidla jako krok suti**; SCL 2 (tmavé/stín terénu),
+  7 (nezařazeno), 1 (saturace) se nepočítají jako čisté.
+- **Terén:** `aligned/dem.tif` bilineárně z 30 m; `masks/slope.tif` = `features.slope_from_dem` na 10m DEM (jako trénink, D-035);
+  `masks/hand.tif` = `acquire.terrain.hand` na 30m DEM (100 buněk, D-M1-04), pak bilineárně na 10 m — test ověřuje shodu s výpočtem kroku suti.
+- **Layover/shadow:** `acquire.terrain.layover_shadow` na 30m DEM s úhlem pohledu a dopadu z `run.json.acquire.s1[_alt].geometry` (D-X-06 bod 7);
+  chybí-li, typický úhel 39° a směr podle přeletu (stejně jako krok suti) + upozornění `preprocess_approx_geometry`.
+- `run.json.preprocess`: `s1_valid_pct` (podíl oblasti, kde radar vidí aspoň jednou dráhou), po drahách `data_pct`, `layover_shadow_pct`, `usable_pct`,
+  použitá geometrie; `s2.<pre|post>.clear_pct`. Upozornění `step = "preprocess"` v `docs/NOTICES.md`.
+- Výkon (syntetická oblast 30×30 km, 2 dráhy × 3 snímky + 2 optické): 46 s, 1,4 GB RAM na CPU.
+- Omezení: maska layover/shadow je z 30m DEM (úzké soutěsky pod rozlišením DEM chybí); geometrie dráhy je jeden úhel pro celou oblast (úhel dopadu se
+  napříč pásem mění o ~1° na 10 km); DEM je model povrchu (lesy, budovy zvedají sklon i HAND).

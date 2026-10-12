@@ -115,3 +115,16 @@ Kódy definuje `src/povodne/network/pipeline.py`.
 | network | `network_snap_failed` | info | Některá sídla jsou dál než 500 m od silnice (vedou k nim jen pěšiny nebo chybí v mapě); počítají se jako „bez silnice už před povodní“. | Settlements without a road | počet |
 | network | `network_edge_destinations` | info | Okraj stažené mapy (oblast + 15 km) se počítá jako „vnější svět“ — kdo se tam dostane, není odříznutý. | Map edge used as destination | počet uzlů |
 | network | `network_possibly_cut_off` | info | Některé obce jsou odříznuté, jen pokud nejdou použít podezřelé mosty nebo možná zablokované silnice. | Possibly cut off settlements | počet |
+
+### Krok předzpracování (`step = "preprocess"`, D-M2-01)
+Kódy definuje `src/povodne/preprocess/pipeline.py` (`SEVERITY`), test `tests/test_preprocess.py` hlídá, že tabulka obsahuje přesně je.
+
+| step | kód | závažnost | kdy nastane (česky) | titulek pro UI (EN) | `details` |
+|---|---|---|---|---|---|
+| preprocess | `preprocess_failed` | error | Krok předzpracování spadl (např. chybí výšková mapa). Mapa povodně nevznikne. | Data preparation failed | `error` |
+| preprocess | `preprocess_no_s1` | error | V `raw/s1` chybí dvojice radarových snímků „před“ a „po“: mapu povodně nejde udělat. | No radar image pair | — |
+| preprocess | `preprocess_low_s1_coverage` | warning | Radar (obě dráhy dohromady) vidí méně než 50 % oblasti (stín hor, layover, chybějící data): jinde povodeň radarem nejde zmapovat. | Radar sees little of the area | `s1_valid_pct` |
+| preprocess | `preprocess_approx_geometry` | info | V `run.json` chybí úhel pohledu dráhy; maska stínu a layoveru použila typický úhel 39° podle směru přeletu. | Typical radar angle used | `track`, `look_azimuth_deg`, `incidence_deg` |
+| preprocess | `preprocess_no_s2` | info | Chybí optický snímek „po“: voda jen z radaru. | Radar-only water map | `available` |
+
+Pro UI dál: `run.json.preprocess.s1_valid_pct` (kolik oblasti radar vidí aspoň jednou dráhou), `tracks.<dráha>.layover_shadow_pct`, `s2.<pre|post>.clear_pct`.
