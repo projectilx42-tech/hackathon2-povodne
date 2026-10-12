@@ -167,6 +167,7 @@ Full list: report, section *Limitations*.
 ## AI assistance
 This project was developed with the help of **Claude Code** (Anthropic), used as a coding assistant for project scaffolding,
 documentation and implementation. Per-module notes on which parts were AI-assisted:
+- **Pipeline orchestrator and final flood map (`src/povodne/{cli,io,config}.py`, `src/povodne/flood/combine.py`, `pyproject.toml`)**: written with Claude Code (step runner, failure rules, combining the water and debris maps, tests).
 - **Dashboard (`dashboard/`)**: backend, frontend, synthetic sample-run generator and UI design discussion were developed with Claude Code.
 
 - **Scene selection (`src/povodne/acquire/`)** — Sentinel-1 catalogue search and track planning, Copernicus DEM download,

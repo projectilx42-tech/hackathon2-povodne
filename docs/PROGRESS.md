@@ -8,6 +8,7 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-12 — spojení: `python -m povodne run` / `serve`, kostra balíku a složení finální mapy hotové (větev `feat/integration`, master: sloučit).** Nové `src/povodne/{cli,io,config}.py`, `pyproject.toml` (`pip install -e .`), `flood/combine.py` (D-M0-01): voda z AI má přednost, suť i tam, kam AI nevidělo; pravděpodobnost suti 0,35/0,65/0,85; polygony suti nesou `subtype`, `confidence`, `evidence`; nové `run.json.combine` a upozornění `step = "combine"` (`docs/NOTICES.md`). Orchestrátor (D-M0-02): krok bez hlavního výstupu = `failed`, `progress.error`, `progress.finished_utc`; chybějící modul = `failed` se srozumitelnou zprávou. **Všichni:** v `io.py` jsou sdílené `load_run`, `update_run`, `set_step`, `set_notices` (nepovinné). **UI:** `dashboard/server.py` změněn jen v předání `PYTHONPATH`; seznam `STEPS` v UI ještě nemá `combine`.
 - **2026-10-12 — předzpracování hotové (D-M2-01), kontrakt beze změny:** `python -m povodne.preprocess <run>` → `aligned/`, `masks/`, `run.json.preprocess`, upozornění `step = "preprocess"`. Větev `feat/preprocess` — **master: sloučit**.
 - **2026-10-12 — satelity (D-M1-08), týká se M2, M5, M8:** `run.json.acquire.s1[_alt].geometry` (směr letu, směr pohledu, úhel dopadu) pro masku stínu v předzpracování; oblast smí být polygon / MultiPolygon (opraví se i křížící se tvar); nové upozornění `better_view_soon` (D-X-05, `docs/NOTICES.md`); nová vrstva `osm/pois.gpkg` + `health_post` ve `facilities.gpkg` (`docs/REQUEST_M1_POIS.md`), běh = 8 dotazů na ohsome. Podklad do reportu: `deliverables/report/sections/data_acquisition.md`. Naostro neověřeno (čekají klíče). Větev `claude/funny-fermat-ukdqp8` — **master: sloučit**.
 - **2026-10-12 — master: sloučeny škody, odříznuté obce, zasažení obcí a trasa povodně (`claude/cool-cray-jfyu4h`) do `main` → všichni `git fetch origin main && git merge origin/main`.**
@@ -133,7 +134,7 @@ Obtížnost a čas = odhad uživatele.
 |---|---|---|---|
 | Repo init, docs, workflow | ✅ | `main` | CLAUDE.md, docs/, Stop hook |
 | M8 Dashboard / webové UI | 🟨 | `ccr-d89d3cfb-ywooc4` | UI hotové nad ukázkovým runem; citlivost, hodina povodně, typy hlášek; chybí: upozornění z `notices`, podtypy suti, nové výstupy škod/sítě, trasa povodně, krok `combine` (D-X-06) |
-| 0 Skeleton + orchestrátor + složení masky | ⬜ | session spojení | zadáno 2026-10-12 (D-X-06) |
+| 0 Skeleton + orchestrátor + složení masky | 🟨 | `feat/integration` | hotovo v kódu + testy (falešné kroky, syntetické rastry, řetězec složení → škody → síť); naostro neběželo (chybí klíče, předzpracování, report) |
 | M1 Acquire (S1/S2/DEM/OSM) | 🟨 | `claude/funny-fermat-ukdqp8` | celý krok hotový (`python -m povodne.acquire`): katalog, hlavní dráha (D-X-01), DEM, kontrola čistoty pre (D-M1-01), S1 obě dráhy kalibrované (D-M1-02), S2, OSM; OSM přes ohsome v2 s klíčem (D-M1-06), otestováno; **předávka: `docs/HANDOFF_SATELITY.md`** |
 | M2 Preprocess | ✅ | `feat/preprocess` | `python -m povodne.preprocess <run>` (D-M2-01): radar, optika, DEM, sklon, HAND, layover/shadow; testy 10/10; ověřeno jen na syntetických datech |
 | M9 AI trénink | ✅ | `claude/zen-bell-a83s7a` | v0.4 bez Bolívie (`floodseg-model`, D-M9-14); dříve v0.2, D-M9-01–11; optický model S2 a kolo 10 rozpracované; **předání: `docs/HANDOFF_M9.md`** |
@@ -152,6 +153,13 @@ Obtížnost a čas = odhad uživatele.
 4. Účty (CDSE, Kaggle…) zakládá uživatel až v příslušných sessions (D-011); údaje jen jako env proměnné prostředí, nikdy do repa.
 
 ## Log sessions
+### 2026-10-12 — spojení: hlavní příkaz, kostra balíku, složení finální mapy — `feat/integration`
+- Hotovo: `python -m povodne run` (orchestrátor podle D-X-06, D-M0-02), `python -m povodne serve`, `io.py`/`config.py`, `pyproject.toml`, `flood/combine.py` (D-M0-01),
+  `PYTHONPATH` v `dashboard/server.py`, README (instalace, AI assistance), `deliverables/report/sections/pipeline.md`.
+- Testy: `tests/test_combine.py`, `test_orchestrator.py` (pořadí, selhání, zrušení, založení `run.json` z obdélníku i GeoJSON), `test_combine_chain.py`; `pytest tests training/tests` 129 passed, `check_docs` OK.
+- Ověřeno naostro bez klíčů: běh skončí `failed` se zprávou o chybějícím klíči Copernicus, report `failed` (modul zatím neexistuje); `serve` odpovídá na `/api/health`.
+- Krok stahování s mnohoúhelníkem v `run.json.aoi`: podle kódu funguje (`aoi_to_geometry` bere GeoJSON, maska oblasti rasterizuje tvar), naostro neověřeno.
+- Zbývá: první celý běh (master), UI doplní krok `combine` do svého seznamu kroků.
 ### 2026-10-12 — předzpracování — `feat/preprocess`
 - Hotovo `src/povodne/preprocess/` (D-M2-01): `aligned/` (radar lineárně, průměr „před“, optika 0–1, DEM 10 m, `grid.json`) a `masks/` (sklon jako trénink,
   HAND jako krok stahování, layover/shadow s geometrií dráhy z `run.json` nebo typickým úhlem, čisté pixely optiky stejně jako krok suti); `run.json.preprocess`,
