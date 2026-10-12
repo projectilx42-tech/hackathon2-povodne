@@ -312,10 +312,6 @@ def _run(run_dir: Path, cfg: NetworkConfig, notices: list, t0: float) -> dict:
     n_nodes0, n_edges0 = G.number_of_nodes(), G.number_of_edges()
     road_status = _status_map(roads_dmg, ["passable", "possibly_blocked", "blocked"])
     bridge_status = _status_map(bridges_dmg, ["passable", "suspect", "blocked"])
-    per_edge = _apply_damage(G, road_status, bridge_status, bridges_dmg, roads.crs, run_dir)
-    if roads_dmg is not None and not per_edge and any(st != "passable" for st in road_status.values()):
-        notices.append(_notice("network_whole_line_damage", "The flood mask could not be read, so a damaged road "
-                               "line is closed along its whole length (settlements along intact parts may show as cut off)."))
     _progress(run_dir, "running", f"road graph: {n_nodes0} junctions, {n_edges0} road sections; snapping settlements")
 
     # --- snapping (settlements + facilities in one pass, so edges are split consistently) -------------------
@@ -327,6 +323,11 @@ def _run(run_dir: Path, cfg: NetworkConfig, notices: list, t0: float) -> dict:
     pts.update({("f", o): _pt(g) for o, g in zip(facil["osm_id"], facil.geometry)})
     pts.update({("f", o): _pt(g) for o, g in zip(fac_src["osm_id"], fac_src.geometry) if ("f", o) not in pts})
     snap = snap_points(G, pts, cfg)
+    # damage after snapping: the pieces next to a settlement are measured separately
+    per_edge = _apply_damage(G, road_status, bridge_status, bridges_dmg, roads.crs, run_dir)
+    if roads_dmg is not None and not per_edge and any(st != "passable" for st in road_status.values()):
+        notices.append(_notice("network_whole_line_damage", "The flood mask could not be read, so a damaged road "
+                               "line is closed along its whole length (settlements along intact parts may show as cut off)."))
     s_snap = {o: snap[("s", o)] for o in settl["osm_id"]}
     f_snap = {o: snap[(kind, o)] for (kind, o) in snap if kind == "f"}
 
