@@ -7,12 +7,23 @@ AI komponenta: **flood segmentation model** (voda/debris ze Sentinel-1/2), trén
 ověřený na himálajských scénách, které model neviděl. Case study: Trishuli flood 26. 8. 2026 vs. EMSR927.
 **Deadline: 14. 10. 2026 20:45 SELČ** (15. 10. 00:15 IST).
 
-Podrobnosti (načítají se automaticky):
-@docs/TASK.md
-@docs/ARCHITECTURE.md
-@docs/PROGRESS.md
-@docs/DECISIONS.md
-@docs/QUESTIONS.md
+Podrobnosti se **nenačítají automaticky** (šetření tokenů — dohromady ~75k tokenů). Čti je cíleně, jen co potřebuješ
+(`Grep` na klíčové slovo / číslo rozhodnutí, pak `Read` s `offset`+`limit`; velké soubory nikdy celé):
+- `docs/PROGRESS.md` — **povinně jen sekci „📢 Oznámení pro všechny sessions“ nahoře** (`Read` s `limit` ~40 řádků) + stav svého modulu.
+- `docs/TASK.md` — zadání, atribuce, hodnoticí kritéria (čti, když řešíš pravidla, report nebo deliverables).
+- `docs/ARCHITECTURE.md` — kontrakt souborů a rozhraní; čti jen sekce modulů, které čteš/píšeš.
+- `docs/DECISIONS.md` (~108 kB) — najdi přes `Grep "^## D-"` a čti jen relevantní záznamy. Nové záznamy přidávej na konec přes `cat >> docs/DECISIONS.md`
+  (nemusíš číst celý soubor).
+- `docs/QUESTIONS.md` — otázky na organizátory a jejich odpovědi.
+- Další: `docs/UI_SPEC.md`, `docs/NOTICES.md`, `docs/HANDOFF_*.md` podle modulu.
+- Nečti zbytečně: `docs/source/` (PDF, obrázky), `dashboard/static/vendor/` (minifikované JS), `training/himalaya/quicklooks/` (PNG).
+
+## Šetření tokeny (limit 5 h se vyčerpá rychle)
+- Jedna session = jeden úkol; mezi nesouvisejícími úkoly `/clear`. Nenechávej session hodiny nečinně ležet (po ~1 h vyprší cache a další zpráva stojí celý kontext).
+- Soubory čti cíleně (`Grep`, `Read` s `offset`/`limit`); výstupy příkazů zkracuj (`| tail`, `| head`, `-q`); velké logy a testy nejdřív přefiltruj.
+- Rešerše a rozsáhlé čtení deleguj na subagenta s `model: haiku`; neotevírej víc agentů / workflow, než je nutné (každý načítá CLAUDE.md a kontext znovu).
+- Výchozí model Sonnet; Opus jen na složitá rozhodnutí. U jednoduchých úkolů nižší `/effort`. U větších změn nejdřív plán (Shift+Tab).
+- Nespouštěj opakované kontroly (`/loop`, check-iny) bez potřeby — každá pošle celý kontext.
 
 ## Datová pravidla — porušení = DISKVALIFIKACE
 - **Povolené vstupy:** Sentinel-1, Sentinel-2, Copernicus DEM (GLO-30), OpenStreetMap **jen jako stav před událostí**, tréninková data Kuro Siwo / Sen1Floods11.
