@@ -817,6 +817,23 @@ souhrnná čísla + sitrep a obrázky pro mapu. Do odevzdání 2,5 dne → pevn�
 8. Sdílené pomocné funkce (`io.py`: čtení/zápis `run.json` atomicky, průběh, upozornění) dodá skeleton; stávající moduly mají vlastní kopie
    a **teď se nepřepisují** (riziko před termínem) — sjednocení až po odevzdání, pokud vůbec.
 
+## D-M6-01 | 2026-10-12 | přijato (zadání master session pro hlášení, D-X-06) — `stats.json` v2, verdikt, sitrep a obrázky vrstev
+- **`stats.json` verze 2** (schéma v ARCHITECTURE): pole verze 1 beze změny (UI je čte), nová pole jen přibývají — rozsahy škod (jisté–všechny),
+  sídla podle stavu vč. `possibly_cut_off`, stupně zasažení, `urgent` (top 10 podle pořadí naléhavosti), plán oprav (top 5), důležitá místa,
+  plochy suti po podtypech + odhad falešných nálezů z autotestu, datum a čas snímku „po“ (`post_image`), stav kroků, souhrn upozornění.
+  **Chybějící část = `null`, ne nuly** (nula = spočítáno a nic). `damage.buildings_hit` = jisté zásahy (`_low`), `bridges_hit` = blocked + suspect.
+- **Verdikt (D-013):** `insufficient_data`, když chybí `flood/flood_mask.tif`, nebo když je vyhodnoceno (flood_mask ≠ 0, radar nebo jasná optika)
+  < **20 %** oblasti (`min_evaluated_pct`; pod tím by „nic“ znamenalo hlavně „nevidíme“). Jinak `flood_detected`, když zasažená plocha (třídy 2 + 3)
+  ≥ **0,1 km²** (`min_affected_km2`; 10 ha ≈ 10 nejmenších ploch po filtru 0,1 ha — jednotlivé zbytky šumu v horách verdikt nepřepnou), jinak
+  `no_significant_flooding`. Prahy jsou konfigurovatelné (`ReportConfig`), praktický odhad, **neladěné na EMS** (D-006).
+- **Sitrep:** `report/sitrep_en.md` + `sitrep_en.pdf`, jedna strana A4, knihovna **fpdf2** (čistý Python, bez systémových balíčků), písmo DejaVu
+  z matplotlibu (Unicode); malá mapa kreslená matplotlibem. Všechna čísla jen ze `stats.json`. Když se obsah nevejde, zkracují se tabulky
+  (méně řádků), dokud PDF nemá 1 stranu. Jména se znaky, které písmo nemá (např. dévanágarí), se nahradí „<place> (<osm_id>)“.
+- **Obrázky vrstev** (`overlays/*.png` + `index.json`, D-X-06): rastr se přeprojektuje do EPSG:4326 (bounds sedí s obdélníkem v mapě), delší strana
+  max. 2048 px. `flood_prob` (R = P × 255, G = B = 0, A = 255; zdroj `flood_prob.tif`, jinak `ai_prob.tif`), `s2_pre`/`s2_post` (barevně B04/B03/B02,
+  odrazivost × 3,5, průhledné mimo data; zdroj `aligned/`, jinak `raw/s2/`), `layover_shadow` (fialová #a78bfa kde maska = 1 v hlavní dráze
+  — a kde má druhá dráha také stín, jinak průhledně), `debris_observability` (2 nedá se vidět = šedá, 3 necitlivé = fialová, jinak průhledné).
+
 ## D-M1-08 | 2026-10-12 | přijato (uživatel: úkoly master session; D-X-05, D-X-06 bod 7, `docs/REQUEST_M1_POIS.md`) — Geometrie dráhy, polygon, upozornění na příští průlet, důležitá místa
 1. **Geometrie dráhy do `run.json`** (D-X-06 bod 7): `acquire.s1.geometry` a `acquire.s1_alt.geometry` = `{heading_deg, look_azimuth_deg, incidence_deg}`
    ve středu oblasti (`catalog.track_geometry`, tatáž hodnota, ze které se počítá maska stínu při výběru dráhy); předzpracování z ní spočítá masku

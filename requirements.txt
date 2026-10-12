@@ -21,6 +21,9 @@ torch>=2.2
 segmentation-models-pytorch>=0.3.3
 # damage, road network, cut-off settlements (M4, M5, M7)
 networkx>=3.2
-
-# M10 validation vs EMSR927 (offline tool in validation/, never used by the pipeline): comparison map PNG
+# report step (M6): one-page PDF sitrep (pure Python) and its small map; Pillow for map overlays
+fpdf2>=2.7
 matplotlib>=3.8
+pillow>=10
+
+# M10 validation vs EMSR927 (offline tool in validation/, never used by the pipeline): comparison map PNG (matplotlib, listed above)

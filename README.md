@@ -189,6 +189,10 @@ documentation and implementation. Per-module notes on which parts were AI-assist
   10 m grid, slope, HAND and radar layover/shadow masks, and the synthetic tests (`tests/test_preprocess.py`) were written with
   Claude Code; choices are in `docs/DECISIONS.md` (D-M2-01).
 
+- **Summary numbers, situation report and map images (`src/povodne/report/`)** — `stats.json`, the verdict rules, the one-page
+  PDF/Markdown sitrep, the map overlays and the synthetic tests (`tests/test_report.py`) were written with Claude Code; choices are in
+  `docs/DECISIONS.md` (D-M6-01).
+
 - **Validation against Copernicus EMS (`validation/`)** — EMS product download, the comparison script (area, buildings, roads,
   bridges) and synthetic tests (`tests/test_validation.py`) were written with Claude Code; EMS data are used only to check results.
 
