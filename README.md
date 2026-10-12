@@ -74,6 +74,9 @@ documentation and implementation. Per-module notes on which parts were AI-assist
   code and the tests (`tests/test_damage.py`, `test_network.py`, `test_impact.py`, `test_landing.py`, `test_floodpath.py`) were written
   with Claude Code; rules and sources are in `docs/DECISIONS.md` (D-M4-01, D-M5-01 – D-M5-04, D-M7-01).
 
+- **Validation against Copernicus EMS (`validation/`)** — EMS product download, the comparison script (area, buildings, roads,
+  bridges) and synthetic tests (`tests/test_validation.py`) were written with Claude Code; EMS data are used only to check results.
+
 ## Data attributions
 - Contains modified Copernicus Sentinel data 2026.
 - Produced using Copernicus WorldDEM-30 © DLR e.V. 2010–2014 and © Airbus Defence and Space GmbH 2014–2018 provided under

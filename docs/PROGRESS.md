@@ -141,7 +141,7 @@ Obtížnost a čas = odhad uživatele.
 | M5 Network / cut-off | 🟨 | `claude/cool-cray-jfyu4h` | kód hotový (`python -m povodne.network`): stavy, objížďka %, doba pěšky, stupně zasažení, pořadí naléhavosti, plán oprav, důležitá místa, plochy pro vrtulník; testy; čeká na skutečnou mapu povodně (D-M5-01–04) |
 | M6 Stats + sitrep + překryvy | ⬜ | session hlášení | zadáno 2026-10-12 (D-X-06) |
 | M7 Flood path (bonus) | 🟨 | `claude/cool-cray-jfyu4h` | kód hotový (`python -m povodne.floodpath <run> --lon --lat`), testy; UI napojení chybí (D-M7-01) |
-| M10 Validace vs EMSR927 | ⬜ | session validace | zadáno 2026-10-12 |
+| M10 Validace vs EMSR927 | 🟨 | `feat/validation` | kód + testy hotové (`validation/fetch_ems.py`, `validation/compare.py`, D-M10-01); čeká na finální běh Trishuli (porovnat jednou) |
 
 ## Blokery / známé problémy
 1. ~~Síťová politika blokuje datové zdroje~~ **VYŘEŠENO 2026-10-07**: Network access = Full.
@@ -150,6 +150,11 @@ Obtížnost a čas = odhad uživatele.
 4. Účty (CDSE, Kaggle…) zakládá uživatel až v příslušných sessions (D-011); údaje jen jako env proměnné prostředí, nikdy do repa.
 
 ## Log sessions
+### 2026-10-12 — validace vs EMSR927 — `feat/validation`
+- Nalezeny a staženy produkty EMSR927 (4 oblasti dodány, 2 zrušeny kvůli mrakům), zapsáno v `validation/README.md` a D-M10-01.
+- `validation/compare.py <run>`: plocha (IoU/P/R/F1), budovy (recall), silnice (délka, i falešné), mosty; výstupy `metrics.json`, PNG, README.
+  Ověřen formát na skutečných souborech EMS s prázdnou mapou (bez výsledků). Testy `tests/test_validation.py` (syntetika + kontrola, že pipeline nečte EMS).
+- Kostra části reportu `deliverables/report/sections/case_study.md` (čísla až po jediném porovnání finálního běhu).
 ### 2026-10-12 — master: kontext, sloučení škod/sítě, plán do odevzdání — `ccr-20f0eb8e-hlztw5`
 - Přečten kontext všech sessions a větví. Sloučena `claude/cool-cray-jfyu4h` (bez konfliktů). Zapsáno D-X-06 (spojení kroků) + ARCHITECTURE *Orchestrátor*, plán výše.
 - Zadány úkoly: nové sessions spojení, předzpracování, hlášení, validace, odevzdání; zprávy stávajícím (satelity, suť, AI model, UI, škody/síť).
