@@ -209,7 +209,9 @@ def create_app() -> FastAPI:
             if event_time:
                 cmd += ["--event-time", event_time]
             log = open(d / "logs" / "pipeline.log", "ab")
-            _procs[run_id] = subprocess.Popen(cmd, cwd=REPO_ROOT, stdout=log, stderr=subprocess.STDOUT)
+            # src/ on the path so the pipeline also runs without `pip install -e .` (D-X-06 point 5)
+            env = {**os.environ, "PYTHONPATH": os.pathsep.join(filter(None, [str(REPO_ROOT / "src"), os.environ.get("PYTHONPATH")]))}
+            _procs[run_id] = subprocess.Popen(cmd, cwd=REPO_ROOT, stdout=log, stderr=subprocess.STDOUT, env=env)
         return {"run_id": run_id, "already_running": False}
 
     @app.get("/api/runs/{run_id}")

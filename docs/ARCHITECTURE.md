@@ -82,7 +82,8 @@ runs/<run_id>/
     debris_confidence.tif        # uint8 1 nízká, 2 střední, 3 vysoká, 0 nic
     debris_observability.tif     # uint8 0 mimo oblast, 1 viděno, 2 nedá se vidět (stín, mraky), 3 necitlivé (hustý les/zástavba)
     debris_polygons.geojson      # EPSG:4326: class "debris", subtype, confidence, area_m2, mean_dvv_db, mean_dvh_db, evidence
-    flood_polygons.geojson       # EPSG:4326, polygonizace flood_mask (třídy 2,3), atributy: class ("water" | "debris"), area_m2 (D-035)
+    flood_polygons.geojson       # EPSG:4326, polygonizace flood_mask (třídy 2,3), atributy: class ("water" | "debris"), area_m2 (D-035);
+                                 #   debris navíc subtype, confidence, evidence (D-M0-01). flood_prob.tif: nodata = NaN
   osm/
     buildings.gpkg roads.gpkg bridges.gpkg settlements.gpkg facilities.gpkg   # UTM, čisté vrstvy (schéma níže)
     landuse.gpkg                 # volitelně: osm_id, kind (forest/farmland/…/residential), polygony — D-M3d-02 (dodá M1)
@@ -143,6 +144,8 @@ runs/<run_id>/
   "debris": {"method": "...", "params": {...}, "inputs": {...}, "placebo": {"available": true, "rate": 0.0, "flagged_km2": 0.0,
              "estimated_false_share": 0.0, ...}, "areas_km2": {"debris": 0, "mud": 0, ...}, "total_km2": 0,
              "confidence_km2": {...}, "observability": {...}, "background_change": {...}, "weather": {...}},   // M3d, D-M3d-02
+  "combine": {"method": "...", "debris_used": true, "areas_km2": {"flood_water": 0, "debris": 0, "permanent_water": 0,
+              "debris_where_ai_blind": 0}, "nodata_pct": 0, "n_polygons": {"water": 0, "debris": 0}},   // krok combine, D-M0-01
   "warnings": ["S2 post scene >80 % cloud – S1 only", "..."],   // jen text (error + warning); zpětná kompatibilita
   "notices": [{"step": "acquire", "code": "pre_may_be_flooded", "severity": "error|warning|info",
                "message": "...", "details": {}}]                 // D-M1-05; kódy a zobrazení v docs/NOTICES.md
@@ -321,6 +324,8 @@ Pipeline spouští jako podproces `python -m povodne run ...`; průběh čte z `
   | `network` | `povodne.network` | ne | report bez odříznutých obcí |
   | `report` | `povodne.report` | — | běží vždy (verdikt i při chybě dřívějších kroků) |
 - `progress.state`: `failed` jen když nevznikla mapa povodně (`flood/flood_mask.tif`), jinak `done`; SIGTERM → `cancelled`.
+  Navíc `progress.error` (při `failed`) a `progress.finished_utc`; krok bez hlavního výstupu = `failed`; podrobnosti D-M0-02.
+- **Složení mapy (`combine`, D-M0-01):** voda z AI (2, 4) má přednost, třída 3 = `debris_mask` jinde (i kde AI nevidělo), pravděpodobnost suti podle jistoty 0,35 / 0,65 / 0,85.
 - `python -m povodne serve [--port 8000]` = `dashboard.server.main`.
 
 ## Moduly — vlastnictví souborů (kvůli paralelním session)
