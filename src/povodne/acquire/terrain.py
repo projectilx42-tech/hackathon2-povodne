@@ -10,6 +10,7 @@ keep the sea out of the "valley floor" and permanent water out of the water-shar
 """
 from __future__ import annotations
 
+import hashlib
 import math
 import tempfile
 import time
@@ -26,6 +27,8 @@ from rasterio.warp import Resampling, reproject, transform_geom
 from scipy.ndimage import map_coordinates
 from shapely.geometry import mapping
 from shapely.geometry.base import BaseGeometry
+
+from . import cache
 
 DEM_URL = ("https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_{lat}_00_{lon}_00_DEM/"
            "Copernicus_DSM_COG_10_{lat}_00_{lon}_00_DEM.tif")
@@ -153,6 +156,18 @@ def hand(dem: Dem, stream_cells: int = HAND_STREAM_CELLS) -> np.ndarray:
     streams = cells draining more than `stream_cells` cells). A much larger threshold (we had 1 km^2) leaves the
     small side valleys of mountains without a stream and inflates HAND by hundreds of metres there.
     """
+    # Cross-run cache (D-M10-04): HAND takes ~30 s and is asked for twice per run (acquire and preprocess) for the same DEM.
+    ck = cache.key("hand-v1", hashlib.sha256(np.ascontiguousarray(dem.data, np.float32).tobytes()).hexdigest(),
+                   tuple(dem.transform)[:6], str(dem.crs), stream_cells)
+    hit = cache.get_array("hand", ck)
+    if hit is not None and hit.shape == dem.data.shape:
+        return hit
+    out = _hand(dem, stream_cells)
+    cache.put_array("hand", ck, out)
+    return out
+
+
+def _hand(dem: Dem, stream_cells: int) -> np.ndarray:
     if not hasattr(np, "in1d"):  # pysheds 0.5 still calls np.in1d, removed in NumPy 2.4; np.isin is equivalent here
         np.in1d = np.isin
     from pysheds.grid import Grid
