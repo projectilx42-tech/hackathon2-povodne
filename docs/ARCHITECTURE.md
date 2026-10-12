@@ -217,14 +217,15 @@ Nejbližší cíl pro všechna sídla najednou (Dijkstra z více zdrojů), před
 (počet nezávislých cest k cílům — bez společného úseku, max. 3).
 `degraded` = dostupné, objížďka > 2× (konfigurovatelné); `possibly_cut_off` = dostupné v post-event grafu, ale ne v „možná“ grafu.
 **Zasažení sídla** (z `damage/settlement_areas.geojson`): `buildings_total`, `buildings_hit`, `buildings_likely_destroyed`, `buildings_hit_pct`,
-`flooded_area_pct`, `facilities_hit`, `impact_level` ∈ {`none`, `low`, `moderate`, `severe`, `critical`}, `impact_reasons` (seznam anglických vět „proč“).
+`flooded_area_pct`, `facilities_hit`, `impact_level` ∈ {`none`, `low`, `moderate`, `severe`, `critical`}, `impact_reasons` (seznam anglických vět „proč“),
+`priority_score`, `priority_rank`.
 Pravidla stupně (první, které platí; prahy v configu):
 critical = cut_off a (buildings_hit_pct ≥ 25 nebo buildings_likely_destroyed > 0), nebo zasažená nemocnice/klinika/zdravotní středisko v území;
 severe = cut_off, nebo buildings_hit_pct ≥ 25, nebo buildings_likely_destroyed ≥ 10;
 moderate = degraded nebo possibly_cut_off, nebo 5 ≤ buildings_hit_pct < 25;
 low = cokoli zasaženo (budova, silnice v území, flooded_area_pct > 0);
 none = jinak.
-**Pořadí naléhavosti:** `priority_score` = váha stupně (critical 4, severe 3, moderate 2, low 1) × 1000 + `buildings_total` (populace z OSM, je-li),
+**Pořadí naléhavosti:** `priority_score` = váha stupně (critical 4, severe 3, moderate 2, low 1) × 1000 + min(velikost, 999), velikost = populace z OSM (je-li) jinak `buildings_total` (strop, aby větší obec nepředběhla horší stupeň),
 `priority_rank` = pořadí mezi sídly se stupněm ≥ moderate (1 = nejnaléhavější), jinak null.
 
 `road_cuts.geojson`: přerušené úseky (`osm_id`, `highway`, `name`, `is_bridge`, `length_m`, `status`, `n_settlements_cut`, `n_buildings_cut`,
