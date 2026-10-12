@@ -18,6 +18,13 @@ Podrobnosti se **nenačítají automaticky** (šetření tokenů — dohromady ~
 - Další: `docs/UI_SPEC.md`, `docs/NOTICES.md`, `docs/HANDOFF_*.md` podle modulu.
 - Nečti zbytečně: `docs/source/` (PDF, obrázky), `dashboard/static/vendor/` (minifikované JS), `training/himalaya/quicklooks/` (PNG).
 
+## Šetření tokeny (limit 5 h se vyčerpá rychle)
+- Jedna session = jeden úkol; mezi nesouvisejícími úkoly `/clear`. Nenechávej session hodiny nečinně ležet (po ~1 h vyprší cache a další zpráva stojí celý kontext).
+- Soubory čti cíleně (`Grep`, `Read` s `offset`/`limit`); výstupy příkazů zkracuj (`| tail`, `| head`, `-q`); velké logy a testy nejdřív přefiltruj.
+- Rešerše a rozsáhlé čtení deleguj na subagenta s `model: haiku`; neotevírej víc agentů / workflow, než je nutné (každý načítá CLAUDE.md a kontext znovu).
+- Výchozí model Sonnet; Opus jen na složitá rozhodnutí. U jednoduchých úkolů nižší `/effort`. U větších změn nejdřív plán (Shift+Tab).
+- Nespouštěj opakované kontroly (`/loop`, check-iny) bez potřeby — každá pošle celý kontext.
+
 ## Datová pravidla — porušení = DISKVALIFIKACE
 - **Povolené vstupy:** Sentinel-1, Sentinel-2, Copernicus DEM (GLO-30), OpenStreetMap **jen jako stav před událostí**, tréninková data Kuro Siwo / Sen1Floods11.
 - **Copernicus EMS (EMSR927), UNOSAT ani žádné jiné publikované mapy škod NIKDY jako vstup** — ani do tréninku, ani do kalibrace prahů, ani do pipeline. Smí být jen v `validation/` pro porovnání výsledků. Kód pipeline (`src/povodne/`) nesmí importovat nic z `validation/` ani číst EMS soubory.

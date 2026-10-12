@@ -20,5 +20,16 @@
         ]
       }
     ]
+  },
+  "permissions": {
+    "deny": [
+      "Read(./docs/source/**)",
+      "Read(./dashboard/static/vendor/**)",
+      "Read(./training/himalaya/quicklooks/**)",
+      "Read(./dashboard/sample_run/overlays/**)",
+      "Read(./data/**)",
+      "Read(./runs/**)",
+      "Read(./models/**)"
+    ]
   }
 }
