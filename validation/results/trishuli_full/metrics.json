@@ -69,15 +69,68 @@
    "Damaged": 321
   },
   "recall_pixel": 0.6279,
-  "recall_pixel_sure": 0.7498
+  "recall_pixel_sure": 0.7498,
+  "matched_to_osm": 2509,
+  "recall_osm": 0.6441,
+  "ours_hit_in_region": 1532,
+  "ours_hit_not_in_ems": 237
  },
- "roads": null,
+ "roads": {
+  "ours_blocked": {
+   "ems_damaged": {
+    "km": 63.817,
+    "km_flagged_by_us": 49.809,
+    "share_flagged": 0.7805
+   },
+   "ems_damaged_sure": {
+    "km": 53.253,
+    "km_flagged_by_us": 44.063,
+    "share_flagged": 0.8274
+   },
+   "ems_no_damage": {
+    "km": 152.373,
+    "km_flagged_by_us": 25.196,
+    "share_flagged": 0.1654
+   }
+  },
+  "ours_blocked_or_possibly": {
+   "ems_damaged": {
+    "km": 63.817,
+    "km_flagged_by_us": 54.205,
+    "share_flagged": 0.8494
+   },
+   "ems_damaged_sure": {
+    "km": 53.253,
+    "km_flagged_by_us": 47.076,
+    "share_flagged": 0.884
+   },
+   "ems_no_damage": {
+    "km": 152.373,
+    "km_flagged_by_us": 42.112,
+    "share_flagged": 0.2764
+   }
+  },
+  "note": "share_flagged on ems_damaged = recall; on ems_no_damage = false-alarm share"
+ },
  "bridges": {
   "ems_bridges_in_region": 25,
   "ems_by_grade": {
    "Destroyed": 23,
    "Possibly damaged": 2
-  }
+  },
+  "matched_to_osm": 14,
+  "table": {
+   "Destroyed": {
+    "blocked": 9,
+    "suspect": 2,
+    "passable": 1
+   },
+   "Possibly damaged": {
+    "passable": 1,
+    "blocked": 1
+   }
+  },
+  "recall": 0.8571
  },
  "limitations": [
   "EMS maps were drawn by hand (photo-interpretation) from very-high-resolution optical images (~0.3\u20131 m); we use 10 m Sentinel data. Narrow features (single houses, roads, small channels) are below our resolution.",

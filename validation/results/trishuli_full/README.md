@@ -23,10 +23,15 @@ EMS maps the whole event as one class (mass movement), so water and debris are n
 
 EMS damaged buildings in compared area: 3375 {'Destroyed': 2433, 'Possibly damaged': 621, 'Damaged': 321}.
 Share inside our affected area (±10 m): 62.8 % (destroyed/damaged only: 75.0 %).
+Matched to an OSM building: 2509; of those flagged by us: 64.4 %. Our hit buildings in the area: 1532, of which not listed by EMS: 237 (EMS lists only damaged buildings, so these are either our false alarms or EMS omissions).
+
+## Roads
+
+EMS damaged roads 63.817 km, of which near our blocked roads 78.0 %; EMS 'no visible damage' roads 152.373 km, of which we flag 16.5 % (false alarms). Including our 'possibly blocked': 84.9 % / 27.6 %.
 
 ## Bridges
 
-EMS bridges in compared area: 25 {'Destroyed': 23, 'Possibly damaged': 2}; matched to OSM bridges: 0; recall (ours blocked or suspect): n/a.
+EMS bridges in compared area: 25 {'Destroyed': 23, 'Possibly damaged': 2}; matched to OSM bridges: 14; recall (ours blocked or suspect): 85.7 %.
 
 ## Limitations
 
