@@ -147,15 +147,23 @@ def choose(aoi: BaseGeometry, event: date, grid: Grid, aoi_mask: np.ndarray, pre
     return ch
 
 
+def boa_offset_applied(items: list[dict]) -> bool:
+    """True when the STAC items say the BOA offset is already inside the DN values (all items must agree)."""
+    return bool(items) and all(it.get("properties", {}).get("earthsearch:boa_offset_applied") for it in items)
+
+
 def download(d: S2Date, grid: Grid, path) -> dict:
     """Write B02,B03,B04,B08,B11,B12 (+ SCL as band 7) as uint16 on `grid`. Returns scale/offset per band so
     reflectance = DN * scale + offset (newer processing baselines have an offset of -0.1)."""
     layers, scales, offsets = [], [], []
+    applied = boa_offset_applied(d.items)
     for b, asset in BANDS.items():
         layers.append(_mosaic(d.items, asset, grid, Resampling.bilinear))
         rb = (d.items[0]["assets"][asset].get("raster:bands") or [{}])[0]
         scales.append(float(rb.get("scale", 1e-4)))
-        offsets.append(float(rb.get("offset", 0.0)))
+        # earth-search harmonises L2A (DN = reflectance * 1e4) but leaves offset -0.1 in raster:bands;
+        # applying it again pushes dark pixels (forest, water) below zero (D-M11-01).
+        offsets.append(0.0 if applied else float(rb.get("offset", 0.0)))
     layers.append(_mosaic(d.items, "scl", grid, Resampling.nearest))
     scales.append(1.0); offsets.append(0.0)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -167,4 +175,4 @@ def download(d: S2Date, grid: Grid, path) -> dict:
         for i, name in enumerate(list(BANDS) + ["SCL"], start=1):
             ds.set_band_description(i, name)
     return {"date": d.day.isoformat(), "ids": d.ids, "clear_pct": round(100 * (d.clear or 0), 1),
-            "scale": scales[:6], "offset": offsets[:6]}
+            "scale": scales[:6], "offset": offsets[:6], "boa_offset_applied": applied}
