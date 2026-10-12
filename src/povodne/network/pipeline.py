@@ -307,6 +307,12 @@ def _run(run_dir: Path, cfg: NetworkConfig, notices: list, t0: float) -> dict:
         notices.append(_notice("network_no_settlement_areas", "Settlement territories are missing "
                                "(damage/settlement_areas.geojson): building counts and impact levels are incomplete."))
 
+    # an answer that cannot be computed must fail loudly (non-zero exit, step "failed"), not look like "nobody is cut off"
+    if roads.empty:
+        raise RuntimeError("no roads in the pre-event OpenStreetMap snapshot for this area: cut-off settlements cannot be computed")
+    if roads_dmg is None:
+        raise RuntimeError("road damage is missing (damage/roads_damage.geojson): run the damage step first")
+
     # --- graph ------------------------------------------------------------------------------------------------
     G = build_graph(roads, cfg)
     n_nodes0, n_edges0 = G.number_of_nodes(), G.number_of_edges()

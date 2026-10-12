@@ -200,3 +200,20 @@ def test_cuts_in_series_become_one_grouped_repair(tmp_path):
             for c in json.loads((tmp_path / "network/road_cuts.geojson").read_text())["features"]}
     assert cuts["way/c1"]["repair_rank"] == 1 and cuts["way/c2"]["repair_rank"] == 1 and cuts["way/c3"]["repair_rank"] == 2
     assert cuts["way/c1"]["reconnects_settlements"] == 0  # alone it reconnects nothing
+
+
+def test_no_settlements_runs_and_writes_empty_result(tmp_path):
+    roads = [("way/1", [(0, 0), (5000, 0)], "primary", False)]
+    _write_run(tmp_path, roads, [], [("node/h", "H", 5000, 0, 0)][:0])
+    section = run(tmp_path, CFG)
+    assert section["settlements_total"] == 0
+    assert json.loads((tmp_path / "network/settlements_access.geojson").read_text())["features"] == []
+
+
+def test_no_roads_or_no_damage_fails_loudly(tmp_path):
+    import pytest
+    _write_run(tmp_path, [("way/1", [(0, 0), (100, 0)], "primary", False)], [("node/v", "V", 50, 0)], [])
+    (tmp_path / "damage/roads_damage.geojson").unlink()
+    with pytest.raises(RuntimeError, match="damage"):
+        run(tmp_path, CFG)
+    assert json.loads((tmp_path / "run.json").read_text())["progress"]["state"] == "failed"

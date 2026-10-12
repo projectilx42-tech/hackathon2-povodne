@@ -315,7 +315,10 @@ def settlement_access(router: Router, settlements: pd.DataFrame, snap: dict, des
                    blocking_cuts=cuts, routes_pre=rc_cache[rk][0], routes_post=rc_cache[rk][1],
                    _pre_path=pre["path"], _cut_post=post is None)
         rows.append(row)
-    return pd.DataFrame(rows, index=settlements.index)
+    cols = ["snap_dist_m", "_node", "status", "nearest_dest_pre", "dist_pre_m", "time_pre_s", "walk_time_pre_s",
+            "nearest_dest_post", "dist_post_m", "time_post_s", "walk_time_post_s", "detour_factor", "detour_pct",
+            "blocking_cuts", "routes_pre", "routes_post", "_pre_path", "_cut_post"]
+    return pd.DataFrame(rows, index=settlements.index, columns=cols if not rows else None)  # no settlements: keep the columns
 
 
 # ----------------------------------------------------------------------------------------------- facilities
