@@ -21,4 +21,10 @@ fi
 if command -v python3 >/dev/null && [ -f tools/check_docs.py ]; then
   python3 tools/check_docs.py
 fi
+
+# Print the top of the announcements section (newest first) so sessions need not read the 56 kB PROGRESS.md (token saving).
+if [ -f docs/PROGRESS.md ]; then
+  echo "--- docs/PROGRESS.md: newest announcements (first lines; read more with Read offset/limit if relevant) ---"
+  awk '/^## 📢/{f=1;next} f&&/^## /{exit} f' docs/PROGRESS.md | grep -v '^\*(' | grep -v '^$' | head -14 | cut -c1-260
+fi
 exit 0

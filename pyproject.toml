@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "povodne"
+description = "Mapping flood damage from space: Sentinel-1/2, Copernicus DEM and pre-event OpenStreetMap (Multimodal AI Hackathon 2026, Track B)"
+readme = "README.md"
+requires-python = ">=3.11"
+dynamic = ["version", "dependencies", "optional-dependencies"]
+
+[project.scripts]
+povodne = "povodne.cli:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "povodne.__version__"}
+# requirements.txt stays the single list of pipeline libraries (modules add their lines there)
+dependencies = {file = ["requirements.txt"]}
+optional-dependencies.dashboard = {file = ["dashboard/requirements.txt"]}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
