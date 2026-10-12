@@ -45,6 +45,11 @@ export const NOTICE_TITLES = {
   "severity": "warning",
   "title": "Only one radar viewing direction"
  },
+ "better_view_soon": {
+  "step": "acquire",
+  "severity": "warning",
+  "title": "Better radar view soon"
+ },
  "pre_may_be_flooded": {
   "step": "acquire",
   "severity": "warning",
@@ -239,5 +244,30 @@ export const NOTICE_TITLES = {
   "step": "network",
   "severity": "info",
   "title": "Possibly cut off settlements"
+ },
+ "preprocess_failed": {
+  "step": "preprocess",
+  "severity": "error",
+  "title": "Data preparation failed"
+ },
+ "preprocess_no_s1": {
+  "step": "preprocess",
+  "severity": "error",
+  "title": "No radar image pair"
+ },
+ "preprocess_low_s1_coverage": {
+  "step": "preprocess",
+  "severity": "warning",
+  "title": "Radar sees little of the area"
+ },
+ "preprocess_approx_geometry": {
+  "step": "preprocess",
+  "severity": "info",
+  "title": "Typical radar angle used"
+ },
+ "preprocess_no_s2": {
+  "step": "preprocess",
+  "severity": "info",
+  "title": "Radar-only water map"
  }
 };
