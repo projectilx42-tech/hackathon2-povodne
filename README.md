@@ -69,6 +69,11 @@ documentation and implementation. Per-module notes on which parts were AI-assist
   and operational-system research, the statistical change test, decision rules, the flood-free self-test and the synthetic tests
   (`tests/test_debris*.py`) were written with Claude Code; the method and its sources are in `docs/DECISIONS.md` (D-M3d-01, D-M3d-02).
 
+- **Damage, road network and cut-off analysis, settlement impact, repair priority, landing-zone candidates and flood path
+  (`src/povodne/damage/`, `src/povodne/network/`, `src/povodne/floodpath/`)** — research of damage scales and cut-off methods, the
+  code and the tests (`tests/test_damage.py`, `test_network.py`, `test_impact.py`, `test_landing.py`, `test_floodpath.py`) were written
+  with Claude Code; rules and sources are in `docs/DECISIONS.md` (D-M4-01, D-M5-01 – D-M5-04, D-M7-01).
+
 ## Data attributions
 - Contains modified Copernicus Sentinel data 2026.
 - Produced using Copernicus WorldDEM-30 © DLR e.V. 2010–2014 and © Airbus Defence and Space GmbH 2014–2018 provided under

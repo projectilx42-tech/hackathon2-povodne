@@ -786,6 +786,35 @@ Směr odtoku D8 z Copernicus DEM (pysheds, stejně jako HAND), trasa po proudu z
 a důležitých míst seřazený po proudu se vzdáleností. Bez hydrauliky (žádné časy příchodu vody). Na vyžádání (CLI; napojení do UI navrhne UI session).
 Body „možné zahrazení řeky“ a „dostupnost do 30/60/120 min“ uživatel zamítl.
 
+
+## D-X-06 | 2026-10-12 | přijato (uživatel: „spojit ten projekt do jednoho celku“, master) — Spojení kroků do jednoho běhu: orchestrátor, pořadí, kdo píše co
+Kontext: všechny části existují zvlášť, ale systém nikdy neproběhl celý; chybí hlavní příkaz, předzpracování, složení finální mapy,
+souhrnná čísla + sitrep a obrázky pro mapu. Do odevzdání 2,5 dne → pevné rozhraní, ať můžou sessions pracovat paralelně.
+1. **Hlavní příkaz** `python -m povodne run --aoi <geojson|bbox> --event-date D --out DIR [--pre-window F,T] [--post-window F,T]
+   [--event-time HH:MM] [--sensitivity standard|sensitive]` (skeleton). Když `DIR/run.json` existuje (založilo ho UI), zachová jeho pole
+   a doplní chybějící; jinak ho založí (`aoi` v EPSG:4326, `event_date`, `event_time`, `pre_window`, `post_window`, `sensitivity`, `created_utc`,
+   `code_version`). Pak pouští kroky **jako podprocesy** `python -m <modul> <run_dir>` v pořadí:
+   `povodne.acquire` → `povodne.preprocess` → `povodne.flood.ai` → `povodne.flood.debris` → `povodne.flood.combine` → `povodne.damage`
+   → `povodne.network` → `povodne.report`. stdout/stderr do `logs/pipeline.log`.
+2. **Selhání kroku:** acquire, preprocess, flood_ai nebo combine selže → zbytek `skipped`, ale **report proběhne vždy** (verdikt
+   `insufficient_data` + důvod; „nic“ nesmí být tichá prázdná mapa, D-013). debris selže → `skipped`, combine pokračuje jen s vodou.
+   damage selže → network `skipped`; damage/network selžou → report pokračuje bez nich. Celkový `progress.state` = `failed` jen když
+   nedoběhla mapa povodně; jinak `done` (chybějící části jsou v `notices`). Zrušení z UI = SIGTERM orchestrátoru → `cancelled`.
+3. **Průběh:** každý krok zapisuje svůj záznam v `run.json.progress.steps` (už to dělají acquire, debris, damage, network); orchestrátor
+   nastaví na začátku všechny kroky `pending` a po skončení podprocesu doplní `done/failed/skipped`, pokud to krok neudělal sám.
+   **Nový krok `combine`** (mezi `debris` a `damage`) — UI doplní popisek.
+4. **Kdo píše co (vlastnictví, ARCHITECTURE upraveno):** skeleton + orchestrátor + `povodne serve` + **`flood/combine.py`** = session spojení
+   (dřív patřilo combine modelu, ten je vytížený); `flood/ai.py` (přesun `training/run_ai.py`, CLI `python -m povodne.flood.ai`, vlastní
+   průběh `flood_ai`) = session AI modelu, `training/run_ai.py` zůstane jako tenký obal; `preprocess/` = nová session předzpracování;
+   `report/` = nová session hlášení, **píše i `overlays/*.png` + `index.json`** (dřív „M8 backend / renderer“; teď je vyrobí každý běh
+   a UI je jen čte).
+5. **Import balíku:** `src/povodne/__init__.py` + `pyproject.toml` (src layout) a v README `pip install -e .`; backend UI navíc spouští
+   podproces s `PYTHONPATH=<repo>/src`, aby to fungovalo i bez instalace (jediná změna v `dashboard/server.py`, udělá session spojení).
+6. **Trasa povodně z UI:** `POST /api/runs/{run_id}/floodpath` `{"lon","lat"}` → `python -m povodne.floodpath <run> --lon --lat`,
+   odpověď = obsah `floodpath/*.geojson` (session UI).
+7. Sdílené pomocné funkce (`io.py`: čtení/zápis `run.json` atomicky, průběh, upozornění) dodá skeleton; stávající moduly mají vlastní kopie
+   a **teď se nepřepisují** (riziko před termínem) — sjednocení až po odevzdání, pokud vůbec.
+
 ---
 
 # Otevřené otázky (k rozhodnutí)

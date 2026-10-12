@@ -8,6 +8,11 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-12 — master: sloučeny škody, odříznuté obce, zasažení obcí a trasa povodně (`claude/cool-cray-jfyu4h`) do `main` → všichni `git fetch origin main && git merge origin/main`.**
+  **Nový kontrakt spojení (D-X-06, ARCHITECTURE → *Orchestrátor*):** pořadí kroků a moduly `povodne.acquire → preprocess → flood.ai → flood.debris → flood.combine
+  → damage → network → report`; **nový krok průběhu `combine`**; **PNG překryvy píše krok report** (ne UI); `flood/combine.py` patří session spojení (ne modelu);
+  AI krok se přesune do `src/povodne/flood/ai.py` (CLI `python -m povodne.flood.ai`); UI dostane `POST /api/runs/{id}/floodpath`. Plán do odevzdání níže.
+  **Každá session navíc napíše svou část reportu** do `deliverables/report/sections/<část>.md` (anglicky, metoda + čísla + omezení, max. ~¾ strany).
 - **2026-10-12 — škody + odříznutá sídla (D-M4-01, D-M5-01–04, D-M7-01), změna kontraktu, týká se M1, M6, M8:** nové výstupy
   `damage/{facilities_damage,settlement_areas}.geojson`, `damage/damage_summary.json`, `network/{facilities_access,landing_zones}.geojson`, `network/repair_priority.json`,
   rozšířené `*_damage.geojson` (`grade` / `status`), `settlements_access.geojson` (stav `possibly_cut_off`, `detour_pct`, doba pěšky, silnice v obci, stupeň zasažení,
@@ -76,6 +81,23 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 - **2026-10-08 — M9: SSL4EO jen jako záloha (D-M9-02)** — hlavní model zůstává ImageNet; vylepšení nezávislá na encoderu;
   přepnutí na SSL4EO = 1 změna v receptu + 1 trénink, jen při souhlasu organizátorů. Spin-off (`docs/SPINOFF_SSL4EO.md`) pozastaven.
 
+## Plán do odevzdání (master 2026-10-12, D-X-06) — časy SELČ
+| kdy | co | kdo |
+|---|---|---|
+| Po 12. 10. do večera | skeleton + `povodne run` + složení finální mapy (`flood/combine.py`) + `povodne serve` | nová session **spojení** |
+| | předzpracování `raw/` → `aligned/`, `masks/` | nová session **předzpracování** |
+| | `stats.json` + sitrep (md + pdf) + PNG překryvy | nová session **hlášení** |
+| | přesun AI kroku do `src/povodne/flood/ai.py` (+ průběh), veřejné stažení vah pro porotu (O-011) | session **AI modelu** |
+| | upozornění „lepší pohled za X dní“ (D-X-05), důležitá místa (`docs/REQUEST_M1_POIS.md`) | session **satelity** |
+| | UI: upozornění (`docs/NOTICES.md`), podtypy suti, nové výstupy škod/sítě, trasa povodně kliknutím, krok `combine` | session **UI** |
+| | srovnání s EMSR927 (jen `validation/`, nikdy vstup) — příprava kódu a stažení referenčních map | nová session **validace** |
+| | README pro porotu, kostra reportu (6 stran), scénář videa, text pro Devpost | nová session **odevzdání** |
+| Po večer / Út ráno | sloučení do `main`, **první celý běh** (malá oblast Trishuli), opravy | master + autoři kroků |
+| Út 13. 10. | celá oblast Trishuli + jiná povodeň (Derna 2023 / Opava 2024); validace; himálajský test modelu; suť na skutečných datech | všichni |
+| Út 13. 10. večer | **zmrazení funkcí** (jen opravy chyb); report, README | odevzdání + všichni (části reportu) |
+| St 14. 10. do 16:00 | video (uživatel), kontrola instalace podle README na čistém stroji, **odevzdání na Devpost (cíl 18:00, termín 20:45)** | uživatel + master |
+**Předpoklad:** klíče `CDSE_CLIENT_ID`, `CDSE_CLIENT_SECRET`, `OHSOME_API_KEY` (a `KAGGLE_API_TOKEN` pro váhy) v nastavení prostředí „hackathon 2“ — bez nich nic neběží naostro.
+
 ## Plán (pořadí práce)
 1. Zjistit informace o satelitech (S1/S2, DEM) a najít data a zdroje (úkoly 3, 4).
 2. **UI / webová stránka** (M8) — zatím s ukázkovými daty podle kontraktu v ARCHITECTURE.md.
@@ -99,7 +121,7 @@ Obtížnost a čas = odhad uživatele.
 | 7 | Algoritmus na suť a bahno | 8 | 4 h | M3d | 🟨 kód + syntetické testy; chybí ověření na skutečných datech |
 | 8 | Škody | 3 | 2 h | M4 | 🟨 kód + testy, chybí běh na skutečné povodni |
 | 9 | Odříznuté obce | 3 | 2,5 h | M5 | 🟨 kód + testy, chybí běh na skutečné povodni |
-| 10 | Stránka a UI | 4–5 | 3–4 h | M8 | ⬜ |
+| 10 | Stránka a UI | 4–5 | 3–4 h | M8 | 🟨 hotové nad ukázkovými daty |
 | 11 | Testy a propojení | 4–5 | 2–3 h | — | ⬜ |
 | 12 | Polish = dokončení, začištění a propojení (propojuje se i průběžně během práce) | 3 | 2 h | — | ⬜ |
 | 13 | Byrokracie (video, report, …) | 4 | 4 h | — | ⬜ |
@@ -108,18 +130,18 @@ Obtížnost a čas = odhad uživatele.
 | Modul | Stav | Větev | Poznámka |
 |---|---|---|---|
 | Repo init, docs, workflow | ✅ | `main` | CLAUDE.md, docs/, Stop hook |
-| M8 Dashboard / webové UI | 🟨 | `feat/dashboard` | UI hotové nad ukázkovým runem (kroky 1–5 z UI_SPEC); spouští pipeline přes `python -m povodne run`, která zatím neexistuje; chybí renderer PNG překryvů z GeoTIFF; spuštění `python -m dashboard` |
-| 0 Skeleton (pyproject, CLI, config, io/grid) | ⬜ | `feat/skeleton` | |
-| M1 Acquire (S1/S2/DEM/OSM) | 🟨 | `claude/nice-fermi-i7qzk8` | celý krok hotový (`python -m povodne.acquire`): katalog, hlavní dráha (D-X-01), DEM, kontrola čistoty pre (D-M1-01), S1 obě dráhy kalibrované (D-M1-02), S2, OSM; OSM přes ohsome v2 s klíčem (D-M1-06), otestováno; **předávka: `docs/HANDOFF_SATELITY.md`** |
-| M2 Preprocess | ⬜ | `feat/preprocess` | požadavky z M9: D-033 (layover/shadow maska pro oba tracky, slope, HAND) |
+| M8 Dashboard / webové UI | 🟨 | `ccr-d89d3cfb-ywooc4` | UI hotové nad ukázkovým runem; citlivost, hodina povodně, typy hlášek; chybí: upozornění z `notices`, podtypy suti, nové výstupy škod/sítě, trasa povodně, krok `combine` (D-X-06) |
+| 0 Skeleton + orchestrátor + složení masky | ⬜ | session spojení | zadáno 2026-10-12 (D-X-06) |
+| M1 Acquire (S1/S2/DEM/OSM) | 🟨 | `claude/funny-fermat-ukdqp8` | celý krok hotový (`python -m povodne.acquire`): katalog, hlavní dráha (D-X-01), DEM, kontrola čistoty pre (D-M1-01), S1 obě dráhy kalibrované (D-M1-02), S2, OSM; OSM přes ohsome v2 s klíčem (D-M1-06), otestováno; **předávka: `docs/HANDOFF_SATELITY.md`** |
+| M2 Preprocess | ⬜ | session předzpracování | zadáno 2026-10-12; požadavky D-033, D-035, D-M1-04 (HAND přes `acquire.terrain.hand`), D-M9-11 (S2) |
 | M9 AI trénink | ✅ | `claude/zen-bell-a83s7a` | v0.4 bez Bolívie (`floodseg-model`, D-M9-14); dříve v0.2, D-M9-01–11; optický model S2 a kolo 10 rozpracované; **předání: `docs/HANDOFF_M9.md`** |
-| M3 AI inference (voda) | 🟨 | `claude/relaxed-johnson-wwj9s8` | `training/run_ai.py` (+ testy): dva směry, stín z obou směrů, optika S2, min. plocha, dvoustupňový práh (D-M9-11); přesun do `src/povodne/flood/` až bude skeleton |
+| M3 AI inference (voda) | 🟨 | `claude/zen-bell-a83s7a` | `training/run_ai.py` (+ testy): dva směry, stín z obou směrů, optika S2, min. plocha, dvoustupňový práh (D-M9-11); přesun do `src/povodne/flood/` až bude skeleton |
 | M3d Suť a bahno + změny povrchu | 🟨 | `claude/affectionate-shannon-jrnssg` | kód hotový (`python -m povodne.flood.debris`), testy na syntetickém údolí; chybí běh na skutečných datech (Opava, Derna, Trishuli) a starší snímky od M1 (D-M3d-02) |
 | M4 Damage | 🟨 | `claude/cool-cray-jfyu4h` | kód hotový (`python -m povodne.damage`), testy; ověřeno jen na skutečné OSM + uměle vyrobené povodni (D-M4-01) |
 | M5 Network / cut-off | 🟨 | `claude/cool-cray-jfyu4h` | kód hotový (`python -m povodne.network`): stavy, objížďka %, doba pěšky, stupně zasažení, pořadí naléhavosti, plán oprav, důležitá místa, plochy pro vrtulník; testy; čeká na skutečnou mapu povodně (D-M5-01–04) |
-| M6 Stats + sitrep | ⬜ | `feat/report` | |
+| M6 Stats + sitrep + překryvy | ⬜ | session hlášení | zadáno 2026-10-12 (D-X-06) |
 | M7 Flood path (bonus) | 🟨 | `claude/cool-cray-jfyu4h` | kód hotový (`python -m povodne.floodpath <run> --lon --lat`), testy; UI napojení chybí (D-M7-01) |
-| M10 Validace vs EMSR927 | ⬜ | `feat/validation` | |
+| M10 Validace vs EMSR927 | ⬜ | session validace | zadáno 2026-10-12 |
 
 ## Blokery / známé problémy
 1. ~~Síťová politika blokuje datové zdroje~~ **VYŘEŠENO 2026-10-07**: Network access = Full.
@@ -128,6 +150,9 @@ Obtížnost a čas = odhad uživatele.
 4. Účty (CDSE, Kaggle…) zakládá uživatel až v příslušných sessions (D-011); údaje jen jako env proměnné prostředí, nikdy do repa.
 
 ## Log sessions
+### 2026-10-12 — master: kontext, sloučení škod/sítě, plán do odevzdání — `ccr-20f0eb8e-hlztw5`
+- Přečten kontext všech sessions a větví. Sloučena `claude/cool-cray-jfyu4h` (bez konfliktů). Zapsáno D-X-06 (spojení kroků) + ARCHITECTURE *Orchestrátor*, plán výše.
+- Zadány úkoly: nové sessions spojení, předzpracování, hlášení, validace, odevzdání; zprávy stávajícím (satelity, suť, AI model, UI, škody/síť).
 ### 2026-10-12 — škody, odříznuté obce, zasažení obcí, trasa povodně — `claude/cool-cray-jfyu4h`
 - Rešerše (3 agenti: odříznutí po povodních, stupně škod EMS/UNOSAT, potřeby záchranářů) → návrh probrán s uživatelem; rozhodnutí D-M4-01, D-M5-01–04, D-M7-01, kontrakt v ARCHITECTURE.
   Uživatel: celý svět (nic nepálského), bez lávek/pěšin, bez odhadu obyvatel, 5 stupňů zasažení, body „zahrazení řeky“ a „dostupnost za X min“ ne.

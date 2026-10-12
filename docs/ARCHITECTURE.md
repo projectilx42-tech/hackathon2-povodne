@@ -106,7 +106,7 @@ runs/<run_id>/
     sitrep_en.md sitrep_en.pdf   # 1 strana; volitelně sitrep_ne.*
   logs/pipeline.log
   aoi.geojson                    # GeoJSON Feature (Polygon) — AOI předaná CLI přes --aoi (píše M8 backend při spuštění z UI)
-  overlays/*.png, index.json     # PNG překryvy pro dashboard + {"<name>": {"bounds": [w,s,e,n]}} (EPSG:4326); píše M8 backend / renderer
+  overlays/*.png, index.json     # PNG překryvy pro dashboard + {"<name>": {"bounds": [w,s,e,n]}} (EPSG:4326); píše krok report (`povodne.report`, D-X-06)
 ```
 `run.json` navíc obsahuje `pre_window` / `post_window` (`[from, to]` nebo `null` = automaticky), `progress` (průběh kroků pro UI) a u ukázkového runu `"mock": true` — viz sekce *HTTP API*.
 
@@ -291,7 +291,7 @@ Pipeline spouští jako podproces `python -m povodne run ...`; průběh čte z `
 | `GET /api/runs/{run_id}/overlays` | `[{"name","url","bounds"}]` — PNG překryvy rastrů pro mapu (EPSG:4326 bounds `[w,s,e,n]`) |
 
 - **Překryvy** (`overlays/*.png` + `overlays/index.json` s `bounds`) jsou PNG pro mapu. `GET .../overlays` vrací jen ty, které v `index.json` jsou.
-  **Zatím je renderer z GeoTIFF (flood/, masks/, aligned/) nenapsán** — hotový run je musí mít předrenderované (ukázkový run je má).
+  Vyrábí je krok report (`povodne.report`) na konci každého běhu (D-X-06); UI je jen čte (ukázkový run je má předrenderované).
   Jména: `flood_prob` (R kanál = pravděpodobnost 0–255, A = 255), `s2_pre`, `s2_post` (před/po slider), `layover_shadow`; vodu a suť UI kreslí
   z `flood/flood_polygons.geojson` (třídy `water`, `debris`), ne z PNG.
 - **Spuštění z UI:** `POST /api/runs` založí `runs/run_<date>_<hash6>/` s `run.json` (`aoi`, `event_date`, `pre_window`, `post_window`,
@@ -300,25 +300,41 @@ Pipeline spouští jako podproces `python -m povodne run ...`; průběh čte z `
   Když podproces skončí s chybou, `status` vrací `failed` + poslední řádek logu (nebo srozumitelnou hlášku, pokud modul `povodne` neexistuje).
 - Soubory pro UI: `damage/*_damage.geojson` obsahují **všechny** prvky (i `hit=false`), UI z nich kreslí silnice, mosty i budovy.
 - **`run.json.progress`** (píše pipeline/CLI, čte dashboard):
-  `{"state": "queued|running|done|failed|cancelled", "steps": [{"name": "acquire|preprocess|flood_ai|debris|damage|network|report",
+  `{"state": "queued|running|done|failed|cancelled", "steps": [{"name": "acquire|preprocess|flood_ai|debris|combine|damage|network|report",
   "state": "pending|running|done|skipped|failed", "message": "..."}]}`.
 - **Ukázkový run:** `dashboard/sample_run/` (v gitu, < 5 MB), `run.json.mock = true`; API ho vrací v seznamu s `"mock": true`.
 - Backend poslouchá jen na `127.0.0.1` (D-016, lokální spuštění); CORS není potřeba.
 
+## Orchestrátor `python -m povodne run` (D-X-06)
+`python -m povodne run --aoi <geojson|bbox> --event-date D --out DIR [--pre-window F,T] [--post-window F,T] [--event-time HH:MM] [--sensitivity standard|sensitive]`
+- Existující `DIR/run.json` (z UI) zachová a doplní; jinak založí. Kroky = podprocesy `python -m <modul> <run_dir>`:
+  | krok (`progress`) | modul | povinný pro mapu povodně | při selhání |
+  |---|---|---|---|
+  | `acquire` | `povodne.acquire` | ano | další kroky `skipped`, report proběhne |
+  | `preprocess` | `povodne.preprocess` | ano | dtto |
+  | `flood_ai` | `povodne.flood.ai` | ano | dtto |
+  | `debris` | `povodne.flood.debris` | ne | combine jen s vodou |
+  | `combine` | `povodne.flood.combine` | ano | další kroky `skipped`, report proběhne |
+  | `damage` | `povodne.damage` | ne | network `skipped` |
+  | `network` | `povodne.network` | ne | report bez odříznutých obcí |
+  | `report` | `povodne.report` | — | běží vždy (verdikt i při chybě dřívějších kroků) |
+- `progress.state`: `failed` jen když nevznikla mapa povodně (`flood/flood_mask.tif`), jinak `done`; SIGTERM → `cancelled`.
+- `python -m povodne serve [--port 8000]` = `dashboard.server.main`.
+
 ## Moduly — vlastnictví souborů (kvůli paralelním session)
 | # | Modul | Kód | Větev (návrh) | Čte | Píše |
 |---|---|---|---|---|---|
-| 0 | Skeleton, CLI, config, run.json helpery | `src/povodne/{__main__,cli,config,io,grid}.py`, `pyproject.toml` | `feat/skeleton` | — | run.json |
+| 0 | Skeleton, CLI, orchestrátor `povodne run`, `povodne serve`, config, run.json helpery + **složení finální masky** (D-X-06) | `src/povodne/{__init__,__main__,cli,config,io,grid}.py`, `src/povodne/flood/combine.py`, `pyproject.toml` | session spojení | `flood/ai_*`, `flood/debris_*` | run.json, `flood/flood_*` |
 | M1 | Acquire (S1, S2, DEM, OSM) | `src/povodne/acquire/` | `feat/acquire` | AOI, datum | `raw/` |
 | M2 | Preprocess / coregistrace | `src/povodne/preprocess/` | `feat/preprocess` | `raw/` | `aligned/`, `masks/` |
-| M3 | AI inference (voda) + složení finální masky | `src/povodne/flood/ai.py`, `combine.py` | `feat/ai-model` | `aligned/`, `masks/`, `models/`, `flood/debris_mask.tif` | `flood/ai_*`, `flood/flood_*` |
+| M3 | AI inference (voda) | `src/povodne/flood/ai.py` (+ obal `training/run_ai.py`) | session AI modelu | `aligned/`, `masks/`, `models/` | `flood/ai_*` |
 | M3d | Algoritmus suť/bahno + změny povrchu | `src/povodne/flood/debris/` | `feat/debris` | `raw/s1*/` (vč. `hist_*`), `raw/s2/`, `raw/dem/`, `masks/`, `osm/buildings.gpkg`, `osm/landuse.gpkg`, `flood/ai_mask.tif` | `flood/debris_*` (D-M3d-02) |
 | M9 | AI trénink | `training/` | `feat/ai-model` | Kuro Siwo, Sen1Floods11 | `models/<name>/` |
 | M4 | Damage overlay + území sídel | `src/povodne/damage/` | `feat/damage` | `flood/`, `osm/` (vč. `pois.gpkg`) | `damage/` |
 | M5 | Road network / cut-off, zasažení sídel, pořadí, plochy pro vrtulník | `src/povodne/network/` | `feat/network` | `osm/`, `damage/`, `flood/flood_mask.tif`, `raw/dem/` | `network/` |
-| M6 | Stats + sitrep | `src/povodne/report/` | `feat/report` | vše | `stats.json`, `report/` |
+| M6 | Stats + sitrep + PNG překryvy | `src/povodne/report/` | session hlášení | vše | `stats.json`, `report/`, `overlays/` (D-X-06) |
 | M7 | Flood path (bonus) | `src/povodne/floodpath/` | `feat/floodpath` | `raw/dem/dem.tif` (nebo `aligned/dem.tif`), `osm/`, `network/` | `floodpath/` |
-| M8 | Dashboard (backend FastAPI + frontend) | `dashboard/` | `feat/dashboard` | run adresář | `runs/<id>/overlays/` (cache), spouští pipeline |
+| M8 | Dashboard (backend FastAPI + frontend) | `dashboard/` | `feat/dashboard` | run adresář | spouští pipeline (a trasu povodně na vyžádání) |
 | M10 | Validace vs EMSR927 | `validation/` | `feat/validation` | run adresář + EMS | `validation/results/` |
 | — | Report (6 stran), video | `deliverables/` | `docs/report` | — | — |
 
@@ -326,7 +342,7 @@ Pravidla:
 - `src/povodne/osm` extrakce patří do M1 (acquire), čištění vrstev do `osm/*.gpkg` taky M1.
 - Sdílené utility (`io.py`, `grid.py`, `config.py`) mění jen skeleton; ostatní moduly v nich jen přidávají funkce, nemění signatury.
 - Každý modul má vstupní bod `run(run_dir: Path, cfg: Config) -> None` a CLI subpříkaz `python -m povodne <modul> <run_dir>`;
-  `python -m povodne run --aoi <geojson|bbox> --event-date YYYY-MM-DD [--out runs/<id>]` spustí vše.
+  `python -m povodne run --aoi <geojson|bbox> --event-date YYYY-MM-DD [--out runs/<id>]` spustí vše — pořadí, selhání a průběh viz *Orchestrátor*.
 - Moduly musí jít testovat izolovaně na malém ukázkovém run adresáři (`tests/fixtures/`, malé AOI).
 - `validation/` **nikdy** neimportuje pipeline a pipeline **nikdy** neimportuje `validation/`.
 
