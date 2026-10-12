@@ -817,6 +817,33 @@ souhrnná čísla + sitrep a obrázky pro mapu. Do odevzdání 2,5 dne → pevn�
 8. Sdílené pomocné funkce (`io.py`: čtení/zápis `run.json` atomicky, průběh, upozornění) dodá skeleton; stávající moduly mají vlastní kopie
    a **teď se nepřepisují** (riziko před termínem) — sjednocení až po odevzdání, pokud vůbec.
 
+## D-M0-01 | 2026-10-12 | přijato (session spojení, úkol od master: „rozhodni a zdůvodni“) — Složení finální mapy povodně (`flood/combine.py`)
+- **Voda z AI (2, 4) má přednost** před sutí: otevřená voda je silnější a ověřenější odpověď (model testovaný na Kuro Siwo a Sen1Floods11).
+- **Třída 3 = `debris_mask`** všude, kde AI nehlásí vodu — **i tam, kde AI pixel nevyhodnotilo (0)**. Krok suti označí pixel jen tehdy,
+  když ho viděl aspoň v jedné dráze (bez stínu/layoveru), takže nález je skutečný důkaz. Naopak pixel, který AI nevyhodnotilo a krok suti
+  ho viděl „beze změny“, **zůstává 0**: „žádná suť“ neznamená „žádná voda“ (model vody tam neviděl). Plocha suti v místech, kam AI nevidělo,
+  se hlásí upozorněním `combine_debris_where_ai_blind`.
+- **Pravděpodobnost suti** (`flood_prob`) podle jistoty kroku suti: nízká 0,35, střední 0,65, vysoká 0,85; bez rastru jistoty 0,65.
+  Hodnoty jsou odhad (literatura: z radaru AUC 0,62–0,83 u sesuvů, 30–50 % falešných nálezů u optiky, D-M3d-01), **neladěné na EMS** (D-006).
+  Nízká jistota záměrně pod 0,5 → krok škod ji bere jako „možná zasažené“ (stejný práh `mean_prob` 0,5). Pixel: max(P povodně z AI, P suti);
+  nodata (třída 0) = NaN.
+- **Polygony** (`flood_polygons.geojson`): voda = `class`, `area_m2`; suť navíc `subtype`, `confidence` (polygonizace po kombinaci podtyp × jistota
+  z rastrů) a `evidence` z polygonu kroku suti, se kterým se nejvíc překrývá. Plocha v celých pixelech.
+- Mapa suti na jiné mřížce než mapa vody se nepoužije (upozornění `combine_grid_mismatch`); chybějící suť = jen voda (`combine_no_debris`).
+- Souhrn do nové sekce `run.json.combine` (`areas_km2`: `flood_water`, `debris`, `permanent_water`, `debris_where_ai_blind`; `nodata_pct`, `n_polygons`).
+
+## D-M0-02 | 2026-10-12 | přijato (session spojení) — Podrobnosti hlavního příkazu `povodne run` (doplňuje D-X-06)
+- **Existující `run.json`** (z UI): jeho hodnoty mají přednost, příkazová řádka doplní jen chybějící (`null`); `progress` se na začátku přepíše
+  (všechny kroky `pending`). `aoi` = Polygon/MultiPolygon v EPSG:4326; FeatureCollection se sloučí do jednoho tvaru.
+- **Krok bez výstupu = selhal:** `flood_ai` bez `flood/ai_mask.tif` a `combine` bez `flood/flood_mask.tif` se počítají jako `failed`, i když skončily kódem 0
+  (např. krok stahování při „nedostatku dat“ skončí `done` bez snímků → předzpracování selže → zbytek `skipped`, report běží).
+- Zpráva selhaného kroku = poslední řádek jeho výstupu v logu; `progress.error` = první selhání povinného kroku, `progress.finished_utc`.
+- Kód návratu: 0 hotovo, 1 selhalo, 130 zrušeno. Zrušení (SIGTERM/SIGINT): běžící krok dostane SIGTERM a je `failed` („cancelled by the user“), zbytek `skipped`, report se nespouští.
+- Krok, jehož modul neexistuje, je `failed` se zprávou „not available in this installation yet“ (ne pád). Přechodně `flood_ai` → `training/run_ai.py`, dokud
+  nebude `povodne.flood.ai`.
+- Testy nahrazují kroky skripty přes proměnnou prostředí `POVODNE_FAKE_STEPS=<adresář>` (`<krok>.py run_dir`).
+- Podprocesy dostávají `PYTHONPATH=<repo>/src` a běží v kořeni repa (relativní cesty k modelům v `models/`).
+
 ---
 
 # Otevřené otázky (k rozhodnutí)

@@ -23,7 +23,7 @@ python -m dashboard            # then open http://127.0.0.1:8000
 Optional: set `CARTO_API_KEY` (free key from carto.com/basemaps/apikey) for the CARTO dark base map; without it the dark style falls back to inverted OpenStreetMap tiles.
 The bundled *sample run* in History is **synthetic demo data** (`dashboard/tools/make_sample_run.py`), not a real analysis.
 
-**Pipeline dependencies:** `pip install -r requirements.txt` (Python >= 3.11).
+**Pipeline dependencies:** `pip install -r requirements.txt` (Python >= 3.11), then `pip install -e .` (makes `python -m povodne` available from any folder).
 
 **Copernicus Data Space key (needed to download satellite data, free):**
 1. Register at https://dataspace.copernicus.eu (top right -> Register) and confirm the e-mail.
@@ -52,11 +52,19 @@ PYTHONPATH=src python -m povodne.acquire.catalog --bbox 85.15 27.95 85.40 28.30 
 Shows which Sentinel-1 tracks and post-event acquisitions the pipeline would use and why (uses the public Copernicus DEM).
 
 **Pipeline CLI:**
-_TBD_ — planned: `python -m povodne run --aoi <aoi.geojson | minlon,minlat,maxlon,maxlat> --event-date YYYY-MM-DD`
+```bash
+python -m povodne run --aoi 85.15,27.95,85.23,28.03 --event-date 2026-08-26 --out runs/trishuli
+python -m povodne serve --port 8000        # the dashboard, same as `python -m dashboard`
+```
+`--aoi` is a GeoJSON file (Feature, FeatureCollection or geometry, longitude/latitude) or `minlon,minlat,maxlon,maxlat`.
+Optional: `--pre-window FROM,TO`, `--post-window FROM,TO`, `--event-time HH:MM`, `--sensitivity standard|sensitive`.
+All steps run one after another (download -> preprocessing -> AI water map -> debris/mud -> final flood map -> damage -> cut-off
+settlements -> report); progress is in `runs/<id>/run.json` (`progress`) and the full log in `runs/<id>/logs/pipeline.log`.
 
 ## AI assistance
 This project was developed with the help of **Claude Code** (Anthropic), used as a coding assistant for project scaffolding,
 documentation and implementation. Per-module notes on which parts were AI-assisted:
+- **Pipeline orchestrator and final flood map (`src/povodne/{cli,io,config}.py`, `src/povodne/flood/combine.py`, `pyproject.toml`)**: written with Claude Code (step runner, failure rules, combining the water and debris maps, tests).
 - **Dashboard (`dashboard/`)**: backend, frontend, synthetic sample-run generator and UI design discussion were developed with Claude Code.
 
 - **Scene selection (`src/povodne/acquire/`)** — Sentinel-1 catalogue search and track planning, Copernicus DEM download,

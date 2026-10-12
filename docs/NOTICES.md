@@ -85,6 +85,17 @@ Kódy definuje `src/povodne/flood/debris/pipeline.py` (`SEVERITY`), test `tests/
 Pro UI dál: `flood/debris_polygons.geojson` má u každé plochy `subtype`, `confidence` a anglickou větu `evidence` (proč to systém tvrdí) —
 hodí se do vyskakovacího okna po kliknutí. `flood/debris_observability.tif` = vrstva „co bylo vidět“.
 
+### Složení finální mapy povodně (`step = "combine"`, D-M0-01)
+Kódy definuje `src/povodne/flood/combine.py` (`SEVERITY`), test `tests/test_combine.py` hlídá, že tabulka obsahuje přesně je.
+Souhrn plochy je v `run.json.combine.areas_km2`.
+
+| step | kód | závažnost | kdy nastane (česky) | titulek pro UI (EN) | `details` |
+|---|---|---|---|---|---|
+| combine | `combine_no_water_map` | error | Chybí mapa vody z AI kroku, finální mapa povodně nevznikla. Krok skončí `failed`, škody a odříznuté obce se nepočítají. | No flood map | — |
+| combine | `combine_no_debris` | warning | Chybí mapa suti a bahna (krok spadl nebo neproběhl): mapa ukazuje jen otevřenou vodu. | Water only, no debris map | — |
+| combine | `combine_grid_mismatch` | warning | Mapa suti je na jiné mřížce než mapa vody, nepoužila se (chyba v datech, mapa ukazuje jen vodu). | Debris map not aligned | — |
+| combine | `combine_debris_where_ai_blind` | info | Část suti/změn povrchu leží tam, kam model vody neviděl (radarový stín, chybí data); do mapy povodně je započtena. | Debris where water model was blind | `area_km2` |
+
 ### Krok škod (`step = "damage"`, D-M4-01)
 Kódy definuje `src/povodne/damage/pipeline.py`.
 
