@@ -19,3 +19,5 @@ pyarrow>=14  # ohsome API v2 answers in GeoParquet
 # M3 flood model inference (training/floodseg)
 torch>=2.2
 segmentation-models-pytorch>=0.3.3
+# damage, road network, cut-off settlements (M4, M5, M7)
+networkx>=3.2

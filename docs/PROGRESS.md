@@ -8,6 +8,12 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-12 — škody + odříznutá sídla (D-M4-01, D-M5-01–04, D-M7-01), změna kontraktu, týká se M1, M6, M8:** nové výstupy
+  `damage/{facilities_damage,settlement_areas}.geojson`, `damage/damage_summary.json`, `network/{facilities_access,landing_zones}.geojson`, `network/repair_priority.json`,
+  rozšířené `*_damage.geojson` (`grade` / `status`), `settlements_access.geojson` (stav `possibly_cut_off`, `detour_pct`, doba pěšky, silnice v obci, stupeň zasažení,
+  pořadí naléhavosti), `road_cuts.geojson` (pořadí oprav), `floodpath/along_path.json`. **M1:** nová vrstva `osm/pois.gpkg` + `amenity=health_post` — požadavek
+  `docs/REQUEST_M1_POIS.md`. **M8:** zobrazit nová pole a vrstvy; trasa povodně z kliknutého bodu (`python -m povodne.floodpath <run> --lon --lat`) — napojení navrhne UI.
+  **M6:** čísla brát z `damage/damage_summary.json` a `network/graph_stats.json`. Větev `claude/cool-cray-jfyu4h` — **master: sloučit**.
 - **2026-10-11 (večer) — master: sloučeno do `main` — AI model v0.4 + optický model (`claude/zen-bell-a83s7a`), satelity 2 + suť/bahno + odpovědi organizátorů (`claude/funny-fermat-ukdqp8`, obsahuje `claude/affectionate-shannon-jrnssg`), UI (`ccr-d89d3cfb-ywooc4`) → všichni `git fetch origin main && git merge origin/main`.**
   Konflikty jen polohové (DECISIONS, PROGRESS) + `dashboard/` (citlivost z UI a hodina povodně ze satelitů spojeny; ověřeno v Chromiu: obě políčka, `POST /api/runs` zapíše `sensitivity` i `event_time`). D-X-02 byl v obou větvích stejný → jednou. `check_docs` OK, testy 69/69.
   **Otevřené po sloučení:** upozornění „lepší pohled za X dní“ (D-X-05) zatím v kódu není (satelity); UI zatím neukazuje `run.json.notices`, podtypy suti ani vrstvu viditelnosti (D-M3d-02);
@@ -91,8 +97,8 @@ Obtížnost a čas = odhad uživatele.
 | 5 | Stahování dat ze satelitu | ~7 | ~4 h | M1, M2 | ⬜ |
 | 6 | Natrénovat AI (Kaggle) | 7 | 4 h + běh tréninku | M9, M3 | ✅ model v0.2 (test F1 0,775); himálajský test předběžně |
 | 7 | Algoritmus na suť a bahno | 8 | 4 h | M3d | 🟨 kód + syntetické testy; chybí ověření na skutečných datech |
-| 8 | Škody | 3 | 2 h | M4 | ⬜ |
-| 9 | Odříznuté obce | 3 | 2,5 h | M5 | ⬜ |
+| 8 | Škody | 3 | 2 h | M4 | 🟨 kód + testy, chybí běh na skutečné povodni |
+| 9 | Odříznuté obce | 3 | 2,5 h | M5 | 🟨 kód + testy, chybí běh na skutečné povodni |
 | 10 | Stránka a UI | 4–5 | 3–4 h | M8 | ⬜ |
 | 11 | Testy a propojení | 4–5 | 2–3 h | — | ⬜ |
 | 12 | Polish = dokončení, začištění a propojení (propojuje se i průběžně během práce) | 3 | 2 h | — | ⬜ |
@@ -109,10 +115,10 @@ Obtížnost a čas = odhad uživatele.
 | M9 AI trénink | ✅ | `claude/zen-bell-a83s7a` | v0.4 bez Bolívie (`floodseg-model`, D-M9-14); dříve v0.2, D-M9-01–11; optický model S2 a kolo 10 rozpracované; **předání: `docs/HANDOFF_M9.md`** |
 | M3 AI inference (voda) | 🟨 | `claude/relaxed-johnson-wwj9s8` | `training/run_ai.py` (+ testy): dva směry, stín z obou směrů, optika S2, min. plocha, dvoustupňový práh (D-M9-11); přesun do `src/povodne/flood/` až bude skeleton |
 | M3d Suť a bahno + změny povrchu | 🟨 | `claude/affectionate-shannon-jrnssg` | kód hotový (`python -m povodne.flood.debris`), testy na syntetickém údolí; chybí běh na skutečných datech (Opava, Derna, Trishuli) a starší snímky od M1 (D-M3d-02) |
-| M4 Damage | ⬜ | `feat/damage` | |
-| M5 Network / cut-off | ⬜ | `feat/network` | |
+| M4 Damage | 🟨 | `claude/cool-cray-jfyu4h` | kód hotový (`python -m povodne.damage`), testy; ověřeno jen na skutečné OSM + uměle vyrobené povodni (D-M4-01) |
+| M5 Network / cut-off | 🟨 | `claude/cool-cray-jfyu4h` | kód hotový (`python -m povodne.network`): stavy, objížďka %, doba pěšky, stupně zasažení, pořadí naléhavosti, plán oprav, důležitá místa, plochy pro vrtulník; testy; čeká na skutečnou mapu povodně (D-M5-01–04) |
 | M6 Stats + sitrep | ⬜ | `feat/report` | |
-| M7 Flood path (bonus) | ⬜ | `feat/floodpath` | |
+| M7 Flood path (bonus) | 🟨 | `claude/cool-cray-jfyu4h` | kód hotový (`python -m povodne.floodpath <run> --lon --lat`), testy; UI napojení chybí (D-M7-01) |
 | M10 Validace vs EMSR927 | ⬜ | `feat/validation` | |
 
 ## Blokery / známé problémy
@@ -122,6 +128,16 @@ Obtížnost a čas = odhad uživatele.
 4. Účty (CDSE, Kaggle…) zakládá uživatel až v příslušných sessions (D-011); údaje jen jako env proměnné prostředí, nikdy do repa.
 
 ## Log sessions
+### 2026-10-12 — škody, odříznuté obce, zasažení obcí, trasa povodně — `claude/cool-cray-jfyu4h`
+- Rešerše (3 agenti: odříznutí po povodních, stupně škod EMS/UNOSAT, potřeby záchranářů) → návrh probrán s uživatelem; rozhodnutí D-M4-01, D-M5-01–04, D-M7-01, kontrakt v ARCHITECTURE.
+  Uživatel: celý svět (nic nepálského), bez lávek/pěšin, bez odhadu obyvatel, 5 stupňů zasažení, body „zahrazení řeky“ a „dostupnost za X min“ ne.
+- Kód (5 agentů paralelně): `src/povodne/damage/`, `src/povodne/network/` (+ `impact.py`, `landing.py`), `src/povodne/floodpath/`; testy `pytest tests` 110/110.
+- Testovací run `tools/impact_fixture/make_fixture.py` (skutečná OSM před povodní + DEM, **uměle vyrobená povodeň** z HAND): škody 1,7 s, síť 2 s, trasa 6 s;
+  11 obcí odříznutých, plán oprav 2 kroky (skupina 5 úseků na jedné silnici → 6 obcí, pak 1 úsek → 5 obcí).
+- Opraveno při kontrole: síť vyřazuje jen zasažené kusy silnice (ne celou OSM linii); plán oprav umí skupiny úseků za sebou.
+- Požadavek na satelitní session: `docs/REQUEST_M1_POIS.md` (důležitá místa + `health_post`), uživatel předá.
+- Zbývá: běh na skutečné mapě povodně (chybí předzpracování a skládání masky), napojení do UI (nová pole a vrstvy, trasa povodně z kliknutí), čísla do sitrepu.
+  Klíč `OHSOME_API_KEY` je jen v `/root/.ohsome_env` této session.
 ### 2026-10-11 (večer) — master: sloučení modelu v0.4, suti, satelitů 2 a UI — `claude/gallant-keller-vftpi2`
 - Sloučeny `claude/zen-bell-a83s7a`, `claude/funny-fermat-ukdqp8` (+ `claude/affectionate-shannon-jrnssg`), `ccr-d89d3cfb-ywooc4`. `claude/relaxed-johnson-wwj9s8` je celá v `zen-bell`.
 - Konflikty vyřešeny spojením obou stran; `dashboard/` = citlivost + hodina povodně dohromady (headless Chromium OK). `check_docs` OK, `pytest tests training/tests`: 69 passed.

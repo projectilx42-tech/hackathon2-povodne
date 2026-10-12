@@ -84,3 +84,33 @@ Kódy definuje `src/povodne/flood/debris/pipeline.py` (`SEVERITY`), test `tests/
 
 Pro UI dál: `flood/debris_polygons.geojson` má u každé plochy `subtype`, `confidence` a anglickou větu `evidence` (proč to systém tvrdí) —
 hodí se do vyskakovacího okna po kliknutí. `flood/debris_observability.tif` = vrstva „co bylo vidět“.
+
+### Krok škod (`step = "damage"`, D-M4-01)
+Kódy definuje `src/povodne/damage/pipeline.py`.
+
+| step | kód | závažnost | kdy nastane (česky) | titulek pro UI (EN) | `details` |
+|---|---|---|---|---|---|
+| damage | `damage_no_flood_mask` | error | Chybí finální mapa povodně (`flood/flood_mask.tif`), škody nejde spočítat. Krok skončí `failed`. | No flood map for damage | — |
+| damage | `damage_failed` | error | Krok škod spadl na nečekané chybě. | Damage assessment failed | `error` |
+| damage | `damage_no_buildings` | warning | V OpenStreetMap před povodní nejsou v oblasti žádné budovy: „0 zasažených budov“ neznamená „žádná škoda“. | No buildings in the map | — |
+| damage | `damage_no_roads` | warning | V OpenStreetMap před povodní nejsou silnice: přerušené silnice ani odříznuté obce nejde posoudit. | No roads in the map | — |
+| damage | `damage_unobserved` | warning | Aspoň 20 % budov leží převážně v místech, která satelit neviděl (radarový stín, mimo snímek): jejich stav je neznámý. | Many buildings not visible | `share` |
+| damage | `damage_no_debris_detail` | info | Chybí podtypy suti a jistota: každá suť se bere jako „suť, střední jistota“, budovy v ní jako pravděpodobně zničené. | No debris detail | — |
+
+### Krok silniční sítě a odříznutých obcí (`step = "network"`, D-M5-01–04)
+Kódy definuje `src/povodne/network/pipeline.py`.
+
+| step | kód | závažnost | kdy nastane (česky) | titulek pro UI (EN) | `details` |
+|---|---|---|---|---|---|
+| network | `network_failed` | error | Krok sítě spadl na nečekané chybě. | Road network analysis failed | `error` |
+| network | `network_no_roads` | error | Žádné silnice z OpenStreetMap před povodní, odříznuté obce nejde spočítat. | No roads in the map | — |
+| network | `network_no_damage` | error | Chybí výstup kroku škod (zablokované silnice a mosty). | Damage results missing | — |
+| network | `network_no_settlements` | warning | V OpenStreetMap nejsou v oblasti žádná sídla. | No settlements in the map | — |
+| network | `network_no_destinations` | warning | V dosahu není nemocnice ani město; jako cíl slouží jen okraj stažené mapy. | No hospital or town nearby | — |
+| network | `network_no_settlement_areas` | warning | Chybí území sídel z kroku škod; silnice v obci se počítají v kruhu 200 m a čísla o budovách chybí. | Settlement areas missing | — |
+| network | `network_impact_skipped` | warning | Stupeň zasažení obcí se nespočítal (chyba modulu). | Impact levels unavailable | `error` |
+| network | `network_landing_skipped` | warning | Plochy pro vrtulník se nespočítaly (chyba modulu nebo chybí výšková mapa). | Landing zones unavailable | `error` |
+| network | `network_whole_line_damage` | warning | Nešlo přečíst mapu povodně, takže se zablokovaná silnice vyřadila celá, ne jen zasažený kus: odříznutých obcí může vyjít víc. | Whole roads treated as blocked | — |
+| network | `network_snap_failed` | info | Některá sídla jsou dál než 500 m od silnice (vedou k nim jen pěšiny nebo chybí v mapě); počítají se jako „bez silnice už před povodní“. | Settlements without a road | počet |
+| network | `network_edge_destinations` | info | Okraj stažené mapy (oblast + 15 km) se počítá jako „vnější svět“ — kdo se tam dostane, není odříznutý. | Map edge used as destination | počet uzlů |
+| network | `network_possibly_cut_off` | info | Některé obce jsou odříznuté, jen pokud nejdou použít podezřelé mosty nebo možná zablokované silnice. | Possibly cut off settlements | počet |
