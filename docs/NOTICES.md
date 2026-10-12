@@ -114,3 +114,16 @@ Kódy definuje `src/povodne/network/pipeline.py`.
 | network | `network_snap_failed` | info | Některá sídla jsou dál než 500 m od silnice (vedou k nim jen pěšiny nebo chybí v mapě); počítají se jako „bez silnice už před povodní“. | Settlements without a road | počet |
 | network | `network_edge_destinations` | info | Okraj stažené mapy (oblast + 15 km) se počítá jako „vnější svět“ — kdo se tam dostane, není odříznutý. | Map edge used as destination | počet uzlů |
 | network | `network_possibly_cut_off` | info | Některé obce jsou odříznuté, jen pokud nejdou použít podezřelé mosty nebo možná zablokované silnice. | Possibly cut off settlements | počet |
+
+### Krok hlášení (`step = "report"`, D-M6-01)
+Kódy definuje `src/povodne/report/common.py`. Krok běží vždy (i po chybě dřívějších kroků) a verdikt píše do `stats.json`.
+
+| step | kód | závažnost | kdy nastane (česky) | titulek pro UI (EN) | `details` |
+|---|---|---|---|---|---|
+| report | `report_failed` | error | Souhrn čísel se nepodařilo spočítat (nečekaná chyba); `stats.json` má jen verdikt „nedostatek dat“. | Summary failed | `error` |
+| report | `report_no_flood_map` | error | Nevznikla mapa povodně (některý z kroků stahování, přípravy, AI nebo skládání neproběhl) → verdikt „nedostatek dat“. | No flood map | `failed_steps` |
+| report | `report_low_coverage` | error | Radar ani jasná optika nevidí aspoň 20 % oblasti → verdikt „nedostatek dat“ (nic nenalezeno by tu znamenalo jen „nevidíme“). | Too little of the area observed | `evaluated_pct`, `min_evaluated_pct` |
+| report | `report_damage_missing` | warning | Mapa povodně je, ale krok škod neproběhl; sitrep ukazuje jen zaplavenou plochu. | Damage not assessed | — |
+| report | `report_network_missing` | warning | Mapa povodně je, ale analýza odříznutých obcí neproběhla. | Cut-off analysis missing | — |
+| report | `report_pdf_failed` | warning | PDF sitrepu se nepodařilo vytvořit; `stats.json`, `sitrep_en.md` a mapa jsou k dispozici. | PDF report failed | `error` |
+| report | `report_overlay_failed` | warning | Některý obrázek vrstvy pro mapu se nepodařilo vykreslit (ostatní ano). | Map layer image failed | `errors` (vrstva → chyba) |
