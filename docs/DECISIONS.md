@@ -817,6 +817,11 @@ souhrnná čísla + sitrep a obrázky pro mapu. Do odevzdání 2,5 dne → pevn�
 8. Sdílené pomocné funkce (`io.py`: čtení/zápis `run.json` atomicky, průběh, upozornění) dodá skeleton; stávající moduly mají vlastní kopie
    a **teď se nepřepisují** (riziko před termínem) — sjednocení až po odevzdání, pokud vůbec.
 
+## D-DLV-01 | 2026-10-12 | přijato (session odevzdání) — Jak report uvádí výsledky modelu na Bolívii
+Report a Devpost uvádějí **obě čísla** ze Sen1Floods11 Bolívie (D-M9-14): F1 0,21 bez snímku „před“ a 0,64 při „před“ = „po“, s vysvětlením (model je detektor změny,
+ne obecný detektor vody; pipeline má vždy snímek „před“). Optický model F1 0,885. Himálajská čísla jsou zatím předběžná (proxy radar), v reportu označena TODO na úterý.
+**Finální podání čísel schvaluje uživatel.** Report je 3 strany PDF (limit 6), generuje se `pandoc` + Chromium z `deliverables/report/report.md`.
+
 ---
 
 # Otevřené otázky (k rozhodnutí)

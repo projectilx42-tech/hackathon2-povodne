@@ -150,6 +150,10 @@ Obtížnost a čas = odhad uživatele.
 4. Účty (CDSE, Kaggle…) zakládá uživatel až v příslušných sessions (D-011); údaje jen jako env proměnné prostředí, nikdy do repa.
 
 ## Log sessions
+### 2026-10-12 — odevzdání: README, report, video, Devpost — `feat/deliverables`
+- Hotovo: `README.md` (instalace, klíče, spuštění, chyby, atribuce, AI assistance), `deliverables/report/report.{md,pdf}` (kostra s čísly z DECISIONS; TODO: případová studie EMSR927, himálajská čísla z reálného běhu, čas/PU na běh),
+  `deliverables/video_script.md`, `deliverables/devpost.md`, `deliverables/ui_methods_text.md` (pro UI session). Rozhodnutí D-DLV-01.
+- Zbývá: veřejné stažení vah (README má místo), `pip install -e .` a `povodne run` až je dodá session spojení, čísla z úterních běhů, odkaz na video.
 ### 2026-10-12 — master: kontext, sloučení škod/sítě, plán do odevzdání — `ccr-20f0eb8e-hlztw5`
 - Přečten kontext všech sessions a větví. Sloučena `claude/cool-cray-jfyu4h` (bez konfliktů). Zapsáno D-X-06 (spojení kroků) + ARCHITECTURE *Orchestrátor*, plán výše.
 - Zadány úkoly: nové sessions spojení, předzpracování, hlášení, validace, odevzdání; zprávy stávajícím (satelity, suť, AI model, UI, škody/síť).
