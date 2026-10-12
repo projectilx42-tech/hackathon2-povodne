@@ -93,9 +93,9 @@ class Router:
     def __init__(self, G: nx.MultiGraph):
         self.G = G
         self.n = (max(G.nodes) + 1) if G.number_of_nodes() else 0
-        rows = [(u, v, k, d["travel_time_s"], d["length_m"], d["state"], d["osm_id"])
+        rows = [(u, v, k, d["travel_time_s"], d["length_m"], d["state"], d["osm_id"], bool(d.get("bridge")), d.get("name"))
                 for u, v, k, d in G.edges(keys=True, data=True)]
-        e = pd.DataFrame(rows, columns=["u", "v", "k", "time", "length", "state", "osm_id"])
+        e = pd.DataFrame(rows, columns=["u", "v", "k", "time", "length", "state", "osm_id", "bridge", "name"])
         lo = np.minimum(e["u"], e["v"]) if len(e) else e["u"]
         hi = np.maximum(e["u"], e["v"]) if len(e) else e["v"]
         e["lo"], e["hi"] = lo, hi

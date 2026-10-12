@@ -24,7 +24,7 @@ from shapely.ops import unary_union
 from .access import Destinations, Router, edge_destination_nodes, facility_access, settlement_access, snap_points, territory_roads
 from .config import NetworkConfig
 from .graph import STATE_BLOCKED, STATE_OK, STATE_POSSIBLE, build_graph
-from .repair import rank, repair_ranking
+from .repair import repair_plan
 
 log = logging.getLogger("povodne.network")
 STEP = "network"
@@ -388,10 +388,9 @@ def _run(run_dir: Path, cfg: NetworkConfig, notices: list, t0: float) -> dict:
     bld = pd.to_numeric(S["buildings_total"], errors="coerce").fillna(0).astype(int)
     co = S["status"] == "cut_off"
     cut_df = pd.DataFrame({"osm_id": S.loc[co, "osm_id"], "name": S.loc[co, "name"], "node": S.loc[co, "_node"],
-                           "buildings": bld[co]})
-    rep = repair_ranking(router, dests, cut_df)
-    order = rank(rep, top_n=cfg.repair_top_n)
-    rank_of = {o: i + 1 for i, o in enumerate(order)}
+                           "buildings": bld[co], "blocking_cuts": S.loc[co, "blocking_cuts"]})
+    priority, rep = repair_plan(router, dests, cut_df, top_n=cfg.repair_top_n)
+    rank_of = {o: p["rank"] for p in priority for o in p["osm_ids"]}
     n_cut_s: dict = {}
     n_cut_b: dict = {}
     for cuts, b in zip(S.loc[co, "blocking_cuts"], bld[co]):
@@ -421,10 +420,6 @@ def _run(run_dir: Path, cfg: NetworkConfig, notices: list, t0: float) -> dict:
                                 "reconnects_settlements", "reconnects_buildings"]),
                                 geometry=cut_geoms, crs=crs)
     write_geojson(out_dir / "road_cuts.geojson", cuts_gdf)
-    priority = [{"rank": i + 1, "osm_id": o, "name": edge_attr[o]["name"], "is_bridge": is_bridge.get(o, False),
-                 "reconnects_settlements": rep[o]["reconnects_settlements"],
-                 "reconnects_buildings": rep[o]["reconnects_buildings"], "settlements": rep[o]["settlements"]}
-                for i, o in enumerate(order[:cfg.repair_top_n])]
     (out_dir / "repair_priority.json").write_text(json.dumps(priority, indent=2, ensure_ascii=False, default=_clean))
 
     # --- facilities ---------------------------------------------------------------------------------------
@@ -508,7 +503,7 @@ def _run(run_dir: Path, cfg: NetworkConfig, notices: list, t0: float) -> dict:
     return {k: stats[k] for k in ("settlements_total", "settlements_by_status", "settlements_by_impact", "road_cuts",
                                   "facilities_by_access", "landing_zones", "runtime_s", "nodes", "edges")} | {
         "method": "pre-event OSM road graph (shared vertices), multi-source Dijkstra pre/post/possibly (D-M5-01)",
-        "repair_top": [p["osm_id"] for p in priority]}
+        "repair_top": [p["osm_ids"] for p in priority]}
 
 
 def main() -> None:
