@@ -822,6 +822,18 @@ Report a Devpost uvádějí **obě čísla** ze Sen1Floods11 Bolívie (D-M9-14):
 ne obecný detektor vody; pipeline má vždy snímek „před“). Optický model F1 0,885. Himálajská čísla jsou zatím předběžná (proxy radar), v reportu označena TODO na úterý.
 **Finální podání čísel schvaluje uživatel.** Report je 3 strany PDF (limit 6), generuje se `pandoc` + Chromium z `deliverables/report/report.md`.
 
+## D-M10-01 | 2026-10-12 | přijato (úkol od master session) — Srovnání s Copernicus EMS (EMSR927)
+- **Zdroj:** veřejné API EMS Rapid Mapping (`dashboard-api/public-activations/?code=EMSR927`), vektorové balíčky (shapefile, EPSG:4326),
+  `validation/fetch_ems.py` → `validation/data/` (není v gitu). Dodány 4 ze 6 oblastí (Syapru Besi, Timure, Bidur, Phosretar; Bharatpur
+  a Kyundi zrušeny kvůli mrakům), ruční fotointerpretace z VHR optiky 27. 8. (Phosretar 31. 8.), Bidur a Phosretar mají i pozdější aktualizaci.
+- **Co EMS mapuje:** zasaženou plochu jako jednu třídu „sesuv / mass movement“ (voda vs suť se nedá hodnotit zvlášť → hodnotí se 2 ∪ 3 a uvádí
+  se, jak se náš zásah dělí na vodu a suť); **jen poškozené budovy** (body) → u budov jen recall, ne precision; silnice i se stavem
+  „No visible damage“ → u silnic i podíl falešných; mosty jako body.
+- **Výchozí produkt = první dodaný v každé oblasti** (snímky nejblíž našemu prvnímu průletu Sentinel-1); `--products latest` = aktualizace.
+- **Porovnávaná plocha** = oblast EMS minus „not analysed“, jen kde má naše mapa data; po pixelech na naší 10m mřížce.
+  Párování budov/silnic/mostů vzdáleností (budova 10 m, silnice 20 m, most 50 m) — zvoleno předem, neladí se.
+- Porovnání finálního běhu **jednou**, čísla do reportu bez úprav; žádné ladění pipeline podle výsledku (D-006).
+
 ---
 
 # Otevřené otázky (k rozhodnutí)
