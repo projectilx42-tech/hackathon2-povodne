@@ -164,6 +164,8 @@ def extract(aoi: BaseGeometry, event: date, epsg: int, raw_dir: Path, osm_dir: P
     osm_dir.mkdir(parents=True, exist_ok=True)
     for name, gdf in raw.items():
         keep = gdf[[c for c in gdf.columns if c == "geometry" or c == "osm_id" or ":" not in c]]  # drop exotic tag keys
+        seen = set()  # GPKG field names are case-insensitive: keep the first of e.g. "fixme" / "FIXME"
+        keep = keep[[c for c in keep.columns if not (c.lower() in seen or seen.add(c.lower()))]]
         keep.to_file(raw_dir / "osm_raw.gpkg", layer=name, driver="GPKG")
 
     b = raw["buildings"]

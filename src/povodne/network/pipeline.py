@@ -385,6 +385,9 @@ def _run(run_dir: Path, cfg: NetworkConfig, notices: list, t0: float) -> dict:
 
     # --- road cuts and repair priority ---------------------------------------------------------------------
     _progress(run_dir, "running", "ranking road repairs")
+    if S.empty or "status" not in S.columns:
+        raise RuntimeError("No settlements to analyse: OpenStreetMap settlements/roads are missing for this area "
+                           "(see the acquire step's warnings).")
     bld = pd.to_numeric(S["buildings_total"], errors="coerce").fillna(0).astype(int)
     co = S["status"] == "cut_off"
     cut_df = pd.DataFrame({"osm_id": S.loc[co, "osm_id"], "name": S.loc[co, "name"], "node": S.loc[co, "_node"],
