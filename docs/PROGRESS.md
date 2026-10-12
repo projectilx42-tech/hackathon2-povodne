@@ -8,6 +8,7 @@ Nejnovější záznam v logu nahoře. Stavy: ⬜ nezačato · 🟨 rozpracováno
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Kdo mění něco, co používá jiný modul, sem přidá řádek. Master session sem píše po každém sloučení.)*
+- **2026-10-12 — hlášení: `stats.json` verze 2 (D-M6-01), změna kontraktu, týká se UI (M8):** nová pole (rozsahy škod, `possibly_cut_off`, stupně zasažení, `urgent`, plán oprav, důležitá místa, suť po podtypech, `post_image`, `steps`, `notices_summary`); pole v1 beze změny; **chybějící část běhu = `null`** (ne nuly). Nový překryv `debris_observability`. Schéma: ARCHITECTURE → `stats.json`. Větev `feat/report`.
 - **2026-10-12 — master: sloučeny škody, odříznuté obce, zasažení obcí a trasa povodně (`claude/cool-cray-jfyu4h`) do `main` → všichni `git fetch origin main && git merge origin/main`.**
   **Nový kontrakt spojení (D-X-06, ARCHITECTURE → *Orchestrátor*):** pořadí kroků a moduly `povodne.acquire → preprocess → flood.ai → flood.debris → flood.combine
   → damage → network → report`; **nový krok průběhu `combine`**; **PNG překryvy píše krok report** (ne UI); `flood/combine.py` patří session spojení (ne modelu);

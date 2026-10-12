@@ -262,19 +262,51 @@ Bez hydrauliky: žádné časy příchodu vody, jen pořadí a vzdálenost (uvé
 
 ## `stats.json` (M6) — jediný zdroj čísel
 Sitrep, dashboard i případný copilot berou čísla **výhradně odsud** (žádná čísla vymyšlená textem).
+Píše krok `report` (`python -m povodne.report <run_dir>`), **běží vždy** — i když dřívější kroky selhaly (pak verdikt `insufficient_data`).
+Původní pole (verze 1) zůstávají se stejným významem; rozšíření D-M6-01 jen přidává. Chybějící část běhu = sekce `null`
+(např. `damage: null`, když krok škod neproběhl), ne nuly — nula znamená „spočítáno, nic“.
 ```json
 {
-  "run_id": "...", "event_date": "...", "aoi_area_km2": 0,
-  "verdict": "flood_detected|no_significant_flooding|insufficient_data",   // D-013
-  "verdict_reasons": ["..."],
-  "coverage": {"s1_valid_pct": 0, "s2_pre_clear_pct": null, "s2_post_clear_pct": null},
-  "scenes": {"s1_pre": "...", "s1_post": "...", "s2_pre": "...|null", "s2_post": "...|null"},
-  "flood": {"flooded_water_km2": 0, "debris_km2": 0, "affected_km2": 0, "nodata_pct": 0, "method": "ai"},
+  "schema_version": 2, "generated_utc": "...",
+  "run_id": "...", "event_date": "YYYY-MM-DD", "event_time": "HH:MM|null", "aoi_area_km2": 0, "sensitivity": "standard",
+  "verdict": "flood_detected|no_significant_flooding|insufficient_data",   // D-013, pravidla D-M6-01
+  "verdict_reasons": ["anglické věty s čísly"],
+  "verdict_params": {"min_affected_km2": 0.1, "min_evaluated_pct": 20},
+  "coverage": {"s1_valid_pct": 0, "s2_pre_clear_pct": null, "s2_post_clear_pct": null,
+               "evaluated_pct": 0},          // evaluated = podíl oblasti s flood_mask ≠ 0 (radar nebo jasná optika)
+  "scenes": {"s1_pre": "...", "s1_post": "...", "s2_pre": "...|null", "s2_post": "...|null"},   // jen texty (UI je vypisuje)
+  "post_image": {"sensor": "Sentinel-1", "datetime_utc": "...", "date": "YYYY-MM-DD", "days_after_event": 2,
+                 "track": "85 ASCENDING", "s2_post_date": "YYYY-MM-DD|null"} | null,           // stáří dat pro záchranáře
+  "steps": {"acquire": "done", "preprocess": "done", "flood_ai": "done", "debris": "failed", "combine": "done",
+            "damage": "done", "network": "done"},                                              // z run.json.progress
+  "flood": {"flooded_water_km2": 0, "debris_km2": 0, "affected_km2": 0, "nodata_pct": 0, "method": "ai",
+            "permanent_water_km2": 0, "model": "models/<name>|null",
+            "debris_by_type_km2": {"debris": 0, "mud": 0, ...} | null,     // = run.json.debris.areas_km2
+            "debris_confidence_km2": {...} | null,                         // = run.json.debris.confidence_km2
+            "debris_false_share_est": 0.0 | null} | null,                  // autotest suti: odhad podílu falešných nálezů (0–1)
   "damage": {"buildings_total": 0, "buildings_hit": 0, "roads_total_km": 0, "roads_hit_km": 0,
-             "bridges_total": 0, "bridges_hit": 0},
+             "bridges_total": 0, "bridges_hit": 0,                         // v1: buildings_hit = jisté (= _low), bridges_hit = blocked + suspect
+             "buildings_hit_low": 0, "buildings_hit_high": 0, "buildings_likely_destroyed": 0,   // rozsah jisté–všechny
+             "roads_blocked_km": 0, "roads_possibly_blocked_km": 0, "bridges_blocked": 0, "bridges_suspect": 0,
+             "facilities_total": 0, "facilities_hit_by_kind": {"school": 1}} | null,
   "access": {"settlements_total": 0, "cut_off": 0, "degraded": 0, "connected": 0,
-             "cut_off_list": [{"name": "...", "place": "...", "population": null}]},
-  "warnings": []
+             "possibly_cut_off": 0, "no_road_pre_event": 0,
+             "by_impact": {"critical": 0, "severe": 0, "moderate": 0, "low": 0, "none": 0},
+             "cut_off_list": [{"name": "...", "place": "...", "population": null,
+                               "osm_id": "node/1", "impact_level": "...", "priority_rank": 1}],   // seřazeno podle priority_rank
+             "possibly_cut_off_list": [{...stejné jako cut_off_list...}],
+             "urgent": [{"priority_rank": 1, "osm_id": "...", "name": "...", "place": "...", "population": null,
+                         "status": "...", "impact_level": "...", "buildings_total": 0, "buildings_hit": 0,
+                         "buildings_hit_pct": 0, "time_pre_s": 0, "time_post_s": null, "nearest_dest_post": null,
+                         "impact_reasons": ["..."]}]} | null,             // top 10 podle priority_rank
+  "repair": {"steps_total": 0, "top": [{"rank": 1, "osm_ids": [...], "names": [...], "is_bridge": false,
+             "reconnects_settlements": 0, "reconnects_buildings": 0, "settlements": [...], "cumulative_buildings": 0}]} | null,   // top 5
+  "facilities": {"total": 0, "hit": 0, "cut_off": 0,
+                 "list": [{"osm_id": "...", "name": "...", "kind": "hospital", "grade": "affected", "access": "cut_off"}]} | null,  // zasažené ∪ odříznuté, max 20
+  "landing_zones": {"total": 0, "by_class": {"suitable": 0, "caution": 0, "known_helipad": 0}} | null,
+  "notices_summary": {"error": 0, "warning": 0, "info": 0,
+                      "top": [{"step": "...", "code": "...", "severity": "error|warning", "message": "..."}]},   // max 8, nejdřív error
+  "warnings": ["..."]                                                    // jen texty (error + warning), jako v1
 }
 ```
 
@@ -294,7 +326,7 @@ Pipeline spouští jako podproces `python -m povodne run ...`; průběh čte z `
 
 - **Překryvy** (`overlays/*.png` + `overlays/index.json` s `bounds`) jsou PNG pro mapu. `GET .../overlays` vrací jen ty, které v `index.json` jsou.
   Vyrábí je krok report (`povodne.report`) na konci každého běhu (D-X-06); UI je jen čte (ukázkový run je má předrenderované).
-  Jména: `flood_prob` (R kanál = pravděpodobnost 0–255, A = 255), `s2_pre`, `s2_post` (před/po slider), `layover_shadow`; vodu a suť UI kreslí
+  Jména: `flood_prob` (R kanál = pravděpodobnost 0–255, A = 255), `s2_pre`, `s2_post` (před/po slider), `layover_shadow`, `debris_observability` (D-M6-01); vodu a suť UI kreslí
   z `flood/flood_polygons.geojson` (třídy `water`, `debris`), ne z PNG.
 - **Spuštění z UI:** `POST /api/runs` založí `runs/run_<date>_<hash6>/` s `run.json` (`aoi`, `event_date`, `pre_window`, `post_window`,
   `progress.state=queued`) a `aoi.geojson`, pak spustí `python -m povodne run --aoi <run>/aoi.geojson --event-date D --out <run>
