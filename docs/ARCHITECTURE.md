@@ -230,9 +230,11 @@ none = jinak.
 
 `road_cuts.geojson`: přerušené úseky (`osm_id`, `highway`, `name`, `is_bridge`, `length_m`, `status`, `n_settlements_cut`, `n_buildings_cut`,
 `repair_rank` (null, pokud oprava nic nepřipojí), `reconnects_settlements`, `reconnects_buildings`).
-**Pořadí oprav** (`repair_priority.json`, D-M5-02): každý přerušený úsek se zkusmo vrátí sám do post-event grafu a spočítá se,
-kolik odříznutých sídel (a budov v nich) se tím připojí k cíli; seřazeno podle budov. `[{"rank","osm_id","name","is_bridge","reconnects_settlements",
-"reconnects_buildings","settlements":[names]}]` (top 10).
+**Pořadí oprav** (`repair_priority.json`, D-M5-02) = **postupný plán**: v každém kroku se zkusí každý přerušený úsek sám i skupina úseků na původní trase
+každého odříznutého sídla (přerušení za sebou na jedné silnici); vybere se nejvíc znovu připojených budov **na jeden opravený úsek**, oprava se provede a hledá se dál
+(max. 10 kroků). Záznam: `{"rank", "osm_ids": [...], "names": [...], "n_cuts", "is_bridge" (některý je most), "reconnects_settlements", "reconnects_buildings",
+"settlements": [jména], "cumulative_buildings", "osm_id", "name"}` (`osm_id`/`name` = první prvek). Krok N může záviset na krocích před ním.
+`road_cuts.reconnects_*` = účinek úseku samotného na stav po povodni (u úseků ve skupině typicky 0).
 
 `facilities_access.geojson` (D-M5-03): prvky z `damage/facilities_damage.geojson` + `access` ∈ {`connected`, `possibly_cut_off`, `cut_off`, `no_road_pre_event`}.
 Místo se přichytí na síť jako sídlo; `connected` = po povodni se dostane k jinému cíli (nemocnice/město, ne k sobě samému) nebo na okraj stažené sítě

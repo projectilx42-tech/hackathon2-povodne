@@ -105,21 +105,22 @@ def repair_plan(router: Router, dests: Destinations, cut_off: pd.DataFrame, top_
             if oid in applied:
                 continue
             rec, b = effect([oid])
-            if rec and (best is None or (b, len(rec)) > best[0]):
-                best = ((b, len(rec)), [oid], rec, b)
-        if best is None:  # no single way helps: try the blocked ways along each settlement's pre-event route
-            seen = set()
-            for s in todo:
-                grp = tuple(sorted(set(s["cuts"]) - applied))
-                if not grp or grp in seen:
-                    continue
-                seen.add(grp)
-                rec, b = effect(grp)
-                if not rec:
-                    continue
-                key = (b / len(grp), len(rec) / len(grp), -len(grp))
-                if best is None or key > best[0]:
-                    best = (key, list(grp), rec, b)
+            if rec and (best is None or (b, len(rec), -1) > best[0]):
+                best = ((b, len(rec), -1), [oid], rec, b)
+        # groups: the blocked ways along each settlement's pre-event route, scored per restored way so that a
+        # 2-cut group reconnecting 100 buildings beats a single cut reconnecting 5
+        seen = set()
+        for s in todo:
+            grp = tuple(sorted(set(s["cuts"]) - applied))
+            if not grp or grp in seen:
+                continue
+            seen.add(grp)
+            rec, b = effect(grp)
+            if not rec:
+                continue
+            key = (b / len(grp), len(rec) / len(grp), -len(grp))
+            if best is None or key > best[0]:
+                best = (key, list(grp), rec, b)
         if best is None:
             break
         _, oids, rec, b = best

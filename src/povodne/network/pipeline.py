@@ -419,6 +419,8 @@ def _run(run_dir: Path, cfg: NetworkConfig, notices: list, t0: float) -> dict:
                                 "status", "n_settlements_cut", "n_buildings_cut", "repair_rank",
                                 "reconnects_settlements", "reconnects_buildings"]),
                                 geometry=cut_geoms, crs=crs)
+    for c in ("repair_rank", "n_settlements_cut", "n_buildings_cut", "reconnects_settlements", "reconnects_buildings"):
+        cuts_gdf[c] = pd.array(cuts_gdf[c].tolist(), dtype="Int64")
     write_geojson(out_dir / "road_cuts.geojson", cuts_gdf)
     (out_dir / "repair_priority.json").write_text(json.dumps(priority, indent=2, ensure_ascii=False, default=_clean))
 

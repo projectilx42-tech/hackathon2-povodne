@@ -768,6 +768,8 @@ Podklad: rešerše (Copernicus EMS / IWG-SEM 2018, UNOSAT, Kasmalkar 2020, Loret
 - **Pořadí naléhavosti** = stupeň, pak počet budov (populace z OSM, je-li). Hlavní tabulka sitrepu.
 - **Co opravit první:** každý přerušený úsek se zkusmo vrátí a spočítá se, kolik sídel/budov znovu připojí (princip „link importance“, Jenelius 2006;
   Gangwal 2023, Deltares RA2CE). Žebříček top 10 v `repair_priority.json`.
+  Upřesnění po testu: v horách bývá obec za několika přerušeními na jedné silnici za sebou, takže oprava jednoho úseku sama nikoho nepřipojí
+  (na testovací oblasti byl žebříček prázdný). Proto postupný plán, který zkouší i skupiny úseků na trase obce a srovnává budovy na jeden opravený úsek.
 
 ## D-M5-03 | 2026-10-12 | přijato (uživatel) — Důležitá místa
 Tabulka nemocnic, klinik, zdravotních středisek, škol (úkryty), policie, hasičů, elektráren, rozvoden, přehrad, heliportů, letišť: zasažené / odříznuté.
