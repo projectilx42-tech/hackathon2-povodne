@@ -22,6 +22,7 @@ SEVERITY = {
     # warnings
     "s1_partial_coverage": "warning",
     "s1_alt_missing": "warning",
+    "better_view_soon": "warning",
     "pre_may_be_flooded": "warning",
     "pre_window_after_rise": "warning",
     "pre_check_blind": "warning",

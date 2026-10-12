@@ -25,3 +25,5 @@ networkx>=3.2
 fpdf2>=2.7
 matplotlib>=3.8
 pillow>=10
+
+# M10 validation vs EMSR927 (offline tool in validation/, never used by the pipeline): comparison map PNG (matplotlib, listed above)
