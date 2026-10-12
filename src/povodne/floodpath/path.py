@@ -11,8 +11,12 @@ How it works
    (c) are within `max_lateral_m` of the path. (a) keeps the corridor on the valley floor of *this* river (the next
    valley over drains elsewhere) and excludes the basin upstream of the start; (b) is the usual HAND flood-prone
    rule; (c) stops the corridor from spreading over entire flat plains, where HAND alone is low everywhere.
-5. Settlements, bridges and facilities/POIs inside the corridor are listed in downstream order with the distance
-   along the path and (settlements) the height above the nearest path cell (raw DEM elevations).
+5. Settlements, bridges and facilities/POIs are listed when they drain into the path downstream of the start (same
+   D8 rule, 1-cell tolerance for approximate OSM points) and lie within `near_m` (1500 m) of the path -- regardless of
+   height, because in mountains villages sit on terraces 100-300 m above the river and debris floods can reach some
+   of them. Each gets `dist_along_km` (downstream distance of the nearest path cell), `dist_from_path_m`,
+   `height_above_path_m` (raw DEM at the feature minus raw DEM at the nearest path cell) and `in_corridor`
+   (height_above_path_m <= hand_max_m, i.e. in the low, water-flood-prone corridor). Sorted downstream.
 
 Limitations (say so in the UI/report): no hydraulics -- no water depth, no velocity, no arrival times, only order and
 distance along the path. The DEM is a surface model (forest canopy and buildings raise it, so HAND is overestimated
@@ -40,6 +44,7 @@ from .hydro import OFFSETS, condition, drainage_index, read_dem
 SNAP_M = 300.0
 SNAP_MIN_CELLS = 100           # a "river" cell drains at least this many cells (same as the HAND stream threshold)
 MAX_LATERAL_M = 3000.0
+NEAR_M = 1500.0                # list settlements/bridges/places up to this far from the path (any height)
 
 
 def _dem_path(run_dir: Path) -> Path:
@@ -126,7 +131,7 @@ def _clean(v):
 
 
 def trace(run_dir: Path, lon: float, lat: float, max_km: float = 50, hand_max_m: float = 20,
-          snap_m: float = SNAP_M, max_lateral_m: float = MAX_LATERAL_M) -> dict:
+          near_m: float = NEAR_M, snap_m: float = SNAP_M, max_lateral_m: float = MAX_LATERAL_M) -> dict:
     """Trace the flood path downstream from (lon, lat) and write `floodpath/` outputs. Returns a summary dict."""
     run_dir = Path(run_dir)
     dem, transform, crs = read_dem(_dem_path(run_dir))
@@ -168,19 +173,28 @@ def trace(run_dir: Path, lon: float, lat: float, max_km: float = 50, hand_max_m:
     path_line = LineString(list(zip(px, py))) if len(cells) > 1 else Point(px[0], py[0]).buffer(h.res / 2).exterior
 
     # --- Things along the path ---
+    # Listed = drains (D8) into the path downstream of the start AND within near_m of the path, regardless of height.
+    # in_corridor = also at most hand_max_m above the nearest path cell (inside the low corridor).
     tree = cKDTree(np.column_stack([px, py]))
-    corridor_hit = corridor_geom.buffer(h.res)  # OSM points are approximate: 1-cell tolerance
+    drains = ((pos >= 1) | path_mask.ravel()).reshape(dem.shape)
+    nrow, ncol = dem.shape
 
-    def along(pt) -> tuple[int, float]:
-        d, i = tree.query([pt.x, pt.y])
-        return int(i), float(dist[i] / 1000.0)
-
-    def dem_at(pt) -> float | None:
+    def locate(pt) -> dict | None:
         c, r = ~transform @ (pt.x, pt.y)
-        r, c = int(math.floor(r)), int(math.floor(c))
-        if 0 <= r < dem.shape[0] and 0 <= c < dem.shape[1] and np.isfinite(dem[r, c]):
-            return float(dem[r, c])
-        return None
+        r, c = math.floor(r), math.floor(c)
+        if not (0 <= r < nrow and 0 <= c < ncol):
+            return None
+        # OSM points are approximate: accept if the cell or one of its 8 neighbours drains into the path
+        if not drains[max(0, r - 1):r + 2, max(0, c - 1):c + 2].any():
+            return None
+        d_path = float(path_line.distance(pt))
+        if d_path > near_m:
+            return None
+        _, i = tree.query([pt.x, pt.y])
+        z = float(dem[r, c]) if np.isfinite(dem[r, c]) else None
+        hgt = None if z is None else round(z - float(dem[prow[i], pcol[i]]), 1)
+        return {"dist_along_km": round(float(dist[i] / 1000.0), 3), "dist_from_path_m": round(d_path, 1),
+                "height_above_path_m": hgt, "in_corridor": None if hgt is None else bool(hgt <= hand_max_m)}
 
     out_dir = run_dir / "floodpath"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -197,14 +211,13 @@ def trace(run_dir: Path, lon: float, lat: float, max_km: float = 50, hand_max_m:
     sg = _read_layer(run_dir / "osm" / "settlements.gpkg", crs)
     if sg is not None:
         sg = sg[sg.geometry.notna()]
-        sg = sg[sg.geometry.representative_point().within(corridor_hit)]
-        for _, s in sg.iterrows():
-            pt = s.geometry.representative_point()
-            i, dkm = along(pt)
-            z, zp = dem_at(pt), float(dem[prow[i], pcol[i]])
-            rec = {"osm_id": str(s.get("osm_id")), "name": _clean(s.get("name")), "place": _clean(s.get("place")),
-                   "dist_along_km": round(dkm, 3),
-                   "height_above_path_m": None if z is None else round(z - zp, 1), "geometry": pt}
+        for _, row_s in sg.iterrows():
+            pt = row_s.geometry.representative_point()
+            loc = locate(pt)
+            if loc is None:
+                continue
+            rec = {"osm_id": str(row_s.get("osm_id")), "name": _clean(row_s.get("name")),
+                   "place": _clean(row_s.get("place")), **loc, "geometry": pt}
             a = access.get(rec["osm_id"])
             if access:
                 for k in ("status", "impact_level", "priority_rank"):
@@ -216,17 +229,19 @@ def trace(run_dir: Path, lon: float, lat: float, max_km: float = 50, hand_max_m:
         g = _read_layer(run_dir / "osm" / f"{layer}.gpkg", crs)
         if g is None:
             return []
-        g = g[g.geometry.notna() & g.geometry.intersects(corridor_hit)]
+        g = g[g.geometry.notna()]
         rows = []
         for _, r in g.iterrows():
             geom = r.geometry
             # nearest point of the feature to the path (a bridge line crossing the river -> the crossing point)
             pt = geom if geom.geom_type == "Point" else nearest_points(geom, path_line)[0]
-            _, dkm = along(pt)
+            loc = locate(pt)
+            if loc is None:
+                continue
             kind = _clean(r.get(kind_col)) if kind_col and kind_col in g.columns else None
             ll = to_ll.transform(pt.x, pt.y)
             rows.append({"osm_id": str(r.get("osm_id")), "name": _clean(r.get("name")), "kind": kind or default_kind,
-                         "source": layer, "dist_along_km": round(dkm, 3), "lon": round(ll[0], 6), "lat": round(ll[1], 6)})
+                         "source": layer, **loc, "lon": round(ll[0], 6), "lat": round(ll[1], 6)})
         return sorted(rows, key=lambda d: (d["dist_along_km"], d["osm_id"]))
 
     to_ll = Transformer.from_crs(crs, "EPSG:4326", always_xy=True)
@@ -248,18 +263,20 @@ def trace(run_dir: Path, lon: float, lat: float, max_km: float = 50, hand_max_m:
         crs=crs).to_crs("EPSG:4326")
     _write_geojson(path_gdf, out_dir / "path.geojson")
 
-    cols = ["osm_id", "name", "place", "dist_along_km", "height_above_path_m"] + \
+    cols = ["osm_id", "name", "place", "dist_along_km", "dist_from_path_m", "height_above_path_m", "in_corridor"] + \
         (["status", "impact_level", "priority_rank"] if access else [])
     sett_gdf = gpd.GeoDataFrame(settl_rows, columns=cols + ["geometry"], geometry="geometry", crs=crs).to_crs("EPSG:4326")
     _write_geojson(sett_gdf, out_dir / "settlements_on_path.geojson")
 
     (out_dir / "along_path.json").write_text(json.dumps(
-        {"start_lon": lon, "start_lat": lat, "length_km": round(length_km, 3), "bridges": bridges, "places": places},
+        {"start_lon": lon, "start_lat": lat, "length_km": round(length_km, 3), "near_m": near_m,
+         "hand_max_m": hand_max_m, "bridges": bridges, "places": places},
         ensure_ascii=False, indent=2))
 
     summary = {"start_lon": lon, "start_lat": lat, "snapped_lon": round(float(start_ll[0]), 6),
                "snapped_lat": round(float(start_ll[1]), 6), "length_km": round(length_km, 3), "stop_reason": stop,
-               "max_km": max_km, "hand_max_m": hand_max_m, "n_settlements": len(settl_rows),
+               "max_km": max_km, "hand_max_m": hand_max_m, "near_m": near_m, "n_settlements": len(settl_rows),
+               "n_settlements_in_corridor": sum(1 for r in settl_rows if r["in_corridor"]),
                "n_bridges": len(bridges), "n_places": len(places), "updated_utc": datetime.now(timezone.utc).isoformat()}
     _update_run_json(run_dir, summary)
     return summary
