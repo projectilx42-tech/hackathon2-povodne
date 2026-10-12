@@ -896,6 +896,24 @@ ne obecný detektor vody; pipeline má vždy snímek „před“). Optický mode
   Párování budov/silnic/mostů vzdáleností (budova 10 m, silnice 20 m, most 50 m) — zvoleno předem, neladí se.
 - Porovnání finálního běhu **jednou**, čísla do reportu bez úprav; žádné ladění pipeline podle výsledku (D-006).
 
+## D-M11-01 | 2026-10-12 | přijato (úkol master session: rozbité optické snímky) — Sentinel-2: offset BOA se nesmí odečítat podruhé
+Příčina: earth-search L2A COGy mají v STAC `earthsearch:boa_offset_applied: true` (i baseline 05.00/05.12) = hodnoty DN jsou už harmonizované
+(DN = odrazivost × 10 000), ale `raster:bands` dál uvádí offset −0,1. Krok stahování ho zapsal do tagů GeoTIFF a předzpracování ho odečetlo
+podruhé → tmavé pixely (les, voda, DN < 1000) vyšly záporné a `clip(0, 1)` je změnil na přesně 0 (měřeno na živých datech Trishuli:
+surové DN B02 medián 307, NIR 3208 → NDVI lesa ≈ 0,8 bez offsetu; s offsetem nesmysl).
+Oprava: `acquire.sentinel2.download` zapíše offset 0, když všechny položky mají `boa_offset_applied`; `run.json.acquire.s2.pre|post.boa_offset_applied`.
+Formát raw/s2 se nemění (jen hodnota offset). Test `tests/test_s2_offset.py`. Starší stažené `raw/s2` mají špatný offset v tagu → znovu stáhnout.
+
+## D-M11-02 | 2026-10-12 | přijato (zadání master session) — Suť jen z optiky i mimo radarový stín
+Kontext: po opravě S2 (D-M11-01) je v datech vidět pokles NDVI i tam, kde radar změnu nenašel; pravidlo „jen optika“ v kroku suti platilo jen
+pro místa bez radaru (stín/layover v obou drahách).
+Rozhodnutí: pixel, který radar nezařadil (`typ == 0`), je suť, když je S2 před i po bez mraků, NDVI před ≥ 0,3, pokles NDVI ≥ 0,3
+(`dndvi_strong`, literatura o sesuvech/povodních) a po povodni holá půda (NDVI < 0,15, BSI > 0). Kde radar vidí, jen v říčním koridoru
+(HAND ≤ `corridor_hand_m`, 10 m) — sklizeň/orba na terasách a sesuvy na svazích by jinak dávaly plané poplachy. Jistota nejvýš střední
+(mimo koridor nízká), `evidence` = „optical-only…“. Prahy z literatury, neladěné podle EMS (D-006).
+Ochrana: kontrolní území (mimo zónu suti, sklon ≤ 25°) dostane stejné pravidlo; podíl označené plochy je `run.json.debris.optical_only.background_rate`
+(odhad podílu planých poplachů z jiných příčin) a `optical_only.px` (počet pixelů). Radarový placebo test tyto pixely nezahrnuje.
+
 ---
 
 # Otevřené otázky (k rozhodnutí)

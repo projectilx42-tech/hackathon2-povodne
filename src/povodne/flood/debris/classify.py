@@ -261,15 +261,25 @@ def detect(inp: Inputs, p: Params, tracks: list[Track] | None = None, use_optica
         ]
     typ = np.select([c for c, _ in rules], [v for _, v in rules], 0).astype(np.uint8)
 
-    # Optical-only evidence where the radar cannot see (layover/shadow in both tracks): strong vegetation loss to bare
-    # ground on the valley floor. Single sensor -> at most medium confidence.
+    # Optical-only evidence: strong vegetation loss to bare ground on the valley floor, seen only by Sentinel-2.
+    # (a) where the radar cannot see (layover/shadow in both tracks): whole debris zone;
+    # (b) where the radar sees but finds no change (D-M11-02): river corridor only (HAND <= corridor_hand_m), because
+    #     ploughing/harvest on terraces and slides on slopes also bare the ground. Single sensor -> at most medium
+    #     confidence (low outside the corridor). `optical_only_background` = the same rule on the control area
+    #     (outside the debris zone, where no flood debris is expected) = share of land flagged by non-flood causes.
+    opt_only = np.zeros(shape, bool)
+    opt_bg = None
     if use_optical:
         with np.errstate(invalid="ignore"):
-            opt_only = (inp.aoi & ~inp.perm_water & ~ai_water & ~snow & debris_zone & (n_valid == 0) & opt
-                        & (ndvi_pre >= 0.3) & (dndvi <= -p.dndvi_strong) & bare_post)
-        typ = np.where(opt_only & (typ == 0), DEBRIS, typ).astype(np.uint8)
-    else:
-        opt_only = np.zeros(shape, bool)
+            rule = (inp.aoi & ~inp.perm_water & ~ai_water & ~snow & opt
+                    & (ndvi_pre >= 0.3) & (dndvi <= -p.dndvi_strong) & bare_post)
+            opt_only = rule & debris_zone & ((n_valid == 0) | corridor)
+            ctrl = rule & ~debris_zone & (slope <= p.debris_slope_deg)
+            ctrl_area = inp.aoi & ~debris_zone & (slope <= p.debris_slope_deg) & opt
+        opt_only &= typ == 0  # only what radar did not already classify
+        typ = np.where(opt_only, DEBRIS, typ).astype(np.uint8)
+        if ctrl_area.any():
+            opt_bg = round(float(ctrl[ctrl_area].mean()), 5)
 
     typ = np.where(drop_small(typ > 0, p.mmu_px), typ, 0).astype(np.uint8)
 
@@ -297,4 +307,6 @@ def detect(inp: Inputs, p: Params, tracks: list[Track] | None = None, use_optica
 
     return Result(typ, conf, candidate | opt_only, obs, dvv.astype(np.float32), dvh.astype(np.float32), score,
                   n_agree, n_valid, opt, {"background_change": bg_rates,
-                                          "weather": {"rain_like": weather[1], "snow_or_frost_like": weather[-1]}})
+                                          "weather": {"rain_like": weather[1], "snow_or_frost_like": weather[-1]},
+                                          "optical_only": {"background_rate": opt_bg,
+                                                           "px": int((opt_only & (typ == DEBRIS)).sum())}})
