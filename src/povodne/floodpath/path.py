@@ -50,16 +50,23 @@ def _dem_path(run_dir: Path) -> Path:
 
 
 def _snap(h, row: int, col: int, snap_m: float) -> tuple[int, int]:
-    """Move the start to the highest-accumulation cell within snap_m (only if it is a real stream)."""
+    """Move the start into the main river near the click.
+
+    River = the largest stream within snap_m (max flow accumulation, only if >= SNAP_MIN_CELLS). We take the cell of
+    that river *closest to the click* (any cell with at least a quarter of the max accumulation counts as the same river; side gullies have orders of magnitude less),
+    so the start does not slide downstream just because accumulation grows downstream.
+    """
     r = int(math.ceil(snap_m / h.res))
     r0, r1, c0, c1 = max(0, row - r), min(h.acc.shape[0], row + r + 1), max(0, col - r), min(h.acc.shape[1], col + r + 1)
     win = h.acc[r0:r1, c0:c1].copy()
     rr, cc = np.mgrid[r0:r1, c0:c1]
-    win[np.hypot(rr - row, cc - col) * h.res > snap_m] = -1
-    win[~np.isfinite(h.dem[r0:r1, c0:c1])] = -1
-    i = np.unravel_index(int(np.argmax(win)), win.shape)
-    if win[i] < SNAP_MIN_CELLS or win[i] <= h.acc[row, col]:
+    dist = np.hypot(rr - row, cc - col)
+    win[(dist * h.res > snap_m) | ~np.isfinite(h.dem[r0:r1, c0:c1])] = -1
+    top = float(win.max())
+    if top < SNAP_MIN_CELLS or top <= h.acc[row, col]:
         return row, col
+    dist[win < 0.25 * top] = np.inf
+    i = np.unravel_index(int(np.argmin(dist)), dist.shape)
     return r0 + int(i[0]), c0 + int(i[1])
 
 
@@ -70,7 +77,8 @@ def _follow(h, row: int, col: int, max_km: float) -> tuple[list[tuple[int, int]]
     while True:
         code = int(h.fdir[row, col]) if np.isfinite(h.fdir[row, col]) else 0
         if code not in OFFSETS:
-            return cells, dist, "sink"
+            on_edge = row in (0, nrow - 1) or col in (0, ncol - 1)
+            return cells, dist, "dem_edge" if on_edge else "sink"
         dr, dc = OFFSETS[code]
         nr, nc = row + dr, col + dc
         if not (0 <= nr < nrow and 0 <= nc < ncol):
@@ -126,7 +134,7 @@ def trace(run_dir: Path, lon: float, lat: float, max_km: float = 50, hand_max_m:
         raise ValueError("Flood path needs a DEM in a projected (metric, UTM) CRS")
     to_dem = Transformer.from_crs("EPSG:4326", crs, always_xy=True)
     x, y = to_dem.transform(lon, lat)
-    col_f, row_f = ~transform * (x, y)
+    col_f, row_f = ~transform @ (x, y)
     row, col = int(math.floor(row_f)), int(math.floor(col_f))
     if not (0 <= row < dem.shape[0] and 0 <= col < dem.shape[1]) or not np.isfinite(dem[row, col]):
         inv = Transformer.from_crs(crs, "EPSG:4326", always_xy=True)
@@ -168,7 +176,7 @@ def trace(run_dir: Path, lon: float, lat: float, max_km: float = 50, hand_max_m:
         return int(i), float(dist[i] / 1000.0)
 
     def dem_at(pt) -> float | None:
-        c, r = ~transform * (pt.x, pt.y)
+        c, r = ~transform @ (pt.x, pt.y)
         r, c = int(math.floor(r)), int(math.floor(c))
         if 0 <= r < dem.shape[0] and 0 <= c < dem.shape[1] and np.isfinite(dem[r, c]):
             return float(dem[r, c])
