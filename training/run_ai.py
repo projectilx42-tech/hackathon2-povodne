@@ -176,6 +176,15 @@ def drop_small_patches_by_terrain(mask: np.ndarray, min_px) -> np.ndarray:
     return keep[lab]
 
 
+def sensitive_threshold(model_path: Path, cfg: dict) -> float:
+    """Repo file training/thresholds.json (keyed by the model folder name) wins over the downloaded model card (D-M10-07)."""
+    try:
+        t = json.loads((Path(__file__).resolve().parent / "thresholds.json").read_text())
+        return float(t[Path(model_path).resolve().parent.name]["sensitive"])
+    except (OSError, KeyError, ValueError, TypeError):
+        return cfg.get("flood_thresholds", {}).get("sensitive", SENSITIVE_DEFAULT)
+
+
 def load_anomaly(run: Path, profile: dict):
     """(z_comb on the run grid, placebo threshold) from flood/s1_anomaly.tif and run.json.s1anomaly; (None, None) if absent."""
     path = run / "flood" / "s1_anomaly.tif"
@@ -281,7 +290,7 @@ def main() -> None:
     threshold = None
     cls = probs.argmax(0)  # 0 no water, 1 permanent, 2 flood (model classes)
     if sensitivity == "sensitive":
-        threshold = cfg.get("flood_thresholds", {}).get("sensitive", SENSITIVE_DEFAULT)
+        threshold = sensitive_threshold(args.model, cfg)
         # two-stage threshold: likely flood (P >= threshold) counts only where it is connected to confident flood
         # (most likely class); on Kuro Siwo val better than a plain threshold in F1 and precision (D-M9-11)
         likely = grow_from_seeds((probs[2] >= threshold) & radar_valid, (cls == 2) & radar_valid)
