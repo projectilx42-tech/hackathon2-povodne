@@ -252,6 +252,28 @@ def _load_s2(run_dir: Path, inp: Inputs) -> None:
         inp.sources[f"s2_{when}"] = [f.name for f in files] if len(files) > 1 else files[0].name
 
 
+def pre_split_composites(run_dir: Path):
+    """Two composites of alternate earlier Sentinel-2 dates (needs >= 4 clear dates) for the false-alarm self-test of the
+    fusion: nothing happened between them, so every change they show is a false alarm. None if too few dates."""
+    s2 = run_dir / "raw" / "s2"
+    files = sorted(s2.glob("pre_*.tif")) + sorted(s2.glob("prex_*.tif"))
+    files = sorted(files, key=lambda f: f.stem.split("_")[-1])
+    if len(files) < 4:
+        return None
+    groups = (files[0::2], files[1::2])
+    out = []
+    for g in groups:
+        with ThreadPoolExecutor(max_workers=min(4, len(g))) as pool:
+            read = list(pool.map(_read_s2, g))
+        stack = [np.where(c[None], r, np.nan).astype(np.float32) for r, c, _ in read]
+        clear = np.zeros(stack[0].shape[1:], bool)
+        for _, c, _ in read:
+            clear |= c
+        refl = np.stack([_nanmedian0(np.stack([x[b] for x in stack])) for b in range(6)])
+        out.append((refl, clear, [f.stem.split("_")[-1] for f in g]))
+    return out
+
+
 def _load_osm(run_dir: Path, inp: Inputs) -> None:
     path = run_dir / "osm" / "buildings.gpkg"
     if path.exists():
