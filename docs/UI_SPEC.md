@@ -83,7 +83,7 @@ What was damaged / Who is cut off). Ikony jsou inline SVG sprite v `index.html`,
 - **Zrušený běh**: „Run cancelled“, nic nevzniklo.
 
 ## Ukázkový (mock) režim
-Dokud pipeline neexistuje, UI běží nad ukázkovým run adresářem podle kontraktu (`dashboard/sample_run/`, < 5 MB, v gitu), `run.json.mock = true`.
+Ukázkový run adresář podle kontraktu (bez klíčů a pro rychlou ukázku) (`dashboard/sample_run/`, < 5 MB, v gitu), `run.json.mock = true`.
 V UI je vždy viditelný štítek **SAMPLE DATA**. Kontrakt se kvůli mocku nemění — UI čte stejné soubory jako u reálného běhu.
 
 ## Patička a modály
@@ -92,12 +92,9 @@ V UI je vždy viditelný štítek **SAMPLE DATA**. Kontrakt se kvůli mocku nem�
 - **Methods & Limitations:** stručný popis metody a omezení (zdroje čísel, revisit S1/S2, layover/shadow, debris vs. voda, nejistota modelu);
   podklad pro sekci limitací v reportu. Text vzniká průběžně z `DECISIONS.md`.
 
-## Co je funkční hned a co čeká na backend
-| Funkční hned (nezávisí na pipeline) | Čeká na pipeline / moduly |
-|---|---|
-| kreslení AOI, datum, advanced okna, presety, hledání, podklady, panel vrstev + průhlednost, měřítko, souřadnice, měření, historie běhů, úvodní tip, modály, patička | vrstva suti (M3d), flood path (M7), nepálský sitrep, reálná čísla a vrstvy (M1–M6), export a sitrep ke stažení (M6) |
-
-Do přítomnosti pipeline vše z pravého sloupce ukazuje ukázkový run nebo je zašedlé s popiskem „not available yet“.
+## Napojení na pipeline
+UI spouští skutečnou pipeline (`python -m povodne run`) a zobrazuje její výstupy (vrstvy, upozornění z `run.json.notices`, podtypy suti, škody,
+odříznutá sídla, trasa povodně). Co chybí (např. nepálský sitrep), je zašedlé s popiskem „not available yet“.
 
 ## Mimo rozsah
 Sdílený odkaz (URL s AOI/datem/během) — zamítnuto uživatelem. Porovnání s EMSR927 v UI — zakázáno D-006. Nové nápady nepřidávat bez pokynu.

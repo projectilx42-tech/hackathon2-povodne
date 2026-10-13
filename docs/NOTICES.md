@@ -3,8 +3,7 @@
 Seznam všech upozornění, která program vydává, s pevným kódem. Je určený hlavně pro **UI session**: ta podle něj
 implementuje zobrazení. Kód upozornění vzniká v `src/povodne/acquire/notices.py` (`SEVERITY` = seznam kódů).
 Test `tests/test_acquire_notices.py` hlídá, že tabulka níže obsahuje přesně všechny kódy z kódu. Rozhodnutí: D-M1-05.
-Zatím jsou tu jen upozornění kroku stahování dat (`step = "acquire"`). Další moduly (AI model, suť, škody, sitrep) můžou
-přidat vlastní kódy se svým `step` a doplnit je sem.
+Hlavní tabulka = krok stahování (`step = "acquire"`); kódy dalších kroků jsou v sekci *Kódy dalších kroků* (každý krok přidává své se svým `step`).
 
 ## Kde to je a v jakém tvaru
 `run.json.notices` je seznam. Každá položka vypadá takto:
@@ -18,7 +17,7 @@ přidat vlastní kódy se svým `step` a doplnit je sem.
 - Pořadí je pořadí vzniku během běhu. Každý text je v seznamu nejvýš jednou.
 - Při novém spuštění kroku se jeho položky nahradí; položky jiných kroků zůstanou.
 - **Zpětná kompatibilita:** chyby a varování (ne `info`) jsou dál i jako prostý text v `run.json.warnings`
-  (UI je dnes zobrazuje v `results.js`). Až UI přejde na `notices`, ať `warnings` nezobrazuje dvakrát.
+  UI zobrazuje `notices`; `warnings` nesmí ukazovat podruhé.
 
 ## Závažnost a doporučené zobrazení
 | `severity` | význam | doporučení pro UI |

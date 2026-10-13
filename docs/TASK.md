@@ -152,4 +152,4 @@ in demos or reports. Systems built here are educational prototypes, not operatio
 5. **Když povodeň není nalezena**, systém to jasně řekne („no significant flooding detected“) — ale vždy s kontextem:
    jaká data byla k dispozici, jaké pokrytí (např. % plochy v radarovém stínu, oblačnost S2), aby „nic“ neznamenalo „nemáme data“.
    Pokud chybí scény (např. žádný S1 pár ze stejného tracku), musí to říct taky — ne tiše vrátit prázdnou mapu.
-6. Porota zkouší **live** na vlastní oblasti a datu → aplikace musí běžet někde dostupně (hosting řešit, viz O-006) a doběhnout v rozumném čase.
+6. Porota zkouší **live** na vlastní oblasti a datu → aplikace musí doběhnout v rozumném čase. Běží lokálně u poroty (D-016); porota nemá účty → video + návod v README, živě smíme s naším účtem (`docs/QUESTIONS.md`).

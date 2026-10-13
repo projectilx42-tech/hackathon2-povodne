@@ -10,11 +10,9 @@ if git rev-parse -q --verify origin/main >/dev/null; then
   behind=$(git rev-list --count HEAD..origin/main 2>/dev/null || echo 0)
   if [ "${behind:-0}" -gt 0 ]; then
     changed=$(git diff --name-only HEAD...origin/main -- docs CLAUDE.md README.md 2>/dev/null | tr '\n' ' ')
-    echo "COORDINATION: branch '$branch' is $behind commit(s) behind origin/main."
-    [ -n "$changed" ] && echo "Shared docs changed on main: $changed"
-    echo "Before any work run: git fetch origin main && git merge origin/main — then read the 'Oznámení pro všechny sessions' section at the top of docs/PROGRESS.md."
+    echo "COORDINATION: '$branch' is $behind commit(s) behind origin/main${changed:+ (docs changed: $changed)}. Run: git fetch origin main && git merge origin/main"
   else
-    echo "COORDINATION: branch '$branch' is up to date with origin/main."
+    echo "COORDINATION: '$branch' is up to date with origin/main."
   fi
 fi
 
@@ -22,9 +20,10 @@ if command -v python3 >/dev/null && [ -f tools/check_docs.py ]; then
   python3 tools/check_docs.py
 fi
 
-# Print the top of the announcements section (newest first) so sessions need not read the 56 kB PROGRESS.md (token saving).
+# Print the newest announcements, one short line each (token saving; full text: Read docs/PROGRESS.md).
 if [ -f docs/PROGRESS.md ]; then
-  echo "--- docs/PROGRESS.md: newest announcements (first lines; read more with Read offset/limit if relevant) ---"
-  awk '/^## 📢/{f=1;next} f&&/^## /{exit} f' docs/PROGRESS.md | grep -v '^\*(' | grep -v '^$' | head -14 | cut -c1-260
+  echo "📢 docs/PROGRESS.md announcements (shortened):"
+  awk '/^## 📢/{f=1;next} f&&/^## /{exit} f' docs/PROGRESS.md | grep '^- ' | head -8 |
+    python3 -c 'import sys; [print(l.rstrip()[:180] + ("…" if len(l.rstrip()) > 180 else "")) for l in sys.stdin]'
 fi
 exit 0

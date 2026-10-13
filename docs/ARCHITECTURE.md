@@ -33,6 +33,7 @@ CRS, tříd nebo schématu = **zápis do `docs/DECISIONS.md` + úprava tohoto so
  [M9 AI training]  — offline, mimo pipeline: data/training → models/<name>/ (váhy + model_card.json)
  [M10 validation]  — offline, mimo pipeline: run adresář + EMSR927 → validation/results/ (metriky, mapy)
 ```
+Zjednodušeno; přesné pořadí kroků (vč. `s1anomaly`, `envelope`, `combine`) je v sekci *Orchestrátor*.
 
 ## Souřadnicové systémy a mřížka
 - **Vstup AOI:** EPSG:4326 (lon/lat), GeoJSON Polygon/MultiPolygon nebo bbox `[minlon, minlat, maxlon, maxlat]`.
@@ -192,7 +193,7 @@ Zdroj: **ohsome API v2** `extraction/features.parquet` s `time=<osm_snapshot_dat
 - `bridges.gpkg`: `osm_id`, `highway`, `name`, `geometry` — silnice s `bridge=yes` (+ `man_made=bridge` polygony).
 - `settlements.gpkg`: `osm_id`, `name`, `place` (city/town/village/hamlet/locality), `population` (může chybět), `geometry` (Point).
 - `facilities.gpkg`: `osm_id`, `name`, `kind` (`hospital`/`clinic`/`health_post`/`town`), `geometry` (Point; polygony → centroid).
-- `pois.gpkg` (D-M5-03, volitelná, dodá M1 podle `docs/REQUEST_M1_POIS.md`; oblast + 15 km): `osm_id`, `kind` ∈ {hospital, clinic, health_post,
+- `pois.gpkg` (D-M5-03, D-M1-08; oblast + 15 km): `osm_id`, `kind` ∈ {hospital, clinic, health_post,
   school, police, fire_station, shelter, power_plant, substation, dam, helipad, airfield}, `name`, `subtype` (nepovinné), `geometry` (původní tvar:
   Point / LineString / Polygon). `facilities.gpkg` navíc obsahuje `amenity=health_post` jako `kind = health_post`.
 - `landuse.gpkg` (D-M3d-02, D-M1-07): `osm_id`, `kind` ∈ {forest, wood, farmland, orchard, grass, meadow, scrub, wetland, vineyard, residential, industrial, commercial, retail} (`landuse=*`, jinak `natural=*`), `geometry` (Polygon); jen v oblasti.
@@ -371,7 +372,7 @@ Pipeline spouští jako podproces `python -m povodne run ...`; průběh čte z `
   | `acquire` | `povodne.acquire` | ano | další kroky `skipped`, report proběhne |
   | `preprocess` | `povodne.preprocess` | ano | dtto |
   | `s1anomaly` | `povodne.flood.s1anomaly` | ne | bez `flood/s1_anomaly.tif` (D-M10-05); běh pokračuje; běží před `flood_ai`, který anomálii používá (D-M10-07) |
-  | `flood_ai` | `povodne.flood.ai` | ano | dtto |
+  | `flood_ai` | `povodne.flood.ai` (zatím neexistuje → `training/run_ai.py`, `config.FALLBACK_SCRIPTS`) | ano | dtto |
   | `debris` | `povodne.flood.debris` | ne | combine jen s vodou |
   | `envelope` | `povodne.flood.envelope` | ne, **ve výchozím stavu vypnutý** (`POVODNE_ENVELOPE=1` / `povodne run --envelope`, D-M13-11) | bez `flood/envelope_mask.tif`; combine nic nepřidá (D-M13-01) |
   | `combine` | `povodne.flood.combine` | ano | další kroky `skipped`, report proběhne |
@@ -384,33 +385,33 @@ Pipeline spouští jako podproces `python -m povodne run ...`; průběh čte z `
 - `python -m povodne serve [--port 8000]` = `dashboard.server.main`.
 
 ## Moduly — vlastnictví souborů (kvůli paralelním session)
-| # | Modul | Kód | Větev (návrh) | Čte | Píše |
-|---|---|---|---|---|---|
-| 0 | Skeleton, CLI, orchestrátor `povodne run`, `povodne serve`, config, run.json helpery + **složení finální masky** (D-X-06) | `src/povodne/{__init__,__main__,cli,config,io,grid}.py`, `src/povodne/flood/combine.py`, `pyproject.toml` | session spojení | `flood/ai_*`, `flood/debris_*` | run.json, `flood/flood_*` |
-| M1 | Acquire (S1, S2, DEM, OSM) | `src/povodne/acquire/` | `feat/acquire` | AOI, datum | `raw/` |
-| M2 | Preprocess / coregistrace | `src/povodne/preprocess/` | `feat/preprocess` | `raw/` | `aligned/`, `masks/` |
-| M3 | AI inference (voda) | `src/povodne/flood/ai.py` (+ obal `training/run_ai.py`) | session AI modelu | `aligned/`, `masks/`, `models/` | `flood/ai_*` |
-| M3d | Algoritmus suť/bahno + změny povrchu | `src/povodne/flood/debris/` | `feat/debris` | `raw/s1*/` (vč. `hist_*`), `raw/s2/`, `raw/dem/`, `masks/`, `osm/buildings.gpkg`, `osm/landuse.gpkg`, `flood/ai_mask.tif` | `flood/debris_*` (D-M3d-02) |
-| M9 | AI trénink | `training/` | `feat/ai-model` | Kuro Siwo, Sen1Floods11 | `models/<name>/` |
-| M4 | Damage overlay + území sídel | `src/povodne/damage/` | `feat/damage` | `flood/`, `osm/` (vč. `pois.gpkg`) | `damage/` |
-| M5 | Road network / cut-off, zasažení sídel, pořadí, plochy pro vrtulník | `src/povodne/network/` | `feat/network` | `osm/`, `damage/`, `flood/flood_mask.tif`, `raw/dem/` | `network/` |
-| M6 | Stats + sitrep + PNG překryvy | `src/povodne/report/` | session hlášení | vše | `stats.json`, `report/`, `overlays/` (D-X-06) |
-| M7 | Flood path (bonus) | `src/povodne/floodpath/` | `feat/floodpath` | `raw/dem/dem.tif` (nebo `aligned/dem.tif`), `osm/`, `network/` | `floodpath/` |
-| M8 | Dashboard (backend FastAPI + frontend) | `dashboard/` | `feat/dashboard` | run adresář | spouští pipeline (a trasu povodně na vyžádání) |
-| M10 | Validace vs EMSR927 | `validation/` | `feat/validation` | run adresář + EMS | `validation/results/` |
-| — | Report (6 stran), video | `deliverables/` | `docs/report` | — | — |
+| # | Modul | Kód | Čte | Píše |
+|---|---|---|---|---|
+| 0 | Skeleton, CLI, orchestrátor `povodne run`, `povodne serve`, config, run.json helpery + **složení finální masky** (D-X-06) | `src/povodne/{__init__,__main__,cli,config,io}.py`, `src/povodne/flood/combine.py`, `pyproject.toml` | `flood/ai_*`, `flood/debris_*` | run.json, `flood/flood_*` |
+| M1 | Acquire (S1, S2, DEM, OSM) | `src/povodne/acquire/` | AOI, datum | `raw/` |
+| M2 | Preprocess / coregistrace | `src/povodne/preprocess/` | `raw/` | `aligned/`, `masks/` |
+| M3 | AI inference (voda) | `training/run_ai.py` (přesun do `src/povodne/flood/ai.py` zatím neproveden) | `aligned/`, `masks/`, `models/` | `flood/ai_*` |
+| M3d | Algoritmus suť/bahno + změny povrchu | `src/povodne/flood/debris/` | `raw/s1*/` (vč. `hist_*`), `raw/s2/`, `raw/dem/`, `masks/`, `osm/buildings.gpkg`, `osm/landuse.gpkg`, `flood/ai_mask.tif` | `flood/debris_*` (D-M3d-02) |
+| M9 | AI trénink | `training/` | Kuro Siwo, Sen1Floods11 | `models/<name>/` |
+| M4 | Damage overlay + území sídel | `src/povodne/damage/` | `flood/`, `osm/` (vč. `pois.gpkg`) | `damage/` |
+| M5 | Road network / cut-off, zasažení sídel, pořadí, plochy pro vrtulník | `src/povodne/network/` | `osm/`, `damage/`, `flood/flood_mask.tif`, `raw/dem/` | `network/` |
+| M6 | Stats + sitrep + PNG překryvy | `src/povodne/report/` | vše | `stats.json`, `report/`, `overlays/` (D-X-06) |
+| M7 | Flood path (bonus) | `src/povodne/floodpath/` | `raw/dem/dem.tif` (nebo `aligned/dem.tif`), `osm/`, `network/` | `floodpath/` |
+| M8 | Dashboard (backend FastAPI + frontend) | `dashboard/` | run adresář | spouští pipeline (a trasu povodně na vyžádání) |
+| M10 | Validace vs EMSR927 | `validation/` | run adresář + EMS | `validation/results/` |
+| — | Report (6 stran), video | `deliverables/` | — | — |
 
 Pravidla:
-- `src/povodne/osm` extrakce patří do M1 (acquire), čištění vrstev do `osm/*.gpkg` taky M1.
-- Sdílené utility (`io.py`, `grid.py`, `config.py`) mění jen skeleton; ostatní moduly v nich jen přidávají funkce, nemění signatury.
-- Každý modul má vstupní bod `run(run_dir: Path, cfg: Config) -> None` a CLI subpříkaz `python -m povodne <modul> <run_dir>`;
+- Extrakce OSM (`src/povodne/acquire/osm.py`) patří do M1 (acquire), čištění vrstev do `osm/*.gpkg` taky M1.
+- Sdílené utility (`io.py`, `config.py`) mění jen skeleton; ostatní moduly v nich jen přidávají funkce, nemění signatury.
+- Každý modul má vstupní bod `run(run_dir, …)` (volitelná vlastní konfigurace) a CLI `python -m povodne.<modul> <run_dir>`;
   `python -m povodne run --aoi <geojson|bbox> --event-date YYYY-MM-DD [--out runs/<id>]` spustí vše — pořadí, selhání a průběh viz *Orchestrátor*.
-- Moduly musí jít testovat izolovaně na malém ukázkovém run adresáři (`tests/fixtures/`, malé AOI).
+- Moduly musí jít testovat izolovaně na malém syntetickém run adresáři (`tests/`).
 - `validation/` **nikdy** neimportuje pipeline a pipeline **nikdy** neimportuje `validation/`.
 
 ## AI model (M9 → M3) kontrakt
 (D-020, D-021) Kód: `training/floodseg/` — `features.py` (jediná definice vstupů), `infer.py` (načtení modelu, dlaždicová
-inference), `model.py`. M3 tento kód **používá, nereimplementuje** (po vzniku skeletonu se přesune/importuje do `src/povodne/flood/`).
+inference), `model.py`. M3 (`training/run_ai.py`) tento kód **používá, nereimplementuje**.
 - `models/<name>/model.pt` (`{"state_dict", "config"}`, PyTorch) + `models/<name>/model_card.json`:
   `{"arch": "Unet", "encoder": "resnet34", "in_channels": 7, "inputs": ["pre_vv","pre_vh","post_vv","post_vh","diff_vv","diff_vh","slope"],
     "input_units": "dB of S1 GRD sigma0, Lee Sigma 3x3", "normalization": {"pre_vv": [mean, std], ...}, "db_clip": [-35, 5],
@@ -430,7 +431,7 @@ inference), `model.py`. M3 tento kód **používá, nereimplementuje** (po vznik
 - **Terénní pravidla a spojení dvou tracků v M3 (D-034):** model se pustí zvlášť na hlavní a na `alt` track (každý pre/post ze
   stejného tracku); pixel platí v tracku, kde není layover/shadow; kde platí oba, `ai_prob` = průměr, kde jeden, ten jeden.
   Voda (2, 4) se potlačí na 1, kde `slope` > `max_water_slope_deg` (default 15) nebo `hand` > `max_water_hand_m` (default 30).
-  Pixel bez platného tracku → 0 (nodata).
+  Pixel bez platného tracku → 0 (nodata). **Výchozí je od D-M10-07 měkká kombinace** (spojitý terénní prior místo pevných prahů; `run_ai.py --hard-rules` = pevná pravidla výše).
 - **Stín z obou směrů, optika a minimální plocha v M3 (D-M9-11):** kde existují oba tracky, pixel s pre VV < −15 dB v jednom a > −10 dB
   ve druhém je stín v tom tmavém (pravidlo Copernicus GFM) → tam se ten track nepoužije. **Optický model** (`models/floodseg_s2_*`,
   vstupy `training/floodseg/s2.py`) čte `aligned/s2_post.tif` + `masks/s2_post_valid.tif` (a `s2_pre*`, pokud jsou): kde je po události
@@ -441,5 +442,4 @@ inference), `model.py`. M3 tento kód **používá, nereimplementuje** (po vznik
   `pre_clear_pct`, `optical_flood_km2`, `optical_water_unknown_before_km2`).
   `ai_prob` = P(flood).
 - Inference běží na CPU (pipeline musí jít spustit bez GPU), dlaždice 512 px s překryvem 64 px a váženým prolnutím.
-- Váhy nejsou v gitu → stahují se z release/HF (rozhodnout, D-0xx) nebo z cesty v configu. Zatím leží jako výstupy Kaggle
-  kernelů a v Kaggle datasetu `krataihalfmaster/floodseg-model` (`python training/fetch_model.py` → `models/floodseg_v0.4/`, model v0.4, D-M9-14), viz PROGRESS.
+- Váhy nejsou v gitu; finální hosting pro porotu otevřený (O-011). Zatím v Kaggle datasetu `krataihalfmaster/floodseg-model` (`python training/fetch_model.py` → `models/floodseg_v0.4/`, model v0.4, D-M9-14).

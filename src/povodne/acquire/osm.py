@@ -38,7 +38,7 @@ FILTERS = {
 # Land use for the surface-change step (D-M3d-02): tells forest / fields / built-up apart where the optical image is cloudy.
 LANDUSE_KINDS = ("forest", "farmland", "orchard", "grass", "meadow", "vineyard", "residential", "industrial", "commercial", "retail")
 NATURAL_KINDS = ("wood", "scrub", "wetland")
-# Important places for the damage / cut-off tables and helicopter landing candidates (D-M5-03, docs/REQUEST_M1_POIS.md).
+# Important places for the damage / cut-off tables and helicopter landing candidates (D-M5-03, docs/archive/REQUEST_M1_POIS.md).
 FILTERS["pois"] = ("amenity in (hospital, clinic, doctors, health_post, school, college, university, kindergarten, police, "
                    "fire_station, shelter) or healthcare in (hospital, clinic, centre, doctor) or emergency=assembly_point or "
                    "power in (plant, substation) or man_made=dam or waterway in (dam, weir) or aeroway in (helipad, heliport, aerodrome)")

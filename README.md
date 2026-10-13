@@ -104,8 +104,9 @@ python -m povodne run --aoi 85.15,27.95,85.23,28.03 --event-date 2026-08-26 --ou
   (`flood/`, `damage/`, `network/`) and GeoTIFF rasters. A finished CLI run also appears in the web app's *History*.
 
 Single steps can be re-run on an existing run folder, e.g. `python -m povodne.damage runs/<id>`
-(steps: `povodne.acquire`, `povodne.preprocess`, `povodne.flood.ai`, `povodne.flood.debris`, `povodne.flood.combine`,
-`povodne.damage`, `povodne.network`, `povodne.report`).
+(steps in order: `povodne.acquire`, `povodne.preprocess`, `povodne.flood.s1anomaly`, the flood model
+`python training/run_ai.py runs/<id>`, `povodne.flood.debris`, optional `povodne.flood.envelope` (off by default, `--envelope`),
+`povodne.flood.combine`, `povodne.damage`, `povodne.network`, `povodne.report`).
 Flood path from a point: `python -m povodne.floodpath runs/<id> --lon 85.33 --lat 28.10`.
 Preview which satellite passes would be used, without downloading anything and without an account:
 `python -m povodne.acquire.catalog --bbox 85.15 27.95 85.40 28.30 --event-date 2026-08-26`.
@@ -116,7 +117,7 @@ Preview which satellite passes would be used, without downloading anything and w
 |---|---|---|
 | Run time on a laptop CPU (estimate) | ~5 min | ~15 min |
 | Copernicus processing units (free: 10,000 / month) | ~80 | ~650 (≈ 15 runs / month) |
-| ohsome requests (free: 250 / day) | 7 | 7 |
+| ohsome requests (free: 250 / day) | 8 | 8 |
 
 A repeated run on the same area and date reuses downloaded images and costs almost nothing.
 
@@ -163,6 +164,12 @@ design decisions with their reasons are in `docs/DECISIONS.md` (internal notes, 
 - OpenStreetMap is incomplete in remote areas; footpaths and footbridges are not part of the road network; no population estimates.
 - Helicopter landing-zone candidates come from the elevation model only and are **not verified** (trees, wires, obstacles).
 Full list: report, section *Limitations*.
+
+## For developers
+- Tests: `python -m pytest -q tests training/tests` (synthetic data, no keys needed).
+- Model training and evaluation: [`training/README.md`](training/README.md). Run folder contract: `docs/ARCHITECTURE.md` (internal docs are in Czech).
+- Independent check on 10 floods + one no-flood control (no EMS data): [`validation/results/multievent/README.md`](validation/results/multievent/README.md);
+  comparison with EMSR927 (check only): [`validation/README.md`](validation/README.md).
 
 ## AI assistance
 This project was developed with the help of **Claude Code** (Anthropic), used as a coding assistant for project scaffolding,

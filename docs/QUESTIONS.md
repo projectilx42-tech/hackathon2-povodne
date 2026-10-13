@@ -4,17 +4,9 @@ Jediné místo pro otázky na organizátory (Discord: https://discord.gg/UD8EVcd
 jen **navrhují** (v chatu), zapisují až po souhlasu. Po odpovědi: zapsat odpověď sem, přesunout do „Zodpovězeno“
 a podle ní upravit `docs/DECISIONS.md`.
 
-## 📢 Odpovědi přišly 2026-10-09 — týká se všech sessions
-Odpověď na Discordu 2026-10-09 8:46 od uživatele **Deadlyharbor** (odpověď na zprávu uživatele; role odpovídajícího ze screenshotu
-nejde ověřit, organizátor/mentor podle kontextu). Doslovné znění a dopady jsou níže v sekci **Zodpovězeno**.
-Stručně:
-1. ImageNet váhy **smí**, ale **ukázat výsledky i na dalších uvedených datasetech** (Kuro Siwo + Sen1Floods11).
-2. **Vlastní zpracování dat je potřeba** — „smyslem je zpracovat surový tok dat ze satelitů“. Hotově zpracovaný radar ze Sentinel Hubu
-   tedy možná nestačí. **Uživatel 2026-10-11: Sentinel Hub nechat** (vlastní pipeline = výběr snímků, masky, model atd.).
-3. Porota účet ani klíč nemá → **video + pořádný návod v README (jak si založit účet)**; při živém hodnocení smíme pipeline ukázat **s naším účtem**.
-4. JRC (globální mapa vody) **smí**, ale **porovnat obě varianty a zdůvodnit** zvolený přístup. **Uživatel 2026-10-11: teď ne, možná do budoucna (D-X-03).**
-5. Unstop **není potřeba**.
-Co z odpovědí plyne, rozhodl uživatel 2026-10-11: D-X-02 (Bolívie), Sentinel Hub nechat, D-X-03 (JRC teď ne). Další změny jen po rozhodnutí uživatele / master session.
+## Stav
+Všech 5 otázek zodpovězeno 2026-10-09 (Discord, Deadlyharbor; role odpovídajícího nejde ověřit). Doslovné znění a dopady: **Zodpovězeno** níže.
+Rozhodnutí uživatele 2026-10-11: Bolívie mimo trénink (D-X-02), Sentinel Hub nechat, JRC teď ne (D-X-03); porota bez účtu → video + návod v README.
 
 ## Neptáme se (rozhodnutí uživatele 2026-10-08)
 - **Vlastní popisky vody ze S2 pro himálajskou evaluaci** — neptat se, postupuje se podle O-005.
