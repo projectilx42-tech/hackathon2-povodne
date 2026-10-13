@@ -17,6 +17,7 @@ from scipy import ndimage
 MAX_HAND_M = float(os.environ.get("POVODNE_STFUSE_HAND", "10"))
 MAX_SLOPE_DEG = 10.0
 CORE_P = float(os.environ.get("POVODNE_STFUSE_CORE_P", "0.8"))
+MIN_ST_P = float(os.environ.get("POVODNE_STFUSE_MIN_P", "0"))  # optional extra cut on flood/selftrain_prob.tif
 
 
 def enabled() -> bool:
@@ -42,6 +43,9 @@ def run(run_dir: Path, ai_mask: np.ndarray, ai_prob: np.ndarray, excluded: np.nd
     slope = _read(run_dir / "masks" / "slope.tif", shape)
     if st is None or hand is None or slope is None:
         return off, {"used": False, "reason": "needs flood/selftrain_mask.tif, HAND and slope"}
+    stp = _read(run_dir / "flood" / "selftrain_prob.tif", shape) if MIN_ST_P > 0 else None
+    if stp is not None:
+        st = np.where(np.nan_to_num(stp) >= MIN_ST_P, st, 0)
     cand = (st == 1) & (np.nan_to_num(hand, nan=1e9) <= MAX_HAND_M) & (np.nan_to_num(slope, nan=90) <= MAX_SLOPE_DEG) & ~excluded
     core = (ai_mask == 2) & (np.nan_to_num(ai_prob) >= CORE_P)
     lab, _ = ndimage.label(cand | core, structure=np.ones((3, 3)))

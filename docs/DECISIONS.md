@@ -1397,9 +1397,13 @@ Optický model už běží na všech jasných pixelech (D-M9-11); navíc pravidl
 přehlédnutá jasná voda (2,3 km²) byla vodou i na snímku „před“ (pozdní pre ve vlhké sezóně) → trvalá, ne povodeň; Honduras a Malawi mají snímek „po“
 8 dní po povodni (voda opadla). Kontrola bez povodně +0,06 km² falešné plochy → pravidlo sloučení neprošlo.
 
-## D-M14-03 | 2026-10-13 | rozpracováno (opt-in `POVODNE_SELFTRAIN_FUSE=1`) — Samoučení s pojistkou
-`flood/stfuse.py`: pixely samoučení (`flood/selftrain_mask.tif`) se přidají jen při HAND ≤ 10 m, sklonu ≤ 10° a napojení na jisté jádro (AI voda s P ≥ 0,8).
-Výsledek doplním.
+## D-M14-03 | 2026-10-13 | zamítnuto (opt-in `POVODNE_SELFTRAIN_FUSE=1`) — Samoučení s pojistkou
+`flood/stfuse.py`: pixely samoučení (`flood/selftrain_mask.tif`) se přidají jen při HAND ≤ 10 m (`POVODNE_STFUSE_HAND`), sklonu ≤ 10° a napojení na jisté jádro
+(AI voda s P ≥ 0,8, `POVODNE_STFUSE_CORE_P`), volitelně jen s P samoučení ≥ `POVODNE_STFUSE_MIN_P`. Samoučení samo označí velkou část území (Bihár 66 km² z ~70,
+Čad 15,6 km² při popisku 9,4 km²); trvá ~25 s na událost (paralelní běhy se přetíží — LightGBM bere všechna jádra).
+Sada 11 událostí, průměr 9: `st10` F1 0,850 → 0,842 (R 0,842 → 0,853, P 0,870 → 0,844), `st3` (HAND ≤ 3 m) 0,845, `st_strict` (HAND ≤ 3, jádro P ≥ 0,95, P samoučení ≥ 0,9)
+0,848 (Čad R 0,67 → 0,69 / P 0,78 → 0,74, Bihár −0,007, Evros −0,009) → nesloučeno. **Chyba:** `selftrain` padá na událostech s jednou dráhou (`KeyError 'r_z_alt_vv'`:
+Austrálie, Malawi, Missouri) — tam se nic nepřidalo; opravit, pokud se krok někdy zapne.
 
 ## D-M14-04 | 2026-10-13 | rozpracováno (opt-in `POVODNE_AI_ENSEMBLE`) — Kombinace více radarových modelů
 `run_ai.py`: průměr kalibrovaných pravděpodobností hlavního modelu a modelů z `POVODNE_AI_ENSEMBLE` (čárkami oddělené cesty). Výsledek doplním.
