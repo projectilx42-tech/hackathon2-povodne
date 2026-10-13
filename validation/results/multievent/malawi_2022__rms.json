@@ -14,66 +14,66 @@
  "label_valid_pct": 96.6,
  "scores": {
   "a_seeds_own_region": {
-   "recall": 0.9144,
+   "recall": 0.9078,
    "precision": 0.9495,
-   "f1": 0.9316,
-   "truth_km2": 13.1564,
+   "f1": 0.9282,
+   "truth_km2": 13.2526,
    "pred_km2": 12.6713,
    "tp_km2": 12.0308,
    "fp_km2": 0.6405,
-   "region_km2": 65.172
+   "region_km2": 65.775
   },
   "a_seeds_common_region": {
-   "recall": 0.8875,
+   "recall": 0.9078,
    "precision": 0.9495,
-   "f1": 0.9174,
-   "truth_km2": 13.5556,
+   "f1": 0.9282,
+   "truth_km2": 13.2526,
    "pred_km2": 12.6713,
    "tp_km2": 12.0308,
    "fp_km2": 0.6405,
-   "region_km2": 66.088
+   "region_km2": 65.775
   },
   "b_envelope": {
-   "recall": 0.9194,
-   "precision": 0.915,
-   "f1": 0.9172,
-   "truth_km2": 13.5556,
-   "pred_km2": 13.6212,
-   "tp_km2": 12.4635,
-   "fp_km2": 1.1577,
-   "region_km2": 66.088
+   "recall": 0.9078,
+   "precision": 0.9495,
+   "f1": 0.9282,
+   "truth_km2": 13.2526,
+   "pred_km2": 12.6713,
+   "tp_km2": 12.0308,
+   "fp_km2": 0.6405,
+   "region_km2": 65.775
   },
   "b_envelope_visible_label": {
-   "recall": 0.8824,
-   "precision": 0.915,
-   "f1": 0.8984,
+   "recall": 0.8518,
+   "precision": 0.9495,
+   "f1": 0.898,
    "truth_km2": 14.1241,
-   "pred_km2": 13.6212,
-   "tp_km2": 12.4635,
-   "fp_km2": 1.1577,
+   "pred_km2": 12.6713,
+   "tp_km2": 12.0308,
+   "fp_km2": 0.6405,
    "region_km2": 70.444
   }
  },
  "scores_water_total": {
   "seeds": {
-   "recall": 0.9086,
+   "recall": 0.928,
    "precision": 0.9563,
-   "f1": 0.9318,
-   "truth_km2": 15.5965,
+   "f1": 0.9419,
+   "truth_km2": 15.2708,
    "pred_km2": 14.8191,
    "tp_km2": 14.1709,
    "fp_km2": 0.6482,
-   "region_km2": 68.129
+   "region_km2": 67.793
   },
   "envelope": {
-   "recall": 0.9357,
-   "precision": 0.926,
-   "f1": 0.9308,
-   "truth_km2": 15.5965,
-   "pred_km2": 15.7583,
-   "tp_km2": 14.5929,
-   "fp_km2": 1.1654,
-   "region_km2": 68.129
+   "recall": 0.928,
+   "precision": 0.9563,
+   "f1": 0.9419,
+   "truth_km2": 15.2708,
+   "pred_km2": 14.8191,
+   "tp_km2": 14.1709,
+   "fp_km2": 0.6482,
+   "region_km2": 67.793
   }
  },
  "components": {
@@ -101,41 +101,11 @@
    "km2": 1.9915,
    "km2_in_label_region": 1.8871,
    "share_on_truth": 0.073
-  },
-  "env_stage1_envelope:water": {
-   "km2": 0.4197,
-   "km2_in_label_region": 0.4077,
-   "share_on_truth": 0.157
-  },
-  "env_stage1_envelope:debris": {
-   "km2": 0.1216,
-   "km2_in_label_region": 0.1214,
-   "share_on_truth": 0.0
-  },
-  "env_stage2_growth:water": {
-   "km2": 0.4168,
-   "km2_in_label_region": 0.4042,
-   "share_on_truth": 0.828
-  },
-  "env_stage2_growth:debris": {
-   "km2": 0.0059,
-   "km2_in_label_region": 0.0059,
-   "share_on_truth": 0.051
-  },
-  "env_stage3_permanent_water:water": {
-   "km2": 0.2402,
-   "km2_in_label_region": 0.2299,
-   "share_on_truth": 0.144
-  },
-  "env_stage3_permanent_water:debris": {
-   "km2": 0.0027,
-   "km2_in_label_region": 0.0011,
-   "share_on_truth": 0.455
   }
  },
  "pred_total_km2": {
   "seeds": 13.471,
-  "envelope": 14.678
+  "envelope": 13.471
  },
  "run": {
   "timings_s": {
@@ -163,6 +133,19 @@
    "final_est_precision": null,
    "final_placebo_false_km2": null,
    "added_km2": null,
+   "added_by_stage_km2": null,
+   "optics": {
+    "used": true,
+    "placebo": {
+     "pre": "pre_20211129.tif",
+     "second_pre": "prex_20220103.tif",
+     "gap_days": 35,
+     "event_gap_days": 65,
+     "clear_pct": 54.0
+    },
+    "event_flagged_km2": 5.2438,
+    "placebo_flagged_km2": 18.5123
+   },
    "post_passes": 2,
    "optical_used": true
   },

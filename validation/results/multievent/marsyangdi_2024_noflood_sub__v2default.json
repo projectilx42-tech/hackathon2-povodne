@@ -199,6 +199,25 @@
     "debris": 0.0741,
     "total": 0.0796
    },
+   "added_by_stage_km2": {
+    "envelope": 0.0222,
+    "growth": 0.0077,
+    "permanent_water": 0.0097,
+    "edges": 0.04
+   },
+   "optics": {
+    "used": true,
+    "placebo": {
+     "pre": "pre_20231116.tif",
+     "second_pre": "prex_20240110.tif",
+     "gap_days": 55,
+     "event_gap_days": 65,
+     "clear_pct": 91.0
+    },
+    "event_flagged_km2": 0.3484,
+    "placebo_flagged_km2": 0.1738,
+    "added_overlapping_optical_km2": 0.0001
+   },
    "post_passes": 4,
    "optical_used": true
   },

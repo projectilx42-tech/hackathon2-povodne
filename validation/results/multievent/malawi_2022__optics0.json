@@ -167,6 +167,17 @@
     "debris": 0.1302,
     "total": 1.2069
    },
+   "added_by_stage_km2": {
+    "envelope": 0.5413,
+    "growth": 0.4227,
+    "permanent_water": 0.2429,
+    "edges": 0.0
+   },
+   "optics": {
+    "used": false,
+    "reason": "switched off (POVODNE_ENVELOPE_OPTICS=0)",
+    "added_overlapping_optical_km2": 0.0
+   },
    "post_passes": 2,
    "optical_used": false
   },
