@@ -9,6 +9,7 @@ STEPS: list[tuple[str, str]] = [
     ("acquire", "povodne.acquire"),
     ("preprocess", "povodne.preprocess"),
     ("flood_ai", "povodne.flood.ai"),
+    ("s1anomaly", "povodne.flood.s1anomaly"),  # optional: radar departure from the year-long normal (D-M10-05)
     ("debris", "povodne.flood.debris"),
     ("combine", "povodne.flood.combine"),
     ("damage", "povodne.damage"),
