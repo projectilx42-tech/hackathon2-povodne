@@ -183,6 +183,31 @@ def cmd_score(a) -> None:
             out["scores"][f"b_envelope_{nm}"] = prf(np.isin(final, cls), truth, reg)
         dry = reg & (label == 0)
         out["false_alarm_dry_label"] = {k: round(float((np.isin(v, (2, 3)) & dry).sum() / max(int(dry.sum()), 1)), 5) for k, v in sets.items()}
+    # composition of the affected pixels: where do they come from (AI water, debris step by subtype, other class 3, envelope stage)?
+    ai = rd(run / "flood" / "ai_mask.tif")
+    dm_p, dt_p = run / "flood" / "debris_mask.tif", run / "flood" / "debris_type.tif"
+    dmask = rd(dm_p) if dm_p.exists() else np.zeros_like(final)
+    dtype = rd(dt_p) if dt_p.exists() else np.zeros_like(final)
+    t_for = truth if kuro else (label == 1)
+    reg0 = valid & (final != 0)
+    sub = {1: "debris", 2: "mud", 3: "erosion", 4: "flooded_vegetation", 5: "flooded_builtup", 6: "damaged_builtup", 7: "landslide", 9: "unknown"}
+    comp: dict[str, np.ndarray] = {"seeds_ai_water(2)": (seeds == 2) & (ai == 2), "seeds_water_not_from_ai(2)": (seeds == 2) & (ai != 2)}
+    deb_seed = (seeds == 3) & (dmask == 1)
+    for code, nm in sub.items():
+        comp[f"seeds_debris_step:{nm}"] = deb_seed & (dtype == code)
+    comp["seeds_class3_not_debris_step(vhagree etc.)"] = (seeds == 3) & (dmask != 1)
+    comp["seeds_permanent(4)"] = seeds == 4
+    for st_, nm in ((1, "envelope"), (2, "growth"), (3, "permanent_water"), (4, "edges")):
+        comp[f"env_stage{st_}_{nm}:water"] = added & (stage == st_) & (env == 2)
+        comp[f"env_stage{st_}_{nm}:debris"] = added & (stage == st_) & (env == 3)
+    out["components"] = {}
+    for nm, m in comp.items():
+        mv = m & reg0
+        n = int(mv.sum())
+        if int(m.sum()) == 0:
+            continue
+        out["components"][nm] = {"km2": round(int(m.sum()) * 1e-4, 4), "km2_in_label_region": round(n * 1e-4, 4),
+                                 "share_on_truth": None if n == 0 else round(int((mv & t_for).sum()) / n, 3)}
     out["pred_total_km2"] = {k: round(float(np.isin(v, (2, 3)).sum()) * 1e-4, 3) for k, v in sets.items()}
     env_sec = rj.get("envelope", {})
     st = {}

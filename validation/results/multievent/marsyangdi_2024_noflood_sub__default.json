@@ -78,6 +78,88 @@
   "seeds": 0.00862,
   "envelope": 0.0252
  },
+ "components": {
+  "seeds_ai_water(2)": {
+   "km2": 0.1339,
+   "km2_in_label_region": 0.13,
+   "share_on_truth": 0.277
+  },
+  "seeds_debris_step:debris": {
+   "km2": 0.1128,
+   "km2_in_label_region": 0.0956,
+   "share_on_truth": 0.0
+  },
+  "seeds_debris_step:mud": {
+   "km2": 0.004,
+   "km2_in_label_region": 0.0036,
+   "share_on_truth": 0.0
+  },
+  "seeds_debris_step:erosion": {
+   "km2": 0.007,
+   "km2_in_label_region": 0.0062,
+   "share_on_truth": 0.0
+  },
+  "seeds_debris_step:damaged_builtup": {
+   "km2": 0.0004,
+   "km2_in_label_region": 0.0004,
+   "share_on_truth": 0.0
+  },
+  "seeds_debris_step:landslide": {
+   "km2": 1.8472,
+   "km2_in_label_region": 0.5218,
+   "share_on_truth": 0.0
+  },
+  "seeds_debris_step:unknown": {
+   "km2": 0.0038,
+   "km2_in_label_region": 0.0038,
+   "share_on_truth": 0.0
+  },
+  "seeds_class3_not_debris_step(vhagree etc.)": {
+   "km2": 0.0024,
+   "km2_in_label_region": 0.0016,
+   "share_on_truth": 0.0
+  },
+  "seeds_permanent(4)": {
+   "km2": 0.2032,
+   "km2_in_label_region": 0.1987,
+   "share_on_truth": 0.662
+  },
+  "env_stage1_envelope:water": {
+   "km2": 0.4138,
+   "km2_in_label_region": 0.3966,
+   "share_on_truth": 0.006
+  },
+  "env_stage1_envelope:debris": {
+   "km2": 1.3193,
+   "km2_in_label_region": 0.9729,
+   "share_on_truth": 0.004
+  },
+  "env_stage2_growth:debris": {
+   "km2": 0.0001,
+   "km2_in_label_region": 0.0001,
+   "share_on_truth": 0.0
+  },
+  "env_stage3_permanent_water:water": {
+   "km2": 0.0038,
+   "km2_in_label_region": 0.0038,
+   "share_on_truth": 0.789
+  },
+  "env_stage3_permanent_water:debris": {
+   "km2": 0.007,
+   "km2_in_label_region": 0.007,
+   "share_on_truth": 0.286
+  },
+  "env_stage4_edges:water": {
+   "km2": 0.0019,
+   "km2_in_label_region": 0.0019,
+   "share_on_truth": 0.0
+  },
+  "env_stage4_edges:debris": {
+   "km2": 0.0273,
+   "km2_in_label_region": 0.0264,
+   "share_on_truth": 0.011
+  }
+ },
  "pred_total_km2": {
   "seeds": 2.111,
   "envelope": 3.885

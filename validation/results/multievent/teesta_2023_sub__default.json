@@ -78,6 +78,98 @@
   "seeds": 0.00433,
   "envelope": 0.00994
  },
+ "components": {
+  "seeds_ai_water(2)": {
+   "km2": 0.229,
+   "km2_in_label_region": 0.1911,
+   "share_on_truth": 0.901
+  },
+  "seeds_debris_step:debris": {
+   "km2": 0.0473,
+   "km2_in_label_region": 0.0464,
+   "share_on_truth": 0.026
+  },
+  "seeds_debris_step:mud": {
+   "km2": 0.1198,
+   "km2_in_label_region": 0.1,
+   "share_on_truth": 0.363
+  },
+  "seeds_debris_step:erosion": {
+   "km2": 0.015,
+   "km2_in_label_region": 0.0148,
+   "share_on_truth": 0.115
+  },
+  "seeds_debris_step:flooded_builtup": {
+   "km2": 0.001,
+   "km2_in_label_region": 0.001,
+   "share_on_truth": 0.0
+  },
+  "seeds_debris_step:damaged_builtup": {
+   "km2": 0.0017,
+   "km2_in_label_region": 0.0016,
+   "share_on_truth": 0.062
+  },
+  "seeds_debris_step:landslide": {
+   "km2": 0.2872,
+   "km2_in_label_region": 0.236,
+   "share_on_truth": 0.006
+  },
+  "seeds_debris_step:unknown": {
+   "km2": 0.0061,
+   "km2_in_label_region": 0.0057,
+   "share_on_truth": 0.053
+  },
+  "seeds_class3_not_debris_step(vhagree etc.)": {
+   "km2": 0.0016,
+   "km2_in_label_region": 0.0015,
+   "share_on_truth": 0.133
+  },
+  "seeds_permanent(4)": {
+   "km2": 0.6239,
+   "km2_in_label_region": 0.6158,
+   "share_on_truth": 0.894
+  },
+  "env_stage1_envelope:water": {
+   "km2": 0.4491,
+   "km2_in_label_region": 0.3554,
+   "share_on_truth": 0.497
+  },
+  "env_stage1_envelope:debris": {
+   "km2": 0.4142,
+   "km2_in_label_region": 0.396,
+   "share_on_truth": 0.345
+  },
+  "env_stage2_growth:water": {
+   "km2": 0.0009,
+   "km2_in_label_region": 0.0008,
+   "share_on_truth": 0.375
+  },
+  "env_stage2_growth:debris": {
+   "km2": 0.0021,
+   "km2_in_label_region": 0.0019,
+   "share_on_truth": 0.789
+  },
+  "env_stage3_permanent_water:water": {
+   "km2": 0.0222,
+   "km2_in_label_region": 0.0198,
+   "share_on_truth": 0.803
+  },
+  "env_stage3_permanent_water:debris": {
+   "km2": 0.3532,
+   "km2_in_label_region": 0.3532,
+   "share_on_truth": 0.857
+  },
+  "env_stage4_edges:water": {
+   "km2": 0.0105,
+   "km2_in_label_region": 0.0085,
+   "share_on_truth": 0.624
+  },
+  "env_stage4_edges:debris": {
+   "km2": 0.0146,
+   "km2_in_label_region": 0.0145,
+   "share_on_truth": 0.8
+  }
+ },
  "pred_total_km2": {
   "seeds": 0.709,
   "envelope": 1.976
