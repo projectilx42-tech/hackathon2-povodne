@@ -204,7 +204,8 @@ class Orchestrator:
                 continue
             if name != "report":
                 if blocked_by:
-                    set_step(self.run_dir, name, "skipped", f"skipped because step '{blocked_by}' failed")
+                    why = "not enough satellite data" if blocked_by not in failed else f"step '{blocked_by}' failed"
+                    set_step(self.run_dir, name, "skipped", f"skipped because {why}")
                     continue
                 if name == "network" and "damage" in failed:
                     set_step(self.run_dir, name, "skipped", "skipped because step 'damage' failed")
@@ -221,6 +222,11 @@ class Orchestrator:
             if ok:
                 if state in (None, "pending", "running"):
                     set_step(self.run_dir, name, "done")
+                step_msg = get_step(load_run(self.run_dir), name).get("message") or ""
+                if name == "acquire" and step_msg.startswith("insufficient data"):
+                    # no usable Sentinel-1 pair: say so instead of letting the next step fail with a technical error (D-M14-13)
+                    blocked_by = "acquire"
+                    first_error = f"Not enough satellite data for this area and date ({step_msg[len('insufficient data: '):]}); see the data notices."
             else:
                 failed.add(name)
                 set_step(self.run_dir, name, "failed", "cancelled by the user" if self.cancelled else msg)

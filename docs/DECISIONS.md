@@ -1475,3 +1475,9 @@ Kontrola bez povodně (Marsyangdi, leden): krok změn povrchu hlásí 1,85 km² 
 z ≥ 2 v radaru i optice. Sada 11 událostí (tag `slideboth` proti `s2fix`): F1 9 povodní beze změny (popisky jsou jen voda, sesuvy v nich nejsou);
 kontrola: suť/sesuv celkem 1,98 → 0,29 km² (sesuvy 1,85 → 0,16); ale i skutečné horské události ztratí plochu: Chamoli sesuvy 1,83 → 0,28 km²,
 Teesta 0,29 → 0,08 km² (zda šlo o skutečné sesuvy, vodní popisky neřeknou). Formálně pravidlo neprošlo (průměrné F1 nestouplo) → zůstává opt-in.
+
+## D-M14-13 | 2026-10-13 | přijato (oprava chyby) — Nedostatek dat zastaví běh čistě
+Zkouška „živé poroty“ (Rio Grande do Sul, 3. 5. 2024): v katalogu není žádný starší průlet žádné dráhy → krok stahování správně hlásí „insufficient data“
+a verdikt je `insufficient_data` s důvodem, ale běh dál spustil přípravu dat, která spadla na technické chybě („no reference grid“), a ta se ukázala
+jako chyba běhu. Teď orchestrátor (`cli.py`) po stahování s „insufficient data“ přeskočí další kroky se zprávou „not enough satellite data“
+a `progress.error` je srozumitelná věta; sitrep a verdikt beze změny. Test `tests/test_orchestrator.py::test_insufficient_data_stops_cleanly`.
