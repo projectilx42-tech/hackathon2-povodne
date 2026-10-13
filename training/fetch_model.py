@@ -1,9 +1,10 @@
 """Download the current flood segmentation model into models/<name>/.
 
-  python training/fetch_model.py                 # -> models/floodseg_v0.4/ (radar) and models/floodseg_s2_v0.1/ (optical)
+  python training/fetch_model.py                 # -> models/floodseg_v0.5/ (radar) and models/floodseg_s2_v0.1/ (optical)
 
 The weights are not in git (too large). Until the final hosting is decided (docs/DECISIONS.md, O-011) they live in the
-private Kaggle datasets `krataihalfmaster/floodseg-model` (Sentinel-1 radar model) and `krataihalfmaster/floodseg-model-s2`
+private Kaggle datasets `krataihalfmaster/floodseg-model-v05` (Sentinel-1 radar model v0.5, D-M15-01; v0.4 stays in
+`krataihalfmaster/floodseg-model`: `--dataset krataihalfmaster/floodseg-model --out models/floodseg_v0.4`) and `krataihalfmaster/floodseg-model-s2`
 (Sentinel-2 optical water model, D-M9-11); downloading needs the Kaggle API token in the environment
 (`KAGGLE_API_TOKEN`, set in the cloud environment settings, never in the repo).
 """
@@ -37,8 +38,8 @@ def download(dataset: str, out: Path) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--dataset", default="krataihalfmaster/floodseg-model")
-    ap.add_argument("--out", type=Path, default=ROOT / "models" / "floodseg_v0.4")
+    ap.add_argument("--dataset", default="krataihalfmaster/floodseg-model-v05")
+    ap.add_argument("--out", type=Path, default=ROOT / "models" / "floodseg_v0.5")
     ap.add_argument("--s2-dataset", default="krataihalfmaster/floodseg-model-s2")
     ap.add_argument("--s2-out", type=Path, default=ROOT / "models" / "floodseg_s2_v0.1")
     ap.add_argument("--no-s2", action="store_true", help="radar model only")

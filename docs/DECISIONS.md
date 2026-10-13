@@ -1454,3 +1454,21 @@ Rozbor chyb: okraje jsou největší zbytek (přehlédnuté +0,034, falešné +0
 jehož VV po povodni ≤ mu_in + frac·(mu_out − mu_in) (místní průměry povodně a okolí v okně 15 px, obdoba místního Otsu). Kalibrace jen na validačních
 událostech Kuro Siwo (`training/eval_edge_radar.py`, k ∈ {1,2,3}, frac ∈ {0,3; 0,5; 0,7}); pravidlo výběru dané předem: max F1 při poklesu přesnosti ≤ 0,01.
 Výsledek doplním.
+
+## D-M15-01 | 2026-10-13 | přijato (úkol uživatele: model v0.5) — Radarový model v0.5: doladění v0.4 s důrazem na těžké případy
+- **Cíl:** mělká voda v suchu (Čad, Austrálie), zaplavená vegetace/města (radar zesvětlí), mokřady; nezaměňovat mokrou půdu s vodou.
+- **Postup:** doladění v0.4 (`train.py --init`, normalizace v0.4 beze změny), 5 epoch, lr 3e-4, stejná data jako v0.4 (Kuro Siwo train + Sen1Floods11 bez
+  Srí Lanky a Bolívie; žádné testovací události, žádné himálajské ověřovací scény). Nové: **častější „těžké“ výřezy** (`--hard-boost`,
+  `data.hard_tile_scores`, jen z popisku a radaru výřezu): povodeň se světlým/zesvětleným VV, povodeň na už tmavé zemi (pre VV < −15 dB),
+  suchá země tmavá nebo ztmavlá (mokrá půda). Váha výřezu 1 + 5·Σ min(podíl/0,05, 1), **rovnoměrně po událostech** (`--event-balance 1`).
+  HAND jako vstup ne: výřezy 224 px (Web Mercator) na výpočet HAND nestačí.
+- **Varianty (`training/results/round12_summary.json`):** 8 doladění (síla vážení 0/2/3/5/8, lr 1e-4/3e-4/1e-3, 2–8 epoch). Na Kuro Siwo val
+  žádná nepřekonala v0.4 (nejlepší vždy 1. epocha); Kuro Siwo test F1 povodně 0,780–0,793 (v0.4 0,780).
+- **Sada 11 událostí** (stejný kód i data, jen jiný model; `validation/model_compare.sh`): jen **`r12_ft_hard5_eb1`** splnila pravidlo sloučení:
+  průměr 9 povodní F1 0,864 → 0,871 (R 0,859 → 0,873, P 0,884 → 0,881), nejhorší událost −0,004, kontrola bez povodně 0,177 → 0,176 km²;
+  Austrálie +0,04, Čad +0,01, Teesta +0,015. Kuro Siwo test F1 0,792 (P 0,865, R 0,731), Bolívie (bez snímku „před“) F1 0,195.
+  Průměr vah v0.4+v0.5 (0,868–0,869) a TTA s otočením (+0,001 při 4× delším běhu) se nevyplatily.
+- **Pozor (do reportu):** vítěz vybrán z 8 variant na téže sadě 11 událostí → část zlepšení může být náhoda výběru; na Kuro Siwo test je ale
+  nejlepší i nezávisle.
+- **Prahy (Kuro Siwo val, stejně jako v0.4):** okrajový krok k=1, t=0,12 při citlivém prahu 0,20 (`training/results/edge_val_v0.5.json`).
+- Váhy: Kaggle dataset `krataihalfmaster/floodseg-model-v05`; `fetch_model.py` → `models/floodseg_v0.5/`, `run_ai.py` výchozí v0.5.

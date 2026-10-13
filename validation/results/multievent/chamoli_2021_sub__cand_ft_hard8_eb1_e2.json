@@ -1,0 +1,170 @@
+{
+ "event": "chamoli_2021_sub",
+ "tag": "cand_ft_hard8_eb1_e2",
+ "dataset": "himalaya_s2",
+ "continent": "Asia (Himalaya)",
+ "kind": "flood",
+ "event_date": "2021-02-07",
+ "aoi_bbox": [
+  79.63,
+  30.45,
+  79.735,
+  30.54
+ ],
+ "label_valid_pct": 32.0,
+ "scores": {
+  "a_seeds_water_2_4": {
+   "recall": 0.0,
+   "precision": null,
+   "f1": 0.0,
+   "truth_km2": 0.0396,
+   "pred_km2": 0.0,
+   "tp_km2": 0.0,
+   "fp_km2": 0.0,
+   "region_km2": 23.491
+  },
+  "a_seeds_common_water_2_4": {
+   "recall": 0.0,
+   "precision": null,
+   "f1": 0.0,
+   "truth_km2": 0.0396,
+   "pred_km2": 0.0,
+   "tp_km2": 0.0,
+   "fp_km2": 0.0,
+   "region_km2": 23.491
+  },
+  "b_envelope_water_2_4": {
+   "recall": 0.0,
+   "precision": null,
+   "f1": 0.0,
+   "truth_km2": 0.0396,
+   "pred_km2": 0.0,
+   "tp_km2": 0.0,
+   "fp_km2": 0.0,
+   "region_km2": 23.491
+  },
+  "a_seeds_all_2_3_4": {
+   "recall": 0.0758,
+   "precision": 0.0078,
+   "f1": 0.0141,
+   "truth_km2": 0.0396,
+   "pred_km2": 0.386,
+   "tp_km2": 0.003,
+   "fp_km2": 0.383,
+   "region_km2": 23.491
+  },
+  "a_seeds_common_all_2_3_4": {
+   "recall": 0.0758,
+   "precision": 0.0078,
+   "f1": 0.0141,
+   "truth_km2": 0.0396,
+   "pred_km2": 0.386,
+   "tp_km2": 0.003,
+   "fp_km2": 0.383,
+   "region_km2": 23.491
+  },
+  "b_envelope_all_2_3_4": {
+   "recall": 0.0758,
+   "precision": 0.0078,
+   "f1": 0.0141,
+   "truth_km2": 0.0396,
+   "pred_km2": 0.386,
+   "tp_km2": 0.003,
+   "fp_km2": 0.383,
+   "region_km2": 23.491
+  }
+ },
+ "false_alarm_dry_label": {
+  "seeds": 0.01633,
+  "envelope": 0.01633
+ },
+ "seed_transitions_km2": {
+  "debris": {
+   "debris": 0.386
+  }
+ },
+ "components": {
+  "seeds_debris_step:debris": {
+   "km2": 0.1131,
+   "km2_in_label_region": 0.0818,
+   "share_on_truth": 0.012
+  },
+  "seeds_debris_step:mud": {
+   "km2": 0.0843,
+   "km2_in_label_region": 0.0284,
+   "share_on_truth": 0.046
+  },
+  "seeds_debris_step:erosion": {
+   "km2": 0.048,
+   "km2_in_label_region": 0.0169,
+   "share_on_truth": 0.018
+  },
+  "seeds_debris_step:flooded_vegetation": {
+   "km2": 0.0063,
+   "km2_in_label_region": 0.0033,
+   "share_on_truth": 0.121
+  },
+  "seeds_debris_step:landslide": {
+   "km2": 0.4199,
+   "km2_in_label_region": 0.2526,
+   "share_on_truth": 0.0
+  },
+  "seeds_debris_step:unknown": {
+   "km2": 0.0046,
+   "km2_in_label_region": 0.0019,
+   "share_on_truth": 0.0
+  },
+  "seeds_class3_not_debris_step(vhagree etc.)": {
+   "km2": 0.0059,
+   "km2_in_label_region": 0.0011,
+   "share_on_truth": 0.0
+  }
+ },
+ "pred_total_km2": {
+  "seeds": 0.682,
+  "envelope": 0.682
+ },
+ "run": {
+  "timings_s": {
+   "acquire": 140.3,
+   "preprocess": 3.4,
+   "s1anomaly": 1.4,
+   "flood_ai": 24.8,
+   "debris": 16.9,
+   "envelope": 0.6,
+   "combine": 1.5,
+   "damage": 1.5,
+   "network": 1.9,
+   "report": 6.0
+  },
+  "pu_spent": 113.4,
+  "pu_estimate": 127,
+  "envelope": {
+   "used": false,
+   "reason": "Water-level envelope is off (opt-in: set POVODNE_ENVELOPE=1 or pass --envelope); the flood map is unchanged.",
+   "placebo_groups": null,
+   "placebo_split": null,
+   "stat": null,
+   "persistence": null,
+   "reach_q": null,
+   "final_est_precision": null,
+   "final_placebo_false_km2": null,
+   "added_km2": null,
+   "added_by_stage_km2": null,
+   "optics": null,
+   "post_passes": null,
+   "optical_used": null
+  },
+  "main_track": {
+   "relative_orbit": 63,
+   "orbit_direction": "DESCENDING"
+  },
+  "alt_track": true,
+  "s2": {
+   "pre": 59.2,
+   "post": 56.1,
+   "extra": null
+  },
+  "warnings": []
+ }
+}

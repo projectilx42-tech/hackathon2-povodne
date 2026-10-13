@@ -1,6 +1,6 @@
 """AI water segmentation step of the pipeline (M3, interim location until src/povodne/ exists).
 
-  python training/run_ai.py runs/<run_id> [--model models/floodseg_v0.4/model.pt]
+  python training/run_ai.py runs/<run_id> [--model models/floodseg_v0.5/model.pt]
 
 Reads (docs/ARCHITECTURE.md): aligned/s1_{pre,post}_{vv,vh}.tif (linear sigma0, NaN = nodata), optional second pass
 direction aligned/s1_alt_*.tif, masks/slope.tif, optional masks/hand.tif and masks/s1[_alt]_layover_shadow.tif.
@@ -46,7 +46,7 @@ from floodseg import softpost  # noqa: E402
 from floodseg.edge import grow_edge  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_MODEL = Path(os.environ.get("POVODNE_AI_MODEL") or ROOT / "models" / "floodseg_v0.4" / "model.pt")  # env: compare model versions
+DEFAULT_MODEL = Path(os.environ.get("POVODNE_AI_MODEL") or ROOT / "models" / "floodseg_v0.5" / "model.pt")  # env: compare model versions (D-M15-01)
 DEFAULT_S2_MODEL = ROOT / "models" / "floodseg_s2_v0.1" / "model.pt"
 MIN_FLOOD_PX = 10  # 0.1 ha; no effect on Kuro Siwo val scores, removes specks from the map (D-M9-11)
 SHADOW_DARK_DB, SHADOW_BRIGHT_DB = -15.0, -10.0  # GFM shadow rule: dark in this track, bright in the opposite one
