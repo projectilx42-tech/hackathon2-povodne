@@ -71,43 +71,43 @@
   "recall_pixel": 0.7918,
   "recall_pixel_sure": 0.9111,
   "matched_to_osm": 2510,
-  "recall_osm": 0.6829,
-  "ours_hit_in_region": 1651,
-  "ours_hit_not_in_ems": 276
+  "recall_osm": 0.7829,
+  "ours_hit_in_region": 1972,
+  "ours_hit_not_in_ems": 389
  },
  "roads": {
   "ours_blocked": {
    "ems_damaged": {
     "km": 64.158,
-    "km_flagged_by_us": 53.205,
-    "share_flagged": 0.8293
+    "km_flagged_by_us": 55.57,
+    "share_flagged": 0.8661
    },
    "ems_damaged_sure": {
     "km": 53.53,
-    "km_flagged_by_us": 45.986,
-    "share_flagged": 0.8591
+    "km_flagged_by_us": 48.266,
+    "share_flagged": 0.9017
    },
    "ems_no_damage": {
     "km": 152.398,
-    "km_flagged_by_us": 27.205,
-    "share_flagged": 0.1785
+    "km_flagged_by_us": 35.455,
+    "share_flagged": 0.2326
    }
   },
   "ours_blocked_or_possibly": {
    "ems_damaged": {
     "km": 64.158,
-    "km_flagged_by_us": 56.599,
-    "share_flagged": 0.8822
+    "km_flagged_by_us": 58.831,
+    "share_flagged": 0.917
    },
    "ems_damaged_sure": {
     "km": 53.53,
-    "km_flagged_by_us": 48.659,
-    "share_flagged": 0.909
+    "km_flagged_by_us": 49.275,
+    "share_flagged": 0.9205
    },
    "ems_no_damage": {
     "km": 152.398,
-    "km_flagged_by_us": 44.519,
-    "share_flagged": 0.2921
+    "km_flagged_by_us": 66.717,
+    "share_flagged": 0.4378
    }
   },
   "note": "share_flagged on ems_damaged = recall; on ems_no_damage = false-alarm share"
@@ -121,8 +121,8 @@
   "matched_to_osm": 14,
   "table": {
    "Destroyed": {
-    "blocked": 11,
-    "suspect": 1
+    "blocked": 10,
+    "suspect": 2
    },
    "Possibly damaged": {
     "passable": 1,

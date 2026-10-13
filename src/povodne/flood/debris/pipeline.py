@@ -39,6 +39,7 @@ SEVERITY = {
     "debris_regional_change": "warning",
     "debris_no_optical": "info",
     "debris_false_alarm_estimate": "info",
+    "debris_fusion_false_share": "info",
     "debris_not_observable": "info",
 }
 
@@ -76,8 +77,12 @@ def placebo_tracks(tracks: list[Track]) -> list[Track]:
                     history_dates=t.history_dates[:-1]) for t in tracks if len(t.history) >= 2]
 
 
+_LAST_PLACEBO: dict = {}  # radar arrays of the latest placebo run (reused by the fusion self-test, never serialised)
+
+
 def _placebo_rate(inp: Inputs, p: C.Params, fake: list[Track]) -> tuple[float, int, int]:
-    res = C.detect(inp, p, fake, use_optical=False)
+    res = C.detect(inp, p, fake, use_optical=False, fuse=False)
+    _LAST_PLACEBO["radar"] = (res.score, res.n_valid, res.sign)
     searchable = int(res.candidate.sum())
     flagged = int(((res.type > 0) & res.candidate).sum())
     return (flagged / searchable if searchable else 0.0), flagged, searchable
@@ -104,6 +109,29 @@ def calibrate(inp: Inputs, params: C.Params, target: float = TARGET_FALSE_RATE) 
     return p, {"available": True, "fake_after_image": {t.name: t.post_date for t in fake}, "rate": round(rate, 5),
                "flagged_km2": round(flagged * px_km2, 3), "searchable_km2": round(searchable * px_km2, 2),
                "tightened_steps": steps, "target_rate": target}
+
+
+def fusion_placebo(run_dir: Path, inp: Inputs, res: C.Result, fused_km2: float) -> dict:
+    """False-alarm self-test of the fusion (D-M11-05): the same fusion on a pair of optical composites from BEFORE the
+    event (alternate earlier dates) and the radar placebo pass. Whatever it flags is a change without a flood."""
+    from . import fusion as F
+    from .inputs import pre_split_composites
+
+    radar = _LAST_PLACEBO.get("radar")
+    pair = pre_split_composites(run_dir)
+    if radar is None or pair is None:
+        return {"available": False, "reason": "needs a radar placebo pass and at least 4 clear earlier Sentinel-2 dates"}
+    (old, old_clear, old_dates), (new, new_clear, new_dates) = pair
+    score, n_valid, sign = radar
+    snow = inp.snow if inp.snow is not None else np.zeros(inp.aoi.shape, bool)
+    ai_water = np.isin(inp.ai_mask, (2, 4)) if inp.ai_mask is not None else np.zeros(inp.aoi.shape, bool)
+    excl = ai_water | inp.perm_water | snow
+    fz = F.run(old, new, old_clear & new_clear, score, n_valid, sign, inp.slope, inp.hand, inp.aoi, excl)
+    flagged = C.drop_small(fz.mask, F.FusionParams().mmu_px)
+    km2 = round(float(flagged.sum()) * 1e-4, 3)
+    share = None if fused_km2 <= 0 else round(min(1.0, km2 / fused_km2), 3)
+    return {"available": True, "composite_a": old_dates, "composite_b": new_dates, "flagged_km2": km2,
+            "estimated_false_share": share}
 
 
 def _slide_evidence(dvv: float, dvh: float, agree: float, valid: float, radar: float, optical: float) -> str:
@@ -260,6 +288,17 @@ def run(run_dir: Path, params: C.Params | None = None, target: float = TARGET_FA
                                        f"{placebo['flagged_km2']:.2f} km² changed between two earlier radar passes "
                                        "(fields, construction, rain). Similar changes unrelated to the flood may be "
                                        "among the surface changes found.", rate=placebo["rate"], target=target))
+        fstats = res.stats.get("fusion", {})
+        if fstats.get("flagged_km2"):
+            fp = fusion_placebo(run_dir, inp, res, float(fstats["flagged_km2"]))
+            fstats["placebo"] = fp
+            if fp.get("available") and fp.get("estimated_false_share") is not None:
+                notices.append(_notice("debris_fusion_false_share",
+                                       f"Self-test of the combined radar + optical change map on dates before the flood: "
+                                       f"{fp['flagged_km2']:.1f} km² flagged although nothing happened, i.e. up to about "
+                                       f"{100 * fp['estimated_false_share']:.0f} % of the {fstats['flagged_km2']:.1f} km² "
+                                       "found by it may be a false alarm (harvest, haze, cloud shadow, seasonal change).",
+                                       **fp))
         w = res.stats.get("weather", {})
         if w.get("rain_like") or w.get("snow_or_frost_like"):
             what = "brighter (wet soil after rain)" if w.get("rain_like") else "darker (wet snow or frost)"

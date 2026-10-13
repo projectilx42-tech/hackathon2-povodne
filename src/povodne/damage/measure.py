@@ -64,6 +64,8 @@ def build_layers(cls: np.ndarray, prob: np.ndarray, transform: Affine, debris_ty
     else:
         destroy = debris.copy()  # no subtype raster: class 3 is treated as debris (D-M4-01)
     destroy &= conf >= 2
+    if debris_type is not None:  # slope change found by fusion is 'destroyed' only with both sensors agreeing (D-M11-07)
+        destroy &= ~((debris_type == 7) & (conf < 3))
     return Layers(transform, cls.shape, cls, prob, conf, destroy)
 
 

@@ -1185,6 +1185,7 @@ Rozhodnutí:
 - Objektový krok (superpixely SLIC z kompozitu + DEM, označení celého segmentu při podílu důkazů ≥ 0,2–0,5) **vyzkoušen a nepřijat**: F1 beze změny (0,856 → 0,856), „celý segment“ ho zhoršil (0,76–0,84) kvůli přesnosti.
 Výsledek (celé údolí, vs EMSR927, jen měření): plocha **F1 0,801 → 0,841** (P 0,967 → 0,916, R 0,684 → 0,777); recall na svazích > 15° 39 → 60 %, v radarovém stínu 53 → 66 %, ≤ 15° 78 → 84 %. Celkem od základu 0,772: **0,841**.
 Fúzí označeno 76 km² (sesuvy 70 km²: jen optika 65, obě čidla 5,3, jen radar 1,0, jen kontext 4,3) — mimo území EMS je to neověřené a většinou nízká jistota; placebo (radar, starší snímek jako „po“) 0,14 km² (0,06 % prohledané plochy).
+**Self-test fúze (placebo, D-X-08):** stejná fúze na dvojici kompozitů z dnů PŘED povodní (střídavé dny, radar placebo) označí 20–47 km² podle rozdělení dnů (kompozity z 2–3 dnů jsou hlušší než ostré z ≤ 5 dnů) → odhad falešného podílu **horní mez ~25–60 %** (`run.json.debris.fusion.placebo`, upozornění `debris_fusion_false_share`). Odhad nezávisí na prahu (falešná plocha roste úměrně nalezené), takže pracovní bod podle placeba (přesnost ≥ 85 %) by nechal jen místa, kde se shodují OBA senzory (1,8 km², R 0,70 / P 0,95 vs EMS) — tedy skoro žádný přínos fúze. Rozpor s měřením vs EMS (P 0,92 v území EMS, u řeky) vzniká tím, že placebo počítá i žně, oblačnost a sezónní změny na svazích a terasách mimo území EMS. Rozhodnutí o pracovním bodu nechávám na master/uživateli; výchozí = standardní (rychlý recall), nepovinně `FusionParams.direct_z`.
 Cíl 90 % recall nedosažen: z 2,6 km² zmeškaných má 41 % silný důkaz (z ≥ 2), ale 57 % z toho leží na trvalé vodě / v korytě, které fúze vynechává (EMS řeku zahrnuje; řeší krok vody), a 54 % zmeškaného má slabý signál (max. z < 2). Provozní bod s přesností ≥ 0,93: `direct_z` = 3 → P 0,935, R 0,75 (měřeno mimo pipeline).
 Horní mez pro kontrolu: klasifikátor trénovaný přímo na EMS by dal F1 0,91–0,94 — NEPOUŽITO a nesmí se použít (datové pravidlo), slouží jen k odhadu, kolik informace v datech je.
 Změna kontraktu: žádná v souborech; `debris_type` 7 = fúzí nalezená plocha na svahu; `scikit-learn` v `requirements.txt`; `run.json.debris.fusion` nový blok.
@@ -1251,3 +1252,28 @@ Změna kontraktu: žádná v souborech; `debris_type` 7 = fúzí nalezená ploch
 - **Násobení šance je slabé:** na Trishuli (plocha vs EMS, jen měření) při síle 0 / 1 / 2,5 / 4 R 0,619 / 0,620 / 0,624 / 0,629 (citlivý), standardní 0,617–0,623; model dává zmeškaným pixelům P ≈ 0, takže žádný násobič je nepřevrátí.
 - **Přímá podpora:** pixely tmavší než normál místa pod placebo prahem (z_comb < `threshold_z_comb`, ≥ 99,5 % bezpovodňové scény je nad ním), s terénní vahou > 0,05, mimo trvalou vodu, se přidají jako povodeň tam, kde navazují na povodeň z modelu (`--no-anomaly-connect` vypne). Hodnota prahu je jen z placeba, ne z EMS. Trishuli: R 0,619 → 0,639, P 0,968, F1 0,770 (recall na viditelné ploše 63,9 %).
 - **Zbývá:** cíl 90 % je daleko; volnější práh (z ≤ −2) by přidal recall za cenu přesnosti — volba jen přes odhad přesnosti z placeba (D-X-08), zatím neprovedeno.
+
+## D-M11-07 | 2026-10-13 | přijato (požadavek mastera) — Sesuvy z fúze: „zničeno“ jen při shodě obou senzorů (krok škod)
+**Stav:** přijato (výslovně vyžádal master, 2026-10-13). **Modul:** M11 (fúze), dotýká se kroku škod `damage/measure.py`.
+**Problém:** plocha typu 7 (sesuv/bahnotok na svahu, D-M11-05) je velká (~70 km²) a z velké části jen z optiky; jedna taková
+pixelová stopa na budově stačila k „likely_destroyed“.
+**Rozhodnutí:** pixel typu 7 se počítá jako „destrukční“ jen při jistotě HIGH (radar i optika z ≥ 3, p ≥ 0,9). MEDIUM → budova „affected“
+(zasažena), LOW → „possibly_affected“ (možná). Ostatní typy (suť, eroze, poškozená zástavba) beze změny (destrukční od MEDIUM výš).
+**Efekt (Trishuli, údolí, `runs/tf4`):** budov „likely_destroyed“ 1891 → 1595 (−16 %); počet zasažených budov a shoda s EMS (78,3 % spárovaných
+budov označeno, 1972 našich zásahů) beze změny — mění se jen stupeň, ne detekce. Změna je jen v rozhodování o stupni, žádná mez nebyla laděna podle EMS.
+**Kontrakt:** soubory beze změny; mění se jen interpretace `debris_type` 7 + `debris_confidence` v kroku škod (ARCHITECTURE.md, řádek škod).
+
+## D-X-11 | 2026-10-13 | přijato (master) — Kalibrace placeba: odečíst posun scény, okno průměrování nejvýš 9 px (90 m)
+- `validation/envelope_calib_diag.py` (runs/trishuli_full): důkaz = RMS(z) z D-X-10 **po odečtení mediánu z celé scény** (sezónní
+  zjasnění, jako v s1anomaly), prostorově průměrovaný z² v okně w; obálka (práh t1) + hysterezní růst (práh t2).
+- **Kontrola kalibrace (jednorázově proti EMS, jen ověření odhadu, ne výběr):** pro w ≤ 9 px odhad přesnosti z placeba sedí
+  (např. w9 t1 2,5 t2 1,75: odhad 0,823 / skutečnost 0,829; w9 2,5/2,0: 0,910 / 0,881). Pro w ≥ 13 je placebo příliš optimistické
+  (w17 2,5/1,75: 0,882 / 0,752; w25: 0,919 / 0,680) — prostorově souvislá vlhkost po dešti v den události v pre-pre dvojici chybí.
+  **Pravidlo:** w nejvýš 9 px (≈ šířka bahnotoku, ~90 m); větší okna placebo neumí ověřit, proto zakázána. Přiznat v reportu.
+- Výběr jen placebem (w ≤ 9, odhad P ≥ 0,85, max plocha): w9 t1 2,0 t2 2,0 (odhad 0,875) → **vs EMS R 0,856 / P 0,875**.
+  Další páky k 90 %: trvalost změny přes více snímků po události (post_series; vlhkost je přechodná, suť trvalá) a koryto/trvalá
+  voda se silnou změnou.
+- **Doplněk (okraje, `validation/envelope_edge_diag.py`):** ze zbylých 1,67 km² nezachycených leží 88 % do 100 m od detekce a 59 % má
+  důkaz těsně pod prahem (1,5–2). Třetí stupeň = nižší práh t3 jen v pásu r px kolem detekcí; placebo vybralo t 2,5 / t3 1,75 / r 5
+  (odhad P 0,864) → **R 0,867 / P 0,853**. Hranice R-P na tomto starém běhu: P ~0,83 při R ~0,89 → 90 % při P ≥ 0,85 vyžaduje
+  kvalitnější důkaz (roční normál, trvalost přes post_series), ne další geometrii.

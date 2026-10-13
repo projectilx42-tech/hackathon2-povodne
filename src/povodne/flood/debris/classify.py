@@ -84,6 +84,7 @@ class Result:
     optical: np.ndarray  # optical evidence available for the pixel
     stats: dict = field(default_factory=dict)
     source: np.ndarray | None = None  # fused evidence: bit 1 = radar z >= 2, bit 2 = optical z >= 2
+    sign: np.ndarray | None = None  # direction of the radar change (+1 brighter, -1 darker)
 
 
 def _ndvi(r):
@@ -353,4 +354,4 @@ def detect(inp: Inputs, p: Params, tracks: list[Track] | None = None, use_optica
                                           "optical_only": {"background_rate": opt_bg,
                                                            "px": int((opt_only & (typ == DEBRIS)).sum())},
                                           "fusion": fusion_stats},
-                  source=ls_source)
+                  source=ls_source, sign=sign.astype(np.int8))
