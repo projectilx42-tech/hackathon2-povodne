@@ -1088,6 +1088,18 @@ Omezení: roční řada je jen z minulého roku (jeden cyklus, žádná vícelet
   **Cíl 90 % recallu jen z radaru to nesplní**: i při 5 % falešné kontroly zůstává ~60 % minuté plochy bez rozeznatelné odchylky (EMS kreslí celé sesuvy včetně míst, kde se radarový obraz nezměnil).
 - **Cena:** normál = 258 PU naměřeno (odhad 284) pro obě dráhy; `acquire.pu_estimate` celkem 2 385 PU (horní mez; skutečně ~2 080), nad mezí 2 000 vyjde upozornění `pu_budget_high`.
 
+## D-M11-03 | 2026-10-13 | přijato (uživatel: „pokracuj“ na zadání sesuvů od master session) — Sesuvy a bahnotoky na svazích mimo údolní pravidla
+Kontext: EMSR927 značí celou plochu jako sesuv/Mass Movement; část leží na svazích > 15°, které údolní pravidla suti (HAND ≤ 40 m, sklon ≤ 25°) vyřazují.
+Rozhodnutí: nový podtyp `debris_type` = **7 `landslide`** (třída masky zůstává 3), `flood/debris/classify.py`. Zóna: sklon 15–55°, mimo údolní zónu, mimo vodu a sníh.
+- **Radar (obě dráhy, mimo layover/shadow):** ztmavnutí VH ≥ 3 dB (semínko, p < 1e-4) / ≥ 1,5 dB (růst) a VV ≥ 1 dB — ztráta objemového rozptylu koruny
+  (Handwerger 2022, Mondini 2019); při celoplošném ztmavnutí (počasí) jen s potvrzením optikou.
+- **Optika:** NDVI před ≥ 0,3, pokles ≥ 0,3, po povodni holá půda (jako D-M11-02).
+- **Staré sesuvy** (holé už před událostí: NDVI před < 0,2 nebo nízké VH v historii) se nevyznačují. Min. plocha 30 px (0,3 ha).
+- **Jistota:** radar samotný / optika samotná nejvýš střední; radar + optika vysoká; napojení na nížinu (do 30 m od HAND ≤ 15 m) zvedá o stupeň (ne nad střední u jednoho senzoru).
+- **Self-test:** radarová část je v placebu (starší snímek jako „po“); optická část nemá starší pár S2 → `run.json.debris.landslide.optical_background_rate` = stejné pravidlo na rovině daleko od řek.
+- Změna kontraktu: kód 7 v `debris_type.tif` / `subtype = "landslide"`; doplněno do `flood/combine.py` (TYPE_NAMES) a `report/sitrep.py`. Prahy z literatury, neladěné podle EMS (D-006).
+Výsledky měření celého údolí doplním po běhu.
+
 ## D-X-07 | 2026-10-13 | přijato (master) — Sesuv (`debris_type` 7) ničí budovy a silnice
 Krok suti nově značí čerstvé sesuvy jako `debris_type` 7 (větev fix/s2-scaling). Modul škod bral jako ničivé jen typy 1, 3, 6, takže budova zasypaná sesuvem by se nepočítala jako zničená.
 Rozhodnutí: `damage/measure.py` `DESTRUCTIVE_TYPES` = (1, 3, 6, 7). Sesuv odnese nebo zasype stavbu stejně jako suť; kontrakt souborů beze změny.
@@ -1104,3 +1116,12 @@ Rozhodnutí: `damage/measure.py` `DESTRUCTIVE_TYPES` = (1, 3, 6, 7). Sesuv odnes
 **Kontext:** úkol od master session: nahradit pevná pravidla (sklon > 15°, HAND > 30 m, min. plocha 10 px, skok mezi dvěma prahy) spojitou kombinací; cíl recall plochy EMS ≥ 90 % bez pevných pravidel. Práh i parametry se ladí jen na ověřovacích událostech Kuro Siwo a podle placeba, nikdy podle EMS (EMS jen měření).
 **Rozhodnutí (první verze):** `training/floodseg/softpost.py`: pravděpodobnosti modelu × spojitý terénní prior w(sklon, HAND) (logistická funkce, 0,5 na 15° / 30 m), volitelná podpora z radarové anomálie (násobení šance, síla od placebo prahu `threshold_z_comb`), minimální plocha klesá z 10 px na 2 px směrem k toku (HAND). `training/run_ai.py` to používá, `--hard-rules` vrací staré chování pro srovnání. Krok `s1anomaly` běží nově PŘED `flood_ai` (config, ARCHITECTURE, test). Šířku přechodu a práh ladí `training/eval_softpost.py` na ověřovacích událostech.
 **Výsledky:** doplním po měření.
+
+## D-M11-04 | 2026-10-13 | přijato (master: „per-pixel kompozit“) — Optika pro suť = kompozit z více dnů Sentinel-2
+Kontext: jeden snímek „po“ má v monzunu jasno na ~40 % oblasti; sesuvy a nánosy ale vydrží týdny.
+Rozhodnutí: `acquire` stáhne vedle hlavního snímku „před“/„po“ až 4 další dny s jasnem ≥ 15 % (okno „po“ do 45 dnů po události, „před“ dosavadních 60 dnů) jako `raw/s2/prex_*.tif` / `postx_*.tif`;
+`run.json.acquire.s2.extra = {pre: [...], post: [...]}`, upozornění `s2_composite` (info, seznam dnů). Krok suti (`flood/debris/inputs.py`) skládá po pixelech **medián čistých pixelů** ze všech dnů;
+platný pixel = čistý aspoň v jednom dni. Hlavní snímky a `aligned/s2_*` (AI voda, náhled) se nemění — voda je jev na jeden den, kompozit by ji smazal.
+Změna kontraktu: jen přidané soubory `prex_*`/`postx_*` v `raw/s2` a klíč `extra`; kdo je nezná, funguje jako dřív.
+Výsledek (celé údolí, vs EMSR927, jen měření): plocha F1 0,776 → **0,801** (P 0,965 → 0,967, R 0,649 → 0,684); recall na svazích > 15° 32 → 39 %, ve stínu radaru 45 → 53 %; sesuvy 0,93 → 1,44 km².
+(Základ 0,776 = suť se sesuvy po 1. kroku, bez kompozitu.)

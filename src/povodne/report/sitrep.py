@@ -26,7 +26,7 @@ VERDICT_RGB = {"flood_detected": (180, 35, 24), "no_significant_flooding": (31, 
 STATUS_TXT = {"cut_off": "cut off", "possibly_cut_off": "possibly cut off", "degraded": "long detour", "connected": "connected",
               "no_road_pre_event": "no road before"}
 DEBRIS_TXT = {"debris": "debris", "mud": "mud", "erosion": "erosion", "flooded_vegetation": "flooded vegetation",
-              "flooded_builtup": "flooded built-up", "damaged_builtup": "damaged built-up", "unknown": "other change"}
+              "flooded_builtup": "flooded built-up", "damaged_builtup": "damaged built-up", "landslide": "landslide", "unknown": "other change"}
 
 
 # ------------------------------------------------------------------------------------------------ text helpers
