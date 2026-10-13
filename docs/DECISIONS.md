@@ -1068,10 +1068,6 @@ Malá oblast (8×9 km): 113 s bez cache, 78 s s cache (0 PU).
   Hrubší roční reference (40 m) by ušetřila ~180 PU (~0,6 min) za cenu úzkých řek (D-M10-02) → ponecháno 20 m (netestováno proti 40 m).
 - **Co zbývá:** nejdelší je krok suti (9 min = 47 % běhu, kód mimo tuto změnu) a AI inference (4,3 min na 4 jádrech; ~210 s tvoří dlaždice dvou radarových drah a dvou optických snímků).
 
-## D-X-07 | 2026-10-13 | přijato (master) — Sesuv (`debris_type` 7) ničí budovy a silnice
-Krok suti nově značí čerstvé sesuvy jako `debris_type` 7 (větev fix/s2-scaling). Modul škod bral jako ničivé jen typy 1, 3, 6, takže budova zasypaná sesuvem by se nepočítala jako zničená.
-Rozhodnutí: `damage/measure.py` `DESTRUCTIVE_TYPES` = (1, 3, 6, 7). Sesuv odnese nebo zasype stavbu stejně jako suť; kontrakt souborů beze změny.
-
 ## D-M10-05 | 2026-10-13 | přijato (úkol od master session; uživatel: záchyt plochy aspoň 90 %, místo pevných pravidel „něco inteligentního“) — Radarová anomálie proti normálu místa
 Kontext: pevná pravidla (sklon ≤ 15°, HAND ≤ 15–30 m, prahy v dB) nechávají mimo hlavně strmější svahy a okraje. Cíl: pro každý pixel změřit, **jak moc je po události jiný, než je u něj normální**
 (vlastní sezónní rozptyl a šum místa), a nechat fúzi suti a sesuvů (session `fix/s2-scaling`) použít tuto míru místo pevných pravidel.
@@ -1092,6 +1088,10 @@ Omezení: roční řada je jen z minulého roku (jeden cyklus, žádná vícelet
   **Cíl 90 % recallu jen z radaru to nesplní**: i při 5 % falešné kontroly zůstává ~60 % minuté plochy bez rozeznatelné odchylky (EMS kreslí celé sesuvy včetně míst, kde se radarový obraz nezměnil).
 - **Cena:** normál = 258 PU naměřeno (odhad 284) pro obě dráhy; `acquire.pu_estimate` celkem 2 385 PU (horní mez; skutečně ~2 080), nad mezí 2 000 vyjde upozornění `pu_budget_high`.
 
+## D-X-07 | 2026-10-13 | přijato (master) — Sesuv (`debris_type` 7) ničí budovy a silnice
+Krok suti nově značí čerstvé sesuvy jako `debris_type` 7 (větev fix/s2-scaling). Modul škod bral jako ničivé jen typy 1, 3, 6, takže budova zasypaná sesuvem by se nepočítala jako zničená.
+Rozhodnutí: `damage/measure.py` `DESTRUCTIVE_TYPES` = (1, 3, 6, 7). Sesuv odnese nebo zasype stavbu stejně jako suť; kontrakt souborů beze změny.
+
 ## D-M10-06 | 2026-10-13 | přijato — Radarová anomálie: průměr přes všechny snímky po události, práh z placeba
 **Kontext:** jeden snímek „po“ nese šum; úkol od master session: průměrovat anomálii přes všechny průlety 0–24 dní po události (obě dráhy, každá vůči svému normálu), práh volit jen podle placeba (cíl ≤ 0,5 % falešných pixelů), nikdy podle EMS.
 **Rozhodnutí:** `acquire/postseries.py` stáhne (40 m, VV+VH, jako normál) všechny průlety dráhy v 24 dnech po události (vždy i vybraný snímek „po“) a stejný počet **placebo** průletů z 60 dní před událostí, které **nejsou v normálu** (výběr přes `norm.json`). `flood/s1anomaly.py` spočítá z-skóre každého průletu s vlastním posunem scény a z-skóre **zprůměruje** (stálý signál zůstane, šum klesá); fallback = jediný snímek z `aligned/`. Doporučený práh `run.json.s1anomaly.threshold_z_comb` = 0,5% kvantil z_comb placeba. Nový parametr `post_series_days = 24`, `n_placebo = 4`; PU: +~100 pro oba směry (2 + 2 průlety na dráhu).
@@ -1100,9 +1100,7 @@ Omezení: roční řada je jen z minulého roku (jeden cyklus, žádná vícelet
 - Zisk z průměru 2 průletů je malý: z_comb ≤ −3 (napojené na povodeň, 1,3 % kontroly) R 0,697 → 0,701, F1 0,805 → 0,807; při −2 (5 % kontroly) R 0,751 → 0,758, F1 0,817 → 0,824. Chyba normálu (sdílená všemi snímky) a posun scény zůstávají; průměr jen sníží šum samotných snímků, a pozdější průlety jsou už po opadnutí vody.
 - Chybějící plocha zachycená při −3: údolí 21 %, svahy >15° 24 %; při −2: 37 % / 39 %.
 
-## D-M10-07 | 2026-10-13 | Měkká kombinace místo pevných terénních pravidel v AI kroku
+## D-M10-07 | 2026-10-13 | rozpracováno — Měkká kombinace místo pevných terénních pravidel v AI kroku
 **Kontext:** úkol od master session: nahradit pevná pravidla (sklon > 15°, HAND > 30 m, min. plocha 10 px, skok mezi dvěma prahy) spojitou kombinací; cíl recall plochy EMS ≥ 90 % bez pevných pravidel. Práh i parametry se ladí jen na ověřovacích událostech Kuro Siwo a podle placeba, nikdy podle EMS (EMS jen měření).
 **Rozhodnutí (první verze):** `training/floodseg/softpost.py`: pravděpodobnosti modelu × spojitý terénní prior w(sklon, HAND) (logistická funkce, 0,5 na 15° / 30 m), volitelná podpora z radarové anomálie (násobení šance, síla od placebo prahu `threshold_z_comb`), minimální plocha klesá z 10 px na 2 px směrem k toku (HAND). `training/run_ai.py` to používá, `--hard-rules` vrací staré chování pro srovnání. Krok `s1anomaly` běží nově PŘED `flood_ai` (config, ARCHITECTURE, test). Šířku přechodu a práh ladí `training/eval_softpost.py` na ověřovacích událostech.
-**Výsledky (ověřovací události Kuro Siwo, 199 dlaždic, model v0.4; `training/results/softpost_val_v0.4.json`):** měkký prior ≈ pevné pravidlo (flood F1 0,805–0,807 při všech středech 10–25° a šířkách 2–4°) → žádný skok na 15° a žádná ztráta, ale ani zisk. Citlivý práh: F1 nejlepší při 0,20 (F1 0,807, P 0,82, R 0,79; při 0,15 R 0,81, P 0,80); `SENSITIVE_DEFAULT` 0,25 → 0,20 (karta modelu, pokud má `flood_thresholds`, má přednost).
-**Trishuli vs EMS (standardní režim, plocha):** pevná pravidla P 0,971 R 0,623 F1 0,759; měkká P 0,972 R 0,618 F1 0,755 (o ~0,5 p. b. horší recall, nepatrně). Podpora anomálie při síle 1,0 je příliš slabá, aby otočila zmeškané pixely; záplata „spojená anomálie z≤−3“ na výsledek: F1 0,800 (pevná) / 0,797 (měkká), údolí 17 % a svah>15° 20 % zmeškané plochy; z≤−2: F1 0,817/0,815. Cíl 90 % recallu z radaru samotného nedosažitelný (pixely mají normální radarový signál).
-**Poctivý závěr:** měkká kombinace odstraňuje pevné hranice bez zlepšení recallu; zisk by musela přinést až fúze s optikou (jiná větev). Opravy (a) optika mokrá před i po = trvalá voda, (b) díra v DEM = neznámý terén, (c) práh vody z optiky jako parametr (`--s2-water-thr`), (d) detekce nástupu ve `preselect` při pozvolném růstu: implementovány, na Trishuli nic nezhoršují.
+**Výsledky:** doplním po měření.
