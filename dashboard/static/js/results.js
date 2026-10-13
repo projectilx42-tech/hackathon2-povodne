@@ -8,7 +8,7 @@ const VERDICT = {
   insufficient_data: { cls: 'warn', icon: 'info', title: 'Insufficient data' },
 };
 const STATUS = { connected: ['ok', 'check', 'Connected'], degraded: ['warn', 'alert', 'Degraded (long detour)'], cut_off: ['bad', 'alert', 'Cut off'], no_road_pre_event: ['muted', 'info', 'No road before the event'] };
-const STEP_LABEL = { acquire: 'Acquire satellite data', preprocess: 'Preprocess & align', flood_ai: 'Flood detection (AI)', s1anomaly: 'Radar change vs. normal year', debris: 'Debris / mud', combine: 'Combine flood map', damage: 'Damage overlay', network: 'Cut-off analysis', report: 'Statistics & report' };
+const STEP_LABEL = { acquire: 'Acquire satellite data', preprocess: 'Preprocess & align', flood_ai: 'Flood detection (AI)', s1anomaly: 'Radar change vs. normal year', debris: 'Debris / mud', envelope: 'Water-level envelope', combine: 'Combine flood map', damage: 'Damage overlay', network: 'Cut-off analysis', report: 'Statistics & report' };
 
 const sec = (title, ...kids) => el('section', { class: 'sec' }, title ? el('h2', { text: title }) : null, ...kids);
 const rows = list => el('dl', { class: 'rows' }, ...list.map(([k, v, strong]) => el('div', { class: 'row' }, el('dt', { text: k }), el('dd', { class: strong ? 'strong' : '', text: v }))));

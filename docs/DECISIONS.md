@@ -914,6 +914,24 @@ Rozhodnutí: pixel, který radar nezařadil (`typ == 0`), je suť, když je S2 p
 Ochrana: kontrolní území (mimo zónu suti, sklon ≤ 25°) dostane stejné pravidlo; podíl označené plochy je `run.json.debris.optical_only.background_rate`
 (odhad podílu planých poplachů z jiných příčin) a `optical_only.px` (počet pixelů). Radarový placebo test tyto pixely nezahrnuje.
 
+## D-M13-01 | 2026-10-13 | přijato (úkol od master session, D-X-09) — Obálka hladiny: implementace, volba parametrů jen z placeba
+Implementace D-X-09: `src/povodne/flood/envelope.py`, nepovinný krok `envelope` po `debris`, před `combine` (`config.STEPS`, CLI, dashboard).
+- **Postup:** semena = AI voda (2) ∪ suť (debris_mask); trvalá voda (4) jen propojuje. Hladina na blok 50 px (500 m) = q-tý percentil HAND semen v bloku
+  (≥ 20 semen, jinak sdružení 3 × 3 sousedů, jinak žádná obálka). Obálka = HAND ≤ hladina bloku, propojená se semeny / trvalou vodou (8-okolí).
+  Důkaz uvnitř obálky = radarová anomálie |z_comb| ≥ tz (`flood/s1_anomaly.tif`) NEBO pokles NDVI ≥ 0,3 na pixelech čistých v obou snímcích S2;
+  většinový filtr 5 × 5. Přidáno jako třída 2 (radar tmavší = voda) nebo 3 (jinak, podtyp 9 neznámá, jistota nízká, pravděpodobnost 0,35);
+  existující detekce a trvalá voda se nemění. `combine` čte `flood/envelope_mask.tif`.
+- **Volba parametrů JEN z placeba (D-006):** mřížka q ∈ {50, 70, 85, 95}, tz ∈ {3; 2,5; 2; 1,5}, blok 50 px. Placebo = stejný postup na průletech před událostí
+  (z `raw/s1*/post_series.tif` sekce placebo, jinak z aligned „pre“): semena = přísné placebo detekce anomálie (z_comb ≤ −3) na dně údolí (HAND ≤ 30 m, sklon ≤ 15°),
+  stejná obálka a stejný test důkazu → falešná plocha. Optika placebo dvojici nemá → falešná míra NDVI testu se měří na kontrolních pixelech mimo obálku a detekce
+  (nadsazuje: skutečné změny jinde se počítají jako falešné) a přičte se úměrně ploše obálky. **Odhad přesnosti přidané plochy = 1 − falešná plocha ÷ přidaná plocha.**
+  Pracovní bod = nejcitlivější nastavení (největší přidaná plocha) s odhadem ≥ 0,85 (D-X-08). Žádné nastavení nevyhovuje → nic se nepřidá (upozornění `envelope_no_working_point`).
+- **Odchylky od zadání:** (1) záložní důkaz „|Δ dB| post−pre bez anomálie“ se neimplementoval — bez radarové anomálie není placebo, a bez placeba se parametry volit nesmí; krok se v tom případě přeskočí.
+  (2) NDVI práh 0,3 je pevný obecný práh (ne z placeba). (3) Přesnost se počítá pro **přidanou** plochu (přísnější než pro celek).
+- **Omezení do reportu:** placebo semena jsou jen aproximace falešných semen skutečného běhu (skutečná semena mají vlastní falešný podíl, ten tu není započten);
+  placebo průlety mají sezónu před událostí (jiné počasí než po povodni); obálka předpokládá, že hladina je jedna po úseku 500 m a že voda teče podle terénu (HAND).
+  Výsledky měření na Trishuli viz PROGRESS.
+
 ---
 
 # Otevřené otázky (k rozhodnutí)

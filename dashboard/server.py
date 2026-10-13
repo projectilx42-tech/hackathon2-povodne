@@ -30,7 +30,7 @@ SAMPLE_RUN = HERE / "sample_run"
 RUN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,100}$")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 STALE_MINUTES = 15  # a "running" run with no file activity for this long is reported as interrupted
-STEPS = ["acquire", "preprocess", "flood_ai", "s1anomaly", "debris", "combine", "damage", "network", "report"]  # = povodne.config.STEPS
+STEPS = ["acquire", "preprocess", "flood_ai", "s1anomaly", "debris", "envelope", "combine", "damage", "network", "report"]  # = povodne.config.STEPS
 
 _procs: dict[str, subprocess.Popen] = {}
 _lock = threading.Lock()

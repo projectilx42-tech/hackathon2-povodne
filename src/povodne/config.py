@@ -11,6 +11,7 @@ STEPS: list[tuple[str, str]] = [
     ("s1anomaly", "povodne.flood.s1anomaly"),  # optional: radar departure from the year-long normal (D-M10-05); before flood_ai, which uses it (D-M10-07)
     ("flood_ai", "povodne.flood.ai"),
     ("debris", "povodne.flood.debris"),
+    ("envelope", "povodne.flood.envelope"),  # optional: water-level envelope + weak change evidence (D-X-09, D-M13-01); before combine, which reads it
     ("combine", "povodne.flood.combine"),
     ("damage", "povodne.damage"),
     ("network", "povodne.network"),

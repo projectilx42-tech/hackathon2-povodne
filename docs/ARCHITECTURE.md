@@ -94,6 +94,11 @@ runs/<run_id>/
                                  #   Pásma z_* jsou průměr přes všechny průlety po události (`run.json.s1anomaly.placebo[dráha].post_passes`); `run.json.s1anomaly.threshold_z_comb` = práh
                                  #   z_comb, který na placebo průletech označí 0,5 % scény (doporučený práh, nikdy podle EMS).
     s1_anomaly_tracks.tif        # float32, hrubá mřížka normálu (40 m): z_vv_main, z_vh_main, z_vv_alt, z_vh_alt
+    envelope_mask.tif            # uint8, mřížka runu: 0 nic, 2 přidáno jako voda, 3 přidáno jako suť/jiná změna. „Obálka hladiny“ (D-X-09, D-M13-01):
+                                 #   slabý důkaz změny (radarová anomálie |z_comb| ≥ tz, pokles NDVI) uvnitř úseku údolí pod hladinou odvozenou z HAND
+                                 #   jistých detekcí; nikdy nepřepisuje detekce ani trvalou vodu. Píše `povodne.flood.envelope`, čte `combine`
+                                 #   (voda → třída 2, pravděpodobnost 0,35; suť → třída 3, podtyp 9 neznámá, jistota nízká).
+                                 #   `run.json.envelope`: zvolené q / block_px / tz, `est_precision` a `placebo_false_km2` z placeba, celá mřížka nastavení (`grid`).
     debris_polygons.geojson      # EPSG:4326: class "debris", subtype, confidence, area_m2, mean_dvv_db, mean_dvh_db, evidence
     flood_polygons.geojson       # EPSG:4326, polygonizace flood_mask (třídy 2,3), atributy: class ("water" | "debris"), area_m2 (D-035);
                                  #   debris navíc subtype, confidence, evidence (D-M0-01). flood_prob.tif: nodata = NaN
@@ -352,7 +357,7 @@ Pipeline spouští jako podproces `python -m povodne run ...`; průběh čte z `
   Když podproces skončí s chybou, `status` vrací `failed` + poslední řádek logu (nebo srozumitelnou hlášku, pokud modul `povodne` neexistuje).
 - Soubory pro UI: `damage/*_damage.geojson` obsahují **všechny** prvky (i `hit=false`), UI z nich kreslí silnice, mosty i budovy.
 - **`run.json.progress`** (píše pipeline/CLI, čte dashboard):
-  `{"state": "queued|running|done|failed|cancelled", "steps": [{"name": "acquire|preprocess|flood_ai|debris|combine|damage|network|report",
+  `{"state": "queued|running|done|failed|cancelled", "steps": [{"name": "acquire|preprocess|flood_ai|s1anomaly|debris|envelope|combine|damage|network|report",
   "state": "pending|running|done|skipped|failed", "message": "..."}]}`.
 - **Ukázkový run:** `dashboard/sample_run/` (v gitu, < 5 MB), `run.json.mock = true`; API ho vrací v seznamu s `"mock": true`.
 - Backend poslouchá jen na `127.0.0.1` (D-016, lokální spuštění); CORS není potřeba.
@@ -367,6 +372,7 @@ Pipeline spouští jako podproces `python -m povodne run ...`; průběh čte z `
   | `s1anomaly` | `povodne.flood.s1anomaly` | ne | bez `flood/s1_anomaly.tif` (D-M10-05); běh pokračuje; běží před `flood_ai`, který anomálii používá (D-M10-07) |
   | `flood_ai` | `povodne.flood.ai` | ano | dtto |
   | `debris` | `povodne.flood.debris` | ne | combine jen s vodou |
+  | `envelope` | `povodne.flood.envelope` | ne | bez `flood/envelope_mask.tif`; combine nic nepřidá (D-M13-01) |
   | `combine` | `povodne.flood.combine` | ano | další kroky `skipped`, report proběhne |
   | `damage` | `povodne.damage` | ne | network `skipped` |
   | `network` | `povodne.network` | ne | report bez odříznutých obcí |

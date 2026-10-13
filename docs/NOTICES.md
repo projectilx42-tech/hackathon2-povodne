@@ -101,6 +101,9 @@ Souhrn plochy je v `run.json.combine.areas_km2`.
 | s1anomaly | `s1anomaly_one_track` | info | Normál existuje jen pro jednu dráhu; anomálie vychází z jednoho směru pohledu a nemá potvrzení druhou dráhou. | Radar anomaly from one track | `track` |
 | combine | `combine_grid_mismatch` | warning | Mapa suti je na jiné mřížce než mapa vody, nepoužila se (chyba v datech, mapa ukazuje jen vodu). | Debris map not aligned | — |
 | combine | `combine_debris_where_ai_blind` | info | Část suti/změn povrchu leží tam, kam model vody neviděl (radarový stín, chybí data); do mapy povodně je započtena. | Debris where water model was blind | `area_km2` |
+| envelope | `envelope_no_reference` | info | Chybí maska HAND, radarová anomálie nebo placebo průlety: „obálka hladiny“ se nevytvořila, nic se nepřidalo (bez placeba nelze povolit volbu parametrů). | Water-level envelope not made | — |
+| envelope | `envelope_no_working_point` | warning | Žádné nastavení nedosáhlo odhadnuté přesnosti 85 % na placebu (slabý důkaz je tu příliš zašuměný), nebo je jistých detekcí příliš málo: nic se nepřidalo. | Envelope not applied (too noisy) | — |
+| envelope | `envelope_applied` | info | Obálka hladiny přidala slabé detekce (nízká jistota) v úseku údolí pod hladinou odvozenou z jistých detekcí; volba parametrů z placeba. | Weak detections added (water-level envelope) | `q`, `block_px`, `tz`, `est_precision`, `placebo_false_km2`, `median_level_m` |
 
 ### Krok škod (`step = "damage"`, D-M4-01)
 Kódy definuje `src/povodne/damage/pipeline.py`.

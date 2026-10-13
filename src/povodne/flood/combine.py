@@ -57,6 +57,16 @@ def _read(path: Path):
         return ds.read(1), ds.profile, ds.transform, ds.crs
 
 
+def envelope_layers(path: Path, shape) -> tuple[np.ndarray | None, dict]:
+    """Added water / debris pixels of the envelope step (flood/envelope_mask.tif: 2 water, 3 debris), or (None, ...) if absent."""
+    if not path.exists():
+        return None, {"debris_px": None}
+    arr = _read(path)[0]
+    if arr.shape != shape:
+        return None, {"debris_px": None}
+    return arr == WATER, {"debris_px": arr == DEBRIS}
+
+
 def combine_arrays(ai_mask: np.ndarray, ai_prob: np.ndarray, debris_mask: np.ndarray | None,
                    debris_conf: np.ndarray | None) -> tuple[np.ndarray, np.ndarray]:
     """Pure array logic (tested on synthetic rasters). Returns (flood_mask uint8, flood_prob float32)."""
@@ -174,7 +184,19 @@ def run(run_dir: Path) -> dict:
         conf_r = np.where(grown, 1, conf_r if conf_r is not None else 0).astype(np.uint8)
     vh_info["grown_km2"] = round(float(grown.sum()) * abs(transform.a * transform.e) / 1e6, 4)
 
+    # Water-level envelope: weak change inside the reach spanned by the certain detections (D-X-09). Never overrides a detection.
+    env_water, env_info = envelope_layers(fdir / "envelope_mask.tif", ai_mask.shape)
+    env_debris = env_info.pop("debris_px")
+    if env_debris is not None and env_debris.any():
+        new = env_debris & ~(debris_mask == 1 if debris_mask is not None else False)  # not already a debris detection
+        debris_mask = env_debris.astype(np.uint8) if debris_mask is None else np.where(new, 1, debris_mask).astype(np.uint8)
+        dtype_r = np.where(new, 9, dtype_r if dtype_r is not None else 0).astype(np.uint8)
+        conf_r = np.where(new, 1, conf_r if conf_r is not None else 0).astype(np.uint8)
     mask, prob = combine_arrays(ai_mask, ai_prob, debris_mask, conf_r)
+    if env_water is not None and env_water.any():
+        add = env_water & np.isin(mask, (NODATA, DRY))
+        mask[add] = WATER
+        prob[add] = np.fmax(np.nan_to_num(prob[add]), CONF_PROB[1])
     px_km2 = abs(transform.a * transform.e) / 1e6
     blind = int(((ai_mask == NODATA) & (mask == DEBRIS)).sum())
     if blind:
@@ -201,6 +223,8 @@ def run(run_dir: Path) -> dict:
         "method": "AI water (classes 2, 4) has priority; debris step class 3 elsewhere, also where the AI step was blind (D-M0-01)",
         "debris_used": debris_mask is not None,
         "vh_agreement": vh_info,
+        "envelope_added_km2": round(float(((env_water if env_water is not None else 0) | (env_debris if env_debris is not None else 0)).sum())
+                                    * px_km2, 4) if env_water is not None else 0.0,
         "debris_prob_by_confidence": {CONF_NAMES[k]: v for k, v in CONF_PROB.items()},
         "areas_km2": {"flood_water": round(float((mask == WATER).sum()) * px_km2, 4),
                       "debris": round(float((mask == DEBRIS).sum()) * px_km2, 4),
