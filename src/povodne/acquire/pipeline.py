@@ -20,7 +20,7 @@ import numpy as np
 import rasterio
 from rasterio.warp import Resampling, reproject, transform_bounds
 
-from . import cache, permwater, seriesnorm, catalog, osm, preselect, sentinel2, terrain
+from . import cache, permwater, postseries, seriesnorm, catalog, osm, preselect, sentinel2, terrain
 from .notices import Notice
 from .sentinelhub import (S1_DB_OFFSET, S1_DB_SCALE, Grid, MissingCredentials, SentinelHub, decode_db, fetch_s1,
                           estimate_pu, smooth_3x3, utm_grid)
@@ -45,6 +45,8 @@ class AcquireConfig:
     workers: int = 6  # parallel Sentinel Hub requests in flight (SentinelHub itself allows MAX_PARALLEL_REQUESTS at once)
     norm_res_m: float = 40.0  # resolution of the year-long per-pixel normal for the radar anomaly (D-M10-05): cheap
     norm_n_passes: int = 10
+    post_series_days: int = 24  # all passes of a track this many days after the event are averaged in the radar anomaly (D-M10-06)
+    n_placebo: int = 4  # at most this many pre-event passes (not in the normal) as placebo for the anomaly threshold
     pu_warn: float = 2000.0  # warn when one run is estimated above this many processing units (monthly free allowance: 10 000)
     perm_n_passes: int = 10  # passes sampled from it (~11 PU each for 30x30 km at 20 m, VV only)
     hist_res_m: float = 20.0  # ~22 PU per VV+VH image for 30x30 km
@@ -319,6 +321,20 @@ def _osm_job(aoi, event, epsg, run_dir: Path, cfg: AcquireConfig):
                              "damage and cut-off analysis are not possible.", error=str(exc))]
 
 
+def _norm_and_post(run_dir, folder, sh, aoi, event, t, local, ngrid, cfg, pool) -> dict:
+    """Year-long normal of a track, then its after-event series and placebo passes (D-M10-05, D-M10-06; one job, in this order)."""
+    nrm = seriesnorm.build(run_dir, folder, sh, aoi, event, t.key, local, ngrid, cfg.perm_lookback_days, cfg.norm_n_passes,
+                           cfg.speckle, pool)
+    if nrm.get("file") is None:
+        return {"norm": nrm, "post_series": None}
+    try:
+        ps = postseries.build(run_dir, folder, sh, aoi, event, t.key, local, ngrid, cfg.post_series_days, cfg.n_placebo,
+                              cfg.speckle, pool, always=(t.post,))
+    except Exception as exc:  # the extra passes only sharpen the anomaly; the single after-image still works
+        ps = {"file": None, "error": str(exc)}
+    return {"norm": nrm, "post_series": ps}
+
+
 def _run(run_dir: Path, rj: dict, cfg: AcquireConfig, sh: SentinelHub, warnings: list[Notice]) -> None:
     aoi = catalog.aoi_to_geometry(rj["aoi"])
     event = date.fromisoformat(rj["event_date"])
@@ -423,8 +439,8 @@ def _run_with_pools(run_dir, rj, cfg, sh, warnings, aoi, event, epsg, acq, pool,
                          cfg.perm_n_passes, cfg.speckle, pool)
     # Year-long normal (median, MAD of VV and VH per pixel) of each track for the radar anomaly (D-M10-05), also in the background
     ngrid = coarse_grid(utm_grid(bounds, epsg, 10.0), cfg.norm_res_m)
-    norm_jobs = {fk: bg.submit(seriesnorm.build, run_dir, folder, sh, aoi, event, t.key, catalog.local_clock(aoi.centroid),
-                               ngrid, cfg.perm_lookback_days, cfg.norm_n_passes, cfg.speckle, pool)
+    norm_jobs = {fk: bg.submit(_norm_and_post, run_dir, folder, sh, aoi, event, t, catalog.local_clock(aoi.centroid), ngrid,
+                               cfg, pool)
                  for fk, folder, t in (("s1", "s1", main), ("s1_alt", "s1_alt", alt)) if t is not None}
     # D-X-05: a track without an after-image yet (fresh flood) may show hidden valley floor when it passes next.
     now = cfg.now or datetime.now(timezone.utc)
@@ -483,6 +499,8 @@ def _run_with_pools(run_dir, rj, cfg, sh, warnings, aoi, event, epsg, acq, pool,
         * estimate_pu(coarse_grid(g10, cfg.hist_res_m), 1, 2),
         "permanent_water_ref": cfg.perm_n_passes * estimate_pu(pgrid, 1, 1),
         "year_normal": cfg.norm_n_passes * len(norm_jobs) * estimate_pu(ngrid, 1, 2),
+        # after-event series (about 2 passes in 24 days per track) and as many placebo passes
+        "post_series": 2 * 2 * len(norm_jobs) * estimate_pu(ngrid, 1, 2),
     }
     pu_est = round(sum(parts.values()))
     acq["pu_estimate"] = {"total": pu_est, "parts": {k: round(v) for k, v in parts.items()}, "monthly_allowance": 10000}
@@ -539,7 +557,9 @@ def _run_with_pools(run_dir, rj, cfg, sh, warnings, aoi, event, epsg, acq, pool,
             continue
         _progress(run_dir, "running", f"waiting for the year-long normal of {fk}")
         try:
-            nrm = job.result()
+            res = job.result()
+            nrm = res["norm"]
+            blocks[fk]["post_series"] = res["post_series"]
         except Exception as exc:  # the radar anomaly is an extra; never lose the run because of it
             nrm = {"file": None, "error": str(exc)}
         blocks[fk]["norm"] = nrm

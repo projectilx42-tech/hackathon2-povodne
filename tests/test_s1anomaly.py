@@ -94,3 +94,16 @@ def test_step_without_normal_is_skipped(tmp_path):
     res = s1anomaly.run(run)
     rj = json.loads((run / "run.json").read_text())
     assert not res["used"] and any(n["code"] == "s1anomaly_no_reference" for n in rj["notices"])
+
+
+def test_mean_z_averages_passes_and_threshold_comes_from_placebo():
+    rng = np.random.default_rng(1)
+    z = [(rng.normal(0, 1, (200, 200)).astype(np.float32), rng.normal(0, 1, (200, 200)).astype(np.float32)) for _ in range(4)]
+    one = s1anomaly._mean_z(z[:1])
+    four = s1anomaly._mean_z(z)
+    assert four[0].std() < 0.6 * one[0].std()  # noise falls with the number of passes
+    z[1][0][:50] = np.nan
+    assert np.isfinite(s1anomaly._mean_z(z)[0]).all()  # a pass with a gap does not blank the mean
+    t = s1anomaly.placebo_threshold([four[0]], [four[1]], false_pct=0.5)
+    assert t is not None and t < 0 and abs(t) < 2.0  # tighter noise -> lower threshold for the same false share
+    assert s1anomaly.placebo_threshold([], []) is None

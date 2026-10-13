@@ -30,6 +30,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -38,6 +39,7 @@ from scipy.ndimage import zoom
 
 from ..io import get_step, load_run, set_notices, set_step, update_run, write_json_atomic  # noqa: F401
 
+PLACEBO_FALSE_PCT = 0.5  # the threshold suggested from the placebo lets through this % of a flood-free scene
 SIGMA_FLOOR_DB = 0.7  # noise floor: speckle and calibration noise that even a perfectly stable pixel has
 TRACKS = (("s1", "main"), ("s1_alt", "alt"))
 BANDS = ("z_vv", "z_vh", "z_comb", "n_tracks")
@@ -117,23 +119,80 @@ def _read(path: Path):
         return ds.read(), ds.profile
 
 
-def _track_z(run_dir: Path, prefix: str, shape10: tuple[int, int], when: str = "post"):
-    """z maps (vv, vh) of one track at the coarse grid and the coarse profile; None if something is missing."""
-    norm_p = run_dir / "raw" / prefix / "norm.tif"
-    files = [run_dir / "aligned" / f"{prefix}_{when}_{p}.tif" for p in ("vv", "vh")]
-    if not norm_p.exists() or not all(f.exists() for f in files):
-        return None
-    norm, prof = _read(norm_p)
-    cs = norm.shape[1:]
-    f = int(round(abs(prof["transform"].a) / 10.0))
+def _z_pair(x_vv: np.ndarray, x_vh: np.ndarray, norm: np.ndarray):
+    """z maps of one pass (coarse dB images) against the track's normal, each with its own scene offset."""
     out, offsets = [], []
-    for fp, (med, mad) in zip(files, ((norm[0], norm[1]), (norm[2], norm[3]))):
-        lin, _ = _read(fp)
-        x = to_coarse_db(lin[0].astype(np.float32), f, cs)
+    for x, (med, mad) in zip((x_vv, x_vh), ((norm[0], norm[1]), (norm[2], norm[3]))):
         off = scene_offset(x, med)
         offsets.append(round(off, 2))
         out.append(zscore(x, med, mad, offset_db=off))
-    return out[0], out[1], f, prof, offsets
+    return out[0], out[1], offsets
+
+
+def _mean_z(pairs: list):
+    """Mean over the passes of the z maps (NaN where a pass has no data; NaN if none has). Noise falls with the square root of
+    the number of passes, a persistent signal (standing flood water) stays."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        return (np.nanmean(np.stack([p[0] for p in pairs]), 0).astype(np.float32),
+                np.nanmean(np.stack([p[1] for p in pairs]), 0).astype(np.float32))
+
+
+def _series(run_dir: Path, prefix: str, norm: np.ndarray, which: str) -> list:
+    """z pairs of the passes in `raw/<prefix>/post_series.tif` ("post" or "placebo"); [] if there is no such file."""
+    tif, js = run_dir / "raw" / prefix / "post_series.tif", run_dir / "raw" / prefix / "post_series.json"
+    if not tif.exists() or not js.exists():
+        return []
+    info = json.loads(js.read_text())
+    stack, _ = _read(tif)
+    if stack.shape[1:] != norm.shape[1:]:
+        return []
+    pairs = []
+    for item in info.get(which, []):
+        i, j = item["bands"]
+        z = _z_pair(stack[i], stack[j], norm)
+        pairs.append((z[0], z[1], item["date"], z[2]))
+    return pairs
+
+
+def _track_z(run_dir: Path, prefix: str, shape10: tuple[int, int], when: str = "post"):
+    """z maps (vv, vh) of one track at the coarse grid, its coarse profile and details; None if something is missing.
+    "post": the mean over all after-event passes of the track when `post_series.tif` exists (D-M10-06), else the single
+    after-image; "pre": the single before-image (older placebo); "placebo": mean over the placebo passes of the series."""
+    norm_p = run_dir / "raw" / prefix / "norm.tif"
+    if not norm_p.exists():
+        return None
+    norm, prof = _read(norm_p)
+    f = int(round(abs(prof["transform"].a) / 10.0))
+    if when in ("post", "placebo"):
+        pairs = _series(run_dir, prefix, norm, when)
+        if pairs:
+            zv, zh = _mean_z(pairs)
+            return zv, zh, f, prof, {"n_passes": len(pairs), "dates": [p[2] for p in pairs],
+                                     "offsets": [{"vv": p[3][0], "vh": p[3][1]} for p in pairs]}
+        if when == "placebo":
+            return None
+    files = [run_dir / "aligned" / f"{prefix}_{when if when != 'placebo' else 'post'}_{p}.tif" for p in ("vv", "vh")]
+    if not all(fp.exists() for fp in files):
+        return None
+    cs = norm.shape[1:]
+    x = [to_coarse_db(_read(fp)[0][0].astype(np.float32), f, cs) for fp in files]
+    zv, zh, offs = _z_pair(x[0], x[1], norm)
+    return zv, zh, f, prof, {"n_passes": 1, "dates": [], "offsets": [{"vv": offs[0], "vh": offs[1]}]}
+
+
+def placebo_threshold(zs_vv: list, zs_vh: list, false_pct: float = PLACEBO_FALSE_PCT) -> float | None:
+    """z_comb value below which only `false_pct` % of the placebo pixels fall (the radar threshold that mistakes
+    `false_pct` % of a flood-free scene for flood); the combined score is the same as in `combine_tracks`."""
+    n, s = 0, 0
+    for zv, zh in zip(zs_vv, zs_vh):
+        ok = np.isfinite(zv) & np.isfinite(zh)
+        n = n + ok
+        s = s + np.where(ok, zv + zh, 0)
+    if np.isscalar(n):
+        return None
+    zc = (s / np.sqrt(2 * np.maximum(n, 1)))[n > 0]
+    return float(np.percentile(zc, false_pct)) if zc.size > 1000 else None
 
 
 def run(run_dir: Path) -> dict:
@@ -143,12 +202,12 @@ def run(run_dir: Path) -> dict:
     with rasterio.open(run_dir / "aligned" / "s1_post_vv.tif") as ds:
         shape10, profile10 = ds.shape, ds.profile
     per_vv, per_vh, coarse, used = [], [], [], []
-    placebo = {}
+    placebo, plac_vv, plac_vh = {}, [], []
     for prefix, label in TRACKS:
         got = _track_z(run_dir, prefix, shape10, "post")
         if got is None:
             continue
-        zv, zh, f, cprof, offs = got
+        zv, zh, f, cprof, det = got
         coarse.append((zv, zh))
         ls = run_dir / "masks" / f"{prefix}_layover_shadow.tif"
         hidden = (_read(ls)[0][0] > 0) if ls.exists() else np.zeros(shape10, bool)
@@ -157,12 +216,16 @@ def run(run_dir: Path) -> dict:
         per_vv.append(v10)
         per_vh.append(h10)
         used.append(label)
-        pre = _track_z(run_dir, prefix, shape10, "pre")  # placebo: the same test on the before-image should find (almost) nothing
+        # placebo: the same test (same number of passes) on passes from before the event should find (almost) nothing
+        pre = _track_z(run_dir, prefix, shape10, "placebo") or _track_z(run_dir, prefix, shape10, "pre")
         if pre is not None:
-            placebo[label] = {"vv_abs_z_gt3_pct": round(100 * float(np.nanmean(np.abs(pre[0]) > 3)), 2),
+            placebo[label] = {"n_passes": pre[4]["n_passes"], "dates": pre[4]["dates"],
+                              "vv_abs_z_gt3_pct": round(100 * float(np.nanmean(np.abs(pre[0]) > 3)), 2),
                               "vh_abs_z_gt3_pct": round(100 * float(np.nanmean(np.abs(pre[1]) > 3)), 2)}
+            plac_vv.append(pre[0])
+            plac_vh.append(pre[1])
         placebo.setdefault(label, {}).update(
-            scene_offset_db={"vv": offs[0], "vh": offs[1]},
+            post_passes=det["n_passes"], post_dates=det["dates"], scene_offset_db=det["offsets"],
             post_vv_abs_z_gt3_pct=round(100 * float(np.nanmean(np.abs(zv) > 3)), 2),
             post_vh_abs_z_gt3_pct=round(100 * float(np.nanmean(np.abs(zh) > 3)), 2))
     if not used:
@@ -198,7 +261,8 @@ def run(run_dir: Path) -> dict:
     section = {"used": True, "tracks": used, "sigma_floor_db": SIGMA_FLOOR_DB, "bands": list(BANDS),
                "coarse_resolution_m": abs(cprof["transform"].a), "valid_pct": round(100 * float(valid.mean()), 1),
                "abs_z_comb_gt3_pct": round(100 * float((np.abs(out[2][valid]) > 3).mean()), 2) if valid.any() else None,
-               "placebo": placebo}
+               "placebo": placebo, "placebo_false_pct": PLACEBO_FALSE_PCT,
+               "threshold_z_comb": placebo_threshold(plac_vv, plac_vh) if len(plac_vv) == len(used) else None}
     update_run(run_dir, lambda rj: (rj.__setitem__("s1anomaly", section), set_notices(rj, "s1anomaly", notices)))
     set_step(run_dir, "s1anomaly", "done", f"radar anomaly from {len(used)} track(s), {section['valid_pct']} % of the area covered")
     return section
