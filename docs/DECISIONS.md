@@ -920,6 +920,17 @@ a jistě nezasažené (stabilní, daleko od zasažených); lehký klasifikátor 
 převážením tříd na stejné rozdělení sklon × HAND. Práh statisticky: 2 % out-of-fold jistě stabilních vzorků (prostorové bloky 2 km), hystereze (semínko 0,2 %), min. plocha 10 px. Žádná EMS jako vstup ani pro volbu prahů (D-006);
 EMS jen měření. Výstupy `flood/selftrain_{prob,mask,type}.tif` a `run.json.selftrain` jsou nepovinné, zatím je nic nečte (nová soubory zapsány do ARCHITECTURE).
 
+## D-M12-02 | 2026-10-13 | přijato (M12) — První výsledek self-trainingu na Trishuli (celé údolí, běh `st1`), jen měření vůči EMSR927
+Parametry byly dané předem (D-M12-01: FPR 2 %, semínko 0,2 %, 10 px), po výsledku se nic neladilo; EMS nebyla vstupem. Pseudo-popisky: 99 tis. jistě zasažených px, 18,3 mil. jistě stabilních;
+out-of-fold AUC radarový model 0,879, optický 0,958. Doba 5,7 min na CPU (celá scéna 42×46 km). Práh 0,40, semínko 0,91.
+| varianta (uvnitř oblasti mapované EMS, 40 km²; EMS 11,6 km²) | P | R | F1 | recall údolí (sklon ≤ 15°, HAND ≤ 15 m) | recall svahy > 15° | recall radarový stín |
+|---|---|---|---|---|---|---|
+| základ (`flood_mask` 2 ∪ 3) | 0,971 | 0,623 | 0,759 | 76,3 % | 21,4 % | 40,1 % |
+| základ ∪ self-training | 0,775 | **0,977** | 0,864 | 99,1 % | 93,5 % | 91,3 % |
+Cíl ≥ 90 % plochy splněn (R 0,977), cena = precision 0,97 → 0,78. Self-training označil celkem 29,2 km² (1,5 % scény; 9,7 km² na svazích > 15°), z toho 14,6 km² uvnitř oblasti EMS a 14,6 km² mimo ni, kde EMS nic nemapovala
+(1,86 tis. km² → 0,8 %; zda jde o neznámé sesuvy, nebo falešné poplachy, nelze změřit). Omezení: EMS oblast je tam, kde se škody očekávaly, takže precision mimo ni bude nejspíš nižší; práh odpovídá 2 % falešných u jistě stabilních pixelů.
+Další krok: samostatná kontrola proti placebu (před snímek jako „po“), citlivost na FPR (1 % / 5 %) jen jako měření, druhé kolo (rozšířené popisky).
+
 ---
 
 # Otevřené otázky (k rozhodnutí)
