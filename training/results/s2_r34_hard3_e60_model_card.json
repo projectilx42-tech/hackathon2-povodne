@@ -1,0 +1,106 @@
+{
+ "arch": "Unet",
+ "encoder": "resnet34",
+ "in_channels": 8,
+ "num_classes": 2,
+ "inputs": [
+  "B03",
+  "B04",
+  "B08",
+  "B11",
+  "B12",
+  "ndwi",
+  "mndwi",
+  "ndvi"
+ ],
+ "bands": [
+  "B03",
+  "B04",
+  "B08",
+  "B11",
+  "B12"
+ ],
+ "normalization": {
+  "B03": [
+   0.13590867817401886,
+   0.07289556413888931
+  ],
+  "B04": [
+   0.1224975734949112,
+   0.08819085359573364
+  ],
+  "B08": [
+   0.26097503304481506,
+   0.09958052635192871
+  ],
+  "B11": [
+   0.20333537459373474,
+   0.09944487363100052
+  ],
+  "B12": [
+   0.11746115982532501,
+   0.07814916968345642
+  ],
+  "ndwi": [
+   -0.2991413474082947,
+   0.21999748051166534
+  ],
+  "mndwi": [
+   -0.16221463680267334,
+   0.2715001404285431
+  ],
+  "ndvi": [
+   0.36426395177841187,
+   0.2706913650035858
+  ]
+ },
+ "temperature": 1.4500000000000008,
+ "classes": {
+  "0": "no water",
+  "1": "water"
+ },
+ "input_units": "Sentinel-2 reflectance 0-1 (trained on L1C, augmented to cover L2A)",
+ "trained_on": "Sen1Floods11 hand-labelled S2 chips (Bonafilia et al., 2020), events except ['Bolivia', 'Ghana', 'Sri-Lanka']",
+ "split_events": {
+  "train": [
+   "India",
+   "Mekong",
+   "Nigeria",
+   "Pakistan",
+   "Paraguay",
+   "Somalia",
+   "Spain",
+   "USA"
+  ],
+  "val": [
+   "Ghana"
+  ],
+  "test": [
+   "Bolivia"
+  ],
+  "excluded": [
+   "Sri-Lanka"
+  ]
+ },
+ "val_metrics": {
+  "overall": {
+   "iou": 0.714859226832708,
+   "precision": 0.8691370266661408,
+   "recall": 0.8010829000117706,
+   "f1": 0.8337235099501792,
+   "water_px": 577708,
+   "px": 9188721
+  },
+  "per_event": {
+   "Ghana": {
+    "iou": 0.714859226832708,
+    "precision": 0.8691370266661408,
+    "recall": 0.8010829000117706,
+    "f1": 0.8337235099501792,
+    "water_px": 577708,
+    "px": 9188721
+   }
+  }
+ },
+ "license_notes": "Sen1Floods11: CC BY 4.0 (mirrors); ImageNet-pretrained encoder"
+}

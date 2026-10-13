@@ -1525,3 +1525,11 @@ Bihár (z 11 událostí): znovu stažené `perm_water`, roční normály a řady
 denní kvóta klíče ohsome (~250 dotazů, 7 na běh) byla po dnešním testování vyčerpaná (HTTP 403 „Quota exceeded“) → škody a odříznutí nešly spočítat
 (systém to hlásí). Hláška teď říká srozumitelně, že je vyčerpaná denní kvóta a co dělat (zítra / jiný bezplatný klíč). Test
 `tests/test_acquire_partial_failure.py::test_ohsome_quota_message_is_plain`. Pro živou ukázku: den předem netestovat přes ohsome naplno.
+
+## D-M15-02 | 2026-10-14 | přijato (úkol master session) — Optický model: dotrénování nepřineslo zlepšení, zůstává v0.1
+- 4 varianty na Kaggle (`floodseg-s2-r1`, data = Sen1Floods11 S2 výřezy jako Kaggle dataset `floodseg-s1f11-s2`): doladění v0.1 (lr 1e-4), doladění
+  s častějšími „opticky nejasnými“ výřezy (`train_s2.py --hard-boost`: voda s MNDWI < 0,2 = kalná/mělká/pod vegetací, suchá země s MNDWI > 0 = mokrá půda),
+  nový U-Net ResNet34 s vážením, doladění se silnějším vážením. Val (Ghana) IoU vody: v0.1 0,709, varianty 0,707–0,715 (v šumu).
+- **Výběr jen podle val** → `s2_r34_hard3_e60`; jednorázově: Sen1Floods11 Bolívie F1 0,885 → 0,896; 11 událostí (tag `s2opt02` proti `v05main`):
+  F1 0,864 → 0,865, ale **kontrola bez povodně (Marsyangdi) 0,328 → 0,500 km²** falešné plochy → pravidlo sloučení nesplněno, výchozí zůstává `floodseg_s2_v0.1`.
+- `run_ai.py`: env `POVODNE_AI_S2_MODEL` pro srovnání optických modelů (výchozí beze změny).
