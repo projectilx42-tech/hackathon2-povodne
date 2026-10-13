@@ -4,20 +4,20 @@ Reference: European Union, Copernicus Emergency Management Service data. Used **
 
 - Our post-event Sentinel-1 image: 2026-08-28; EMS VHR images: 2026-08-27, 2026-08-31
 - EMS products used: AOI01_GRA_PRODUCT_v1, AOI02_GRA_PRODUCT_v2, AOI03_GRA_PRODUCT_v1, AOI05_GRA_PRODUCT_v3
-- Compared area (EMS analysed area ∩ our valid pixels): 40.3859 km²
+- Compared area (EMS analysed area ∩ our valid pixels): 40.3893 km²
 
 ## Affected area (pixel level, 10 m)
 
 | | km² |
 |---|---|
-| ems affected | 11.6659 |
-| ours affected | 11.3803 |
-| both | 9.8532 |
-| only ours | 1.5271 |
-| only ems | 1.8127 |
+| ems affected | 11.6692 |
+| ours affected | 11.361 |
+| both | 9.8789 |
+| only ours | 1.4821 |
+| only ems | 1.7903 |
 
-IoU 0.747, precision 0.866, recall 0.845, F1 0.855.
-EMS maps the whole event as one class (mass movement), so water and debris are not scored separately; inside the EMS footprint our affected pixels are water 5.7471 km², debris 4.1061 km².
+IoU 0.751, precision 0.870, recall 0.847, F1 0.858.
+EMS maps the whole event as one class (mass movement), so water and debris are not scored separately; inside the EMS footprint our affected pixels are water 5.7769 km², debris 4.102 km².
 
 ## Buildings
 
