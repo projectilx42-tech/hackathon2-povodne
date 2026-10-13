@@ -15,7 +15,7 @@ Podrobnosti se **nenačítají automaticky** (šetření tokenů — dohromady ~
 - `docs/DECISIONS.md` (~108 kB) — najdi přes `Grep "^## D-"` a čti jen relevantní záznamy. Nové záznamy přidávej na konec přes `cat >> docs/DECISIONS.md`
   (nemusíš číst celý soubor).
 - `docs/QUESTIONS.md` — otázky na organizátory a jejich odpovědi.
-- Další: `docs/UI_SPEC.md`, `docs/NOTICES.md`, `docs/HANDOFF_*.md` podle modulu.
+- Další: `docs/UI_SPEC.md`, `docs/NOTICES.md`, `docs/REQUEST_M1_POIS.md`.
 - Nečti zbytečně: `docs/source/` (PDF, obrázky), `dashboard/static/vendor/` (minifikované JS), `training/himalaya/quicklooks/` (PNG).
 
 ## Šetření tokeny (limit 5 h se vyčerpá rychle)
