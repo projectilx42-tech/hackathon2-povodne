@@ -1,0 +1,324 @@
+{
+ "note": "Boundary diagnostic on the multi-event runs (VALIDATION ONLY, no new data, no PU).",
+ "tag": "v2default",
+ "events": {
+  "teesta_2023_sub": {
+   "truth_km2": 1.192,
+   "missed_km2": 0.248,
+   "bins": {
+    "0-1px": {
+     "km2": 0.122,
+     "share": 0.492
+    },
+    "1-2px": {
+     "km2": 0.044,
+     "share": 0.178
+    },
+    "2-3px": {
+     "km2": 0.022,
+     "share": 0.09
+    },
+    "3-10px": {
+     "km2": 0.032,
+     "share": 0.128
+    },
+    "10-30px": {
+     "km2": 0.028,
+     "share": 0.112
+    },
+    "30-infpx": {
+     "km2": 0.0,
+     "share": 0.0
+    }
+   },
+   "dilation": {
+    "0": {
+     "recall": 0.7917,
+     "precision": 0.6431,
+     "f1": 0.7097
+    },
+    "1": {
+     "recall": 0.8942,
+     "precision": 0.5729,
+     "f1": 0.6983
+    },
+    "2": {
+     "recall": 0.9314,
+     "precision": 0.5138,
+     "f1": 0.6623
+    },
+    "3": {
+     "recall": 0.9501,
+     "precision": 0.4562,
+     "f1": 0.6164
+    }
+   },
+   "share_within_3px": 0.76
+  },
+  "honduras_2018": {
+   "truth_km2": 19.31,
+   "missed_km2": 6.113,
+   "bins": {
+    "0-1px": {
+     "km2": 2.335,
+     "share": 0.382
+    },
+    "1-2px": {
+     "km2": 1.354,
+     "share": 0.221
+    },
+    "2-3px": {
+     "km2": 0.843,
+     "share": 0.138
+    },
+    "3-10px": {
+     "km2": 1.356,
+     "share": 0.222
+    },
+    "10-30px": {
+     "km2": 0.22,
+     "share": 0.036
+    },
+    "30-infpx": {
+     "km2": 0.005,
+     "share": 0.001
+    }
+   },
+   "dilation": {
+    "0": {
+     "recall": 0.6815,
+     "precision": 0.8884,
+     "f1": 0.7713
+    },
+    "1": {
+     "recall": 0.8031,
+     "precision": 0.8542,
+     "f1": 0.8279
+    },
+    "2": {
+     "recall": 0.8735,
+     "precision": 0.8133,
+     "f1": 0.8424
+    },
+    "3": {
+     "recall": 0.9173,
+     "precision": 0.759,
+     "f1": 0.8307
+    }
+   },
+   "share_within_3px": 0.741
+  },
+  "malawi_2022": {
+   "truth_km2": 13.253,
+   "missed_km2": 1.085,
+   "bins": {
+    "0-1px": {
+     "km2": 0.484,
+     "share": 0.446
+    },
+    "1-2px": {
+     "km2": 0.248,
+     "share": 0.229
+    },
+    "2-3px": {
+     "km2": 0.114,
+     "share": 0.105
+    },
+    "3-10px": {
+     "km2": 0.193,
+     "share": 0.178
+    },
+    "10-30px": {
+     "km2": 0.036,
+     "share": 0.033
+    },
+    "30-infpx": {
+     "km2": 0.01,
+     "share": 0.009
+    }
+   },
+   "dilation": {
+    "0": {
+     "recall": 0.9078,
+     "precision": 0.9495,
+     "f1": 0.9282
+    },
+    "1": {
+     "recall": 0.9511,
+     "precision": 0.9311,
+     "f1": 0.941
+    },
+    "2": {
+     "recall": 0.9716,
+     "precision": 0.9094,
+     "f1": 0.9395
+    },
+    "3": {
+     "recall": 0.9809,
+     "precision": 0.8817,
+     "f1": 0.9287
+    }
+   },
+   "share_within_3px": 0.78
+  },
+  "australia_2022": {
+   "truth_km2": 51.676,
+   "missed_km2": 10.52,
+   "bins": {
+    "0-1px": {
+     "km2": 2.927,
+     "share": 0.278
+    },
+    "1-2px": {
+     "km2": 2.222,
+     "share": 0.211
+    },
+    "2-3px": {
+     "km2": 1.871,
+     "share": 0.178
+    },
+    "3-10px": {
+     "km2": 3.329,
+     "share": 0.316
+    },
+    "10-30px": {
+     "km2": 0.171,
+     "share": 0.016
+    },
+    "30-infpx": {
+     "km2": 0.0,
+     "share": 0.0
+    }
+   },
+   "dilation": {
+    "0": {
+     "recall": 0.7336,
+     "precision": 0.8441,
+     "f1": 0.785
+    },
+    "1": {
+     "recall": 0.8071,
+     "precision": 0.835,
+     "f1": 0.8208
+    },
+    "2": {
+     "recall": 0.8606,
+     "precision": 0.8277,
+     "f1": 0.8438
+    },
+    "3": {
+     "recall": 0.9034,
+     "precision": 0.8208,
+     "f1": 0.8601
+    }
+   },
+   "share_within_3px": 0.667
+  },
+  "bolivia_2018": {
+   "truth_km2": 14.995,
+   "missed_km2": 0.116,
+   "bins": {
+    "0-1px": {
+     "km2": 0.06,
+     "share": 0.519
+    },
+    "1-2px": {
+     "km2": 0.022,
+     "share": 0.193
+    },
+    "2-3px": {
+     "km2": 0.01,
+     "share": 0.089
+    },
+    "3-10px": {
+     "km2": 0.014,
+     "share": 0.121
+    },
+    "10-30px": {
+     "km2": 0.009,
+     "share": 0.079
+    },
+    "30-infpx": {
+     "km2": 0.0,
+     "share": 0.0
+    }
+   },
+   "dilation": {
+    "0": {
+     "recall": 0.9923,
+     "precision": 0.5816,
+     "f1": 0.7334
+    },
+    "1": {
+     "recall": 0.9963,
+     "precision": 0.5547,
+     "f1": 0.7126
+    },
+    "2": {
+     "recall": 0.9978,
+     "precision": 0.5354,
+     "f1": 0.6968
+    },
+    "3": {
+     "recall": 0.9985,
+     "precision": 0.5179,
+     "f1": 0.682
+    }
+   },
+   "share_within_3px": 0.801
+  },
+  "bihar_2019": {
+   "truth_km2": 47.412,
+   "missed_km2": 0.593,
+   "bins": {
+    "0-1px": {
+     "km2": 0.205,
+     "share": 0.346
+    },
+    "1-2px": {
+     "km2": 0.155,
+     "share": 0.262
+    },
+    "2-3px": {
+     "km2": 0.116,
+     "share": 0.196
+    },
+    "3-10px": {
+     "km2": 0.117,
+     "share": 0.197
+    },
+    "10-30px": {
+     "km2": 0.0,
+     "share": 0.0
+    },
+    "30-infpx": {
+     "km2": 0.0,
+     "share": 0.0
+    }
+   },
+   "dilation": {
+    "0": {
+     "recall": 0.8168,
+     "precision": 0.8846,
+     "f1": 0.8493
+    },
+    "1": {
+     "recall": 0.8485,
+     "precision": 0.8794,
+     "f1": 0.8637
+    },
+    "2": {
+     "recall": 0.8744,
+     "precision": 0.875,
+     "f1": 0.8747
+    },
+    "3": {
+     "recall": 0.9001,
+     "precision": 0.8712,
+     "f1": 0.8854
+    }
+   },
+   "share_within_3px": 0.803
+  }
+ }
+}

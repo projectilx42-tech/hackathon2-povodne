@@ -58,6 +58,24 @@ that is why water-only recall drops although nothing is lost in the affected are
 `validation/multievent_rerun.sh <tag> [VAR=value ...]` (runs stay on disk under `/home/user/run-wt/runs/me_<event>`, no new PU), e.g.
 `validation/multievent_rerun.sh mytag POVODNE_ENVELOPE_OPTICS=0`; table: `python validation/multievent_eval.py table --tags mytag`.
 
+## Boundary diagnostic (`multievent_boundary_diag.py`, v2default masks, no new PU)
+Question: is the recall gap boundary pixels or missed regions? Missed = label flood not predicted as 2/3/4; distance in 10 m px to the nearest predicted flood
+pixel; dilation of the predicted flood (2+3; for water labels 2+3+4) by 0–3 px, restricted to valid data and valid labels.
+| event | missed km² | share of missed ≤3 px from a detection | missed share by distance 0–1 / 1–2 / 2–3 / 3–10 / 10–30 / >30 px | R / P at dilation 0 | 1 px | 2 px | 3 px |
+|---|---|---|---|---|---|---|---|
+| teesta_2023_sub | 0.248 | 0.76 | 0.49 / 0.18 / 0.09 / 0.13 / 0.11 / 0.00 | 0.79 / 0.64 | 0.89 / 0.57 | 0.93 / 0.51 | 0.95 / 0.46 |
+| honduras_2018 | 6.113 | 0.74 | 0.38 / 0.22 / 0.14 / 0.22 / 0.04 / 0.00 | 0.68 / 0.89 | 0.80 / 0.85 | 0.87 / 0.81 | 0.92 / 0.76 |
+| malawi_2022 | 1.085 | 0.78 | 0.45 / 0.23 / 0.10 / 0.18 / 0.03 / 0.01 | 0.91 / 0.95 | 0.95 / 0.93 | 0.97 / 0.91 | 0.98 / 0.88 |
+| australia_2022 | 10.52 | 0.67 | 0.28 / 0.21 / 0.18 / 0.32 / 0.02 / 0.00 | 0.73 / 0.84 | 0.81 / 0.83 | 0.86 / 0.83 | 0.90 / 0.82 |
+| bolivia_2018 | 0.116 | 0.80 | 0.52 / 0.19 / 0.09 / 0.12 / 0.08 / 0.00 | 0.99 / 0.58 | 1.00 / 0.55 | 1.00 / 0.54 | 1.00 / 0.52 |
+| bihar_2019 | 0.593 | 0.80 | 0.35 / 0.26 / 0.20 / 0.20 / 0.00 / 0.00 | 0.82 / 0.88 | 0.85 / 0.88 | 0.87 / 0.88 | 0.90 / 0.87 |
+Reading: 67–80 % of the missed area lies within 3 px of a detection on every independent label (Trishuli: 76 %), so a large part of the gap is edge/mixed pixels.
+But dilation trades precision: 1 px adds +0.04 to +0.12 recall (Honduras 0.68 → 0.80, Australia 0.73 → 0.81, Malawi 0.91 → 0.95, Bihar 0.82 → 0.85) for −0.01 to −0.03 precision;
+3 px reaches R ≥ 0.90 on Malawi, Honduras (0.92), Australia (0.90) and Bihar (0.90) at precision 0.76–0.88. Caveats: the labels themselves have a boundary uncertainty
+of about 1 px (hand labelling; Sen1Floods11 / Sentinel-2 labels were made at 10 m with different pixel footprints), so part of the "boundary gain" can be label noise rather than
+real extent; Bolivia/Teesta precision is shown against water-only labels, so the debris class (3) counts as false there (precision values for those two are not comparable).
+The distance bins use predicted 2/3/4 (permanent water counted as detected), so "missed km²" is smaller than the missed area behind the recall in the tables above.
+
 ## Cost and time
 Teesta 109 PU, Marsyangdi 99 PU, Chamoli 113 PU, Malawi 46 PU (cache), Honduras ~100 PU first fetch, Australia 39, Bolivia 101, Bihar 62 (+ failed retries); 2.5–5 min per event.
 
