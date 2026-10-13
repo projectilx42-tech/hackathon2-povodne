@@ -76,7 +76,7 @@ def test_run_ai_outputs():
         assert int((mask_s == 2).sum()) >= n_std
         assert not np.isin(mask_s[:, -20:], (2, 4)).any() and (mask_s[-10:, :10] == 0).all()
         params = json.loads((run / "run.json").read_text())["flood"]["params"]
-        assert params["sensitivity"] == "sensitive" and params["flood_threshold"] == 0.25
+        assert params["sensitivity"] == "sensitive" and params["flood_threshold"] == 0.2  # SENSITIVE_DEFAULT (D-M10-07)
 
 
 
