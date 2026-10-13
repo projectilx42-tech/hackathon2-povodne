@@ -22,7 +22,7 @@ from affine import Affine
 from scipy import ndimage
 
 AFFECTED = (2, 3)  # flood water, debris / surface change (docs/ARCHITECTURE.md, flood mask classes)
-DESTRUCTIVE_TYPES = (1, 3, 6)  # debris_type: 1 debris, 3 erosion, 6 damaged built-up area (D-M3d-02)
+DESTRUCTIVE_TYPES = (1, 3, 6, 7)  # debris_type: 1 debris, 3 erosion, 6 damaged built-up area (D-M3d-02), 7 landslide (D-X-07)
 
 
 @dataclass

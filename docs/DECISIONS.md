@@ -1067,3 +1067,7 @@ Malá oblast (8×9 km): 113 s bez cache, 78 s s cache (0 PU).
 - **Co nejde dál zrychlit stahováním:** Sentinel Hub počítá ~1 800 PU na běh (S1 10 m VV+VH × 6 snímků ≈ 1 160, historie ≈ 290, roční reference ≈ 245) a limit je 300 PU/min → stahování radaru má dolní mez ~5 min; víc vláken nepomůže.
   Hrubší roční reference (40 m) by ušetřila ~180 PU (~0,6 min) za cenu úzkých řek (D-M10-02) → ponecháno 20 m (netestováno proti 40 m).
 - **Co zbývá:** nejdelší je krok suti (9 min = 47 % běhu, kód mimo tuto změnu) a AI inference (4,3 min na 4 jádrech; ~210 s tvoří dlaždice dvou radarových drah a dvou optických snímků).
+
+## D-X-07 | 2026-10-13 | přijato (master) — Sesuv (`debris_type` 7) ničí budovy a silnice
+Krok suti nově značí čerstvé sesuvy jako `debris_type` 7 (D-M11-03). Modul škod bral jako ničivé jen typy 1, 3, 6, takže budova zasypaná sesuvem by se nepočítala jako zničená.
+Rozhodnutí: `damage/measure.py` `DESTRUCTIVE_TYPES` = (1, 3, 6, 7). Sesuv odnese nebo zasype stavbu stejně jako suť; kontrakt souborů beze změny.
