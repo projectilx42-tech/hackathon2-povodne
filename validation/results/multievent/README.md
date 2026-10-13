@@ -95,6 +95,24 @@ of about 1 px (hand labelling; Sen1Floods11 / Sentinel-2 labels were made at 10 
 real extent; Bolivia/Teesta precision is shown against water-only labels, so the debris class (3) counts as false there (precision values for those two are not comparable).
 The distance bins use predicted 2/3/4 (permanent water counted as detected), so "missed km²" is smaller than the missed area behind the recall in the tables above.
 
+## Why are label-flood regions missed? (`multievent_miss_diag.py`, v3default masks)
+missed_far = label flood, not predicted, > 3 px from any detection; detected = label flood predicted 2/3; dry = label dry, not predicted. Full percentiles in `miss_diag.json`.
+| event | group | km² | P(flood) <0.05 / 0.05–0.2 / 0.2–0.5 / ≥0.5 | z_comb ≤ −2 | pre VV dark (< −15 dB) | VV brightening >+1 dB / darkening <−1 dB / ±1 dB | S2 clear | median post VV / VH dB | median HAND m |
+|---|---|---|---|---|---|---|---|---|---|
+| chad_2020 | missed_far | 1.469 | 0.74 / 0.19 / 0.07 / 0.00 | 0.484 | 0.11 | 0.35 / 0.30 / 0.34 | 0.025 | -11.866 / -21.201 | 0.0 |
+| chad_2020 | detected | 5.764 | 0.61 / 0.11 / 0.10 / 0.17 | 0.885 | 0.51 | 0.22 / 0.56 / 0.22 | 0.082 | -17.089 / -24.789 | 0.0 |
+| chad_2020 | dry | 63.876 | 0.97 / 0.03 / 0.01 / 0.00 | 0.108 | 0.00 | 0.67 / 0.04 / 0.29 | 0.318 | -7.973 / -14.322 | 0.167 |
+| australia_2022 | missed_far | 3.501 | 0.29 / 0.37 / 0.34 / 0.00 | 0.037 | 0.87 | 0.37 / 0.42 / 0.21 | 0.155 | -19.562 / -27.587 | 0.161 |
+| australia_2022 | detected | 37.847 | 0.05 / 0.01 / 0.04 / 0.90 | 0.143 | 0.61 | 0.10 / 0.82 / 0.08 | 0.271 | -20.054 / -28.557 | 0.06 |
+| australia_2022 | dry | 6.953 | 0.91 / 0.07 / 0.02 / 0.00 | 0.001 | 0.72 | 0.83 / 0.03 / 0.14 | 0.733 | -12.001 / -17.841 | 0.964 |
+| honduras_2018 | missed_far | 1.58 | 0.34 / 0.24 / 0.42 / 0.00 | 0.018 | 0.01 | 0.05 / 0.81 / 0.14 | 0.483 | -12.626 / -17.848 | 0.245 |
+| honduras_2018 | detected | 13.118 | 0.03 / 0.02 / 0.57 / 0.37 | 0.463 | 0.00 | 0.01 / 0.97 / 0.03 | 0.293 | -17.776 / -24.011 | 0.02 |
+| honduras_2018 | dry | 48.497 | 0.95 / 0.04 / 0.01 / 0.00 | 0.008 | 0.00 | 0.44 / 0.13 / 0.43 | 0.382 | -8.244 / -13.794 | 0.779 |
+Verdict (3 lines):
+- **Honduras: (a) calibration.** Missed regions are radar-visible (VV darkens in 80 %, pre not dark) and 66 % have P(flood) 0.05–0.50 (42 % at 0.20–0.50, just under the argmax decision); detected pixels sit at 0.20–0.50 too (57 %). Standard mode misses what a lower cut (≈0.2) would take; z_comb is weak here (only 2 % ≤ −2), S2 MNDWI is 0 (turbid water), so the AI probability is the only cue.
+- **Australia: mostly (a)/(b) mix.** 71 % of the missed area has P 0.05–0.50 (calibration range; only 9 % of label-dry pixels exceed 0.05), but 87 % was already dark before (pre VV < −15 dB: wet/dark ground or flooded grass), so z cannot see it (z ≤ −2 only 4 %); VV change is mixed (darkening 42 %, brightening 37 %).
+- **Chad: mostly (b) radar-silent.** 74 % P < 0.05, 34 % no VV change, 35 % brightening (flooded vegetation / double bounce), S2 clear on only 2.5 % of these pixels; about 48 % have z_comb ≤ −2 (anomaly sees a darkening the thresholds do not accept) → a part is fixable by a laxer anomaly cut, the rest needs another cue (brightening = double bounce, or optics, which is unavailable under cloud).
+
 ## Cost and time
 Teesta 109 PU, Marsyangdi 99 PU, Chamoli 113 PU, Malawi 46 PU (cache), Honduras ~100 PU first fetch, Australia 39, Bolivia 101, Bihar 62 (+ failed retries); 2.5–5 min per event.
 
