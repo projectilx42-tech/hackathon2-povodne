@@ -1468,3 +1468,10 @@ Sada 11 událostí proti `s2fix`: F1 0,859 → 0,848 (R 0,854 → 0,820, P 0,876
 jen mírně tmavá), Teesta −0,024 → nesloučeno.
 Chamoli (F1 0,11): popisek jen 0,047 km² vody v soutěsce (21 % v radarovém stínu), systém tam hlásí hlavně suť (0,9 km²), kterou vodní popisek nezná —
 chyba dat to není, číslo je málo vypovídající.
+
+## D-M14-12 | 2026-10-13 | opt-in `POVODNE_SLIDE_BOTH=1`, k rozhodnutí (master) — Sesuv na svahu jen se shodou radaru a optiky
+Kontrola bez povodně (Marsyangdi, leden): krok změn povrchu hlásí 1,85 km² „sesuvů“ na svazích (HAND 89 m, sklon 36°), z toho 1,57 km² jen z optiky
+(zimní snímky: sníh, stíny, úhel slunce), 0,11 jen z radaru, 0,20 z obou. Pravidlo (`flood/debris/classify.py`): pixel fúze na svahu ≥ 15° jen při
+z ≥ 2 v radaru i optice. Sada 11 událostí (tag `slideboth` proti `s2fix`): F1 9 povodní beze změny (popisky jsou jen voda, sesuvy v nich nejsou);
+kontrola: suť/sesuv celkem 1,98 → 0,29 km² (sesuvy 1,85 → 0,16); ale i skutečné horské události ztratí plochu: Chamoli sesuvy 1,83 → 0,28 km²,
+Teesta 0,29 → 0,08 km² (zda šlo o skutečné sesuvy, vodní popisky neřeknou). Formálně pravidlo neprošlo (průměrné F1 nestouplo) → zůstává opt-in.

@@ -16,6 +16,8 @@ tuned on EMS maps or on the Trishuli case (D-006).
 """
 from __future__ import annotations
 
+import os
+
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -311,6 +313,11 @@ def detect(inp: Inputs, p: Params, tracks: list[Track] | None = None, use_optica
         zo_, zr_ = np.nan_to_num(fz.z_opt, nan=-9.0), np.nan_to_num(fz.z_rad, nan=-9.0)
         ls_source = (((zr_ >= 2).astype(np.uint8)) | ((zo_ >= 2).astype(np.uint8) << 1)) * fm
         steep = slope >= p.slide_slope_min_deg
+        if os.environ.get("POVODNE_SLIDE_BOTH", "0") == "1":
+            # opt-in (D-M14-12): a slide on a slope needs a change seen by BOTH sensors (z >= 2 in radar and optics);
+            # optics alone on slopes is too often snow, shadow or sun-angle change between two winter images
+            fm &= ~steep | ((zo_ >= 2) & (zr_ >= 2))
+            ls_source = ls_source * fm
         typ = np.where(fm, np.where(steep, LANDSLIDE, DEBRIS), typ).astype(np.uint8)
         both3 = (zo_ >= 3) & (zr_ >= 3) & (fuse_prob >= 0.9)
         both2 = (zo_ >= 2) & (zr_ >= 2)
