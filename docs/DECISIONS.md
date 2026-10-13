@@ -1404,5 +1404,7 @@ Výsledek doplním.
 ## D-M14-04 | 2026-10-13 | rozpracováno (opt-in `POVODNE_AI_ENSEMBLE`) — Kombinace více radarových modelů
 `run_ai.py`: průměr kalibrovaných pravděpodobností hlavního modelu a modelů z `POVODNE_AI_ENSEMBLE` (čárkami oddělené cesty). Výsledek doplním.
 
-## D-M14-05 | 2026-10-13 | rozpracováno (opt-in `POVODNE_ANOMALY_POST=min`) — Víc snímků po povodni: nejtmavší přelet
-Radarová anomálie bere u každého pixelu nejtmavší z přeletů po povodni (obě dráhy zvlášť) místo průměru; placebo stejnou statistikou. Výsledek doplním.
+## D-M14-05 | 2026-10-13 | zamítnuto (opt-in `POVODNE_ANOMALY_POST=min`) — Víc snímků po povodni: nejtmavší přelet
+Radarová anomálie bere u každého pixelu nejtmavší z přeletů po povodni (`post_series`, 24 dní, obě dráhy zvlášť) místo průměru; placebo stejnou statistikou.
+Sada 11 událostí (tag `multimin`): F1 0,850 → 0,849 (Bolívie −0,005, Honduras −0,003, ostatní ±0), kontrola beze změny → nesloučeno.
+Anomálie ovlivňuje jen malou část mapy (podpora a napojení slabé povodně); hlavní mapu dělá model z jednoho snímku „po“ na dráhu.
