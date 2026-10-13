@@ -32,7 +32,9 @@ DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 STALE_MINUTES = 15  # a "running" run with no file activity for this long is reported as interrupted
 STEPS = ["acquire", "preprocess", "flood_ai", "s1anomaly", "debris", "envelope", "combine", "damage", "network", "report"]  # = povodne.config.STEPS
 
+FLOODPATH_TIMEOUT_S = 120
 _procs: dict[str, subprocess.Popen] = {}
+_floodpath_lock = threading.Lock()
 _lock = threading.Lock()
 
 
@@ -49,6 +51,14 @@ def _write_json(path: Path, obj: Any) -> None:
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(json.dumps(obj, indent=2), encoding="utf-8")
     tmp.replace(path)
+
+
+def _subprocess_env() -> dict:
+    """Environment for helper subprocesses: lets ``python -m povodne...`` work without installing the package."""
+    env = dict(os.environ)
+    src = str(REPO_ROOT / "src")
+    env["PYTHONPATH"] = src + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
+    return env
 
 
 def run_dir_of(run_id: str) -> Path:
@@ -123,7 +133,8 @@ def run_status(run_id: str) -> dict:
                      "(for example the app was closed). Start it again.")
     if state == "failed" and error is None:
         error = progress.get("error") or _friendly_error(_log_tail(d))
-    return {"run_id": run_id, "state": state or "unknown", "steps": steps, "log_tail": _log_tail(d), "error": error}
+    notices = _read_json(d / "run.json").get("notices") or []
+    return {"run_id": run_id, "state": state or "unknown", "steps": steps, "log_tail": _log_tail(d), "error": error, "notices": notices}
 
 
 def list_runs() -> list[dict]:
@@ -245,6 +256,37 @@ def create_app() -> FastAPI:
         index = _read_json(d / "overlays" / "index.json")
         return [{"name": n, "url": f"/api/runs/{run_id}/files/overlays/{n}.png", "bounds": v["bounds"]}
                 for n, v in index.items() if (d / "overlays" / f"{n}.png").is_file()]
+
+    @app.post("/api/runs/{run_id}/floodpath")
+    def floodpath(run_id: str, body: dict = Body(...)) -> dict:
+        """Trace the flood path downstream from a clicked point and return the three result files."""
+        d = run_dir_of(run_id)
+        try:
+            lon, lat = float(body.get("lon")), float(body.get("lat"))
+        except (TypeError, ValueError):
+            raise HTTPException(422, "lon and lat must be numbers") from None
+        if not (-180 <= lon <= 180 and -90 <= lat <= 90):
+            raise HTTPException(422, "lon/lat out of range")
+        mock = d == SAMPLE_RUN
+        if not mock:
+            cmd = [sys.executable, "-m", "povodne.floodpath", str(d), "--lon", str(lon), "--lat", str(lat)]
+            with _floodpath_lock:
+                try:
+                    res = subprocess.run(cmd, cwd=REPO_ROOT, env=_subprocess_env(), capture_output=True, text=True, timeout=FLOODPATH_TIMEOUT_S)
+                except subprocess.TimeoutExpired:
+                    raise HTTPException(504, "Tracing the flood path took too long. Try a point closer to the river.") from None
+            if res.returncode != 0:
+                tail = (res.stderr or res.stdout or "").strip().splitlines()
+                msg = tail[-1] if tail else "unknown error"
+                if "No module named" in msg and "povodne" in msg:
+                    msg = "The flood-path module is not available in this installation yet."
+                raise HTTPException(422, msg.removeprefix("floodpath: "))
+        out = {"mock": mock}
+        for key, name in (("path", "path.geojson"), ("settlements", "settlements_on_path.geojson"), ("along", "along_path.json")):
+            out[key] = _read_json(d / "floodpath" / name) or None
+        if not out["path"]:
+            raise HTTPException(404, "No flood path result was produced.")
+        return out
 
     @app.get("/api/runs/{run_id}/files/{path:path}")
     def files(run_id: str, path: str, download: bool = False) -> FileResponse:
