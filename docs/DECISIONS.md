@@ -1225,3 +1225,13 @@ Změna kontraktu: žádná v souborech; `debris_type` 7 = fúzí nalezená ploch
 - **Násobení šance je slabé:** na Trishuli (plocha vs EMS, jen měření) při síle 0 / 1 / 2,5 / 4 R 0,619 / 0,620 / 0,624 / 0,629 (citlivý), standardní 0,617–0,623; model dává zmeškaným pixelům P ≈ 0, takže žádný násobič je nepřevrátí.
 - **Přímá podpora:** pixely tmavší než normál místa pod placebo prahem (z_comb < `threshold_z_comb`, ≥ 99,5 % bezpovodňové scény je nad ním), s terénní vahou > 0,05, mimo trvalou vodu, se přidají jako povodeň tam, kde navazují na povodeň z modelu (`--no-anomaly-connect` vypne). Hodnota prahu je jen z placeba, ne z EMS. Trishuli: R 0,619 → 0,639, P 0,968, F1 0,770 (recall na viditelné ploše 63,9 %).
 - **Zbývá:** cíl 90 % je daleko; volnější práh (z ≤ −2) by přidal recall za cenu přesnosti — volba jen přes odhad přesnosti z placeba (D-X-08), zatím neprovedeno.
+
+## D-M11-07 — Sesuvy z fúze: „zničeno“ jen při shodě obou senzorů (krok škod)
+**Stav:** přijato (výslovně vyžádal master, 2026-10-13). **Modul:** M11 (fúze), dotýká se kroku škod `damage/measure.py`.
+**Problém:** plocha typu 7 (sesuv/bahnotok na svahu, D-M11-05) je velká (~70 km²) a z velké části jen z optiky; jedna taková
+pixelová stopa na budově stačila k „likely_destroyed“.
+**Rozhodnutí:** pixel typu 7 se počítá jako „destrukční“ jen při jistotě HIGH (radar i optika z ≥ 3, p ≥ 0,9). MEDIUM → budova „affected“
+(zasažena), LOW → „possibly_affected“ (možná). Ostatní typy (suť, eroze, poškozená zástavba) beze změny (destrukční od MEDIUM výš).
+**Efekt (Trishuli, údolí, `runs/tf4`):** budov „likely_destroyed“ 1891 → 1595 (−16 %); počet zasažených budov a shoda s EMS (78,3 % spárovaných
+budov označeno, 1972 našich zásahů) beze změny — mění se jen stupeň, ne detekce. Změna je jen v rozhodování o stupni, žádná mez nebyla laděna podle EMS.
+**Kontrakt:** soubory beze změny; mění se jen interpretace `debris_type` 7 + `debris_confidence` v kroku škod (ARCHITECTURE.md, řádek škod).
