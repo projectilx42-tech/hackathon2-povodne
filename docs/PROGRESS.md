@@ -57,6 +57,7 @@ Pipeline běží end-to-end ze surových dat (`python -m povodne run`) i z webov
 ### 2026-10-13 — model v0.5 (doladění na těžké případy) — `feat/model-v05`
 - Doladění v0.4 s častějšími těžkými výřezy (`train.py --init/--hard-boost`), 8 variant na Kaggle; vítěz `r12_ft_hard5_eb1` prošel pravidlem sloučení na 11 událostech (`validation/model_compare.sh`).
 - Prahy na Kuro Siwo val (citlivý 0,25, okraj k=1 t=0,12). Průměr vah a TTA bez přínosu.
+- Pak bez přínosu (nesloučeno): optický model dotrénován (Bolívie F1 0,885 → 0,896, ale +0,17 km² falešné plochy na kontrole, D-M15-02); radar s horskými výřezy (F1 0,864 = beze změny, D-M15-03). Ladění modelu ukončeno.
 ### 2026-10-13 — vylepšení signálu — `feat/signal`
 - Runs 11 událostí postaveny znovu (baseline = v4 přesně), Kaggle dataset `povodne-multievent-runs` (+ popisky), obnova popisků Kuro Siwo z kompaktní kopie.
 - Kroky 1–5 změřeny (tabulka v `validation/results/multievent/README.md`, D-M14-01–05): žádný nezvedl průměrné F1 0,850; vše opt-in. Kombinace s modely r12 čeká na trénink.
