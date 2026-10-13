@@ -244,6 +244,7 @@ Q_GRID_RUN = (95,)
 TZ_GRID_RUN = (3.0, 2.5, 2.0, 1.75)
 R_GRID_RUN = (0, 6)
 TG_GRID_RUN = (2.5, 2.25, 2.0)
+W24_GRID = (5, 9)                  # window (px) for stages 2 and 4 (growth, edges): a smoothed statistic carries the weak evidence (D-M13-05)
 EDGE_T3 = (1.75, 1.5, 1.25)        # stage 4: lower threshold, only in a band around the detections
 EDGE_R = (3, 5, 10)
 T_PASS = 1.5                       # per-pass threshold of the persistence test (a-priori; each pass is unaveraged and noisy)
@@ -420,16 +421,25 @@ def search(c: dict, persist: bool, reach_q: int | None = None) -> dict:
 
     # stage 2: hysteresis growth from everything detected so far
     det1, grows = existing | aw | ad, []
-    for tg in TG_GRID_RUN:
-        evg, dkg = evidence_w(sE, tg, Pe, opt)
-        gnew = grow_hysteresis(det1, evg if reach is None else evg & reach, perm)
-        gps = []
-        for k in range(npl):
-            pg, _ = evidence_w(sPs[k], tg, Pp[k])
-            gps.append(grow_hysteresis(pdets[k], pg if preach is None else pg & preach[k], perm))
-        fp = fp0 + float(np.mean([int(gp.sum()) for gp in gps]))
-        grows.append({"tg": tg, "added_px": int(gnew.sum()), "est_precision": prec(fp, cur_added + int(gnew.sum())),
-                      "placebo_false_km2": round(fp * c["px_km2"], 4), "_new": gnew, "_dark": dkg, "_pnew": gps})
+    stat_cache: dict[int, tuple] = {}
+
+    def stats(w_):   # event and placebo windowed statistics, cached per window
+        if w_ not in stat_cache:
+            stat_cache[w_] = (windowed(z, w_), [windowed(g["z"], w_) for g in pl])
+        return stat_cache[w_]
+
+    for w2 in W24_GRID:
+        sE2, sP2 = stats(w2)
+        for tg in TG_GRID_RUN:
+            evg, dkg = evidence_w(sE2, tg, Pe, opt)
+            gnew = grow_hysteresis(det1, evg if reach is None else evg & reach, perm)
+            gps = []
+            for k in range(npl):
+                pg, _ = evidence_w(sP2[k], tg, Pp[k])
+                gps.append(grow_hysteresis(pdets[k], pg if preach is None else pg & preach[k], perm))
+            fp = fp0 + float(np.mean([int(gp.sum()) for gp in gps]))
+            grows.append({"w": w2, "tg": tg, "added_px": int(gnew.sum()), "est_precision": prec(fp, cur_added + int(gnew.sum())),
+                          "placebo_false_km2": round(fp * c["px_km2"], 4), "_new": gnew, "_dark": dkg, "_pnew": gps})
     gb = _pick(grows, "added_px")
     out["stages"]["growth"] = {"grid": [{k: v for k, v in g.items() if not k.startswith("_")} for g in grows],
                                "chosen": {k: v for k, v in gb.items() if not k.startswith("_")} if gb else None}
@@ -463,22 +473,25 @@ def search(c: dict, persist: bool, reach_q: int | None = None) -> dict:
     for r in EDGE_R:
         band = band_around(det3, r)
         pbands = [band_around(pdets[k], r) for k in range(npl)]
-        for t3 in EDGE_T3:
-            eve, dke = evidence_w(sE, t3, Pe, opt)
-            enew = band & eve & ~det3 & ~perm
-            if reach is not None:
-                enew &= reach
-            enew = grow_hysteresis(det3, enew, perm)
-            pns = []
-            for k in range(npl):
-                pe, _ = evidence_w(sPs[k], t3, Pp[k])
-                pnew = pbands[k] & pe & ~pdets[k] & ~perm
-                if preach is not None:
-                    pnew &= preach[k]
-                pns.append(int(grow_hysteresis(pdets[k], pnew, perm).sum()))
-            fp = fp0 + float(np.mean(pns))
-            edges.append({"r": r, "t3": t3, "added_px": int(enew.sum()), "est_precision": prec(fp, cur_added + int(enew.sum())),
-                          "placebo_false_km2": round(fp * c["px_km2"], 4), "_new": enew, "_dark": dke})
+        for w4 in W24_GRID:
+            sE4, sP4 = stats(w4)
+            for t3 in EDGE_T3:
+                eve, dke = evidence_w(sE4, t3, Pe, opt)
+                enew = band & eve & ~det3 & ~perm
+                if reach is not None:
+                    enew &= reach
+                enew = grow_hysteresis(det3, enew, perm)
+                pns = []
+                for k in range(npl):
+                    pe, _ = evidence_w(sP4[k], t3, Pp[k])
+                    pnew = pbands[k] & pe & ~pdets[k] & ~perm
+                    if preach is not None:
+                        pnew &= preach[k]
+                    pns.append(int(grow_hysteresis(pdets[k], pnew, perm).sum()))
+                fp = fp0 + float(np.mean(pns))
+                edges.append({"r": r, "w": w4, "t3": t3, "added_px": int(enew.sum()),
+                              "est_precision": prec(fp, cur_added + int(enew.sum())),
+                              "placebo_false_km2": round(fp * c["px_km2"], 4), "_new": enew, "_dark": dke})
     eb = _pick(edges, "added_px")
     out["stages"]["edges"] = {"grid": [{k: v for k, v in g.items() if not k.startswith("_")} for g in edges],
                               "chosen": {k: v for k, v in eb.items() if not k.startswith("_")} if eb else None}
@@ -519,7 +532,10 @@ def run(run_dir: Path) -> dict:
     if cfg:
         Q_GRID_RUN, TZ_GRID_RUN = tuple(cfg.get("q", Q_GRID_RUN)), tuple(cfg.get("tz", TZ_GRID_RUN))
         R_GRID_RUN, W_GRID = tuple(cfg.get("r", R_GRID_RUN)), tuple(cfg.get("w", W_GRID))
-    split = os.environ.get("POVODNE_ENVELOPE_PLACEBO", "") == "split"
+    global W24_GRID
+    if os.environ.get("POVODNE_ENVELOPE_STAGE24_W"):
+        W24_GRID = tuple(int(x) for x in os.environ["POVODNE_ENVELOPE_STAGE24_W"].split(","))
+    split = os.environ.get("POVODNE_ENVELOPE_PLACEBO", "split") == "split"   # default: one placebo group per pass (D-M13-05)
     pl = placebo_groups(run_dir, shape, split)
     if not pl:
         msg = "No placebo passes (no year-long normal): the envelope parameters cannot be chosen without a placebo, so nothing was added."
@@ -582,8 +598,8 @@ def run(run_dir: Path) -> dict:
     with rasterio.open(fdir / "envelope_stage.tif", "w", **p) as ds:   # 1 envelope, 2 growth, 3 permanent water, 4 edges (diagnostics)
         ds.write(win["stage"], 1)
     fin = win["final"]
-    chosen = {k: win["stages"][s]["chosen"][k] for s, ks in (("envelope", ("q", "w", "tz", "r_px")), ("growth", ("tg",)),
-              ("permanent_water", ("tp",)), ("edges", ("r", "t3"))) if win["stages"][s]["chosen"] for k in ks}
+    chosen = {(k if s == "envelope" else f"{s}_{k}"): win["stages"][s]["chosen"][k] for s, ks in (("envelope", ("q", "w", "tz", "r_px")), ("growth", ("w", "tg")),
+              ("permanent_water", ("tp",)), ("edges", ("r", "w", "t3"))) if win["stages"][s]["chosen"] for k in ks}
     section.update(used=True, persistence=win["persistence"], reach_q=win["reach_q"], chosen=chosen, final_est_precision=fin["est_precision"],
                    final_placebo_false_km2=fin["placebo_false_km2"],
                    added_km2={"water": round(int(aw.sum()) * px_km2, 4), "debris": round(int(ad.sum()) * px_km2, 4), "total": fin["added_km2"]})

@@ -1300,3 +1300,8 @@ Odhad přesnosti z jediné placebo skupiny vycházel optimisticky (změřené P 
 stejným řetězcem jako událost (obálka → růst omezený dosahem → souvislé okraje, trvalost přes průlety skupiny) a **falešná plocha = průměr přes skupiny**.
 Odhad P = 1 − falešná plocha ÷ (stávající + přidaná plocha); volba = největší plocha s odhadem ≥ 0,85. Mřížky: q 95; w {1, 5, 9}; tz {3; 2,5; 2; 1,75}; r {0, 6}; růst tg {2,5; 2,25; 2}; okraje t3 {1,75; 1,5; 1,25}, r {3, 5, 10};
 optika (NDVI) jen v události. Přepočet falešných okrajových pixelů na plochu okrajového pásu (D-M13-03) zrušen (master: odhad ještě optimističtější).
+
+## D-M13-05 | 2026-10-13 | přijato (návrh master session) — Okénkovaný důkaz v růstu a okrajích, split placebo jako výchozí
+Měřením (Trishuli, jen k posouzení) vyšlo: placebo **split** (každý placebo průlet zvlášť, falešná plocha = průměr; bez trvalosti v placebu, tedy přísnější) je dobře kalibrované (odhad 0,850 / skutečnost 0,866)
+→ **výchozí** (`POVODNE_ENVELOPE_PLACEBO=split`). Kroky 2 (růst) a 4 (okraje) berou důkaz **okénkovaný** (w ∈ {5, 9} px, `POVODNE_ENVELOPE_STAGE24_W`), protože na w = 1 je šum a růst nic nepřidá; krok 1 zůstává na w z mřížky.
+Zvolené hodnoty v `run.json.envelope.chosen` (klíče `growth_w`, `growth_tg`, `permanent_water_tp`, `edges_r`, `edges_w`, `edges_t3`).
