@@ -4,30 +4,30 @@ Reference: European Union, Copernicus Emergency Management Service data. Used **
 
 - Our post-event Sentinel-1 image: 2026-08-28; EMS VHR images: 2026-08-27, 2026-08-31
 - EMS products used: AOI01_GRA_PRODUCT_v1, AOI02_GRA_PRODUCT_v2, AOI03_GRA_PRODUCT_v1, AOI05_GRA_PRODUCT_v3
-- Compared area (EMS analysed area ∩ our valid pixels): 40.3021 km²
+- Compared area (EMS analysed area ∩ our valid pixels): 40.4012 km²
 
 ## Affected area (pixel level, 10 m)
 
 | | km² |
 |---|---|
-| ems affected | 11.5976 |
-| ours affected | 5.3467 |
-| both | 5.1566 |
-| only ours | 0.1901 |
-| only ems | 6.441 |
+| ems affected | 11.6799 |
+| ours affected | 7.9535 |
+| both | 7.1031 |
+| only ours | 0.8504 |
+| only ems | 4.5768 |
 
-IoU 0.438, precision 0.964, recall 0.445, F1 0.609.
-EMS maps the whole event as one class (mass movement), so water and debris are not scored separately; inside the EMS footprint our affected pixels are water 2.0664 km², debris 3.0902 km².
+IoU 0.567, precision 0.893, recall 0.608, F1 0.724.
+EMS maps the whole event as one class (mass movement), so water and debris are not scored separately; inside the EMS footprint our affected pixels are water 2.0664 km², debris 5.0367 km².
 
 ## Buildings
 
-EMS damaged buildings in compared area: 3375 {'Destroyed': 2433, 'Possibly damaged': 621, 'Damaged': 321}.
-Share inside our affected area (±10 m): 63.5 % (destroyed/damaged only: 75.8 %).
-Matched to an OSM building: 2509; of those flagged by us: 64.4 %. Our hit buildings in the area: 1532, of which not listed by EMS: 237 (EMS lists only damaged buildings, so these are either our false alarms or EMS omissions).
+EMS damaged buildings in compared area: 3377 {'Destroyed': 2435, 'Possibly damaged': 621, 'Damaged': 321}.
+Share inside our affected area (±10 m): 79.8 % (destroyed/damaged only: 91.6 %).
+Matched to an OSM building: 2511; of those flagged by us: 64.4 %. Our hit buildings in the area: 1535, of which not listed by EMS: 238 (EMS lists only damaged buildings, so these are either our false alarms or EMS omissions).
 
 ## Roads
 
-EMS damaged roads 63.817 km, of which near our blocked roads 78.0 %; EMS 'no visible damage' roads 152.373 km, of which we flag 16.5 % (false alarms). Including our 'possibly blocked': 84.9 % / 27.6 %.
+EMS damaged roads 64.196 km, of which near our blocked roads 77.9 %; EMS 'no visible damage' roads 152.398 km, of which we flag 16.6 % (false alarms). Including our 'possibly blocked': 84.9 % / 27.7 %.
 
 ## Bridges
 
