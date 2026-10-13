@@ -29,3 +29,4 @@ pillow>=10
 # M10 validation vs EMSR927 (offline tool in validation/, never used by the pipeline): comparison map PNG (matplotlib, listed above)
 kaggle>=1.6
 lightgbm>=4.0
+scikit-learn>=1.3
