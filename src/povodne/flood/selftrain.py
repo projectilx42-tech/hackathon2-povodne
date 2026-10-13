@@ -46,6 +46,9 @@ BLOCK_PX = 200  # 2 km spatial blocks for out-of-fold estimates
 MIN_PX = 10
 MAX_TRAIN = 150_000  # samples per class and model
 FAR_FROM_POS_PX = 15
+PLACEBO_SEED_PCT = 0.05  # hysteresis seeds: above the 99.95th percentile of the placebo probability
+PRECISION_TARGET = 0.85  # D-X-08
+SWEEP = (0.5, 0.7, 0.8, 0.9, 0.95, 0.98, 0.99, 0.995)
 Z_STRONG = 4.0
 AI_STRONG = 0.9
 DNDVI_STRONG = 0.4
@@ -90,6 +93,55 @@ def _nd(a: np.ndarray, b: np.ndarray) -> np.ndarray:
 
 
 # ----------------------------------------------------------------------------------------------- features
+def radar_features(run_dir: Path, shape, res, placebo: bool = False) -> dict[str, np.ndarray]:
+    """Radar anomaly features. placebo=False: from flood/s1_anomaly(.tracks).tif (the after-event passes); placebo=True: the same
+    computation on the passes from before the event (`s1anomaly._track_z(..., "placebo")`), which should show nothing real."""
+    from . import s1anomaly as an_
+
+    F: dict[str, np.ndarray] = {}
+    if not placebo:
+        an, _ = _read(run_dir / "flood" / "s1_anomaly.tif", None)
+        zvv, zvh, zc, ntr = (an[i].astype(np.float32) for i in range(4))
+        per = {}
+        tr_path = run_dir / "flood" / "s1_anomaly_tracks.tif"
+        if tr_path.exists():
+            tr, tds = _read(tr_path, None)
+            f = max(1, int(round(abs(tds.transform.a) / res)))
+            for i, name in enumerate(("main_vv", "main_vh", "alt_vv", "alt_vh")):
+                up = np.repeat(np.repeat(tr[i], f, 0), f, 1)[: shape[0], : shape[1]]
+                full = np.full(shape, np.nan, np.float32)
+                full[: up.shape[0], : up.shape[1]] = up
+                per[name] = full
+    else:
+        per_vv, per_vh, per = [], [], {}
+        for prefix, label in an_.TRACKS:
+            got = an_._track_z(run_dir, prefix, shape, "placebo") or an_._track_z(run_dir, prefix, shape, "pre")
+            if got is None:
+                continue
+            zv, zh, f, _, _ = got
+            ls = run_dir / "masks" / f"{prefix}_layover_shadow.tif"
+            hidden = (_read(ls)[0] > 0) if ls.exists() else np.zeros(shape, bool)
+            v10, h10 = an_.upsample(zv, f, shape), an_.upsample(zh, f, shape)
+            v10[hidden], h10[hidden] = np.nan, np.nan
+            per_vv.append(v10), per_vh.append(h10)
+            per[f"{label}_vv"], per[f"{label}_vh"] = v10, h10
+        if not per_vv:
+            return {}
+        zvv, zvh, zc, ntr = an_.combine_tracks(per_vv, per_vh)
+    F["r_z_vv"], F["r_z_vh"], F["r_z_comb"], F["r_n_tracks"] = zvv, zvh, zc, ntr
+    F["r_z_vh_minus_vv"] = zvh - zvv
+    zc0 = np.where(np.isfinite(zc), zc, 0).astype(np.float32)
+    for sz in (5, 21):
+        F[f"r_z_mean{sz}"] = nanmean_filter(zc, sz)
+    F["r_z_min5"] = ndimage.minimum_filter(zc0, 5).astype(np.float32)
+    F["r_z_max5"] = ndimage.maximum_filter(zc0, 5)
+    F["r_z_min21"] = ndimage.minimum_filter(zc0, 21).astype(np.float32)
+    for k, v in per.items():
+        F[f"r_z_{k}"] = v.astype(np.float32)
+    return F
+
+
+
 def build_features(run_dir: Path) -> tuple[dict[str, np.ndarray], dict]:
     """Return ({name: float32 array}, context). Features are grouped by view: names start with r_ (radar), o_ (optical) or t_ (terrain)."""
     run_dir = Path(run_dir)
@@ -100,42 +152,9 @@ def build_features(run_dir: Path) -> tuple[dict[str, np.ndarray], dict]:
         ai_prob = ai_prob / 255.0
     F: dict[str, np.ndarray] = {}
 
-    # ---- radar
-    an, _ = _read(run_dir / "flood" / "s1_anomaly.tif", None)
-    zvv, zvh, zc, ntr = (an[i].astype(np.float32) for i in range(4))
-    F["r_z_vv"], F["r_z_vh"], F["r_z_comb"], F["r_n_tracks"] = zvv, zvh, zc, ntr
-    F["r_z_vh_minus_vv"] = zvh - zvv
-    zc0 = np.where(np.isfinite(zc), zc, 0).astype(np.float32)
-    for s in (5, 21):
-        F[f"r_z_mean{s}"] = nanmean_filter(zc, s)
-    F["r_z_min5"] = ndimage.minimum_filter(np.where(np.isfinite(zc), zc, 0), 5).astype(np.float32)
-    F["r_z_max5"] = ndimage.maximum_filter(zc0, 5)
-    F["r_z_min21"] = ndimage.minimum_filter(zc0, 21).astype(np.float32)
+    # ---- radar (z-score features only, so the same features can be built from a placebo: passes before the event)
     ctx: dict = {"shape": shape, "res": res, "transform": ds.transform, "crs": ds.crs, "profile": ds.profile}
-    tr_path = run_dir / "flood" / "s1_anomaly_tracks.tif"
-    if tr_path.exists():
-        tr, tds = _read(tr_path, None)
-        f = max(1, int(round(abs(tds.transform.a) / res)))
-        for i, name in enumerate(("main_vv", "main_vh", "alt_vv", "alt_vh")):
-            up = np.repeat(np.repeat(tr[i], f, 0), f, 1)[: shape[0], : shape[1]]
-            full = np.full(shape, np.nan, np.float32)
-            full[: up.shape[0], : up.shape[1]] = up
-            F[f"r_z_{name}"] = full
-    posts = []
-    for prefix in ("s1", "s1_alt"):
-        pv, pvh = _opt(run_dir, f"aligned/{prefix}_post_vv.tif", shape), _opt(run_dir, f"aligned/{prefix}_post_vh.tif", shape)
-        qv, qvh = _opt(run_dir, f"aligned/{prefix}_pre_vv.tif", shape), _opt(run_dir, f"aligned/{prefix}_pre_vh.tif", shape)
-        if pv is None or qv is None:
-            continue
-        posts.append((_db(pv), _db(pvh)))
-        F[f"r_d_{prefix}_vv"] = nanmean_filter(_db(pv) - _db(qv), 3)
-        if pvh is not None and qvh is not None:
-            F[f"r_d_{prefix}_vh"] = nanmean_filter(_db(pvh) - _db(qvh), 3)
-    if posts:
-        F["r_post_vv_db"] = nanmean_filter(np.nanmean([p[0] for p in posts], 0), 3)
-        vhs = [p[1] for p in posts if p[1] is not None]
-        if vhs:
-            F["r_post_vh_db"] = nanmean_filter(np.nanmean(vhs, 0), 3)
+    F.update(radar_features(run_dir, shape, res, placebo=False))
 
     # ---- optical
     pre, post = _opt(run_dir, "aligned/s2_pre.tif", shape, None), _opt(run_dir, "aligned/s2_post.tif", shape, None)
@@ -191,10 +210,10 @@ def pseudo_labels(F: dict[str, np.ndarray], ctx: dict) -> dict:
     valid = ai != 0
     ai_pos = (ai == 2) & (ap >= AI_STRONG)
     zc, ntr = F["r_z_comb"], F["r_n_tracks"]
-    both = {k: F[k] for k in ("r_z_vh_main", "r_z_vh_alt") if k in F}
+    both = {k: F[k] for k in ("r_z_main_vh", "r_z_alt_vh") if k in F}
     radar_pos = (ntr >= 2) & (zc <= -Z_STRONG)
     if len(both) == 2:
-        radar_pos &= (both["r_z_vh_main"] <= -2) & (both["r_z_vh_alt"] <= -2)
+        radar_pos &= (both["r_z_main_vh"] <= -2) & (both["r_z_alt_vh"] <= -2)
     radar_stable = np.isfinite(zc) & (np.abs(zc) <= 1.5) & (ntr >= 1)
     out = {"valid": valid, "ai_pos": ai_pos, "radar_pos": radar_pos, "radar_stable": radar_stable}
     if "o_d_ndvi" in F:
@@ -370,10 +389,37 @@ def run(run_dir: Path, fpr: float = FPR_TARGET) -> dict:
         return {"used": False, **info}
     nanp = np.full(ctx["shape"], np.nan, np.float32)
     prob = fuse(probs.get("r", nanp), probs.get("o", nanp))
-    # threshold from out-of-fold certain-stable samples, averaged over the views that exist
-    t_low = float(1 / (1 + np.exp(-np.mean([_logit(threshold_from_oof(o, fpr)) for o in oofs.values()]))))
-    t_seed = float(1 / (1 + np.exp(-np.mean([_logit(threshold_from_oof(o, FPR_SEED)) for o in oofs.values()]))))
+    # ---- working point from the PLACEBO (passes before the event), never from a reference map (D-X-08):
+    # estimated precision(t) = 1 - false area on the placebo / detected area; both with the same radar model, features and post-processing.
+    plac = None
+    if "r" in models:
+        Fp = {k: v for k, v in F.items() if k.startswith("t_")}
+        Fp.update(radar_features(run_dir, ctx["shape"], ctx["res"], placebo=True))
+        if "r_z_comb" in Fp:
+            vp = valid & np.isfinite(Fp["r_z_comb"])
+            pp = predict_full(models["r"][0], models["r"][1], Fp, vp)
+            plac = np.nan_to_num(pp, nan=0.0)
+    px = ctx["res"] ** 2 / 1e6
+    pf_r = np.nan_to_num(probs.get("r", nanp), nan=0.0)
     pf = np.nan_to_num(prob, nan=0.0)
+    sweep, t_low, t_seed = [], None, None
+    if plac is not None:
+        t_seed = float(np.quantile(plac[valid], 1 - PLACEBO_SEED_PCT / 100))
+        for t in SWEEP:
+            det = objects(pf_r, t, max(t_seed, t), valid)
+            fal = objects(plac, t, max(t_seed, t), valid)
+            a_d, a_f = float(det.sum()) * px, float(fal.sum()) * px
+            sweep.append({"t": t, "detected_km2": round(a_d, 3), "placebo_km2": round(a_f, 3),
+                          "est_precision": round(1 - a_f / a_d, 3) if a_d > 0 else None})
+        ok = [r for r in sweep if r["est_precision"] is not None and r["est_precision"] >= PRECISION_TARGET]
+        t_low = min(r["t"] for r in ok) if ok else None  # lowest threshold (largest area) that still meets the precision target
+    if t_low is None:  # no placebo or target unreachable: fall back to the out-of-fold stable-sample rule
+        t_low = float(1 / (1 + np.exp(-np.mean([_logit(threshold_from_oof(o, fpr)) for o in oofs.values()]))))
+        t_seed = float(1 / (1 + np.exp(-np.mean([_logit(threshold_from_oof(o, FPR_SEED)) for o in oofs.values()]))))
+        info["working_point"] = "out-of-fold stable samples (no placebo / precision target not reachable)"
+    else:
+        info["working_point"] = f"placebo: lowest threshold with estimated precision >= {PRECISION_TARGET}"
+    info["placebo_sweep"] = sweep
     mask = objects(pf, t_low, max(t_seed, t_low), valid)
     slope = F["t_slope"]
     typ = np.where(mask, np.where(slope > 15, 7, 9), 0).astype(np.uint8)
@@ -386,7 +432,6 @@ def run(run_dir: Path, fpr: float = FPR_TARGET) -> dict:
         w.write(mask.astype(np.uint8), 1)
     with rasterio.open(fdir / "selftrain_type.tif", "w", dtype="uint8", nodata=0, **base) as w:
         w.write(typ, 1)
-    px = ctx["res"] ** 2 / 1e6
     info.update(used=True, fpr_target=fpr, threshold=round(t_low, 4), seed_threshold=round(t_seed, 4),
                 flagged_km2=round(float(mask.sum()) * px, 3), flagged_slope_gt15_km2=round(float((mask & (slope > 15)).sum()) * px, 3),
                 share_of_valid_pct=round(100 * float(mask.sum()) / max(int(valid.sum()), 1), 2))

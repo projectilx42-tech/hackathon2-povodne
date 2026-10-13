@@ -931,6 +931,22 @@ Cíl ≥ 90 % plochy splněn (R 0,977), cena = precision 0,97 → 0,78. Self-tra
 (1,86 tis. km² → 0,8 %; zda jde o neznámé sesuvy, nebo falešné poplachy, nelze změřit). Omezení: EMS oblast je tam, kde se škody očekávaly, takže precision mimo ni bude nejspíš nižší; práh odpovídá 2 % falešných u jistě stabilních pixelů.
 Další krok: samostatná kontrola proti placebu (před snímek jako „po“), citlivost na FPR (1 % / 5 %) jen jako měření, druhé kolo (rozšířené popisky).
 
+## D-M12-03 | 2026-10-13 | přijato (M12; zadání master D-X-08) — Pracovní bod self-trainingu z placeba, ne z EMS
+Radarový model používá jen rysy z-skóre (+ terén), aby šly stejné rysy spočítat i z průletů před událostí (placebo, `s1anomaly._track_z(..., "placebo")`).
+Odhad přesnosti(t) = 1 − falešná plocha na placebu ÷ detekovaná plocha (stejný model, stejné objektové vyhlazení, celá scéna 42×46 km). Pracovní bod = nejnižší práh t ze sady
+(0,5 … 0,995; předem daná) s odhadem přesnosti ≥ 0,85; semínka hystereze = 99,95. percentil pravděpodobnosti na placebu. Optika placebo nemá → odhad zahrnuje jen radarový model (pro fúzi radar + optika je to odhad bez optické části).
+Trishuli `st2` (po sloučení main; plocha detekce / falešná na placebu / odhad): t 0,9: 23,6 / 4,2 / 0,82; **t 0,95: 21,1 / 3,05 / 0,855 (zvoleno)**; t 0,99: 15,2 / 1,3 / 0,915.
+Měření proti EMSR927 (jen měření, nic se podle něj nevolilo; oblast mapovaná EMS, viditelná plocha = 100 % EMS):
+| varianta | P | R (= recall viditelné) | F1 | údolí | svahy > 15° | stín hlavní dráhy |
+|---|---|---|---|---|---|---|
+| základ | 0,972 | 0,621 | 0,758 | 76 % | 22 % | 40 % |
+| základ ∪ self-training, placebo-práh 0,95 | **0,921** | **0,859** | 0,889 | 92 % | 66 % | 68 % |
+| základ ∪ self-training, práh z out-of-fold (FPR 2 %, D-M12-02) | 0,815 | 0,972 | 0,887 | 99 % | 92 % | 91 % |
+Cíl D-X-08 (R viditelné ≥ 0,90 při P ≥ 0,85) se **s placebo-pracovním bodem nesplní** (R 0,86 při P 0,92); s volnějším bodem jde R 0,97, ale P 0,82. Mezi nimi leží bod, který by splnil oba cíle
+(t ≈ 0,8–0,9), jenže ten se volit nesmí podle EMS; placebo ho dává jako přesnost 0,79–0,82 < 0,85. Rozpor odhad vs. měření: placebo odhaduje přesnost pesimisticky (0,855 vs. změřených 0,92), protože část „falešné“ plochy
+na placebu jsou skutečné změny před událostí a nezmapované plochy mimo EMS.
+**Zjištěná chyba v `main` (mimo můj modul):** `post_*.tif` v `preprocess/pipeline.py` (řádky 113, 168) a `flood/debris/inputs.py` (133, 169) chytá i nový `post_series.tif` (D-M10-06) → radar „vidí 0 %“, krok suti padá (tvary 1180×1076 vs 4719×4301), `nodata` 64 %. Řešení: glob `post_[0-9]*.tif`. Ve svých během jsem `post_series.tif` dočasně odsouval.
+
 ---
 
 # Otevřené otázky (k rozhodnutí)
