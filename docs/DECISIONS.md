@@ -1405,8 +1405,10 @@ Sada 11 událostí, průměr 9: `st10` F1 0,850 → 0,842 (R 0,842 → 0,853, P 
 0,848 (Čad R 0,67 → 0,69 / P 0,78 → 0,74, Bihár −0,007, Evros −0,009) → nesloučeno. **Chyba:** `selftrain` padá na událostech s jednou dráhou (`KeyError 'r_z_alt_vv'`:
 Austrálie, Malawi, Missouri) — tam se nic nepřidalo; opravit, pokud se krok někdy zapne.
 
-## D-M14-04 | 2026-10-13 | rozpracováno (opt-in `POVODNE_AI_ENSEMBLE`) — Kombinace více radarových modelů
-`run_ai.py`: průměr kalibrovaných pravděpodobností hlavního modelu a modelů z `POVODNE_AI_ENSEMBLE` (čárkami oddělené cesty). Výsledek doplním.
+## D-M14-04 | 2026-10-13 | zatím nesloučeno (opt-in `POVODNE_AI_ENSEMBLE`) — Kombinace více radarových modelů
+`run_ai.py`: průměr kalibrovaných pravděpodobností hlavního modelu a modelů z `POVODNE_AI_ENSEMBLE` (čárkami oddělené cesty); prahy citlivosti a okraje
+z hlavního modelu. v0.4 + v0.2 (`ens_v02`; v0.2 viděl Bolívii, jen orientačně): F1 0,850 → 0,846, Austrálie +0,025, Teesta −0,058 → neprošlo.
+Modely r12 (doladění v0.4 bez Bolívie, session tréninku) se změří, až doběhnou.
 
 ## D-M14-05 | 2026-10-13 | zamítnuto (opt-in `POVODNE_ANOMALY_POST=min`) — Víc snímků po povodni: nejtmavší přelet
 Radarová anomálie bere u každého pixelu nejtmavší z přeletů po povodni (`post_series`, 24 dní, obě dráhy zvlášť) místo průměru; placebo stejnou statistikou.

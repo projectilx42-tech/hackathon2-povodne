@@ -147,6 +147,25 @@ Verdict (3 lines):
 - **Australia: mostly (a)/(b) mix.** 71 % of the missed area has P 0.05–0.50 (calibration range; only 9 % of label-dry pixels exceed 0.05), but 87 % was already dark before (pre VV < −15 dB: wet/dark ground or flooded grass), so z cannot see it (z ≤ −2 only 4 %); VV change is mixed (darkening 42 %, brightening 37 %).
 - **Chad: mostly (b) radar-silent.** 74 % P < 0.05, 34 % no VV change, 35 % brightening (flooded vegetation / double bounce), S2 clear on only 2.5 % of these pixels; about 48 % have z_comb ≤ −2 (anomaly sees a darkening the thresholds do not accept) → a part is fixable by a laxer anomaly cut, the rest needs another cue (brightening = double bounce, or optics, which is unavailable under cloud).
 
+## Signal improvements (feat/signal, 13 Oct) — all measured against `base` (= v4 rebuilt from raw data in a fresh container, identical numbers)
+Runs rebuilt with `python -m povodne run` from origin/main 3aa8e25 (`/home/user/runs/me_<event>`, also private Kaggle dataset `povodne-multievent-runs`);
+Kuro Siwo labels rebuilt from our compact Kaggle copy (`validation/multievent_labels_compact.py`). Comparison: `python validation/multievent_compare.py base <tag>`
+(mean over the 9 labelled flood events; Chamoli not informative, Marsyangdi = no-flood control). Merge rule: mean F1 up, no event down > 0.01 F1,
+mean precision not down > 0.01, control not more false area. **No step passed; all stay opt-in (environment variable).**
+| step | tag | mean R / P / F1 (base 0.842 / 0.870 / 0.850) | worst event ΔF1 | control km² (0.329) | switch |
+|---|---|---|---|---|---|
+| 1 radar brightening (flooded vegetation / buildings) | br1 | 0.844 / 0.852 / 0.842 | Missouri −0.035, Evros −0.025 | 0.329 | `POVODNE_BRIGHTEN=1` |
+| 1 + VV−VH ≥ 2 | br_dpol2 | 0.843 / 0.867 / 0.849 | Missouri −0.003 | 0.329 | `+POVODNE_BRIGHTEN_DPOL=2` |
+| 2 Sentinel-2 water index (MNDWI > 0) everywhere clear | s2i (5 events) | Australia +0.000 | Honduras −0.002 | 0.385 (+0.06) | `POVODNE_S2_INDEX=1` |
+| 3 self-training + safety net (HAND ≤ 10 m, connected to core) | st10 | 0.853 / 0.844 / 0.842 | Chad −0.038 | 0.329 | `POVODNE_SELFTRAIN_FUSE=1` |
+| 3 strict (HAND ≤ 3, core P ≥ 0.95, self-training P ≥ 0.9) | st_strict | 0.844 / 0.862 / 0.848 | Evros −0.009 | 0.329 | `+POVODNE_STFUSE_*` |
+| 4 two models: v0.4 + v0.2 (v0.2 saw Bolivia in training) | ens_v02 | 0.839 / 0.868 / 0.846 | Teesta −0.058 (Australia +0.025) | 0.328 | `POVODNE_AI_ENSEMBLE=<model.pt>` |
+| 5 more after-event passes: darkest pass in the radar anomaly | multimin | 0.842 / 0.869 / 0.849 | Bolivia −0.005 | 0.329 | `POVODNE_ANOMALY_POST=min` |
+Why they did not help: brightening in these scenes is mostly wet ground / growing vegetation next to the flood (Australia: dry label pixels z_vv median 3.1 vs
+0.95 for missed flood); Kuro Siwo labels hardly contain flooded vegetation. The clear-sky water the pipeline misses in Australia was already water on the
+before-image (late wet-season pre image), so it is "permanent" by definition, not a missed detection; Honduras/Malawi optical post images are 8 days late.
+Self-training flags large areas (Bihar 66 of ~70 km²) and each added km² is less precise than the base map. Per-event numbers: `<event>__<tag>.json`.
+
 ## Cost and time
 Teesta 109 PU, Marsyangdi 99 PU, Chamoli 113 PU, Malawi 46 PU (cache), Honduras ~100 PU first fetch, Australia 39, Bolivia 101, Bihar 62 (+ failed retries); 2.5–5 min per event.
 
