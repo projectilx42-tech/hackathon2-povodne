@@ -1,0 +1,259 @@
+{
+ "event": "bolivia_2018",
+ "tag": "rms",
+ "dataset": "sen1floods11_test",
+ "continent": "South America",
+ "kind": "flood",
+ "event_date": "2018-02-14",
+ "aoi_bbox": [
+  -65.1271,
+  -14.396,
+  -65.0352,
+  -14.304
+ ],
+ "label_valid_pct": 32.4,
+ "scores": {
+  "a_seeds_water_2_4": {
+   "recall": 0.9259,
+   "precision": 0.8374,
+   "f1": 0.8794,
+   "truth_km2": 14.8699,
+   "pred_km2": 16.441,
+   "tp_km2": 13.7677,
+   "fp_km2": 2.6733,
+   "region_km2": 32.093
+  },
+  "a_seeds_common_water_2_4": {
+   "recall": 0.9182,
+   "precision": 0.8374,
+   "f1": 0.8759,
+   "truth_km2": 14.9947,
+   "pred_km2": 16.441,
+   "tp_km2": 13.7677,
+   "fp_km2": 2.6733,
+   "region_km2": 33.224
+  },
+  "b_envelope_water_2_4": {
+   "recall": 0.9222,
+   "precision": 0.8313,
+   "f1": 0.8744,
+   "truth_km2": 14.9947,
+   "pred_km2": 16.6356,
+   "tp_km2": 13.8287,
+   "fp_km2": 2.8069,
+   "region_km2": 33.224
+  },
+  "a_seeds_all_2_3_4": {
+   "recall": 0.992,
+   "precision": 0.6163,
+   "f1": 0.7603,
+   "truth_km2": 14.8699,
+   "pred_km2": 23.9358,
+   "tp_km2": 14.7512,
+   "fp_km2": 9.1846,
+   "region_km2": 32.093
+  },
+  "a_seeds_common_all_2_3_4": {
+   "recall": 0.9838,
+   "precision": 0.6163,
+   "f1": 0.7578,
+   "truth_km2": 14.9947,
+   "pred_km2": 23.9358,
+   "tp_km2": 14.7512,
+   "fp_km2": 9.1846,
+   "region_km2": 33.224
+  },
+  "b_envelope_all_2_3_4": {
+   "recall": 0.9921,
+   "precision": 0.5935,
+   "f1": 0.7427,
+   "truth_km2": 14.9947,
+   "pred_km2": 25.0666,
+   "tp_km2": 14.876,
+   "fp_km2": 10.1906,
+   "region_km2": 33.224
+  }
+ },
+ "false_alarm_dry_label": {
+  "seeds": 0.50277,
+  "envelope": 0.55797
+ },
+ "seed_transitions_km2": {
+  "water": {
+   "water": 16.0314
+  },
+  "debris": {
+   "debris": 7.4948
+  },
+  "permanent": {
+   "water": 0.0705,
+   "debris": 0.0504,
+   "permanent": 0.2887
+  }
+ },
+ "components": {
+  "seeds_ai_water(2)": {
+   "km2": 29.9674,
+   "km2_in_label_region": 16.0314,
+   "share_on_truth": 0.834
+  },
+  "seeds_debris_step:debris": {
+   "km2": 1.8783,
+   "km2_in_label_region": 0.5871,
+   "share_on_truth": 0.294
+  },
+  "seeds_debris_step:mud": {
+   "km2": 2.3173,
+   "km2_in_label_region": 0.6823,
+   "share_on_truth": 0.197
+  },
+  "seeds_debris_step:erosion": {
+   "km2": 4.6637,
+   "km2_in_label_region": 1.9632,
+   "share_on_truth": 0.189
+  },
+  "seeds_debris_step:flooded_vegetation": {
+   "km2": 3.7705,
+   "km2_in_label_region": 1.0529,
+   "share_on_truth": 0.012
+  },
+  "seeds_debris_step:landslide": {
+   "km2": 0.0045,
+   "km2_in_label_region": 0.0005,
+   "share_on_truth": 0.0
+  },
+  "seeds_debris_step:unknown": {
+   "km2": 8.3901,
+   "km2_in_label_region": 3.116,
+   "share_on_truth": 0.091
+  },
+  "seeds_class3_not_debris_step(vhagree etc.)": {
+   "km2": 0.3461,
+   "km2_in_label_region": 0.0928,
+   "share_on_truth": 0.098
+  },
+  "seeds_permanent(4)": {
+   "km2": 1.5118,
+   "km2_in_label_region": 0.4096,
+   "share_on_truth": 0.952
+  },
+  "env_stage1_envelope:water": {
+   "km2": 0.1441,
+   "km2_in_label_region": 0.0652,
+   "share_on_truth": 0.741
+  },
+  "env_stage1_envelope:debris": {
+   "km2": 1.2008,
+   "km2_in_label_region": 0.2384,
+   "share_on_truth": 0.0
+  },
+  "env_stage2_growth:water": {
+   "km2": 0.2375,
+   "km2_in_label_region": 0.0935,
+   "share_on_truth": 0.52
+  },
+  "env_stage2_growth:debris": {
+   "km2": 0.5055,
+   "km2_in_label_region": 0.0854,
+   "share_on_truth": 0.004
+  },
+  "env_stage3_permanent_water:water": {
+   "km2": 0.1224,
+   "km2_in_label_region": 0.0705,
+   "share_on_truth": 0.997
+  },
+  "env_stage3_permanent_water:debris": {
+   "km2": 0.215,
+   "km2_in_label_region": 0.0504,
+   "share_on_truth": 0.998
+  },
+  "env_stage4_edges:water": {
+   "km2": 0.267,
+   "km2_in_label_region": 0.1034,
+   "share_on_truth": 0.212
+  },
+  "env_stage4_edges:debris": {
+   "km2": 3.1272,
+   "km2_in_label_region": 0.5449,
+   "share_on_truth": 0.01
+  }
+ },
+ "pred_total_km2": {
+  "seeds": 51.338,
+  "envelope": 57.157
+ },
+ "run": {
+  "timings_s": {
+   "acquire": 95.4,
+   "preprocess": 4.6,
+   "s1anomaly": 1.9,
+   "flood_ai": 34.5,
+   "debris": 28.9,
+   "envelope": 13.2,
+   "combine": 6.0,
+   "damage": 1.8,
+   "network": 2.2,
+   "report": 9.7
+  },
+  "pu_spent": 100.9,
+  "pu_estimate": 121,
+  "envelope": {
+   "used": true,
+   "reason": null,
+   "placebo_groups": 3,
+   "placebo_split": true,
+   "stat": "rms",
+   "persistence": true,
+   "reach_q": 95,
+   "final_est_precision": 0.971,
+   "final_placebo_false_km2": 1.6991,
+   "added_km2": {
+    "water": 0.771,
+    "debris": 5.0485,
+    "total": 5.8195
+   },
+   "added_by_stage_km2": {
+    "envelope": 1.3449,
+    "growth": 0.743,
+    "permanent_water": 0.3374,
+    "edges": 3.3942
+   },
+   "optics": {
+    "used": true,
+    "placebo": {
+     "pre": "pre_20180205.tif",
+     "second_pre": "prex_20180126.tif",
+     "gap_days": 10,
+     "event_gap_days": 10,
+     "clear_pct": 30.2
+    },
+    "event_flagged_km2": 0.1656,
+    "placebo_flagged_km2": 4.7759,
+    "added_overlapping_optical_km2": 0.0443
+   },
+   "post_passes": 5,
+   "optical_used": true
+  },
+  "main_track": {
+   "relative_orbit": 156,
+   "orbit_direction": "DESCENDING"
+  },
+  "alt_track": true,
+  "s2": {
+   "pre": 65.8,
+   "post": 45.9,
+   "extra": null
+  },
+  "warnings": [
+   "No pre-event OpenStreetMap buildings in the area: damaged buildings cannot be counted (zero does not mean no damage).",
+   "No hospital or town within reach of the downloaded road network; only the edge of the mapped area counts as a destination."
+  ],
+  "verdict": "flood_detected",
+  "coverage": {
+   "s1_valid_pct": 98.3,
+   "s2_pre_clear_pct": 65.8,
+   "s2_post_clear_pct": 45.9,
+   "evaluated_pct": 99.4
+  }
+ }
+}

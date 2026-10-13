@@ -192,7 +192,8 @@
    "envelope": 13.2,
    "combine": 6.0,
    "damage": 1.8,
-   "network": 2.2
+   "network": 2.2,
+   "report": 9.7
   },
   "pu_spent": 100.9,
   "pu_estimate": 121,
@@ -246,6 +247,13 @@
   "warnings": [
    "No pre-event OpenStreetMap buildings in the area: damaged buildings cannot be counted (zero does not mean no damage).",
    "No hospital or town within reach of the downloaded road network; only the edge of the mapped area counts as a destination."
-  ]
+  ],
+  "verdict": "flood_detected",
+  "coverage": {
+   "s1_valid_pct": 98.3,
+   "s2_pre_clear_pct": 65.8,
+   "s2_post_clear_pct": 45.9,
+   "evaluated_pct": 99.4
+  }
  }
 }

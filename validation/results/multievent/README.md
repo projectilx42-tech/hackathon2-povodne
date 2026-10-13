@@ -38,8 +38,28 @@ Verdict is `flood_detected` in all variants. The false area is in the **seeds** 
 0.52 km² lies inside the valid-label area; AI water 0.13 km²), not in the envelope. Caveat: a dry-season control is assumed, not proven flood-free
 (real landslides do occur).
 
+
+## Stage 2 (same code, tag `v2default` = feat/envelope 8580d73)
+| event | label km² | seeds R / P / F1 | env R / P / F1 | env optics0 | env rms | groups / est. P (envelope) | added-pixel precision of the envelope (stages 1,2,4, label region) |
+|---|---|---|---|---|---|---|---|
+| Australia 2022, Gulf of Carpentaria (Kuro Siwo test) | 51.7 | 0.69 / 0.99 / 0.81 (own region R 0.72) | 0.73 / 0.84 / 0.79 (adds 9.6 km²) | 0.73 / 0.84 / 0.78 | 0.73 / 0.85 / 0.79 | 2 / 0.85 | **0.26** (2.4 of 9.0 km² on truth) |
+| Bihar 2019 (Kuro Siwo test) | 47.4 | 0.82 / 0.88 / 0.85 | **envelope not run** (no year-long normal: Sentinel Hub HTTP 500, twice) | – | – | – | – |
+| Bolivia 2018 (Sen1Floods11 test, 2 chips, water label, 33 % of AOI labelled) | 15.0 | water (2+4): 0.92 / 0.84 / 0.88 | 0.92 / 0.83 / 0.87 (adds 10.6 km², **0.08** precision) | same | same | 3 / 0.95 (rms 0.97) | **0.08** |
+Other events, added-pixel precision (v2default): Honduras 0.69 (0.74 km²), Teesta 0.71, Marsyangdi control 0.03 (0.07 km²), Malawi: envelope not used (optics0: 0.42 of 0.94 km²).
+The envelope's own placebo estimate (0.85–0.97) is clearly higher than the precision measured on the pixels it adds (0.08–0.71 here); seeds alone are more precise (0.84–0.99) but miss part of the flood
+(recall 0.65–0.92). Bihar is a lowland: its permanent water (17 km²) is only 47 % on the flood label, see `components`.
+
+### What happens to seed water in the envelope step (Teesta question)
+`seed_transitions_km2` in the json: seeds' permanent-water pixels (class 4) are turned into class 3 (debris/other change) by envelope stage 3
+(Teesta 0.34 of 0.62 km², Malawi/Honduras ~0). They stay "affected" (2+3), but they leave the "water-only" metric (classes 2+4) —
+that is why water-only recall drops although nothing is lost in the affected area.
+
+### Re-running only envelope + combine on all events
+`validation/multievent_rerun.sh <tag> [VAR=value ...]` (runs stay on disk under `/home/user/run-wt/runs/me_<event>`, no new PU), e.g.
+`validation/multievent_rerun.sh mytag POVODNE_ENVELOPE_OPTICS=0`; table: `python validation/multievent_eval.py table --tags mytag`.
+
 ## Cost and time
-Teesta 109 PU, Marsyangdi 99 PU, Chamoli 113 PU, Malawi 46 PU (cache), Honduras ~100 PU first fetch; 2.5–5 min per event.
+Teesta 109 PU, Marsyangdi 99 PU, Chamoli 113 PU, Malawi 46 PU (cache), Honduras ~100 PU first fetch, Australia 39, Bolivia 101, Bihar 62 (+ failed retries); 2.5–5 min per event.
 
 ## Caveats
 - The label is not a perfect truth: S2 water label sees only open water (not debris or vegetation); Kuro Siwo labels are partly semi-automatic.

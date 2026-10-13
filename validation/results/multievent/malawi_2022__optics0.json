@@ -76,6 +76,19 @@
    "region_km2": 68.129
   }
  },
+ "seed_transitions_km2": {
+  "water": {
+   "water": 12.7256
+  },
+  "debris": {
+   "debris": 0.2064
+  },
+  "permanent": {
+   "water": 0.2299,
+   "debris": 0.0011,
+   "permanent": 1.6561
+  }
+ },
  "components": {
   "seeds_ai_water(2)": {
    "km2": 13.2542,

@@ -120,18 +120,18 @@
  },
  "run": {
   "timings_s": {
-   "acquire": 324.7,
-   "preprocess": 2.5,
+   "acquire": 226.5,
+   "preprocess": 3.3,
    "s1anomaly": 0.6,
-   "flood_ai": 13.8,
-   "debris": 9.8,
+   "flood_ai": 13.5,
+   "debris": 8.0,
    "envelope": 0.7,
-   "combine": 1.8,
-   "damage": 2.1,
-   "network": 2.5,
-   "report": 8.3
+   "combine": 1.6,
+   "damage": 1.9,
+   "network": 2.0,
+   "report": 7.4
   },
-  "pu_spent": 61.8,
+  "pu_spent": 0.0,
   "pu_estimate": 82,
   "envelope": {
    "used": false,
@@ -160,11 +160,11 @@
    "extra": null
   },
   "warnings": [
+   "No pre-event OpenStreetMap buildings in the area: damaged buildings cannot be counted (zero does not mean no damage).",
    "Not enough Sentinel-1 passes of the main track in the year before the event to tell permanent water from seasonal high water; a swollen river in the before-image may be counted as permanent water (not flooded).",
    "Fewer than 5 passes of the s1 track in the year before the event: the radar anomaly (departure from the normal) cannot be computed for it.",
    "Fewer than 5 passes of the s1_alt track in the year before the event: the radar anomaly (departure from the normal) cannot be computed for it.",
-   "No year-long radar normal is available (too few earlier passes or the download failed), so the radar anomaly map was not made.",
-   "No pre-event OpenStreetMap buildings in the area: damaged buildings cannot be counted (zero does not mean no damage)."
+   "No year-long radar normal is available (too few earlier passes or the download failed), so the radar anomaly map was not made."
   ],
   "verdict": "flood_detected",
   "coverage": {

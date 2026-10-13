@@ -1,0 +1,177 @@
+{
+ "event": "bihar_2019",
+ "tag": "rms",
+ "dataset": "kurosiwo_test",
+ "continent": "Asia (Ganges plain)",
+ "kind": "flood",
+ "event_date": "2019-09-17",
+ "aoi_bbox": [
+  85.4874,
+  25.4862,
+  85.5679,
+  25.5589
+ ],
+ "label_valid_pct": 97.4,
+ "scores": {
+  "a_seeds_own_region": {
+   "recall": 0.8168,
+   "precision": 0.8846,
+   "f1": 0.8493,
+   "truth_km2": 47.4116,
+   "pred_km2": 43.7782,
+   "tp_km2": 38.7242,
+   "fp_km2": 5.054,
+   "region_km2": 54.924
+  },
+  "a_seeds_common_region": {
+   "recall": 0.8168,
+   "precision": 0.8846,
+   "f1": 0.8493,
+   "truth_km2": 47.4116,
+   "pred_km2": 43.7782,
+   "tp_km2": 38.7242,
+   "fp_km2": 5.054,
+   "region_km2": 54.924
+  },
+  "b_envelope": {
+   "recall": 0.8168,
+   "precision": 0.8846,
+   "f1": 0.8493,
+   "truth_km2": 47.4116,
+   "pred_km2": 43.7782,
+   "tp_km2": 38.7242,
+   "fp_km2": 5.054,
+   "region_km2": 54.924
+  },
+  "b_envelope_visible_label": {
+   "recall": 0.8168,
+   "precision": 0.8846,
+   "f1": 0.8493,
+   "truth_km2": 47.4123,
+   "pred_km2": 43.7782,
+   "tp_km2": 38.7242,
+   "fp_km2": 5.054,
+   "region_km2": 54.925
+  }
+ },
+ "scores_water_total": {
+  "seeds": {
+   "recall": 0.9885,
+   "precision": 0.9144,
+   "f1": 0.95,
+   "truth_km2": 57.5703,
+   "pred_km2": 62.236,
+   "tp_km2": 56.9101,
+   "fp_km2": 5.3259,
+   "region_km2": 65.083
+  },
+  "envelope": {
+   "recall": 0.9885,
+   "precision": 0.9144,
+   "f1": 0.95,
+   "truth_km2": 57.5703,
+   "pred_km2": 62.236,
+   "tp_km2": 56.9101,
+   "fp_km2": 5.3259,
+   "region_km2": 65.083
+  }
+ },
+ "seed_transitions_km2": {
+  "water": {
+   "water": 44.8298
+  },
+  "debris": {
+   "debris": 0.0516
+  },
+  "permanent": {
+   "permanent": 17.3546
+  }
+ },
+ "components": {
+  "seeds_ai_water(2)": {
+   "km2": 45.7424,
+   "km2_in_label_region": 44.8298,
+   "share_on_truth": 0.864
+  },
+  "seeds_debris_step:debris": {
+   "km2": 0.0067,
+   "km2_in_label_region": 0.0067,
+   "share_on_truth": 0.299
+  },
+  "seeds_debris_step:flooded_vegetation": {
+   "km2": 0.0014,
+   "km2_in_label_region": 0.0014,
+   "share_on_truth": 0.0
+  },
+  "seeds_class3_not_debris_step(vhagree etc.)": {
+   "km2": 0.0465,
+   "km2_in_label_region": 0.0435,
+   "share_on_truth": 0.246
+  },
+  "seeds_permanent(4)": {
+   "km2": 18.0964,
+   "km2_in_label_region": 17.3546,
+   "share_on_truth": 0.466
+  }
+ },
+ "pred_total_km2": {
+  "seeds": 45.797,
+  "envelope": 45.797
+ },
+ "run": {
+  "timings_s": {
+   "acquire": 226.5,
+   "preprocess": 3.3,
+   "s1anomaly": 0.6,
+   "flood_ai": 13.5,
+   "debris": 8.0,
+   "envelope": 0.7,
+   "combine": 1.6,
+   "damage": 1.9,
+   "network": 2.0,
+   "report": 7.4
+  },
+  "pu_spent": 0.0,
+  "pu_estimate": 82,
+  "envelope": {
+   "used": false,
+   "reason": "No HAND mask or radar anomaly map: the water-level envelope was not made.",
+   "placebo_groups": null,
+   "placebo_split": null,
+   "stat": null,
+   "persistence": null,
+   "reach_q": null,
+   "final_est_precision": null,
+   "final_placebo_false_km2": null,
+   "added_km2": null,
+   "added_by_stage_km2": null,
+   "optics": null,
+   "post_passes": null,
+   "optical_used": null
+  },
+  "main_track": {
+   "relative_orbit": 121,
+   "orbit_direction": "DESCENDING"
+  },
+  "alt_track": true,
+  "s2": {
+   "pre": 79.0,
+   "post": 99.7,
+   "extra": null
+  },
+  "warnings": [
+   "No pre-event OpenStreetMap buildings in the area: damaged buildings cannot be counted (zero does not mean no damage).",
+   "Not enough Sentinel-1 passes of the main track in the year before the event to tell permanent water from seasonal high water; a swollen river in the before-image may be counted as permanent water (not flooded).",
+   "Fewer than 5 passes of the s1 track in the year before the event: the radar anomaly (departure from the normal) cannot be computed for it.",
+   "Fewer than 5 passes of the s1_alt track in the year before the event: the radar anomaly (departure from the normal) cannot be computed for it.",
+   "No year-long radar normal is available (too few earlier passes or the download failed), so the radar anomaly map was not made."
+  ],
+  "verdict": "flood_detected",
+  "coverage": {
+   "s1_valid_pct": 98.8,
+   "s2_pre_clear_pct": 79.0,
+   "s2_post_clear_pct": 99.7,
+   "evaluated_pct": 100.0
+  }
+ }
+}
