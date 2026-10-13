@@ -8,8 +8,11 @@ Writes: flood/ai_prob.tif (float32 P(flood)) and flood/ai_mask.tif (uint8: 0 nod
 4 permanent water) on the same grid, and the "flood" section of run.json.
 
 Rules (D-034): the model runs separately per track (pre/post from the same track); a pixel counts in a track unless it is in
-layover/shadow or has no data; where both tracks are valid their probabilities are averaged. Water is suppressed (-> 1) on
-slopes > max_water_slope_deg or HAND > max_water_hand_m. No valid track -> 0.
+layover/shadow or has no data; where both tracks are valid their probabilities are averaged. No valid track -> 0.
+Terrain (D-M10-07): the probabilities are multiplied by a continuous prior w(slope, HAND) (floodseg/softpost.py: 0.5 at 15 deg /
+30 m, falling smoothly) instead of switching water off beyond hard limits (`--hard-rules` brings the old behaviour back), and the
+radar anomaly against the place's normal (flood/s1_anomaly.tif, if present) raises the odds of flood where a pixel is much darker
+than normal. The minimum patch size falls from 10 px to 2 px towards the stream (HAND), so narrow mountain channels stay.
 Sensitivity (D-M9-08): "standard" takes the most likely class; "sensitive" calls flood from P(flood) >= the threshold in
 model_card.json (flood_thresholds.sensitive) where that area touches confident flood (two-stage threshold, D-M9-11),
 which finds more of the flooded area at the cost of more false alarms.
@@ -38,6 +41,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from floodseg.features import build_features, linear_to_db  # noqa: E402
 from floodseg.infer import load_model, predict_probs  # noqa: E402
 from floodseg.s2 import PIPELINE_BAND_INDEX, features_np as s2_features  # noqa: E402
+from floodseg import softpost  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MODEL = ROOT / "models" / "floodseg_v0.4" / "model.pt"
@@ -157,12 +161,51 @@ def drop_small_patches(mask: np.ndarray, min_px: int) -> np.ndarray:
     return keep[lab]
 
 
+def drop_small_patches_by_terrain(mask: np.ndarray, min_px) -> np.ndarray:
+    """mask without 8-connected patches smaller than their local minimum (pixels); `min_px` is a number or a per-pixel map
+    (the patch uses its mean), so a patch on the stream may be 2 px while the same size away from it is noise."""
+    if np.isscalar(min_px):
+        return drop_small_patches(mask, int(min_px))
+    if not mask.any():
+        return mask
+    from scipy import ndimage
+    lab, n = ndimage.label(mask, np.ones((3, 3), bool))
+    need = ndimage.mean(np.asarray(min_px, np.float32), lab, np.arange(n + 1))
+    keep = np.bincount(lab.ravel(), minlength=n + 1) >= np.round(need)
+    keep[0] = False
+    return keep[lab]
+
+
+def load_anomaly(run: Path, profile: dict):
+    """(z_comb on the run grid, placebo threshold) from flood/s1_anomaly.tif and run.json.s1anomaly; (None, None) if absent."""
+    path = run / "flood" / "s1_anomaly.tif"
+    z = None
+    if path.exists():
+        with rasterio.open(path) as r:
+            z = r.read(3).astype(np.float32) if r.count >= 3 else None  # band 3 = z_comb
+    rj = run / "run.json"
+    thr = None
+    if rj.exists():
+        sec = json.loads(rj.read_text()).get("s1anomaly") or {}
+        thr = sec.get("threshold_z_comb") if sec.get("used") else None
+    return (None, None) if z is None or thr is None else (z, thr)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("run_dir", type=Path)
     ap.add_argument("--model", type=Path, default=DEFAULT_MODEL)
     ap.add_argument("--max-water-slope-deg", type=float, default=15.0)
     ap.add_argument("--max-water-hand-m", type=float, default=30.0)
+    ap.add_argument("--hard-rules", action="store_true",
+                    help="old behaviour: no water on slope > --max-water-slope-deg or HAND > --max-water-hand-m (A/B comparison)")
+    ap.add_argument("--slope-mid", type=float, default=softpost.SLOPE_MID_DEG, help="soft prior: slope (deg) where the weight is 0.5")
+    ap.add_argument("--slope-width", type=float, default=softpost.SLOPE_WIDTH_DEG)
+    ap.add_argument("--hand-mid", type=float, default=softpost.HAND_MID_M, help="soft prior: HAND (m) where the weight is 0.5")
+    ap.add_argument("--hand-width", type=float, default=softpost.HAND_WIDTH_M)
+    ap.add_argument("--anomaly-gain", type=float, default=softpost.ANOMALY_GAIN,
+                    help="odds multiplier exp(gain) of flood at the strongest radar anomaly (0 = ignore flood/s1_anomaly.tif)")
+    ap.add_argument("--min-channel-px", type=int, default=2, help="smallest flood patch right at the stream (HAND 0); grows to --min-flood-px")
     ap.add_argument("--perm-min-freq", type=float, default=PERM_MIN_FREQ,
                     help="%% of the year's passes a pixel must be water in to be permanent water (D-M10-02)")
     ap.add_argument("--device", default="cpu")
@@ -212,6 +255,21 @@ def main() -> None:
     used = list(tracks)
     radar_valid = count > 0
     probs = acc / np.maximum(count, 1)
+    hand_m = None if hand is None else np.nan_to_num(hand, nan=0.0)
+    w = np.ones(slope.shape, np.float32)
+    anomaly_info = {"used": False}
+    if not args.hard_rules:
+        # soft terrain prior and radar-anomaly support (D-M10-07)
+        w = softpost.terrain_weight(slope, hand_m, args.slope_mid, args.slope_width, args.hand_mid, args.hand_width)
+        probs = softpost.soften(probs, w)
+        z_comb, thr_z = load_anomaly(run, profile)
+        strength = softpost.anomaly_strength(z_comb, thr_z) if args.anomaly_gain else None
+        if strength is not None:
+            p2 = softpost.add_anomaly(probs[2], strength, args.anomaly_gain) * (count > 0)
+            probs[2] = np.where(count > 0, np.maximum(p2, probs[2]), probs[2])
+            probs[0] = np.clip(1.0 - probs[1] - probs[2], 0.0, 1.0)
+            anomaly_info = {"used": True, "threshold_z_comb": round(float(thr_z), 2), "gain": args.anomaly_gain,
+                            "supported_px": int(((strength > 0) & (count > 0)).sum())}
 
     run_json = run / "run.json"
     meta = json.loads(run_json.read_text()) if run_json.exists() else {}
@@ -245,7 +303,7 @@ def main() -> None:
                 p_pre, clear_pre = s2_water(s2m, s2cfg, run, "pre", args.device)
                 if p_pre is None:
                     p_pre, clear_pre = np.zeros_like(p_post), np.zeros(p_post.shape, bool)
-                wet_post = clear_post & (p_post >= 0.5)
+                wet_post = clear_post & (p_post * w >= 0.5)  # soft prior (w = 1 with --hard-rules)
                 # was the pixel dry before? optical pre image if clear there, else the radar's view of the pre image
                 dry_before = np.where(clear_pre, p_pre < 0.5, radar_valid & (cls != 1))
                 known_before = clear_pre | radar_valid
@@ -254,7 +312,7 @@ def main() -> None:
                 mask[clear_post & (mask == 0)] = 1  # optical image fills radar gaps (shadow, layover)
                 mask[s2_perm & (mask != 2)] = 4
                 mask[s2_flood] = 2
-                p_flood = np.where(clear_post, np.maximum(p_flood, p_post * dry_before), p_flood).astype(np.float32)
+                p_flood = np.where(clear_post, np.maximum(p_flood, p_post * dry_before * w), p_flood).astype(np.float32)
                 s2_info = {"used": True, "model": str(args.s2_model),
                            "post_clear_pct": round(100 * float(clear_post.mean()), 1),
                            "pre_clear_pct": round(100 * float(clear_pre.mean()), 1),
@@ -265,12 +323,16 @@ def main() -> None:
     seasonal = seasonal_high_water(mask, ref, load_on_grid(run / "raw" / "dem" / "water.tif", profile), args.perm_min_freq)
     mask[seasonal] = 2
     any_valid = mask > 0
-    impossible = slope > args.max_water_slope_deg
-    if hand is not None:
-        impossible |= np.nan_to_num(hand, nan=0.0) > args.max_water_hand_m
-    mask[impossible & np.isin(mask, (2, 4))] = 1
-    p_flood = np.where(impossible, 0.0, p_flood).astype(np.float32)
-    small = (mask == 2) & ~drop_small_patches(mask == 2, args.min_flood_px)
+    if args.hard_rules:
+        impossible = slope > args.max_water_slope_deg
+        if hand_m is not None:
+            impossible |= hand_m > args.max_water_hand_m
+        mask[impossible & np.isin(mask, (2, 4))] = 1
+        p_flood = np.where(impossible, 0.0, p_flood).astype(np.float32)
+        small = (mask == 2) & ~drop_small_patches(mask == 2, args.min_flood_px)
+    else:
+        min_px = softpost.min_patch_px(hand_m, args.min_flood_px, args.min_channel_px)
+        small = (mask == 2) & ~drop_small_patches_by_terrain(mask == 2, min_px)
     mask[small] = 1
     p_flood[~any_valid] = np.nan
 

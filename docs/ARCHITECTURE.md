@@ -364,8 +364,8 @@ Pipeline spouští jako podproces `python -m povodne run ...`; průběh čte z `
   |---|---|---|---|
   | `acquire` | `povodne.acquire` | ano | další kroky `skipped`, report proběhne |
   | `preprocess` | `povodne.preprocess` | ano | dtto |
+  | `s1anomaly` | `povodne.flood.s1anomaly` | ne | bez `flood/s1_anomaly.tif` (D-M10-05); běh pokračuje; běží před `flood_ai`, který anomálii používá (D-M10-07) |
   | `flood_ai` | `povodne.flood.ai` | ano | dtto |
-  | `s1anomaly` | `povodne.flood.s1anomaly` | ne | bez `flood/s1_anomaly.tif` (D-M10-05); běh pokračuje |
   | `debris` | `povodne.flood.debris` | ne | combine jen s vodou |
   | `combine` | `povodne.flood.combine` | ano | další kroky `skipped`, report proběhne |
   | `damage` | `povodne.damage` | ne | network `skipped` |
