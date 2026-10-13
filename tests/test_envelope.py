@@ -90,13 +90,13 @@ def _run_dir(tmp_path, noisy_placebo: bool):
     H = W = 200
     hand = _valley(H, W)
     ai = np.ones((H, W), np.uint8)
-    ai[:, 95:105] = 2                                     # certain water along the river
+    ai[:100, 85:115] = 2                                  # certain water, upstream half only (wide)
+    ai[100:, 98:102] = 4                                  # downstream: only the permanent river, no certain flood detection
     _write(run / "flood" / "ai_mask.tif", ai, tr)
     _write(run / "masks" / "hand.tif", hand, tr, "float32")
     _write(run / "masks" / "slope.tif", np.zeros((H, W)), tr, "float32")
     z = np.zeros((4, H, W), np.float32)
-    z[2, :, 80:95] = -4.0                                 # weak-but-clear darkening next to the water, HAND 1-4 m
-    z[2, :, 105:110] = -4.0
+    z[2, 100:150, 86:96] = -4.0                           # weak-but-clear darkening beside the river downstream of the seeds, HAND 0.8-2.8 m
     z[2, :, 0:20] = -4.0                                  # darkening far up the slope: outside the envelope
     z[3] = 1
     _write(run / "flood" / "s1_anomaly.tif", z, tr)
@@ -104,7 +104,8 @@ def _run_dir(tmp_path, noisy_placebo: bool):
     base_db = -12 + rng.normal(0, 0.3, (H, W))
     pre = 10 ** (base_db / 10)
     if noisy_placebo:                                     # the placebo pass differs a lot from the normal everywhere on the valley floor
-        pre = 10 ** ((base_db + np.where(hand < 8, rng.choice([-6.0, 6.0], (H, W)), 0.0)) / 10)
+        patches = np.kron(rng.choice([-6.0, 6.0], (H // 10, W // 10)), np.ones((10, 10)))   # coherent 100 m patches
+        pre = 10 ** ((base_db + np.where(hand < 8, patches, 0.0)) / 10)
     for pol in ("vv", "vh"):
         _write(run / "aligned" / f"s1_pre_{pol}.tif", pre.astype(np.float32), tr)
         _write(run / "aligned" / f"s1_post_{pol}.tif", pre.astype(np.float32), tr)
@@ -120,9 +121,9 @@ def test_step_adds_inside_envelope_and_combine_uses_it(tmp_path):
     assert res["used"] and res["chosen"]["est_precision"] >= envelope.MIN_PRECISION
     with rasterio.open(run / "flood" / "envelope_mask.tif") as ds:
         env = ds.read(1)
-    assert (env[:, 80:95] == 2).mean() > 0.8              # added as water next to the certain water
+    assert (env[105:145, 87:95] == 2).mean() > 0.8        # added as water beside the river where no seed was
     assert not env[:, :20].any()                          # far slope: outside the envelope
-    assert not env[:, 95:105].any()                       # existing detections untouched
+    assert not env[:100, 85:115].any()                    # existing detections untouched
     rj = json.loads((run / "run.json").read_text())
     assert next(s for s in rj["progress"]["steps"] if s["name"] == "envelope")["state"] == "done"
     assert rj["envelope"]["chosen"]["tz"] in envelope.TZ_GRID
@@ -133,7 +134,7 @@ def test_step_adds_inside_envelope_and_combine_uses_it(tmp_path):
     combine.run(run)
     with rasterio.open(run / "flood" / "flood_mask.tif") as ds:
         m = ds.read(1)
-    assert (m[:, 80:95] == 2).mean() > 0.8 and (m[:, 95:105] == 2).all() and not (m[:, :20] == 2).any()
+    assert (m[105:145, 87:95] == 2).mean() > 0.8 and (m[:100, 85:115] == 2).all() and not (m[:, :20] == 2).any()
 
 
 def test_noisy_placebo_blocks_the_envelope(tmp_path):
