@@ -113,6 +113,12 @@ class SentinelHub:
         raise SentinelHubError(f"Sentinel Hub kept failing (HTTP {r.status_code}).")
 
 
+def estimate_pu(grid: Grid, n_images: int = 1, n_bands: int = 2) -> float:
+    """Processing units of `n_images` Sentinel-1 requests on `grid` (Sentinel Hub formula: 512 x 512 px x 3 bands = 1 PU,
+    x2 for orthorectification, x2 for the speckle filter; measured 2.8 PU for 5 x 5 km VV+VH at 10 m vs 2.5 estimated)."""
+    return n_images * (grid.width * grid.height) / (512 * 512) * (n_bands / 3) * 4 * 1.1
+
+
 def s1_evalscript(bands=("VV", "VH")) -> str:
     """UINT16 dB per band; 0 where there is no data."""
     names = ",".join(f'"{b}"' for b in bands)

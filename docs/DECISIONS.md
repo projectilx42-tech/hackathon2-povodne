@@ -1067,3 +1067,16 @@ Malá oblast (8×9 km): 113 s bez cache, 78 s s cache (0 PU).
 - **Co nejde dál zrychlit stahováním:** Sentinel Hub počítá ~1 800 PU na běh (S1 10 m VV+VH × 6 snímků ≈ 1 160, historie ≈ 290, roční reference ≈ 245) a limit je 300 PU/min → stahování radaru má dolní mez ~5 min; víc vláken nepomůže.
   Hrubší roční reference (40 m) by ušetřila ~180 PU (~0,6 min) za cenu úzkých řek (D-M10-02) → ponecháno 20 m (netestováno proti 40 m).
 - **Co zbývá:** nejdelší je krok suti (9 min = 47 % běhu, kód mimo tuto změnu) a AI inference (4,3 min na 4 jádrech; ~210 s tvoří dlaždice dvou radarových drah a dvou optických snímků).
+
+## D-M10-05 | 2026-10-13 | přijato (úkol od master session; uživatel: záchyt plochy aspoň 90 %, místo pevných pravidel „něco inteligentního“) — Radarová anomálie proti normálu místa
+Kontext: pevná pravidla (sklon ≤ 15°, HAND ≤ 15–30 m, prahy v dB) nechávají mimo hlavně strmější svahy a okraje. Cíl: pro každý pixel změřit, **jak moc je po události jiný, než je u něj normální**
+(vlastní sezónní rozptyl a šum místa), a nechat fúzi suti a sesuvů (session `fix/s2-scaling`) použít tuto míru místo pevných pravidel.
+Rozhodnutí (nový kontrakt, ARCHITECTURE upraven ve stejném commitu):
+- **Normál místa** (`acquire/seriesnorm.py` → `raw/s1/norm.tif`, `raw/s1_alt/norm.tif`): až 10 průletů téže dráhy rozložených v 365 dnech před událostí, **VV i VH, 40 m** (LEE 7×7 ze Sentinel Hubu), na pixel
+  **medián a MAD v dB** + počet platných průletů (NaN při < 5). Obě dráhy, na pozadí vedle ostatního stahování, přes mezipaměť (D-M10-04).
+- **Anomálie** (`flood/s1anomaly.py`, nový nepovinný krok `s1anomaly` mezi `flood_ai` a `debris`): z = (post_dB − medián) / max(1,4826·MAD, 0,7 dB) zvlášť VV a VH; post se zprůměruje na 40 m (lineárně) ⇒ šum obrazu a šum normálu mají stejné měřítko, výsledek
+  se interpoluje na mřížku 10 m. Záporné z = tmavší (voda, hladké bahno, strženo listí → pokles VH), kladné = světlejší (drsná suť, zaplavená vegetace/zástavba). Pixel v layover/shadow dráhy tuto dráhu nedostane. Dráhy se spojují
+  Stouffer: Σz/√n (jen z platných drah). Výstup `flood/s1_anomaly.tif` (z_vv, z_vh, z_comb, n_tracks) a `flood/s1_anomaly_tracks.tif`; `run.json.s1anomaly` (včetně **placeba**: stejný test na snímku „před“ — podíl |z| > 3 má být malý).
+  Prahy (0,7 dB šumové dno, MAD) jsou obecné, neladěné na EMS; samotná mapa nic nerozhoduje, jen měří.
+- **Rozpočet PU** (měsíční limit ~10 000): `run.json.acquire.pu_estimate` (horní mez bez mezipaměti, po částech) a upozornění `pu_budget_high` nad 2 000 PU (`AcquireConfig.pu_warn`). Normál stojí ~250 PU (40 m, VV+VH, 2 dráhy, 10 průletů) pro údolí 42×46 km.
+Omezení: roční řada je jen z minulého roku (jeden cyklus, žádná víceletá klimatologie) → u silně sezónních ploch je MAD velké a anomálie slabá; 40 m rozmaže úzké rysy; z je pořadí, ne pravděpodobnost (VV, VH a obě dráhy nejsou nezávislé).

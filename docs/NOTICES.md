@@ -51,6 +51,8 @@ Sloupec „Titulek pro UI“ je návrh krátkého anglického nadpisu. Celou vě
 | `s2_failed` | warning | Stažení optických snímků selhalo, pokračuje se jen s radarem. | Optical images unavailable | `error` |
 | `post_image_date` | info | Z kterého dne a hodiny (místní čas) je snímek „po“ a kolik dní po zadaném datu. Změny po něm nejsou vidět. **Doporučuji ukázat vždy viditelně u výsledku** (záchranáři potřebují vědět stáří dat). | After-image date | `datetime_local` (`YYYY-MM-DDTHH:MM`), `days_after_event` |
 | `perm_water_ref_short` | warning | V posledním roce před povodní je málo radarových průletů hlavní dráhy, aby se dalo poznat, co je trvalá voda a co jen sezónně rozvodněná řeka; rozvodněné koryto na snímku „před“ se pak může počítat jako trvalá voda (nezasaženo). | Permanent-water reference missing | `n_passes`, `lookback_days`, `error`? |
+| `pu_budget_high` | warning | Odhad spotřeby jednotek zpracování (PU) Sentinel Hubu pro tento běh je vysoký (výchozí mez 2 000 z 10 000 měsíčně zdarma); opakování stejné oblasti a dat je zdarma díky mezipaměti. Odhad je horní mez (nezapočítává mezipaměť). | High processing-unit use | `estimated_pu`, `monthly_allowance`, `parts` |
+| `year_normal_missing` | warning | Pro dráhu je v roce před povodní málo průletů, aby šlo spočítat „normál místa“; radarová anomálie (odchylka od normálu) pro ni nebude. | Radar normal missing | `track` (`s1`/`s1_alt`), `n_passes`, `error`? |
 | `pre_rise_detected` | info | Radar ukázal, že voda stoupala už před zadaným datem. Snímek „před“ se proto vzal starší, z doby před nárůstem. | Flooding started earlier | `rise_date`, `chosen_pre` (seznam dat) |
 | `event_day_pass_used` | info | Průlet přímo v den povodně už ukazuje jasné změny, a proto se použil jako snímek „po“ (o několik dní dřív než další průlet). | Flood-day image used | `track`, `direction`, `datetime`, `used_as_post`, `reason`, `change_frac`, `baseline_frac` |
 | `event_day_pass_dropped` | info | Průlet v den povodně nemá jasné změny (mohl být před povodní), a proto se nepoužil. Snímek „po“ je z dalšího průletu. | Flood-day image not used | stejné jako `event_day_pass_used` |
@@ -95,6 +97,8 @@ Souhrn plochy je v `run.json.combine.areas_km2`.
 |---|---|---|---|---|---|
 | combine | `combine_no_water_map` | error | Chybí mapa vody z AI kroku, finální mapa povodně nevznikla. Krok skončí `failed`, škody a odříznuté obce se nepočítají. | No flood map | — |
 | combine | `combine_no_debris` | warning | Chybí mapa suti a bahna (krok spadl nebo neproběhl): mapa ukazuje jen otevřenou vodu. | Water only, no debris map | — |
+| s1anomaly | `s1anomaly_no_reference` | warning | Chybí roční „normál místa“ (málo dřívějších průletů nebo selhalo stahování): radarová anomálie nevznikla. Zbytek běhu není dotčen. | Radar anomaly not available | — |
+| s1anomaly | `s1anomaly_one_track` | info | Normál existuje jen pro jednu dráhu; anomálie vychází z jednoho směru pohledu a nemá potvrzení druhou dráhou. | Radar anomaly from one track | `track` |
 | combine | `combine_grid_mismatch` | warning | Mapa suti je na jiné mřížce než mapa vody, nepoužila se (chyba v datech, mapa ukazuje jen vodu). | Debris map not aligned | — |
 | combine | `combine_debris_where_ai_blind` | info | Část suti/změn povrchu leží tam, kam model vody neviděl (radarový stín, chybí data); do mapy povodně je započtena. | Debris where water model was blind | `area_km2` |
 

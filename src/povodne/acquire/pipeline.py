@@ -20,10 +20,10 @@ import numpy as np
 import rasterio
 from rasterio.warp import Resampling, reproject, transform_bounds
 
-from . import cache, permwater, catalog, osm, preselect, sentinel2, terrain
+from . import cache, permwater, seriesnorm, catalog, osm, preselect, sentinel2, terrain
 from .notices import Notice
 from .sentinelhub import (S1_DB_OFFSET, S1_DB_SCALE, Grid, MissingCredentials, SentinelHub, decode_db, fetch_s1,
-                          smooth_3x3, utm_grid)
+                          estimate_pu, smooth_3x3, utm_grid)
 
 
 @dataclass
@@ -43,6 +43,9 @@ class AcquireConfig:
     perm_lookback_days: int = 365  # reference record for permanent water (D-M10-02)
     perm_res_m: float = 20.0  # resolution of the reference; narrow rivers need 20 m (D-M10-02)
     workers: int = 6  # parallel Sentinel Hub requests in flight (SentinelHub itself allows MAX_PARALLEL_REQUESTS at once)
+    norm_res_m: float = 40.0  # resolution of the year-long per-pixel normal for the radar anomaly (D-M10-05): cheap
+    norm_n_passes: int = 10
+    pu_warn: float = 2000.0  # warn when one run is estimated above this many processing units (monthly free allowance: 10 000)
     perm_n_passes: int = 10  # passes sampled from it (~11 PU each for 30x30 km at 20 m, VV only)
     hist_res_m: float = 20.0  # ~22 PU per VV+VH image for 30x30 km
 
@@ -418,6 +421,11 @@ def _run_with_pools(run_dir, rj, cfg, sh, warnings, aoi, event, epsg, acq, pool,
     perm_job = bg.submit(permwater.build, run_dir, sh, aoi, event, main.key, catalog.local_clock(aoi.centroid), pgrid,
                          _to_grid(track_mask(main).astype(np.uint8), dem, pgrid) > 0, cfg.perm_lookback_days,
                          cfg.perm_n_passes, cfg.speckle, pool)
+    # Year-long normal (median, MAD of VV and VH per pixel) of each track for the radar anomaly (D-M10-05), also in the background
+    ngrid = coarse_grid(utm_grid(bounds, epsg, 10.0), cfg.norm_res_m)
+    norm_jobs = {fk: bg.submit(seriesnorm.build, run_dir, folder, sh, aoi, event, t.key, catalog.local_clock(aoi.centroid),
+                               ngrid, cfg.perm_lookback_days, cfg.norm_n_passes, cfg.speckle, pool)
+                 for fk, folder, t in (("s1", "s1", main), ("s1_alt", "s1_alt", alt)) if t is not None}
     # D-X-05: a track without an after-image yet (fresh flood) may show hidden valley floor when it passes next.
     now = cfg.now or datetime.now(timezone.utc)
     if (now.date() - event).days <= cfg.post_horizon_days:
@@ -466,6 +474,24 @@ def _run_with_pools(run_dir, rj, cfg, sh, warnings, aoi, event, epsg, acq, pool,
         _progress(run_dir, "done", "insufficient data: no clean pre-event Sentinel-1 image")
         return
 
+    # Estimated processing units of this run (upper bound: cached images cost nothing) and a warning when it is a lot.
+    g10 = utm_grid(bounds, epsg, 10.0)
+    parts = {
+        "pre_post_10m": sum((len(pr) + 1) for t, pr in ((main, pre_main), (alt, pre_alt)) if t is not None and pr)
+        * estimate_pu(g10, 1, 2),
+        "history_20m": sum(min(cfg.n_hist, len(t.pre_candidates)) for t in (main, alt) if t is not None)
+        * estimate_pu(coarse_grid(g10, cfg.hist_res_m), 1, 2),
+        "permanent_water_ref": cfg.perm_n_passes * estimate_pu(pgrid, 1, 1),
+        "year_normal": cfg.norm_n_passes * len(norm_jobs) * estimate_pu(ngrid, 1, 2),
+    }
+    pu_est = round(sum(parts.values()))
+    acq["pu_estimate"] = {"total": pu_est, "parts": {k: round(v) for k, v in parts.items()}, "monthly_allowance": 10000}
+    if pu_est > cfg.pu_warn:
+        warnings.append(Notice("pu_budget_high", f"This run needs up to about {pu_est} processing units "
+                               f"({100 * pu_est / 10000:.0f} % of the free monthly allowance of 10 000); repeated runs of the "
+                               "same area and dates are free because downloaded data is cached.",
+                               estimated_pu=pu_est, monthly_allowance=10000, parts={k: round(v) for k, v in parts.items()}))
+
     # S1 download at 10 m on the reference grid.
     blocks = catalog.acquire_json(plan)
     for key, t, pres, folder in (("s1", main, pre_main, "s1"), ("s1_alt", alt, pre_alt, "s1_alt")):
@@ -508,6 +534,19 @@ def _run_with_pools(run_dir, rj, cfg, sh, warnings, aoi, event, epsg, acq, pool,
                                    "in the before-image may be counted as permanent water (not flooded).",
                                    n_passes=ref.get("n_passes", 0), lookback_days=cfg.perm_lookback_days,
                                    **({"error": ref["error"]} if ref.get("error") else {})))
+    for fk, job in norm_jobs.items():  # year-long normal of each track
+        if blocks.get(fk) is None:
+            continue
+        _progress(run_dir, "running", f"waiting for the year-long normal of {fk}")
+        try:
+            nrm = job.result()
+        except Exception as exc:  # the radar anomaly is an extra; never lose the run because of it
+            nrm = {"file": None, "error": str(exc)}
+        blocks[fk]["norm"] = nrm
+        if nrm.get("file") is None:
+            warnings.append(Notice("year_normal_missing", f"Fewer than {seriesnorm.MIN_OBS} passes of the {fk} track in the year "
+                                   "before the event: the radar anomaly (departure from the normal) cannot be computed for it.",
+                                   track=fk, n_passes=nrm.get("n_passes", 0), **({"error": nrm["error"]} if nrm.get("error") else {})))
     for key, t in (("s1", main), ("s1_alt", alt)):
         if blocks.get(key) is not None and t is not None:
             blocks[key]["same_day"] = t.same_day_info

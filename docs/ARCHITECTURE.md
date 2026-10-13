@@ -56,6 +56,8 @@ runs/<run_id>/
     s1_alt/pre_*.tif, post_*.tif # totéž pro druhý směr přeletu (D-033)
     s1/perm_water.tif            # frekvence vody v % (uint8, 255 = neznámo / stín) za ~365 dní před událostí, VV, hlavní dráha, mřížka 20 m
                                  # zarovnaná s 10m mřížkou; + perm_water.json; volitelné — chybí-li, nic se nepřepisuje (D-M10-02)
+    s1/norm.tif, s1_alt/norm.tif  # roční „normál“ dráhy: 5 pásem float32 na mřížce 40 m (zarovnané s 10m): medián VV [dB], MAD VV, medián VH, MAD VH, počet platných průletů;
+                                 #   až 10 průletů téže dráhy za 365 dní před událostí (+ norm.json); chybí-li, krok `s1anomaly` se přeskočí (D-M10-05)
     s1/hist_YYYYMMDD.tif, s1_alt/hist_*.tif  # až 4 starší průlety téže dráhy před snímky „před“, VV+VH, stejné kódování, mřížka 20 m
                                  # zarovnaná s 10m mřížkou — historie pixelu pro krok změn povrchu (D-M3d-02; dodá M1)
     s2/pre_YYYYMMDD.tif, post_YYYYMMDD.tif   # S2 L2A, UINT16 DN: B02,B03,B04,B08,B11,B12 + SCL (7. pásmo); odrazivost = DN*scale+offset (tagy), 10m mřížka (D-M1-02)
@@ -83,6 +85,11 @@ runs/<run_id>/
                                  #   6 poškozená zástavba, 9 neznámá změna, 0 nic (D-M3d-01, D-M3d-02)
     debris_confidence.tif        # uint8 1 nízká, 2 střední, 3 vysoká, 0 nic
     debris_observability.tif     # uint8 0 mimo oblast, 1 viděno, 2 nedá se vidět (stín, mraky), 3 necitlivé (hustý les/zástavba)
+    s1_anomaly.tif               # float32, mřížka runu, NaN = nic: radarová anomálie proti ročnímu „normálu místa“ (D-M10-05). Pásma:
+                                 #   1 z_vv, 2 z_vh (robustní z-skóre post vs medián/MAD roční řady téže dráhy, Stouffer přes platné dráhy;
+                                 #   záporné = tmavší než normál, kladné = světlejší), 3 z_comb = součet všech platných z / sqrt(počet) (pořadí, ne pravděpodobnost),
+                                 #   4 n_tracks (0–2; layover/shadow dráhy ji z výpočtu vyřadí). Píše `povodne.flood.s1anomaly`, čte hlavně fúze suti/sesuvů.
+    s1_anomaly_tracks.tif        # float32, hrubá mřížka normálu (40 m): z_vv_main, z_vh_main, z_vv_alt, z_vh_alt
     debris_polygons.geojson      # EPSG:4326: class "debris", subtype, confidence, area_m2, mean_dvv_db, mean_dvh_db, evidence
     flood_polygons.geojson       # EPSG:4326, polygonizace flood_mask (třídy 2,3), atributy: class ("water" | "debris"), area_m2 (D-035);
                                  #   debris navíc subtype, confidence, evidence (D-M0-01). flood_prob.tif: nodata = NaN
@@ -354,6 +361,7 @@ Pipeline spouští jako podproces `python -m povodne run ...`; průběh čte z `
   | `acquire` | `povodne.acquire` | ano | další kroky `skipped`, report proběhne |
   | `preprocess` | `povodne.preprocess` | ano | dtto |
   | `flood_ai` | `povodne.flood.ai` | ano | dtto |
+  | `s1anomaly` | `povodne.flood.s1anomaly` | ne | bez `flood/s1_anomaly.tif` (D-M10-05); běh pokračuje |
   | `debris` | `povodne.flood.debris` | ne | combine jen s vodou |
   | `combine` | `povodne.flood.combine` | ano | další kroky `skipped`, report proběhne |
   | `damage` | `povodne.damage` | ne | network `skipped` |
