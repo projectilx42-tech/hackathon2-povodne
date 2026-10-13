@@ -239,10 +239,10 @@ def _placebo_z_comb(run_dir: Path, shape) -> tuple[np.ndarray | None, str]:
 
 
 # ---------------------------------------------------------------- evidence with window, persistence (D-X-11)
-W_GRID = (1, 5, 9)                 # window (px) of the mean of z^2; <= 9 px: the placebo cannot verify larger windows (D-X-11)
-Q_GRID_RUN = (95,)
-TZ_GRID_RUN = (3.0, 2.5, 2.0, 1.75)
-R_GRID_RUN = (0, 6)
+W_GRID = (1,)                       # window (px) of the mean of z^2; <= 9 px: the placebo cannot verify larger windows (D-X-11)
+Q_GRID_RUN = (75,)
+TZ_GRID_RUN = (2.0, 2.5)
+R_GRID_RUN = (0,)
 TG_GRID_RUN = (2.5, 2.25, 2.0)
 W24_GRID = (5, 9)                  # window (px) for stages 2 and 4 (growth, edges): a smoothed statistic carries the weak evidence (D-M13-05)
 EDGE_T3 = (1.75, 1.5, 1.25)        # stage 4: lower threshold, only in a band around the detections
@@ -618,7 +618,7 @@ def run(run_dir: Path) -> dict:
     mode = os.environ.get("POVODNE_ENVELOPE_PERSIST", "1")   # "1" on (default; falls back to off without enough passes), "0" off, "auto" = both
     have_persist = Pe is not None   # the placebo may lack persistence (split mode): then it is stricter than the event
     variants = [False, True] if mode == "auto" and have_persist else [mode == "1" and have_persist]
-    reach_mode = os.environ.get("POVODNE_ENVELOPE_REACH", "off")   # "off" | "95" | "99" | "auto" (both, the larger area wins)
+    reach_mode = os.environ.get("POVODNE_ENVELOPE_REACH", "95")   # "off" | "95" | "99" | "auto" (both, the larger area wins)
     reaches = {"off": [None], "auto": [95, 99]}.get(reach_mode, [int(reach_mode)] if reach_mode.isdigit() else [None])
     results = [search(c, v, rq) for v in variants for rq in reaches]
     good = [r for r in results if r.get("final")]

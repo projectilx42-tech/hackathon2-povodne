@@ -1310,3 +1310,8 @@ Zvolené hodnoty v `run.json.envelope.chosen` (klíče `growth_w`, `growth_tg`, 
 Stoufferovo z_comb (součet z se znaménkem) se ruší, když VV zesvětlí a VH ztmavne (bahno, suť, mokrá zástavba). Volba `POVODNE_ENVELOPE_STAT=rms` (výchozí zatím `comb`): důkaz
 s = sqrt(průměr z² přes dráhy × VV/VH) (z jednotlivých drah a polarizací z `flood/s1_anomaly_tracks.tif`, resp. u placebo skupin z průměru placebo průletů; posun scény je v z odečten už v `s1anomaly`),
 směr (tmavší = voda, světlejší = suť) a placebo semínka dál z podepsaného z_comb. Prahy mají jinou škálu; mřížky se nemění, vybírá placebo.
+
+## D-M13-07 | 2026-10-13 | přijato (master: stabilní výchozí stav pro ověření na více událostech) — Výchozí nastavení obálky
+Výchozí chování `flood/envelope.py` = nejlepší dosavadní volba, bez ladění podle jedné události: krok 1 malá pevná mřížka (q 75, tz {2,0; 2,5}, uzavření 0, w 1), placebo **split**, kroky 2 a 4 okénkované w {5, 9},
+dosah (reach) 95 z vodních semínek, trvalost zapnutá. Dřívější větší mřížky jdou zapnout `POVODNE_ENVELOPE_STAGE1='{"q":[95],"tz":[3,2.5,2,1.75],"r":[0,6],"w":[1,5,9]}'`;
+nepovinné: `POVODNE_ENVELOPE_STAT=rms` (D-M13-06), `POVODNE_ENVELOPE_REACH=off|99|auto`, `POVODNE_ENVELOPE_PERSIST=0|auto`. O změně výchozích hodnot rozhoduje master podle více událostí, ne podle Trishuli vs EMS.
