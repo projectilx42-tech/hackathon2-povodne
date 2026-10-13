@@ -1235,3 +1235,14 @@ pixelová stopa na budově stačila k „likely_destroyed“.
 **Efekt (Trishuli, údolí, `runs/tf4`):** budov „likely_destroyed“ 1891 → 1595 (−16 %); počet zasažených budov a shoda s EMS (78,3 % spárovaných
 budov označeno, 1972 našich zásahů) beze změny — mění se jen stupeň, ne detekce. Změna je jen v rozhodování o stupni, žádná mez nebyla laděna podle EMS.
 **Kontrakt:** soubory beze změny; mění se jen interpretace `debris_type` 7 + `debris_confidence` v kroku škod (ARCHITECTURE.md, řádek škod).
+
+## D-X-11 | 2026-10-13 | přijato (master) — Kalibrace placeba: odečíst posun scény, okno průměrování nejvýš 9 px (90 m)
+- `validation/envelope_calib_diag.py` (runs/trishuli_full): důkaz = RMS(z) z D-X-10 **po odečtení mediánu z celé scény** (sezónní
+  zjasnění, jako v s1anomaly), prostorově průměrovaný z² v okně w; obálka (práh t1) + hysterezní růst (práh t2).
+- **Kontrola kalibrace (jednorázově proti EMS, jen ověření odhadu, ne výběr):** pro w ≤ 9 px odhad přesnosti z placeba sedí
+  (např. w9 t1 2,5 t2 1,75: odhad 0,823 / skutečnost 0,829; w9 2,5/2,0: 0,910 / 0,881). Pro w ≥ 13 je placebo příliš optimistické
+  (w17 2,5/1,75: 0,882 / 0,752; w25: 0,919 / 0,680) — prostorově souvislá vlhkost po dešti v den události v pre-pre dvojici chybí.
+  **Pravidlo:** w nejvýš 9 px (≈ šířka bahnotoku, ~90 m); větší okna placebo neumí ověřit, proto zakázána. Přiznat v reportu.
+- Výběr jen placebem (w ≤ 9, odhad P ≥ 0,85, max plocha): w9 t1 2,0 t2 2,0 (odhad 0,875) → **vs EMS R 0,856 / P 0,875**.
+  Další páky k 90 %: trvalost změny přes více snímků po události (post_series; vlhkost je přechodná, suť trvalá) a koryto/trvalá
+  voda se silnou změnou.
