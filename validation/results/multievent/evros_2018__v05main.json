@@ -1,0 +1,161 @@
+{
+ "event": "evros_2018",
+ "tag": "v05main",
+ "dataset": "kurosiwo_test",
+ "continent": "Europe",
+ "kind": "flood",
+ "event_date": "2018-03-26",
+ "aoi_bbox": [
+  26.3049,
+  41.0417,
+  26.3854,
+  41.1024
+ ],
+ "label_valid_pct": 98.1,
+ "scores": {
+  "a_seeds_own_region": {
+   "recall": 0.9209,
+   "precision": 0.83,
+   "f1": 0.8731,
+   "truth_km2": 23.4754,
+   "pred_km2": 26.0447,
+   "tp_km2": 21.6175,
+   "fp_km2": 4.4272,
+   "region_km2": 44.88
+  },
+  "a_seeds_common_region": {
+   "recall": 0.9209,
+   "precision": 0.83,
+   "f1": 0.8731,
+   "truth_km2": 23.4754,
+   "pred_km2": 26.0447,
+   "tp_km2": 21.6175,
+   "fp_km2": 4.4272,
+   "region_km2": 44.88
+  },
+  "b_envelope": {
+   "recall": 0.9209,
+   "precision": 0.83,
+   "f1": 0.8731,
+   "truth_km2": 23.4754,
+   "pred_km2": 26.0447,
+   "tp_km2": 21.6175,
+   "fp_km2": 4.4272,
+   "region_km2": 44.88
+  },
+  "b_envelope_visible_label": {
+   "recall": 0.9204,
+   "precision": 0.83,
+   "f1": 0.8729,
+   "truth_km2": 23.4869,
+   "pred_km2": 26.0447,
+   "tp_km2": 21.6175,
+   "fp_km2": 4.4272,
+   "region_km2": 44.931
+  }
+ },
+ "scores_water_total": {
+  "seeds": {
+   "recall": 0.9734,
+   "precision": 0.8367,
+   "f1": 0.8999,
+   "truth_km2": 24.0988,
+   "pred_km2": 28.0353,
+   "tp_km2": 23.458,
+   "fp_km2": 4.5773,
+   "region_km2": 45.503
+  },
+  "envelope": {
+   "recall": 0.9734,
+   "precision": 0.8367,
+   "f1": 0.8999,
+   "truth_km2": 24.0988,
+   "pred_km2": 28.0353,
+   "tp_km2": 23.458,
+   "fp_km2": 4.5773,
+   "region_km2": 45.503
+  }
+ },
+ "seed_transitions_km2": {
+  "water": {
+   "water": 25.8879
+  },
+  "debris": {
+   "debris": 0.3336
+  },
+  "permanent": {
+   "permanent": 1.8138
+  }
+ },
+ "components": {
+  "seeds_ai_water(2)": {
+   "km2": 26.3131,
+   "km2_in_label_region": 25.8879,
+   "share_on_truth": 0.83
+  },
+  "seeds_debris_step:debris": {
+   "km2": 0.2807,
+   "km2_in_label_region": 0.2807,
+   "share_on_truth": 0.39
+  },
+  "seeds_class3_not_debris_step(vhagree etc.)": {
+   "km2": 0.0549,
+   "km2_in_label_region": 0.0529,
+   "share_on_truth": 0.429
+  },
+  "seeds_permanent(4)": {
+   "km2": 1.8341,
+   "km2_in_label_region": 1.8138,
+   "share_on_truth": 0.672
+  }
+ },
+ "pred_total_km2": {
+  "seeds": 26.649,
+  "envelope": 26.649
+ },
+ "run": {
+  "timings_s": {
+   "acquire": 67.0,
+   "preprocess": 2.0,
+   "s1anomaly": 1.1,
+   "flood_ai": 17.1,
+   "debris": 22.3,
+   "envelope": 0.7,
+   "combine": 1.5,
+   "damage": 1.8,
+   "network": 2.6,
+   "report": 4.8
+  },
+  "pu_spent": 0.0,
+  "pu_estimate": 57,
+  "envelope": {
+   "used": false,
+   "reason": "Water-level envelope is off (opt-in: set POVODNE_ENVELOPE=1 or pass --envelope); the flood map is unchanged.",
+   "placebo_groups": null,
+   "placebo_split": null,
+   "stat": null,
+   "persistence": null,
+   "reach_q": null,
+   "final_est_precision": null,
+   "final_placebo_false_km2": null,
+   "added_km2": null,
+   "added_by_stage_km2": null,
+   "optics": null,
+   "post_passes": null,
+   "optical_used": null
+  },
+  "main_track": {
+   "relative_orbit": 109,
+   "orbit_direction": "DESCENDING"
+  },
+  "alt_track": true,
+  "s2": {
+   "pre": 77.5,
+   "post": 99.9,
+   "extra": null
+  },
+  "warnings": [
+   "No pre-event OpenStreetMap buildings in the area: damaged buildings cannot be counted (zero does not mean no damage)."
+  ]
+ }
+}

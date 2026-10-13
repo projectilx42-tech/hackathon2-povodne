@@ -33,7 +33,7 @@ and every flood event sampled equally often. Same training data as v0.4, no test
 | flood, mountainous tiles (> 200 m) | 0.350 | 0.538 | 0.501 | 0.519 (0.484) |
 
 **Whole system on 10 independent floods + 1 no-flood control** (`validation/results/multievent/README.md`, only the model swapped,
-same code and data): mean F1 over 9 labelled floods 0.865 → **0.871** (recall 0.858 → 0.867, precision 0.886 → 0.887), no event
+same code and data): mean F1 over 9 labelled floods 0.859 → **0.864** (recall 0.854 → 0.862, precision 0.876 → 0.876), no event
 worse by more than 0.003 F1, Australia +0.03, Teesta +0.01, no extra false area on the no-flood control.
 v0.5 was picked from 8 fine-tuned variants on this same set, so part of the gain may be selection luck; it is also the best
 variant on the Kuro Siwo test. On the Kuro Siwo validation events it is slightly less precise than v0.4.

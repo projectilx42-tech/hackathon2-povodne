@@ -1477,8 +1477,11 @@ Výsledek doplním.
 - **Prahy (jen Kuro Siwo val):** citlivý práh **0,25** = stejný recall povodně na val jako v0.4 při 0,20 (0,79). Postup „max. F1“ z D-M10-07 nejde
   zopakovat: na kopii val v Kaggle roste F1 s prahem u obou modelů (v0.4 i v0.5 až k 0,5; `softpost_val_v0.5.json`, `softpost_val_v0.4_kaggle.json`),
   práh 0,20 u v0.4 vznikl na jiné kopii val. Okrajový krok k=1, t=0,12 (stejné pravidlo výběru jako D-M9-15, `edge_val_v0.5.json`).
-- **Finální srovnání (runs s opravou S2, tagy `s2_v04` / `s2_v05t25`):** F1 0,865 → 0,871, R 0,858 → 0,867, P 0,886 → 0,887, nejhorší událost −0,003,
-  kontrola 0,1769 → 0,1764 km² → pravidlo splněno; s prahem 0,20 (`s2_v05`) taky (0,871, P 0,884). Kuro Siwo test 0,792 ≥ 0,780 → **sloučeno, výchozí v0.5**.
+- **Finální srovnání proti `s2fix` (tag `v05main` = main s v0.5, `multievent_rerun.sh --from flood_ai --no-envelope --sensitivity sensitive`; v0.4 stejnou cestou
+  dá přesně `s2fix`):** F1 0,859 → 0,864, R 0,854 → 0,862, P 0,876 → 0,876, nejhorší událost −0,003 (Honduras), Austrálie +0,032, Teesta +0,014,
+  kontrola 0,3287 → 0,3278 km² → pravidlo splněno; Kuro Siwo test 0,792 ≥ 0,780.
+- **Chyba měření (opraveno):** tagy `s2_v04` / `s2_v05*` / `v4b_*` / `cand_*` běžely **bez optického modelu** (nebyl stažen) → jen radar; relativní
+  výběr varianty platí, absolutní čísla ne. `model_compare.sh` teď bez optického modelu skončí chybou.
 - Váhy: Kaggle dataset `krataihalfmaster/floodseg-model-v05`; `fetch_model.py` → `models/floodseg_v0.5/`, `run_ai.py` výchozí v0.5.
 Výsledek (2825 val dlaždic, model v0.4, základ = sensitive + okrajový krok k=1 t=0,12): základ P 0,569 / R 0,816 / F1 0,671; nejlepší varianta k=1 frac=0,3
 P 0,565 / R 0,818 / F1 0,669, větší k nebo frac jen víc snižují přesnost (k=3 f=0,7: F1 0,644) → žádná varianta pravidlem neprošla, na 11 událostech se neměřilo.

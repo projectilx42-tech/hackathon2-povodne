@@ -15,6 +15,7 @@ for run in "$RUNS_DIR"/me_*; do
   [ -f "$run/flood/s1_anomaly.tif" ] || (cd "$REPO" && python -m povodne.flood.s1anomaly "$run" > /dev/null 2>&1) || echo "s1anomaly failed: $run"
   mkdir -p "$run/flood"; [ -f "$run/flood/ai_mask.tif" ] || touch "$run/flood/ai_mask.tif"   # lets multievent_rerun.sh pick the run up
 done
+[ -f "$REPO/models/floodseg_s2_v0.1/model.pt" ] || { echo "optical model missing (python training/fetch_model.py): the comparison would be radar-only"; exit 2; }
 base=$(realpath "$1"); new=$(realpath "$2"); tb=$3; tn=$4
 "$HERE/multievent_rerun.sh" "$tb" --from flood_ai --no-envelope --sensitivity sensitive POVODNE_AI_MODEL="$base"
 "$HERE/multievent_rerun.sh" "$tn" --from flood_ai --no-envelope --sensitivity sensitive POVODNE_AI_MODEL="$new"
