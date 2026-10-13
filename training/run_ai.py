@@ -48,7 +48,7 @@ DEFAULT_MODEL = ROOT / "models" / "floodseg_v0.4" / "model.pt"
 DEFAULT_S2_MODEL = ROOT / "models" / "floodseg_s2_v0.1" / "model.pt"
 MIN_FLOOD_PX = 10  # 0.1 ha; no effect on Kuro Siwo val scores, removes specks from the map (D-M9-11)
 SHADOW_DARK_DB, SHADOW_BRIGHT_DB = -15.0, -10.0  # GFM shadow rule: dark in this track, bright in the opposite one
-SENSITIVE_DEFAULT = 0.25  # used when the model card has no flood_thresholds (chosen on Kuro Siwo val for v0.2, D-M9-08)
+SENSITIVE_DEFAULT = 0.2  # used when the model card has no flood_thresholds; v0.4 re-tuned on Kuro Siwo val (D-M10-07: best flood F1 0.807, P 0.82 R 0.79)
 
 
 def _read(path: Path) -> tuple[np.ndarray, dict] | tuple[None, None]:
