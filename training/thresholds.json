@@ -9,8 +9,8 @@
     }
   },
   "floodseg_v0.5": {
-    "sensitive": 0.2,
-    "source": "D-M15-01, Kuro Siwo validation events (provisional, softpost calibration pending)",
+    "sensitive": 0.25,
+    "source": "D-M15-01: same Kuro Siwo val flood recall as v0.4 at 0.20 (0.79; softpost_val_v0.5.json vs softpost_val_v0.4_kaggle.json)",
     "edge": {
       "k": 1,
       "t": 0.12,

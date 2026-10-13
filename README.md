@@ -63,7 +63,7 @@ One run uses 8 ohsome requests; the free key allows 250 per day.
 **Model weights:**
 <!-- TODO (AI model session): final public download of the weights (O-011). Until then: -->
 ```bash
-python training/fetch_model.py      # -> models/floodseg_v0.4/ (radar model) and models/floodseg_s2_v0.1/ (optical model)
+python training/fetch_model.py      # -> models/floodseg_v0.5/ (radar model) and models/floodseg_s2_v0.1/ (optical model)
 ```
 _Final download instructions will be added before submission._
 
@@ -176,6 +176,7 @@ This project was developed with the help of **Claude Code** (Anthropic), used as
 documentation and implementation. Per-module notes on which parts were AI-assisted:
 - **Pipeline orchestrator and final flood map (`src/povodne/{cli,io,config}.py`, `src/povodne/flood/combine.py`, `pyproject.toml`)**: written with Claude Code (step runner, failure rules, combining the water and debris maps, tests).
 - **AI flood step edge growth (`training/eval_edge.py`, `training/floodseg/edge.py`, edge step in `training/run_ai.py`)**: written with Claude Code; the 1 px edge growth was calibrated on Kuro Siwo validation events only, with a selection rule fixed in advance (D-M9-15).
+- **Radar model v0.5 (`training/train.py --init/--hard-boost`, `training/floodseg/data.py`, `validation/model_compare.sh`)**: fine-tuning with hard-tile sampling, threshold calibration and the whole-system comparison were done with Claude Code (D-M15-01).
 - **Dashboard (`dashboard/`)**: backend, frontend, synthetic sample-run generator and UI design discussion were developed with Claude Code.
 
 - **Scene selection (`src/povodne/acquire/`)** — Sentinel-1 catalogue search and track planning, Copernicus DEM download,

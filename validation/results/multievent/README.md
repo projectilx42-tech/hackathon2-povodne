@@ -185,3 +185,23 @@ Teesta 109 PU, Marsyangdi 99 PU, Chamoli 113 PU, Malawi 46 PU (cache), Honduras 
   the driver now deletes `envelope_mask.tif` / `envelope_stage.tif` before each variant.
 
 Contains modified Copernicus Sentinel data 2026 (and earlier years as per event). Kuro Siwo: Bountos et al., 2024.
+
+## Radar model v0.5 vs v0.4 (tags `s2_v04`, `s2_v05t25`; D-M15-01)
+Runs of the Kaggle copy after the Sentinel-2 fix (`s2fix`), `validation/model_compare.sh` = flood_ai → debris → combine, sensitive mode, no envelope;
+only the radar model (and its thresholds from `training/thresholds.json`) differs. v0.5 sensitive threshold 0.25, edge k=1 t=0.12.
+| event | v0.4 R / P / F1 | v0.5 R / P / F1 |
+|---|---|---|
+| australia_2022 | 0.82 / 1.00 / 0.90 | 0.88 / 0.99 / 0.93 |
+| bihar_2019 | 0.98 / 0.90 / 0.94 | 0.98 / 0.90 / 0.94 |
+| bolivia_2018 | 0.94 / 0.82 / 0.88 | 0.94 / 0.82 / 0.88 |
+| chad_2020 | 0.66 / 0.81 / 0.73 | 0.66 / 0.82 / 0.73 |
+| chamoli_2021_sub | 0.00 / – / 0.00 | 0.00 / – / 0.00 |
+| evros_2018 | 0.95 / 0.88 / 0.91 | 0.94 / 0.88 / 0.91 |
+| honduras_2018 | 0.84 / 0.90 / 0.87 | 0.84 / 0.89 / 0.86 |
+| malawi_2022 | 0.97 / 0.93 / 0.95 | 0.96 / 0.93 / 0.95 |
+| marsyangdi_2024_noflood_sub | 0.69 / 0.72 / 0.71 | 0.69 / 0.72 / 0.71 |
+| missouri_2017 | 0.99 / 0.84 / 0.91 | 0.99 / 0.84 / 0.91 |
+| teesta_2023_sub | 0.58 / 0.89 / 0.71 | 0.60 / 0.90 / 0.72 |
+Mean over the 9 labelled floods: v0.4 R 0.858 / P 0.886 / F1 0.865 → v0.5 R 0.867 / P 0.887 / F1 0.871; worst event −0.003 F1; no-flood control 0.1769 → 0.1764 km².
+Earlier runs (before the S2 fix, tag `v4b_v04` vs `cand_*`): all 8 fine-tuned variants, only `cand_ft_hard5_eb1` (= v0.5) passed the merge rule; weight averaging
+(`cand_soup3/5`) and flip TTA (`cand_eb1_tta`) gave no worthwhile gain.

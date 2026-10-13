@@ -15,26 +15,33 @@ Data splits are by flood event (the official Kuro Siwo benchmark split), so test
 never seen. Inference runs on CPU in overlapping tiles (~25 s for a 30 × 30 km valley).
 Design decisions and experiment results: `docs/DECISIONS.md` (D-020 – D-025, D-032 – D-034), per-run metrics in `results/`.
 
-## Results (model v0.4)
-**Held-out Kuro Siwo test events** — 10 floods on 6 continents the model never saw; 15,896 tiles including dry ones; pixels pooled:
+## Results (model v0.5)
+Model v0.5 (D-M15-01) = v0.4 fine-tuned for 5 epochs with hard training tiles sampled more often (flood that radar shows bright —
+flooded vegetation and towns; flood on ground that was already dark — dry sand and soil; dry land that looks dark — wet soil)
+and every flood event sampled equally often. Same training data as v0.4, no test event in training.
+
+**Held-out Kuro Siwo test events** — 10 floods on 6 continents the model never saw; 15,896 tiles including dry ones; pixels pooled
+(v0.4 in brackets):
 
 | | IoU | precision | recall | F1 |
 |---|---|---|---|---|
-| flood | 0.639 | 0.869 | 0.708 | **0.780** |
-| permanent water | 0.638 | 0.811 | 0.749 | 0.779 |
-| any water | 0.700 | 0.895 | 0.763 | 0.824 |
-| flood, flat tiles (relief < 50 m) | 0.636 | 0.874 | 0.700 | 0.778 |
-| flood, hilly tiles (50–200 m) | 0.693 | 0.812 | 0.826 | 0.819 |
-| flood, mountainous tiles (> 200 m) | 0.320 | 0.493 | 0.476 | 0.484 |
+| flood | 0.656 | 0.865 | 0.731 | **0.792** (0.780) |
+| permanent water | 0.644 | 0.816 | 0.754 | 0.784 (0.779) |
+| any water | 0.713 | 0.893 | 0.779 | 0.832 (0.824) |
+| flood, flat tiles (relief < 50 m) | 0.653 | 0.868 | 0.725 | 0.790 (0.778) |
+| flood, hilly tiles (50–200 m) | 0.703 | 0.825 | 0.827 | 0.826 (0.819) |
+| flood, mountainous tiles (> 200 m) | 0.350 | 0.538 | 0.501 | 0.519 (0.484) |
+
+**Whole system on 10 independent floods + 1 no-flood control** (`validation/results/multievent/README.md`, only the model swapped,
+same code and data): mean F1 over 9 labelled floods 0.865 → **0.871** (recall 0.858 → 0.867, precision 0.886 → 0.887), no event
+worse by more than 0.003 F1, Australia +0.03, Teesta +0.01, no extra false area on the no-flood control.
+v0.5 was picked from 8 fine-tuned variants on this same set, so part of the gain may be selection luck; it is also the best
+variant on the Kuro Siwo test. On the Kuro Siwo validation events it is slightly less precise than v0.4.
 
 **Held-out Sen1Floods11 test event (Bolivia)** — 15 hand-labelled chips the model never saw (`floodseg/s1f11.py`). Sen1Floods11
 has only the post-event image and water / no-water labels, so we score any water. This is not how the pipeline runs (it always
-has a pre-event image):
-
-| input | IoU | precision | recall | F1 |
-|---|---|---|---|---|
-| pre-event image missing (as in training) | 0.118 | 0.959 | 0.118 | 0.210 |
-| pre-event image = post image (no change) | 0.466 | 0.889 | 0.495 | 0.636 |
+has a pre-event image). v0.5 with the pre-event image missing (as in training): IoU 0.108, precision 0.958, recall 0.109,
+F1 0.195 (v0.4: 0.210; v0.4 with pre-event image = post image: F1 0.636).
 
 Without a pre-event image the model almost never calls water: it learned to rely on the before/after change. Bolivian
 flood water is also not very dark (median VV −16 dB; dark-water rule VV < −15 dB would find 63 %), typical of shallow water
@@ -91,12 +98,12 @@ In the pipeline (`run_ai.py`), optical water is a flood where the pixel was dry 
 
 ## Use the current model (integration testing)
 ```bash
-python training/fetch_model.py              # -> models/floodseg_v0.4/ (needs KAGGLE_API_TOKEN in the environment)
+python training/fetch_model.py              # -> models/floodseg_v0.5/ (needs KAGGLE_API_TOKEN in the environment)
 python training/run_ai.py runs/<run_id>     # aligned/ + masks/ -> flood/ai_mask.tif, flood/ai_prob.tif, run.json "flood"
 ```
 `run_ai.py` is the interim M3 step (until `src/povodne/flood/ai.py` exists): per-track inference, layover/shadow -> nodata,
-water suppressed on steep slopes / high HAND, both pass directions averaged (D-034). Model v0.4 = `r11_r34_lovasz_nobolivia`
-(test flood F1 0.780, mountainous tiles 0.48; D-M9-13); later versions keep the same files and interface.
+water suppressed on steep slopes / high HAND, both pass directions averaged (D-034). Model v0.5 = `r12_ft_hard5_eb1`
+(test flood F1 0.792, D-M15-01; v0.4 = `r11_r34_lovasz_nobolivia`, 0.780, D-M9-13); later versions keep the same files and interface.
 Speed: a 30 × 30 km area (3000 × 3000 px) takes ~30 s per pass direction on 4 CPU cores with ~2 GB RAM.
 Sensitivity (`--sensitivity` or `run.json` `"sensitivity"`): `standard` takes the most likely class; `sensitive` reports flood
 from P(flood) ≥ 0.25 (threshold chosen on validation events, stored in `model_card.json`): on validation it finds 76 % instead

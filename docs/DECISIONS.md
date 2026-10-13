@@ -1470,5 +1470,9 @@ Výsledek doplním.
   Průměr vah v0.4+v0.5 (0,868–0,869) a TTA s otočením (+0,001 při 4× delším běhu) se nevyplatily.
 - **Pozor (do reportu):** vítěz vybrán z 8 variant na téže sadě 11 událostí → část zlepšení může být náhoda výběru; na Kuro Siwo test je ale
   nejlepší i nezávisle.
-- **Prahy (Kuro Siwo val, stejně jako v0.4):** okrajový krok k=1, t=0,12 při citlivém prahu 0,20 (`training/results/edge_val_v0.5.json`).
+- **Prahy (jen Kuro Siwo val):** citlivý práh **0,25** = stejný recall povodně na val jako v0.4 při 0,20 (0,79). Postup „max. F1“ z D-M10-07 nejde
+  zopakovat: na kopii val v Kaggle roste F1 s prahem u obou modelů (v0.4 i v0.5 až k 0,5; `softpost_val_v0.5.json`, `softpost_val_v0.4_kaggle.json`),
+  práh 0,20 u v0.4 vznikl na jiné kopii val. Okrajový krok k=1, t=0,12 (stejné pravidlo výběru jako D-M9-15, `edge_val_v0.5.json`).
+- **Finální srovnání (runs s opravou S2, tagy `s2_v04` / `s2_v05t25`):** F1 0,865 → 0,871, R 0,858 → 0,867, P 0,886 → 0,887, nejhorší událost −0,003,
+  kontrola 0,1769 → 0,1764 km² → pravidlo splněno; s prahem 0,20 (`s2_v05`) taky (0,871, P 0,884). Kuro Siwo test 0,792 ≥ 0,780 → **sloučeno, výchozí v0.5**.
 - Váhy: Kaggle dataset `krataihalfmaster/floodseg-model-v05`; `fetch_model.py` → `models/floodseg_v0.5/`, `run_ai.py` výchozí v0.5.

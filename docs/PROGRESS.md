@@ -6,6 +6,7 @@ Plán je orientační — rozhoduje, co uživatel zadá v dané session.
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Jeden řádek, ≤ ~250 znaků, odkaz na rozhodnutí. Vyřízené / starší než ~2 dny přesuň do archivu.)*
+- **2026-10-13 — radarový model v0.5 sloučen (D-M15-01):** výchozí `models/floodseg_v0.5` (`python training/fetch_model.py`, Kaggle `floodseg-model-v05`); 11 událostí F1 0,865 → 0,871, Kuro Siwo test 0,780 → 0,792; práh citlivého režimu 0,25.
 - **2026-10-13 — signál: oprava trvalé vody (D-M14-06)** — referenční rok vody se už nevzdá při selhání 1 průletu; Bihár F1 0,85 → 0,93, průměr 9 událostí 0,850 → 0,859. Ve `feat/signal`, čeká na sloučení do main.
 - **2026-10-13 — signál (`feat/signal`):** zesvětlení, vodní index S2, samoučení s pojistkou, nejtmavší přelet, 2 modely — nic neprošlo pravidlem, vše jen opt-in (D-M14-01–05); runs 11 událostí na Kaggle `povodne-multievent-runs`, porovnání `validation/multievent_compare.py`.
 - **2026-10-13 — údržba docs:** CLAUDE.md a hlášení hooků zkráceny; starý log a oznámení → `docs/archive/PROGRESS_LOG.md`; `REQUEST_M1_POIS.md` (hotový) → `docs/archive/`. Pravidla beze změny.
@@ -38,7 +39,7 @@ Pipeline běží end-to-end ze surových dat (`python -m povodne run`) i z webov
 | M4 Škody, M5 Síť, M7 Trasa povodně | ✅ | D-M4-01, D-M5-01–04, D-M7-01 |
 | M6 Stats + sitrep + překryvy | ✅ | D-M6-01 |
 | M8 UI | ✅ | upozornění, podtypy suti, škody, plán oprav, trasa povodně |
-| M9 Trénink | ✅ | v0.4 (D-M9-14); hosting vah otevřený (O-011) |
+| M9 Trénink | ✅ | v0.5 (D-M15-01; dříve v0.4 D-M9-14); hosting vah otevřený (O-011) |
 | M10 Validace | ✅ | EMSR927 + sada 10 povodní + kontrola |
 
 ## Plán do odevzdání (master, D-X-06) — SELČ
@@ -53,6 +54,9 @@ Pipeline běží end-to-end ze surových dat (`python -m povodne run`) i z webov
 
 ## Log sessions
 *(Nejnovější nahoře, ≤ 5 řádků na session. Starší: `docs/archive/PROGRESS_LOG.md`.)*
+### 2026-10-13 — model v0.5 (doladění na těžké případy) — `feat/model-v05`
+- Doladění v0.4 s častějšími těžkými výřezy (`train.py --init/--hard-boost`), 8 variant na Kaggle; vítěz `r12_ft_hard5_eb1` prošel pravidlem sloučení na 11 událostech (`validation/model_compare.sh`).
+- Prahy na Kuro Siwo val (citlivý 0,25, okraj k=1 t=0,12). Průměr vah a TTA bez přínosu.
 ### 2026-10-13 — vylepšení signálu — `feat/signal`
 - Runs 11 událostí postaveny znovu (baseline = v4 přesně), Kaggle dataset `povodne-multievent-runs` (+ popisky), obnova popisků Kuro Siwo z kompaktní kopie.
 - Kroky 1–5 změřeny (tabulka v `validation/results/multievent/README.md`, D-M14-01–05): žádný nezvedl průměrné F1 0,850; vše opt-in. Kombinace s modely r12 čeká na trénink.
