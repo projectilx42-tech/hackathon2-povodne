@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import warnings
 from pathlib import Path
@@ -132,8 +133,17 @@ def _z_pair(x_vv: np.ndarray, x_vh: np.ndarray, norm: np.ndarray):
 def _mean_z(pairs: list):
     """Mean over the passes of the z maps (NaN where a pass has no data; NaN if none has). Noise falls with the square root of
     the number of passes, a persistent signal (standing flood water) stays."""
+    # POVODNE_ANOMALY_POST=min (D-M14-05): per pixel the darkest pass (water that appears only on a later pass), the placebo
+    # gets the same statistic so its threshold stays calibrated; default = mean (D-M10-06)
+    f = np.nanmin if os.environ.get("POVODNE_ANOMALY_POST", "mean") == "min" else np.nanmean
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", RuntimeWarning)
+        if f is np.nanmin:  # darkest pass judged by the combined VV+VH score, both polarisations taken from that pass
+            zc = np.stack([np.where(np.isfinite(p[0] + p[1]), p[0] + p[1], np.inf) for p in pairs])
+            k = np.argmin(zc, 0)
+            zv = np.take_along_axis(np.stack([p[0] for p in pairs]), k[None], 0)[0]
+            zh = np.take_along_axis(np.stack([p[1] for p in pairs]), k[None], 0)[0]
+            return zv.astype(np.float32), zh.astype(np.float32)
         return (np.nanmean(np.stack([p[0] for p in pairs]), 0).astype(np.float32),
                 np.nanmean(np.stack([p[1] for p in pairs]), 0).astype(np.float32))
 
@@ -193,6 +203,21 @@ def placebo_threshold(zs_vv: list, zs_vh: list, false_pct: float = PLACEBO_FALSE
         return None
     zc = (s / np.sqrt(2 * np.maximum(n, 1)))[n > 0]
     return float(np.percentile(zc, false_pct)) if zc.size > 1000 else None
+
+
+def placebo_bright_threshold(zs_vv: list, false_pct: float = PLACEBO_FALSE_PCT) -> float | None:
+    """Upper-tail twin of `placebo_threshold` for VV alone (Stouffer over the tracks, as band z_vv): the z_vv value that only
+    `false_pct` % of the flood-free placebo pixels exceed. Used to call a brightening (double bounce of flooded vegetation or
+    buildings) significant (D-M14-01)."""
+    n, s = 0, 0
+    for zv in zs_vv:
+        ok = np.isfinite(zv)
+        n = n + ok
+        s = s + np.where(ok, zv, 0)
+    if np.isscalar(n):
+        return None
+    zc = (s / np.sqrt(np.maximum(n, 1)))[n > 0]
+    return float(np.percentile(zc, 100 - false_pct)) if zc.size > 1000 else None
 
 
 def run(run_dir: Path) -> dict:
@@ -262,7 +287,8 @@ def run(run_dir: Path) -> dict:
                "coarse_resolution_m": abs(cprof["transform"].a), "valid_pct": round(100 * float(valid.mean()), 1),
                "abs_z_comb_gt3_pct": round(100 * float((np.abs(out[2][valid]) > 3).mean()), 2) if valid.any() else None,
                "placebo": placebo, "placebo_false_pct": PLACEBO_FALSE_PCT,
-               "threshold_z_comb": placebo_threshold(plac_vv, plac_vh) if len(plac_vv) == len(used) else None}
+               "threshold_z_comb": placebo_threshold(plac_vv, plac_vh) if len(plac_vv) == len(used) else None,
+               "threshold_z_vv_bright": placebo_bright_threshold(plac_vv) if len(plac_vv) == len(used) else None}
     update_run(run_dir, lambda rj: (rj.__setitem__("s1anomaly", section), set_notices(rj, "s1anomaly", notices)))
     set_step(run_dir, "s1anomaly", "done", f"radar anomaly from {len(used)} track(s), {section['valid_pct']} % of the area covered")
     return section

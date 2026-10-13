@@ -6,6 +6,7 @@ Plán je orientační — rozhoduje, co uživatel zadá v dané session.
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Jeden řádek, ≤ ~250 znaků, odkaz na rozhodnutí. Vyřízené / starší než ~2 dny přesuň do archivu.)*
+- **2026-10-13 — signál (`feat/signal`):** zesvětlení, vodní index S2, samoučení s pojistkou, nejtmavší přelet, 2 modely — nic neprošlo pravidlem, vše jen opt-in (D-M14-01–05); runs 11 událostí na Kaggle `povodne-multievent-runs`, porovnání `validation/multievent_compare.py`.
 - **2026-10-13 — údržba docs:** CLAUDE.md a hlášení hooků zkráceny; starý log a oznámení → `docs/archive/PROGRESS_LOG.md`; `REQUEST_M1_POIS.md` (hotový) → `docs/archive/`. Pravidla beze změny.
 - **2026-10-13 — master audit:** vše sloučeno do `main`; záměrně nesloučeno `play/all`, `feat/report` (1 commit) a `claude/cool-cray-jfyu4h` (1 commit) — nahrazeno novějším kódem. Ostatní větve jsou jen historie.
 - **Pravidlo uživatele:** změny metod hodnotit na sadě 11 událostí — 10 povodní + kontrola bez povodně (`validation/results/multievent/README.md`), ne na Trishuli (CLAUDE.md).
@@ -51,6 +52,9 @@ Pipeline běží end-to-end ze surových dat (`python -m povodne run`) i z webov
 
 ## Log sessions
 *(Nejnovější nahoře, ≤ 5 řádků na session. Starší: `docs/archive/PROGRESS_LOG.md`.)*
+### 2026-10-13 — vylepšení signálu — `feat/signal`
+- Runs 11 událostí postaveny znovu (baseline = v4 přesně), Kaggle dataset `povodne-multievent-runs` (+ popisky), obnova popisků Kuro Siwo z kompaktní kopie.
+- Kroky 1–5 změřeny (tabulka v `validation/results/multievent/README.md`, D-M14-01–05): žádný nezvedl průměrné F1 0,850; vše opt-in. Kombinace s modely r12 čeká na trénink.
 ### 2026-10-13 — údržba sdílených docs a hooků — `main`
 - CLAUDE.md zeštíhlen (pravidla beze změny významu), SessionStart hlásí jen krátké řádky Oznámení, PROGRESS zkrácen (archiv), opraveny zastaralé údaje v README / ARCHITECTURE / TASK / UI_SPEC / NOTICES.
 ### 2026-10-13 — M14: ověření na více událostech — `feat/multievent`

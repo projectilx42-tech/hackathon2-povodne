@@ -1384,3 +1384,33 @@ Provedení: `floodseg/edge.py` (`grow_edge`), parametry v `training/thresholds.j
 Pravidlo: u sensitive projde precision ≥ 0,566 → nejvyšší recall dává `edge_k1_t0,12` (0,816; podmíněný okraj i po vrstvách dávají stejně, k = 2–3 už pod hranicí). U standard je hranice 0,670 a žádná varianta ji nesplní (nejlepší k=1 má 0,655) → **pro standard se nic nevybírá** (vzhledem k pravidlu; pro srovnání F1 vzroste jen o 0,002).
 Po událostech (sensitive → +edge, recall): 1111008 0,882→0,906; 279 0,790→0,820; 437 0,741→0,765; 520 0,715→0,733; 559 0,564→0,607; 1111003 0,152→0,173 — zlepšení recallu v každé oblasti, precision klesá o 0–4 b.
 Poznámky: (1) zisk na val je menší než změřil master na jiných popiscích (+3–12 b. recallu při −1–4 b. precision u dilatace o 1 px); na val sensitive dostává precision −3,2 b. za recall +4,2 b., F1 mírně dolů (0,679 → 0,670) — krok je volba ve prospěch recallu, ne zlepšení F1. (2) Precision základu sensitive 0,596 je nižší než dřívější 0,672 (D-M9-11, model v0.2, bez vyřazení okraje a s jiným prahem); jde o v0.4 s prahem 0,20. (3) Krok se používá jen v režimu sensitive; vypnutí `POVODNE_AI_EDGE=0`; parametry `training/thresholds.json` → `floodseg_v0.4.edge`. `run.json.flood.params` nově `edge`, `edge_added_px`.
+
+## D-M14-01 | 2026-10-13 | zamítnuto (opt-in `POVODNE_BRIGHTEN=1`) — Zaplavená vegetace / zástavba ze zesvětlení radaru
+Pravidlo (`flood/brighten.py`, volá `combine`): VV jasnější než normál místa nad horním prahem placeba (`run.json.s1anomaly.threshold_z_vv_bright`
+= 99,5. percentil z_vv průletů bez povodně), kde vidí obě dráhy obě jasnější (z > 1), HAND ≤ 10 m, sklon ≤ 10°, napojené na dosavadní povodeň → třída 3,
+podtyp zaplavená vegetace, nízká jistota. Sada 11 událostí (tag `br1` proti `base` = v4): průměr 9 událostí F1 0,850 → 0,842 (P 0,870 → 0,852);
+Missouri −0,035, Evros −0,025, Bihár −0,011, Austrálie −0,006, Čad ±0. Varianty VV−VH ≥ 2 (`br_dpol2`) a + HAND ≤ 3 m: F1 0,849. Na Austrálii je zesvětlená
+spíš suchá půda (medián z_vv 3,1) než přehlédnutá voda (0,95). → nesloučeno jako výchozí; zůstává volitelné.
+
+## D-M14-02 | 2026-10-13 | zamítnuto (opt-in `POVODNE_S2_INDEX=1`) — Vodní index Sentinel-2 všude, kde je jasno
+Optický model už běží na všech jasných pixelech (D-M9-11); navíc pravidlo MNDWI > 0 (literatura, neladěno) v `run_ai.py`. Austrálie beze změny:
+přehlédnutá jasná voda (2,3 km²) byla vodou i na snímku „před“ (pozdní pre ve vlhké sezóně) → trvalá, ne povodeň; Honduras a Malawi mají snímek „po“
+8 dní po povodni (voda opadla). Kontrola bez povodně +0,06 km² falešné plochy → pravidlo sloučení neprošlo.
+
+## D-M14-03 | 2026-10-13 | zamítnuto (opt-in `POVODNE_SELFTRAIN_FUSE=1`) — Samoučení s pojistkou
+`flood/stfuse.py`: pixely samoučení (`flood/selftrain_mask.tif`) se přidají jen při HAND ≤ 10 m (`POVODNE_STFUSE_HAND`), sklonu ≤ 10° a napojení na jisté jádro
+(AI voda s P ≥ 0,8, `POVODNE_STFUSE_CORE_P`), volitelně jen s P samoučení ≥ `POVODNE_STFUSE_MIN_P`. Samoučení samo označí velkou část území (Bihár 66 km² z ~70,
+Čad 15,6 km² při popisku 9,4 km²); trvá ~25 s na událost (paralelní běhy se přetíží — LightGBM bere všechna jádra).
+Sada 11 událostí, průměr 9: `st10` F1 0,850 → 0,842 (R 0,842 → 0,853, P 0,870 → 0,844), `st3` (HAND ≤ 3 m) 0,845, `st_strict` (HAND ≤ 3, jádro P ≥ 0,95, P samoučení ≥ 0,9)
+0,848 (Čad R 0,67 → 0,69 / P 0,78 → 0,74, Bihár −0,007, Evros −0,009) → nesloučeno. **Chyba:** `selftrain` padá na událostech s jednou dráhou (`KeyError 'r_z_alt_vv'`:
+Austrálie, Malawi, Missouri) — tam se nic nepřidalo; opravit, pokud se krok někdy zapne.
+
+## D-M14-04 | 2026-10-13 | zatím nesloučeno (opt-in `POVODNE_AI_ENSEMBLE`) — Kombinace více radarových modelů
+`run_ai.py`: průměr kalibrovaných pravděpodobností hlavního modelu a modelů z `POVODNE_AI_ENSEMBLE` (čárkami oddělené cesty); prahy citlivosti a okraje
+z hlavního modelu. v0.4 + v0.2 (`ens_v02`; v0.2 viděl Bolívii, jen orientačně): F1 0,850 → 0,846, Austrálie +0,025, Teesta −0,058 → neprošlo.
+Modely r12 (doladění v0.4 bez Bolívie, session tréninku) se změří, až doběhnou.
+
+## D-M14-05 | 2026-10-13 | zamítnuto (opt-in `POVODNE_ANOMALY_POST=min`) — Víc snímků po povodni: nejtmavší přelet
+Radarová anomálie bere u každého pixelu nejtmavší z přeletů po povodni (`post_series`, 24 dní, obě dráhy zvlášť) místo průměru; placebo stejnou statistikou.
+Sada 11 událostí (tag `multimin`): F1 0,850 → 0,849 (Bolívie −0,005, Honduras −0,003, ostatní ±0), kontrola beze změny → nesloučeno.
+Anomálie ovlivňuje jen malou část mapy (podpora a napojení slabé povodně); hlavní mapu dělá model z jednoho snímku „po“ na dráhu.

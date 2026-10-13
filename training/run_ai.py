@@ -99,6 +99,9 @@ def seasonal_high_water(mask: np.ndarray, ref_freq: np.ndarray | None, dem_water
     return (mask == 4) & known & ~permanent
 
 
+EXTRA_MEMBERS: list = []  # filled in main() from POVODNE_AI_ENSEMBLE="models/a/model.pt,models/b/model.pt"
+
+
 def track_probs(model, cfg, run: Path, prefix: str, slope: np.ndarray, device: str):
     """Class probabilities [3,H,W] for one track, its validity mask and pre-event VV in dB; None if the track is missing."""
     bands = {}
@@ -112,11 +115,15 @@ def track_probs(model, cfg, run: Path, prefix: str, slope: np.ndarray, device: s
     ls, _ = _read(run / "masks" / f"{prefix}_layover_shadow.tif")
     if ls is not None:
         valid &= ls != 1
-    norm = {k: tuple(v) for k, v in cfg["normalization"].items()}
-    use_slope = "slope" in cfg["inputs"]
-    x = build_features(bands["pre_vv"], bands["pre_vh"], bands["post_vv"], bands["post_vh"],
-                       np.round(slope) if use_slope else None, norm)
-    probs = predict_probs(model, x, device=device, temperature=cfg.get("temperature", 1.0))
+    probs = None
+    members = [(model, cfg)] + list(EXTRA_MEMBERS)
+    for m, c in members:  # several models (POVODNE_AI_ENSEMBLE): mean of their calibrated probabilities (D-M14-04)
+        norm = {k: tuple(v) for k, v in c["normalization"].items()}
+        x = build_features(bands["pre_vv"], bands["pre_vh"], bands["post_vv"], bands["post_vh"],
+                           np.round(slope) if "slope" in c["inputs"] else None, norm)
+        p = predict_probs(m, x, device=device, temperature=c.get("temperature", 1.0))
+        probs = p if probs is None else probs + p
+    probs = probs / len(members)
     return probs, valid, bands["pre_vv"]
 
 
@@ -131,6 +138,23 @@ def s2_water(model, cfg, run: Path, when: str, device: str):
     norm = {k: tuple(v) for k, v in cfg["normalization"].items()}
     p = predict_probs(model, s2_features(refl, norm), device=device, temperature=cfg.get("temperature", 1.0))[1]
     return p, clear
+
+
+MNDWI_WATER = 0.0  # modified normalised difference water index (green - SWIR1) / (green + SWIR1) > 0 = open water (Xu 2006; not tuned)
+
+
+def s2_index_enabled() -> bool:
+    return os.environ.get("POVODNE_S2_INDEX", "0") == "1"
+
+
+def s2_mndwi(run: Path, when: str):
+    """MNDWI of aligned/s2_<when>.tif (bands B02,B03,B04,B08,B11,B12 -> green = 1, SWIR1 = 4); None if missing."""
+    refl, _ = _read_bands(run / "aligned" / f"s2_{when}.tif")
+    if refl is None:
+        return None
+    g, sw = refl[1], refl[4]
+    with np.errstate(divide="ignore", invalid="ignore"):
+        return ((g - sw) / (g + sw)).astype(np.float32)
 
 
 def _read_bands(path: Path):
@@ -250,6 +274,8 @@ def main() -> None:
     run = args.run_dir
     torch.set_num_threads(max(1, torch.get_num_threads()))
     model, cfg = load_model(args.model, args.device)
+    for extra in filter(None, os.environ.get("POVODNE_AI_ENSEMBLE", "").split(",")):
+        EXTRA_MEMBERS.append(load_model(Path(extra), args.device))
 
     slope, profile = _read(run / "masks" / "slope.tif")
     if slope is None:
@@ -352,6 +378,15 @@ def main() -> None:
                 wet_post = clear_post & (p_post * w >= args.s2_water_thr)  # soft prior (w = 1 with --hard-rules)
                 # was the pixel dry before? optical pre image if clear there, else the radar's view of the pre image
                 dry_before = np.where(clear_pre, p_pre < args.s2_water_thr, radar_valid & (cls != 1))
+                index_px = 0
+                if s2_index_enabled():
+                    # shallow / turbid water the optical model misses: modified water index above 0 (D-M14-02)
+                    mw_post, mw_pre = s2_mndwi(run, "post"), s2_mndwi(run, "pre")
+                    idx_wet = clear_post & np.isfinite(mw_post) & (mw_post > MNDWI_WATER) & (w >= 0.5)
+                    if mw_pre is not None:
+                        dry_before &= ~(clear_pre & (mw_pre > MNDWI_WATER))
+                    index_px = int((idx_wet & ~wet_post).sum())
+                    wet_post |= idx_wet
                 known_before = clear_pre | radar_valid
                 s2_flood = wet_post & dry_before
                 s2_perm = wet_post & ~s2_flood
@@ -366,7 +401,8 @@ def main() -> None:
                            "post_clear_pct": round(100 * float(clear_post.mean()), 1),
                            "pre_clear_pct": round(100 * float(clear_pre.mean()), 1),
                            "optical_flood_km2": round(float(s2_flood.sum()) * 1e-4, 3),
-                           "optical_water_unknown_before_km2": round(float((wet_post & ~known_before).sum()) * 1e-4, 3)}
+                           "optical_water_unknown_before_km2": round(float((wet_post & ~known_before).sum()) * 1e-4, 3),
+                           "index_rule": s2_index_enabled(), "index_added_km2": round(index_px * 1e-4, 3)}
     # Seasonal high water (D-M10-02): "permanent" by the model only because the before-image was already swollen.
     ref = load_on_grid(run / "raw" / "s1" / "perm_water.tif", profile)
     seasonal = seasonal_high_water(mask, ref, load_on_grid(run / "raw" / "dem" / "water.tif", profile), args.perm_min_freq)
