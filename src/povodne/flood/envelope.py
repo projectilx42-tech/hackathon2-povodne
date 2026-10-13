@@ -255,7 +255,7 @@ def windowed(z: np.ndarray, w: int) -> tuple[np.ndarray, np.ndarray]:
     z0 = np.where(np.isfinite(z), z, 0.0).astype(np.float32)
     if w <= 1:
         return np.abs(z0), z0
-    return (np.sqrt(ndimage.uniform_filter(z0 * z0, size=w, mode="nearest")).astype(np.float32),
+    return (np.sqrt(np.maximum(ndimage.uniform_filter(z0 * z0, size=w, mode="nearest"), 0)).astype(np.float32),
             ndimage.uniform_filter(z0, size=w, mode="nearest").astype(np.float32))
 
 
