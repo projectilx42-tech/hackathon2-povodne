@@ -212,6 +212,8 @@ def main() -> None:
     ap.add_argument("--slope-width", type=float, default=softpost.SLOPE_WIDTH_DEG)
     ap.add_argument("--hand-mid", type=float, default=softpost.HAND_MID_M, help="soft prior: HAND (m) where the weight is 0.5")
     ap.add_argument("--hand-width", type=float, default=softpost.HAND_WIDTH_M)
+    ap.add_argument("--no-anomaly-connect", dest="anomaly_connect", action="store_false",
+                    help="do not add radar-anomaly pixels that touch model flood (D-M10-08)")
     ap.add_argument("--anomaly-gain", type=float, default=softpost.ANOMALY_GAIN,
                     help="odds multiplier exp(gain) of flood at the strongest radar anomaly (0 = ignore flood/s1_anomaly.tif)")
     ap.add_argument("--s2-water-thr", type=float, default=0.5, help="optical model: P(water) at or above this counts as water")
@@ -295,6 +297,14 @@ def main() -> None:
         # (most likely class); on Kuro Siwo val better than a plain threshold in F1 and precision (D-M9-11)
         likely = grow_from_seeds((probs[2] >= threshold) & radar_valid, (cls == 2) & radar_valid)
         cls = np.where(likely, 2, probs[:2].argmax(0))
+    if anomaly_info["used"] and args.anomaly_connect:
+        # direct radar support (D-M10-08): pixels darker than the place's normal beyond the placebo threshold (>= 99.5 % of a
+        # flood-free scene stays above it) count as flood where they touch model flood; multiplying the odds cannot do this
+        # because the model gives these pixels P ~ 0
+        cand = (strength > 0) & radar_valid & (w > 0.05) & (cls != 1)
+        grown = grow_from_seeds(cand | (cls == 2), (cls == 2) & radar_valid) & cand
+        anomaly_info["connected_px"] = int((grown & (cls != 2)).sum())
+        cls = np.where(grown, 2, cls)
     mask = np.zeros(slope.shape, np.uint8)
     mask[radar_valid] = 1
     mask[radar_valid & (cls == 2)] = 2
