@@ -1246,3 +1246,7 @@ budov označeno, 1972 našich zásahů) beze změny — mění se jen stupeň, n
 - Výběr jen placebem (w ≤ 9, odhad P ≥ 0,85, max plocha): w9 t1 2,0 t2 2,0 (odhad 0,875) → **vs EMS R 0,856 / P 0,875**.
   Další páky k 90 %: trvalost změny přes více snímků po události (post_series; vlhkost je přechodná, suť trvalá) a koryto/trvalá
   voda se silnou změnou.
+- **Doplněk (okraje, `validation/envelope_edge_diag.py`):** ze zbylých 1,67 km² nezachycených leží 88 % do 100 m od detekce a 59 % má
+  důkaz těsně pod prahem (1,5–2). Třetí stupeň = nižší práh t3 jen v pásu r px kolem detekcí; placebo vybralo t 2,5 / t3 1,75 / r 5
+  (odhad P 0,864) → **R 0,867 / P 0,853**. Hranice R-P na tomto starém běhu: P ~0,83 při R ~0,89 → 90 % při P ≥ 0,85 vyžaduje
+  kvalitnější důkaz (roční normál, trvalost přes post_series), ne další geometrii.
