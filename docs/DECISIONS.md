@@ -1483,3 +1483,11 @@ Zkouška „živé poroty“ (Rio Grande do Sul, 3. 5. 2024): v katalogu není �
 a verdikt je `insufficient_data` s důvodem, ale běh dál spustil přípravu dat, která spadla na technické chybě („no reference grid“), a ta se ukázala
 jako chyba běhu. Teď orchestrátor (`cli.py`) po stahování s „insufficient data“ přeskočí další kroky se zprávou „not enough satellite data“
 a `progress.error` je srozumitelná věta; sitrep a verdikt beze změny. Test `tests/test_orchestrator.py::test_insufficient_data_stops_cleanly`.
+
+## D-M14-14 | 2026-10-13 | přijato (zrychlení bez změny výsledku) — Méně pokusů při HTTP 500 od Sentinel Hubu
+Živý test Buzi (Mosambik, 19. 3. 2019) trval 551 s, z toho stahování 502 s: dva průlety vracely opakovaně HTTP 500 a každý požadavek čekal ~195 s
+(6 pokusů, pauzy 5–60 s) před přeskočením (D-M14-07). Chyba 500 u konkrétního produktu se opakuje (týž průlet selhal v různých bězích s odstupem hodin;
+Bihár 21. 1. 2019 tak selhává pokaždé). Teď `SentinelHub.process`: HTTP 500 max. 3 pokusy (pauzy 5 + 10 s), 429/502–504 dál 6 pokusů, žádná pauza po
+posledním pokusu. Test `tests/test_acquire_partial_failure.py::test_http500_gives_up_fast_but_rate_limits_keep_retrying`.
+Ověřeno: Buzi znovu (stažená data z mezipaměti) 551 s → 103 s (čekání 2 × 204 s → 2 × 20 s), `flood_mask`, `ai_prob`, `debris_mask` bit po bitu stejné;
+Bihár (z 11 událostí): znovu stažené `perm_water`, roční normály a řady po povodni obou drah bit po bitu stejné, stahování 47 s.
