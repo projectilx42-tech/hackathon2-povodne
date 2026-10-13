@@ -78,6 +78,19 @@
   "seeds": 0.0044,
   "envelope": 0.00574
  },
+ "seed_transitions_km2": {
+  "water": {
+   "water": 0.1911
+  },
+  "debris": {
+   "debris": 0.429
+  },
+  "permanent": {
+   "water": 0.0191,
+   "debris": 0.3411,
+   "permanent": 0.2556
+  }
+ },
  "components": {
   "seeds_ai_water(2)": {
    "km2": 0.229,

@@ -135,6 +135,54 @@
     ],
     "post_s1_date": "2022-02-03"
    }
+  },
+  {
+   "id": "bolivia_2018",
+   "kind": "flood",
+   "dataset": "sen1floods11_test",
+   "continent": "South America",
+   "note": "Sen1Floods11 Bolivia test flood (held out of training, D-X-02), two adjacent hand-labelled 5 km chips; label = water (permanent + flood), S1 pass 2018-02-15 (desc. track 156) = our first post image, so event_date is set to the day before",
+   "event_date": "2018-02-14",
+   "aoi_bbox": [
+    -65.1271,
+    -14.396,
+    -65.0352,
+    -14.304
+   ],
+   "label": {
+    "type": "sen1floods11",
+    "chips_dir": "bolivia",
+    "chips": [
+     "Bolivia_314919_LabelHand.tif",
+     "Bolivia_432776_LabelHand.tif"
+    ]
+   }
+  },
+  {
+   "id": "bihar_2019",
+   "kind": "flood",
+   "dataset": "kurosiwo_test",
+   "continent": "Asia (Ganges plain)",
+   "note": "Kuro Siwo test act 1111007 aoi 1, Bihar, Sep 2019",
+   "event_date": "2019-09-17",
+   "aoi_bbox": [
+    85.4874,
+    25.4862,
+    85.5679,
+    25.5589
+   ],
+   "label": {
+    "type": "kurosiwo",
+    "window": "1111007_1",
+    "tile_grid_epsg3857_bbox": [
+     9516415.0,
+     2935585.0,
+     9525375.0,
+     2944545.0
+    ],
+    "post_s1_date": "2019-09-18",
+    "windows_file": "ks_windows_bihar.json"
+   }
   }
  ]
 }

@@ -67,12 +67,12 @@ def kurosiwo_label(ev: dict, grid: dict) -> np.ndarray:
     0 dry, 1 permanent water, 2 flood, 255 invalid / no tile."""
     lab = ev["label"]
     x0, y0, x1, y1 = lab["tile_grid_epsg3857_bbox"]
-    win = json.loads((DATA / "ks_windows.json").read_text())[lab["window"]]
+    win = json.loads((DATA / lab.get("windows_file", "ks_windows.json")).read_text())[lab["window"]]
     px = 10.0  # tile pixel = 10 m in Web Mercator
     w, h = int(round((x1 - x0) / px)), int(round((y1 - y0) / px))
     mosaic = np.full((h, w), 255, np.uint8)
     masks = {}
-    for f in DATA.glob("ks_masks_*.npz"):
+    for f in DATA.glob("ks_masks_bihar_*.npz" if lab.get("windows_file") else "ks_masks_[0-9]*.npz"):
         masks.update(dict(np.load(f)))
     for key, (shard, b) in win["keys"].items():
         m, v = masks.get(f"{key}|mask.npy"), masks.get(f"{key}|valid_mask.npy")
@@ -87,6 +87,20 @@ def kurosiwo_label(ev: dict, grid: dict) -> np.ndarray:
     reproject(mosaic, out, src_transform=rasterio.transform.from_origin(x0, y1, px, px), src_crs="EPSG:3857",
               dst_transform=rasterio.Affine(*grid["transform"]), dst_crs=grid["crs"], resampling=Resampling.nearest,
               src_nodata=255, dst_nodata=255)
+    return out
+
+
+def s1f11_label(ev: dict, grid: dict) -> np.ndarray:
+    """Sen1Floods11 hand-labelled chips (EPSG:4326, 512 px): -1 no data -> 255, 0 dry, 1 water (permanent + flood)."""
+    out = np.full((grid["height"], grid["width"]), 255, np.uint8)
+    for name in ev["label"]["chips"]:
+        with rasterio.open(DATA / ev["label"]["chips_dir"] / name) as src:
+            a = src.read(1)
+            lab = np.where(a == 1, 1, np.where(a == 0, 0, 255)).astype(np.uint8)
+            tmp = np.full_like(out, 255)
+            reproject(lab, tmp, src_transform=src.transform, src_crs=src.crs, dst_transform=rasterio.Affine(*grid["transform"]),
+                      dst_crs=grid["crs"], resampling=Resampling.nearest, src_nodata=255, dst_nodata=255)
+        out = np.where(tmp != 255, tmp, out)
     return out
 
 
@@ -122,7 +136,8 @@ def s2_label(ev: dict, grid: dict) -> np.ndarray:
 
 def cmd_labels(a) -> None:
     ev, grid = load_event(a.event), run_grid(a.run)
-    arr = kurosiwo_label(ev, grid) if ev["label"]["type"] == "kurosiwo" else s2_label(ev, grid)
+    typ = ev["label"]["type"]
+    arr = {"kurosiwo": kurosiwo_label, "sen1floods11": s1f11_label, "s2": s2_label}[typ](ev, grid)
     write_label(DATA / ev["id"] / "label.tif", arr, grid)
     v = arr != 255
     print(f"{ev['id']}: label valid {v.mean():.0%} of the area; water/flood px {(arr == (2 if ev['label']['type'] == 'kurosiwo' else 1)).sum() * 1e-4:.2f} km2")
@@ -200,6 +215,13 @@ def cmd_score(a) -> None:
     for st_, nm in ((1, "envelope"), (2, "growth"), (3, "permanent_water"), (4, "edges")):
         comp[f"env_stage{st_}_{nm}:water"] = added & (stage == st_) & (env == 2)
         comp[f"env_stage{st_}_{nm}:debris"] = added & (stage == st_) & (env == 3)
+    # what happened to the seed pixels in the final mask (the envelope step should only add pixels): seed class -> final class, km2 in the label region
+    out["seed_transitions_km2"] = {}
+    names = {0: "nodata", 1: "dry", 2: "water", 3: "debris", 4: "permanent"}
+    for sc in (2, 3, 4):
+        m = (seeds == sc) & reg0
+        if m.any():
+            out["seed_transitions_km2"][names[sc]] = {names[fc]: round(int((m & (final == fc)).sum()) * 1e-4, 4) for fc in range(5) if (m & (final == fc)).any()}
     out["components"] = {}
     for nm, m in comp.items():
         mv = m & reg0
