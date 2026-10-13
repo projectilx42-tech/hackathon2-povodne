@@ -107,3 +107,25 @@ def test_mean_z_averages_passes_and_threshold_comes_from_placebo():
     t = s1anomaly.placebo_threshold([four[0]], [four[1]], false_pct=0.5)
     assert t is not None and t < 0 and abs(t) < 2.0  # tighter noise -> lower threshold for the same false share
     assert s1anomaly.placebo_threshold([], []) is None
+
+
+def test_normal_survives_one_failing_pass(tmp_path, monkeypatch):
+    """A pass that keeps failing (e.g. HTTP 500) is skipped; the normal is still built from the rest (Bihar case)."""
+    from datetime import date, datetime
+    from types import SimpleNamespace
+
+    passes = [SimpleNamespace(start=datetime(2025, m, 1)) for m in range(1, 8)]
+    monkeypatch.setattr(seriesnorm.permwater, "reference_passes", lambda *a, **k: passes)
+
+    def fake_fetch(sh, grid, when, direction, speckle, bands):
+        if when.month == 3:
+            raise RuntimeError("Sentinel Hub kept failing (HTTP 500).")
+        return np.full((2, 4, 4), 100, np.uint16)
+
+    monkeypatch.setattr(seriesnorm, "fetch_s1", fake_fetch)
+    monkeypatch.setattr(seriesnorm, "decode_db", lambda a: a.astype(np.float32) * 0 - 10.0)
+    grid = SimpleNamespace(res=40.0, height=4, width=4, epsg=32645, x0=0.0, y1=160.0)
+    info = seriesnorm.build(tmp_path, "s1", None, None, date(2026, 1, 1), (1, "ASCENDING"), None, grid)
+    assert info["file"] == "norm.tif" and info["n_passes"] == 6
+    assert info["failed"][0]["date"] == "2025-03-01"
+    assert (tmp_path / "raw" / "s1" / "norm.tif").exists()

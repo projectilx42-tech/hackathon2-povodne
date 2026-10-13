@@ -55,10 +55,20 @@ def build(run_dir: Path, folder: str, sh: SentinelHub, aoi, event: date, key: tu
         return {**info, "file": None}
 
     def one(a):
-        raw = fetch_s1(sh, grid, a.start, key[1], speckle, bands=("VV", "VH"))
+        try:
+            raw = fetch_s1(sh, grid, a.start, key[1], speckle, bands=("VV", "VH"))
+        except Exception as exc:  # one pass that keeps failing (e.g. HTTP 500 after retries) must not sink the whole normal
+            return a, exc
         return decode_db(raw[0]), decode_db(raw[1])
 
-    got = list(pool.map(one, passes)) if pool is not None else [one(a) for a in passes]
+    res = list(pool.map(one, passes)) if pool is not None else [one(a) for a in passes]
+    failed = [r for r in res if isinstance(r[1], Exception)]
+    got = [r for r in res if not isinstance(r[1], Exception)]
+    if failed:
+        info["failed"] = [{"date": f"{a.start:%Y-%m-%d}", "error": str(exc)[:200]} for a, exc in failed]
+        info["n_passes"] = len(got)
+    if len(got) < MIN_OBS:
+        return {**info, "file": None, **({"error": str(failed[0][1])[:300]} if failed else {})}
     mvv, avv, n = reduce_pol(np.stack([g[0] for g in got]))
     mvh, avh, _ = reduce_pol(np.stack([g[1] for g in got]))
     out = np.stack([mvv, avv, mvh, avh, n]).astype(np.float32)

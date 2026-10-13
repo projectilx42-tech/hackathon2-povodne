@@ -1,11 +1,11 @@
 """Preprocess step: turn the acquire step's raw/ files into the model-ready aligned/ rasters and terrain masks/.
 
 `python -m povodne.preprocess runs/<id>` reads (docs/ARCHITECTURE.md):
-- raw/s1[_alt]/pre_*.tif, post_*.tif: UINT16 dB (dB = v*0.001-50, 0 = nodata), already on the 10 m grid, already
+- raw/s1[_alt]/pre_*.tif, post_[0-9]*.tif: UINT16 dB (dB = v*0.001-50, 0 = nodata), already on the 10 m grid, already
   speckle-filtered (Lee 7x7 + 3x3 mean, D-M1-02) -> aligned/s1[_alt]_{pre,post}_{vv,vh}.tif as float32 linear sigma0,
   NaN = nodata. Several "before" images are averaged in linear power (as in training, D-030). The older passes
   (hist_*) are not converted: the surface-change step reads them directly.
-- raw/s2/pre_*.tif, post_*.tif: UINT16 DN + SCL (band 7) -> aligned/s2_{pre,post}.tif (reflectance 0-1, B02,B03,B04,B08,
+- raw/s2/pre_*.tif, post_[0-9]*.tif: UINT16 DN + SCL (band 7) -> aligned/s2_{pre,post}.tif (reflectance 0-1, B02,B03,B04,B08,
   B11,B12) and masks/s2_{pre,post}_valid.tif (1 = clear: no cloud, cloud shadow, cirrus, snow, saturation, nodata).
 - raw/dem/dem.tif (30 m) -> aligned/dem.tif (10 m, bilinear), masks/slope.tif (degrees, training's slope_from_dem on the
   10 m DEM, D-035), masks/hand.tif (acquire.terrain.hand on the 30 m DEM, 100-cell streams like ASF, D-M1-04),
@@ -110,7 +110,7 @@ def reference_grid(run_dir: Path, rj: dict) -> Grid:
     g = (rj.get("acquire") or {}).get("grid")
     if g:
         return Grid(g["crs"], from_origin(g["x0"], g["y1"], g["res"], g["res"]), int(g["width"]), int(g["height"]))
-    for pattern in ("s1/post_*.tif", "s1/pre_*.tif", "s2/post_*.tif", "s2/pre_*.tif"):
+    for pattern in ("s1/post_[0-9]*.tif", "s1/pre_*.tif", "s2/post_[0-9]*.tif", "s2/pre_*.tif"):
         files = sorted((run_dir / "raw").glob(pattern))
         if files:
             with rasterio.open(files[-1]) as ds:
