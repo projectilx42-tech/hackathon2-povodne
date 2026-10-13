@@ -1104,3 +1104,15 @@ Rozhodnutí: `damage/measure.py` `DESTRUCTIVE_TYPES` = (1, 3, 6, 7). Sesuv odnes
 **Kontext:** úkol od master session: nahradit pevná pravidla (sklon > 15°, HAND > 30 m, min. plocha 10 px, skok mezi dvěma prahy) spojitou kombinací; cíl recall plochy EMS ≥ 90 % bez pevných pravidel. Práh i parametry se ladí jen na ověřovacích událostech Kuro Siwo a podle placeba, nikdy podle EMS (EMS jen měření).
 **Rozhodnutí (první verze):** `training/floodseg/softpost.py`: pravděpodobnosti modelu × spojitý terénní prior w(sklon, HAND) (logistická funkce, 0,5 na 15° / 30 m), volitelná podpora z radarové anomálie (násobení šance, síla od placebo prahu `threshold_z_comb`), minimální plocha klesá z 10 px na 2 px směrem k toku (HAND). `training/run_ai.py` to používá, `--hard-rules` vrací staré chování pro srovnání. Krok `s1anomaly` běží nově PŘED `flood_ai` (config, ARCHITECTURE, test). Šířku přechodu a práh ladí `training/eval_softpost.py` na ověřovacích událostech.
 **Výsledky:** doplním po měření.
+
+## D-X-08 | 2026-10-13 | přijato (master) — Cíl detekce: ≥ 90 % recall viditelné plochy při odhadnuté přesnosti ≥ 85 %
+- **Rozhodnutí uživatele:** cíl = zachytit ≥ 90 % zasažené plochy, kterou vidí aspoň jeden senzor (S1 libovolná dráha mimo
+  layover/shadow, nebo čistý pixel S2 po události). Zbytek se v reportu/dashboardu hlásí poctivě jako „nelze posoudit“.
+  Přesnost má zůstat ≥ 85 %.
+- **Pracovní bod se NESMÍ ladit proti EMS** (datové pravidlo). Volí se jen z vlastních dat: placebo (dvojice před událostí)
+  → odhad přesnosti = 1 − (falešná plocha na placebu ÷ detekovaná plocha); případně Kuro Siwo validace.
+  EMS slouží jen k měření v `validation/`.
+- `validation/miss_analysis.py` nově tiskne „recall on visible“ a plochu „not assessable“.
+- **Zjištění (runs/trishuli_full):** obě dráhy S1 dohromady vidí 98 % plochy EMS → viditelnost není hlavní příčina nezachycení.
+  Chybí hlavně plochy, které senzory vidí, ale změnu na nich naše metody nenajdou (dříve: ~60 % nezachycené plochy bez radarové anomálie).
+  Další páky: fúze důkazů (radar + optika + terén), rozhodování po celých segmentech/objektech, self-training.
