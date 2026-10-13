@@ -1,0 +1,219 @@
+{
+ "event": "malawi_2022",
+ "tag": "optics0",
+ "dataset": "kurosiwo_test",
+ "continent": "Africa",
+ "kind": "flood",
+ "event_date": "2022-01-24",
+ "aoi_bbox": [
+  34.8217,
+  -16.1383,
+  34.9022,
+  -16.061
+ ],
+ "label_valid_pct": 96.6,
+ "scores": {
+  "a_seeds_own_region": {
+   "recall": 0.9144,
+   "precision": 0.9495,
+   "f1": 0.9316,
+   "truth_km2": 13.1564,
+   "pred_km2": 12.6713,
+   "tp_km2": 12.0308,
+   "fp_km2": 0.6405,
+   "region_km2": 65.172
+  },
+  "a_seeds_common_region": {
+   "recall": 0.8875,
+   "precision": 0.9495,
+   "f1": 0.9174,
+   "truth_km2": 13.5556,
+   "pred_km2": 12.6713,
+   "tp_km2": 12.0308,
+   "fp_km2": 0.6405,
+   "region_km2": 66.088
+  },
+  "b_envelope": {
+   "recall": 0.9194,
+   "precision": 0.915,
+   "f1": 0.9172,
+   "truth_km2": 13.5556,
+   "pred_km2": 13.6212,
+   "tp_km2": 12.4635,
+   "fp_km2": 1.1577,
+   "region_km2": 66.088
+  },
+  "b_envelope_visible_label": {
+   "recall": 0.8824,
+   "precision": 0.915,
+   "f1": 0.8984,
+   "truth_km2": 14.1241,
+   "pred_km2": 13.6212,
+   "tp_km2": 12.4635,
+   "fp_km2": 1.1577,
+   "region_km2": 70.444
+  }
+ },
+ "scores_water_total": {
+  "seeds": {
+   "recall": 0.9086,
+   "precision": 0.9563,
+   "f1": 0.9318,
+   "truth_km2": 15.5965,
+   "pred_km2": 14.8191,
+   "tp_km2": 14.1709,
+   "fp_km2": 0.6482,
+   "region_km2": 68.129
+  },
+  "envelope": {
+   "recall": 0.9357,
+   "precision": 0.926,
+   "f1": 0.9308,
+   "truth_km2": 15.5965,
+   "pred_km2": 15.7583,
+   "tp_km2": 14.5929,
+   "fp_km2": 1.1654,
+   "region_km2": 68.129
+  }
+ },
+ "seed_transitions_km2": {
+  "water": {
+   "water": 12.7256
+  },
+  "debris": {
+   "debris": 0.2064
+  },
+  "permanent": {
+   "water": 0.2299,
+   "debris": 0.0011,
+   "permanent": 1.6561
+  }
+ },
+ "components": {
+  "seeds_ai_water(2)": {
+   "km2": 13.2542,
+   "km2_in_label_region": 12.7256,
+   "share_on_truth": 0.936
+  },
+  "seeds_debris_step:debris": {
+   "km2": 0.1991,
+   "km2_in_label_region": 0.1889,
+   "share_on_truth": 0.655
+  },
+  "seeds_debris_step:mud": {
+   "km2": 0.0174,
+   "km2_in_label_region": 0.0174,
+   "share_on_truth": 0.0
+  },
+  "seeds_debris_step:unknown": {
+   "km2": 0.0001,
+   "km2_in_label_region": 0.0001,
+   "share_on_truth": 0.0
+  },
+  "seeds_permanent(4)": {
+   "km2": 1.9915,
+   "km2_in_label_region": 1.8871,
+   "share_on_truth": 0.073
+  },
+  "env_stage1_envelope:water": {
+   "km2": 0.4197,
+   "km2_in_label_region": 0.4077,
+   "share_on_truth": 0.157
+  },
+  "env_stage1_envelope:debris": {
+   "km2": 0.1216,
+   "km2_in_label_region": 0.1214,
+   "share_on_truth": 0.0
+  },
+  "env_stage2_growth:water": {
+   "km2": 0.4168,
+   "km2_in_label_region": 0.4042,
+   "share_on_truth": 0.828
+  },
+  "env_stage2_growth:debris": {
+   "km2": 0.0059,
+   "km2_in_label_region": 0.0059,
+   "share_on_truth": 0.051
+  },
+  "env_stage3_permanent_water:water": {
+   "km2": 0.2402,
+   "km2_in_label_region": 0.2299,
+   "share_on_truth": 0.144
+  },
+  "env_stage3_permanent_water:debris": {
+   "km2": 0.0027,
+   "km2_in_label_region": 0.0011,
+   "share_on_truth": 0.455
+  }
+ },
+ "pred_total_km2": {
+  "seeds": 13.471,
+  "envelope": 14.678
+ },
+ "run": {
+  "timings_s": {
+   "acquire": 153.5,
+   "preprocess": 3.0,
+   "s1anomaly": 1.3,
+   "flood_ai": 14.2,
+   "debris": 11.3,
+   "envelope": 15.3,
+   "combine": 2.2,
+   "damage": 4.0,
+   "network": 3.2,
+   "report": 7.4
+  },
+  "pu_spent": 45.5,
+  "pu_estimate": 52,
+  "envelope": {
+   "used": true,
+   "reason": null,
+   "placebo_groups": 2,
+   "placebo_split": true,
+   "stat": "comb",
+   "persistence": true,
+   "reach_q": 95,
+   "final_est_precision": 0.85,
+   "final_placebo_false_km2": 2.5009,
+   "added_km2": {
+    "water": 1.0767,
+    "debris": 0.1302,
+    "total": 1.2069
+   },
+   "added_by_stage_km2": {
+    "envelope": 0.5413,
+    "growth": 0.4227,
+    "permanent_water": 0.2429,
+    "edges": 0.0
+   },
+   "optics": {
+    "used": false,
+    "reason": "switched off (POVODNE_ENVELOPE_OPTICS=0)",
+    "added_overlapping_optical_km2": 0.0
+   },
+   "post_passes": 2,
+   "optical_used": false
+  },
+  "main_track": {
+   "relative_orbit": 79,
+   "orbit_direction": "DESCENDING"
+  },
+  "alt_track": false,
+  "s2": {
+   "pre": 100.0,
+   "post": 38.6,
+   "extra": null
+  },
+  "warnings": [
+   "No usable Sentinel-1 pass from the opposite flight direction: areas hidden behind mountains for the main track stay unmapped.",
+   "No setting reached an estimated precision of 85% on the placebo, so nothing was added (the weak evidence is too noisy here)."
+  ],
+  "verdict": "flood_detected",
+  "coverage": {
+   "s1_valid_pct": 90.0,
+   "s2_pre_clear_pct": 100.0,
+   "s2_post_clear_pct": 38.6,
+   "evaluated_pct": 94.8
+  }
+ }
+}

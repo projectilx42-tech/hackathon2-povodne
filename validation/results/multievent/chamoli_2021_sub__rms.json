@@ -1,0 +1,206 @@
+{
+ "event": "chamoli_2021_sub",
+ "tag": "rms",
+ "dataset": "himalaya_s2",
+ "continent": "Asia (Himalaya)",
+ "kind": "flood",
+ "event_date": "2021-02-07",
+ "aoi_bbox": [
+  79.63,
+  30.45,
+  79.735,
+  30.54
+ ],
+ "label_valid_pct": 32.0,
+ "scores": {
+  "a_seeds_water_2_4": {
+   "recall": 0.0199,
+   "precision": 0.381,
+   "f1": 0.0378,
+   "truth_km2": 0.0402,
+   "pred_km2": 0.0021,
+   "tp_km2": 0.0008,
+   "fp_km2": 0.0013,
+   "region_km2": 32.072
+  },
+  "a_seeds_common_water_2_4": {
+   "recall": 0.0199,
+   "precision": 0.381,
+   "f1": 0.0378,
+   "truth_km2": 0.0402,
+   "pred_km2": 0.0021,
+   "tp_km2": 0.0008,
+   "fp_km2": 0.0013,
+   "region_km2": 32.072
+  },
+  "b_envelope_water_2_4": {
+   "recall": 0.0199,
+   "precision": 0.381,
+   "f1": 0.0378,
+   "truth_km2": 0.0402,
+   "pred_km2": 0.0021,
+   "tp_km2": 0.0008,
+   "fp_km2": 0.0013,
+   "region_km2": 32.072
+  },
+  "a_seeds_all_2_3_4": {
+   "recall": 0.0945,
+   "precision": 0.0102,
+   "f1": 0.0184,
+   "truth_km2": 0.0402,
+   "pred_km2": 0.3732,
+   "tp_km2": 0.0038,
+   "fp_km2": 0.3694,
+   "region_km2": 32.072
+  },
+  "a_seeds_common_all_2_3_4": {
+   "recall": 0.0945,
+   "precision": 0.0102,
+   "f1": 0.0184,
+   "truth_km2": 0.0402,
+   "pred_km2": 0.3732,
+   "tp_km2": 0.0038,
+   "fp_km2": 0.3694,
+   "region_km2": 32.072
+  },
+  "b_envelope_all_2_3_4": {
+   "recall": 0.0945,
+   "precision": 0.0102,
+   "f1": 0.0184,
+   "truth_km2": 0.0402,
+   "pred_km2": 0.3732,
+   "tp_km2": 0.0038,
+   "fp_km2": 0.3694,
+   "region_km2": 32.072
+  }
+ },
+ "false_alarm_dry_label": {
+  "seeds": 0.01153,
+  "envelope": 0.01153
+ },
+ "seed_transitions_km2": {
+  "water": {
+   "water": 0.002
+  },
+  "debris": {
+   "debris": 0.3711
+  },
+  "permanent": {
+   "permanent": 0.0001
+  }
+ },
+ "components": {
+  "seeds_ai_water(2)": {
+   "km2": 0.0042,
+   "km2_in_label_region": 0.002,
+   "share_on_truth": 0.4
+  },
+  "seeds_debris_step:debris": {
+   "km2": 0.1131,
+   "km2_in_label_region": 0.0816,
+   "share_on_truth": 0.012
+  },
+  "seeds_debris_step:mud": {
+   "km2": 0.0843,
+   "km2_in_label_region": 0.0284,
+   "share_on_truth": 0.046
+  },
+  "seeds_debris_step:erosion": {
+   "km2": 0.048,
+   "km2_in_label_region": 0.0169,
+   "share_on_truth": 0.018
+  },
+  "seeds_debris_step:flooded_vegetation": {
+   "km2": 0.0063,
+   "km2_in_label_region": 0.0033,
+   "share_on_truth": 0.121
+  },
+  "seeds_debris_step:landslide": {
+   "km2": 0.392,
+   "km2_in_label_region": 0.2375,
+   "share_on_truth": 0.0
+  },
+  "seeds_debris_step:unknown": {
+   "km2": 0.0046,
+   "km2_in_label_region": 0.0019,
+   "share_on_truth": 0.0
+  },
+  "seeds_class3_not_debris_step(vhagree etc.)": {
+   "km2": 0.0069,
+   "km2_in_label_region": 0.0015,
+   "share_on_truth": 0.0
+  },
+  "seeds_permanent(4)": {
+   "km2": 0.0003,
+   "km2_in_label_region": 0.0001,
+   "share_on_truth": 0.0
+  }
+ },
+ "pred_total_km2": {
+  "seeds": 0.659,
+  "envelope": 0.659
+ },
+ "run": {
+  "timings_s": {
+   "acquire": 131.5,
+   "preprocess": 4.1,
+   "s1anomaly": 1.6,
+   "flood_ai": 26.9,
+   "debris": 22.1,
+   "envelope": 9.1,
+   "combine": 1.7,
+   "damage": 2.0,
+   "network": 2.5,
+   "report": 6.6
+  },
+  "pu_spent": 113.4,
+  "pu_estimate": 127,
+  "envelope": {
+   "used": false,
+   "reason": null,
+   "placebo_groups": 3,
+   "placebo_split": true,
+   "stat": "rms",
+   "persistence": null,
+   "reach_q": null,
+   "final_est_precision": null,
+   "final_placebo_false_km2": null,
+   "added_km2": null,
+   "added_by_stage_km2": null,
+   "optics": {
+    "used": true,
+    "placebo": {
+     "pre": "pre_20201222.tif",
+     "second_pre": "prex_20210131.tif",
+     "gap_days": 40,
+     "event_gap_days": 50,
+     "clear_pct": 17.4
+    },
+    "event_flagged_km2": 14.317,
+    "placebo_flagged_km2": 5.1657
+   },
+   "post_passes": 6,
+   "optical_used": true
+  },
+  "main_track": {
+   "relative_orbit": 63,
+   "orbit_direction": "DESCENDING"
+  },
+  "alt_track": true,
+  "s2": {
+   "pre": 59.2,
+   "post": 56.1,
+   "extra": null
+  },
+  "warnings": [
+   "No setting reached an estimated precision of 85% on the placebo, so nothing was added (the weak evidence is too noisy here)."
+  ],
+  "verdict": "flood_detected",
+  "coverage": {
+   "s1_valid_pct": 88.7,
+   "s2_pre_clear_pct": 59.2,
+   "s2_post_clear_pct": 56.1,
+   "evaluated_pct": 81.0
+  }
+ }
+}

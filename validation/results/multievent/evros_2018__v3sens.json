@@ -1,0 +1,200 @@
+{
+ "event": "evros_2018",
+ "tag": "v3sens",
+ "dataset": "kurosiwo_test",
+ "continent": "Europe",
+ "kind": "flood",
+ "event_date": "2018-03-26",
+ "aoi_bbox": [
+  26.3049,
+  41.0417,
+  26.3854,
+  41.1024
+ ],
+ "label_valid_pct": 98.1,
+ "scores": {
+  "a_seeds_own_region": {
+   "recall": 0.9397,
+   "precision": 0.8397,
+   "f1": 0.8869,
+   "truth_km2": 23.4867,
+   "pred_km2": 26.2817,
+   "tp_km2": 22.07,
+   "fp_km2": 4.2117,
+   "region_km2": 44.895
+  },
+  "a_seeds_common_region": {
+   "recall": 0.9397,
+   "precision": 0.8397,
+   "f1": 0.8869,
+   "truth_km2": 23.4867,
+   "pred_km2": 26.2817,
+   "tp_km2": 22.07,
+   "fp_km2": 4.2117,
+   "region_km2": 44.895
+  },
+  "b_envelope": {
+   "recall": 0.9397,
+   "precision": 0.8397,
+   "f1": 0.8869,
+   "truth_km2": 23.4867,
+   "pred_km2": 26.2817,
+   "tp_km2": 22.07,
+   "fp_km2": 4.2117,
+   "region_km2": 44.895
+  },
+  "b_envelope_visible_label": {
+   "recall": 0.9397,
+   "precision": 0.8397,
+   "f1": 0.8869,
+   "truth_km2": 23.4869,
+   "pred_km2": 26.2817,
+   "tp_km2": 22.07,
+   "fp_km2": 4.2117,
+   "region_km2": 44.931
+  }
+ },
+ "scores_water_total": {
+  "seeds": {
+   "recall": 0.9707,
+   "precision": 0.8444,
+   "f1": 0.9032,
+   "truth_km2": 24.1101,
+   "pred_km2": 27.7159,
+   "tp_km2": 23.4044,
+   "fp_km2": 4.3115,
+   "region_km2": 45.518
+  },
+  "envelope": {
+   "recall": 0.9707,
+   "precision": 0.8444,
+   "f1": 0.9032,
+   "truth_km2": 24.1101,
+   "pred_km2": 27.7159,
+   "tp_km2": 23.4044,
+   "fp_km2": 4.3115,
+   "region_km2": 45.518
+  }
+ },
+ "seed_transitions_km2": {
+  "water": {
+   "water": 25.7177
+  },
+  "debris": {
+   "debris": 0.7716
+  },
+  "permanent": {
+   "permanent": 1.2266
+  }
+ },
+ "components": {
+  "seeds_ai_water(2)": {
+   "km2": 26.1368,
+   "km2_in_label_region": 25.7177,
+   "share_on_truth": 0.849
+  },
+  "seeds_debris_step:debris": {
+   "km2": 0.582,
+   "km2_in_label_region": 0.582,
+   "share_on_truth": 0.251
+  },
+  "seeds_debris_step:mud": {
+   "km2": 0.0666,
+   "km2_in_label_region": 0.0666,
+   "share_on_truth": 0.689
+  },
+  "seeds_debris_step:erosion": {
+   "km2": 0.0013,
+   "km2_in_label_region": 0.0013,
+   "share_on_truth": 1.0
+  },
+  "seeds_debris_step:unknown": {
+   "km2": 0.001,
+   "km2_in_label_region": 0.001,
+   "share_on_truth": 1.0
+  },
+  "seeds_class3_not_debris_step(vhagree etc.)": {
+   "km2": 0.1242,
+   "km2_in_label_region": 0.1207,
+   "share_on_truth": 0.431
+  },
+  "seeds_permanent(4)": {
+   "km2": 1.2451,
+   "km2_in_label_region": 1.2266,
+   "share_on_truth": 0.582
+  }
+ },
+ "pred_total_km2": {
+  "seeds": 26.912,
+  "envelope": 26.912
+ },
+ "run": {
+  "timings_s": {
+   "acquire": 80.2,
+   "preprocess": 2.6,
+   "s1anomaly": 1.5,
+   "flood_ai": 14.0,
+   "debris": 9.4,
+   "envelope": 5.4,
+   "combine": 2.3,
+   "damage": 1.2,
+   "network": 1.1,
+   "report": 4.7
+  },
+  "pu_spent": 56.8,
+  "pu_estimate": 57,
+  "envelope": {
+   "used": true,
+   "reason": null,
+   "placebo_groups": 4,
+   "placebo_split": true,
+   "stat": "comb",
+   "persistence": true,
+   "reach_q": 95,
+   "final_est_precision": 0.85,
+   "final_placebo_false_km2": 4.8952,
+   "added_km2": {
+    "water": 0.1931,
+    "debris": 5.2348,
+    "total": 5.4279
+   },
+   "added_by_stage_km2": {
+    "envelope": 3.3162,
+    "growth": 1.6005,
+    "permanent_water": 0.0,
+    "edges": 0.5112
+   },
+   "optics": {
+    "used": false,
+    "reason": "no second before-image (Sentinel-2)",
+    "added_overlapping_optical_km2": 0.0
+   },
+   "post_passes": 10,
+   "optical_used": false
+  },
+  "main_track": {
+   "relative_orbit": 109,
+   "orbit_direction": "DESCENDING"
+  },
+  "alt_track": true,
+  "s2": {
+   "pre": 77.5,
+   "post": 99.9,
+   "extra": null
+  },
+  "warnings": [
+   "OpenStreetMap (buildings, roads) could not be downloaded (HTTPSConnectionPool(host='api.heigit.org', port=443): Read timed out. (read timeout=60)); damage and cut-off analysis are not possible.",
+   "No pre-event OpenStreetMap buildings: flooded or damaged built-up areas cannot be told apart from other changes.",
+   "No pre-event OpenStreetMap buildings in the area: damaged buildings cannot be counted (zero does not mean no damage).",
+   "No pre-event OpenStreetMap roads in the area: blocked roads and cut-off settlements cannot be assessed.",
+   "The cut-off analysis was not done in this run (the road network step did not finish); the report does not say which settlements are cut off."
+  ],
+  "verdict": "flood_detected",
+  "coverage": {
+   "s1_valid_pct": 99.1,
+   "s2_pre_clear_pct": 77.5,
+   "s2_post_clear_pct": 99.9,
+   "evaluated_pct": 99.9
+  }
+ }
+}

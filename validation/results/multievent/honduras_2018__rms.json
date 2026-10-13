@@ -1,0 +1,251 @@
+{
+ "event": "honduras_2018",
+ "tag": "rms",
+ "dataset": "kurosiwo_test",
+ "continent": "Central America",
+ "kind": "flood",
+ "event_date": "2018-10-06",
+ "aoi_bbox": [
+  -87.3806,
+  13.1528,
+  -87.3001,
+  13.2312
+ ],
+ "label_valid_pct": 93.1,
+ "scores": {
+  "a_seeds_own_region": {
+   "recall": 0.6719,
+   "precision": 0.8981,
+   "f1": 0.7687,
+   "truth_km2": 18.7717,
+   "pred_km2": 14.0438,
+   "tp_km2": 12.6131,
+   "fp_km2": 1.4307,
+   "region_km2": 68.828
+  },
+  "a_seeds_common_region": {
+   "recall": 0.6531,
+   "precision": 0.8981,
+   "f1": 0.7563,
+   "truth_km2": 19.3126,
+   "pred_km2": 14.0438,
+   "tp_km2": 12.6131,
+   "fp_km2": 1.4307,
+   "region_km2": 69.471
+  },
+  "b_envelope": {
+   "recall": 0.682,
+   "precision": 0.8957,
+   "f1": 0.7744,
+   "truth_km2": 19.3126,
+   "pred_km2": 14.7055,
+   "tp_km2": 13.1721,
+   "fp_km2": 1.5334,
+   "region_km2": 69.471
+  },
+  "b_envelope_visible_label": {
+   "recall": 0.6788,
+   "precision": 0.8957,
+   "f1": 0.7723,
+   "truth_km2": 19.4053,
+   "pred_km2": 14.7055,
+   "tp_km2": 13.1721,
+   "fp_km2": 1.5334,
+   "region_km2": 69.892
+  }
+ },
+ "scores_water_total": {
+  "seeds": {
+   "recall": 0.6612,
+   "precision": 0.9024,
+   "f1": 0.7632,
+   "truth_km2": 20.1128,
+   "pred_km2": 14.7364,
+   "tp_km2": 13.2982,
+   "fp_km2": 1.4382,
+   "region_km2": 70.271
+  },
+  "envelope": {
+   "recall": 0.6881,
+   "precision": 0.8998,
+   "f1": 0.7799,
+   "truth_km2": 20.1128,
+   "pred_km2": 15.3811,
+   "tp_km2": 13.8402,
+   "fp_km2": 1.5409,
+   "region_km2": 70.271
+  }
+ },
+ "seed_transitions_km2": {
+  "water": {
+   "water": 6.1214
+  },
+  "debris": {
+   "debris": 8.4064
+  },
+  "permanent": {
+   "water": 0.022,
+   "permanent": 0.1866
+  }
+ },
+ "components": {
+  "seeds_ai_water(2)": {
+   "km2": 6.5774,
+   "km2_in_label_region": 6.1214,
+   "share_on_truth": 0.862
+  },
+  "seeds_debris_step:debris": {
+   "km2": 1.4773,
+   "km2_in_label_region": 1.4152,
+   "share_on_truth": 0.589
+  },
+  "seeds_debris_step:mud": {
+   "km2": 3.5214,
+   "km2_in_label_region": 3.5076,
+   "share_on_truth": 0.978
+  },
+  "seeds_debris_step:erosion": {
+   "km2": 0.4794,
+   "km2_in_label_region": 0.4775,
+   "share_on_truth": 0.855
+  },
+  "seeds_debris_step:flooded_vegetation": {
+   "km2": 0.0278,
+   "km2_in_label_region": 0.0278,
+   "share_on_truth": 0.054
+  },
+  "seeds_debris_step:flooded_builtup": {
+   "km2": 0.0653,
+   "km2_in_label_region": 0.0653,
+   "share_on_truth": 0.0
+  },
+  "seeds_debris_step:damaged_builtup": {
+   "km2": 0.0017,
+   "km2_in_label_region": 0.0017,
+   "share_on_truth": 1.0
+  },
+  "seeds_debris_step:unknown": {
+   "km2": 2.8012,
+   "km2_in_label_region": 2.7657,
+   "share_on_truth": 0.929
+  },
+  "seeds_class3_not_debris_step(vhagree etc.)": {
+   "km2": 0.1944,
+   "km2_in_label_region": 0.1456,
+   "share_on_truth": 0.637
+  },
+  "seeds_permanent(4)": {
+   "km2": 0.8199,
+   "km2_in_label_region": 0.2086,
+   "share_on_truth": 0.378
+  },
+  "env_stage1_envelope:water": {
+   "km2": 0.0979,
+   "km2_in_label_region": 0.081,
+   "share_on_truth": 0.907
+  },
+  "env_stage1_envelope:debris": {
+   "km2": 0.0047,
+   "km2_in_label_region": 0.0047,
+   "share_on_truth": 0.0
+  },
+  "env_stage2_growth:water": {
+   "km2": 0.1366,
+   "km2_in_label_region": 0.1282,
+   "share_on_truth": 0.934
+  },
+  "env_stage3_permanent_water:water": {
+   "km2": 0.0551,
+   "km2_in_label_region": 0.022,
+   "share_on_truth": 0.823
+  },
+  "env_stage4_edges:water": {
+   "km2": 0.4899,
+   "km2_in_label_region": 0.4214,
+   "share_on_truth": 0.825
+  },
+  "env_stage4_edges:debris": {
+   "km2": 0.0094,
+   "km2_in_label_region": 0.0094,
+   "share_on_truth": 0.021
+  }
+ },
+ "pred_total_km2": {
+  "seeds": 15.146,
+  "envelope": 15.94
+ },
+ "run": {
+  "timings_s": {
+   "acquire": 17.7,
+   "preprocess": 3.5,
+   "s1anomaly": 1.5,
+   "flood_ai": 14.1,
+   "debris": 14.2,
+   "envelope": 16.1,
+   "combine": 2.6,
+   "damage": 2.1,
+   "network": 2.9,
+   "report": 9.0
+  },
+  "pu_spent": 0.0,
+  "pu_estimate": 94,
+  "envelope": {
+   "used": true,
+   "reason": null,
+   "placebo_groups": 3,
+   "placebo_split": true,
+   "stat": "rms",
+   "persistence": true,
+   "reach_q": 95,
+   "final_est_precision": 0.864,
+   "final_placebo_false_km2": 2.2495,
+   "added_km2": {
+    "water": 0.7795,
+    "debris": 0.0141,
+    "total": 0.7936
+   },
+   "added_by_stage_km2": {
+    "envelope": 0.1026,
+    "growth": 0.1366,
+    "permanent_water": 0.0551,
+    "edges": 0.4993
+   },
+   "optics": {
+    "used": true,
+    "placebo": {
+     "pre": "pre_20180929.tif",
+     "second_pre": "prex_20180909.tif",
+     "gap_days": 20,
+     "event_gap_days": 15,
+     "clear_pct": 95.6
+    },
+    "event_flagged_km2": 0.0016,
+    "placebo_flagged_km2": 0.0133,
+    "added_overlapping_optical_km2": 0.0
+   },
+   "post_passes": 6,
+   "optical_used": true
+  },
+  "main_track": {
+   "relative_orbit": 165,
+   "orbit_direction": "ASCENDING"
+  },
+  "alt_track": true,
+  "s2": {
+   "pre": 99.9,
+   "post": 77.0,
+   "extra": null
+  },
+  "warnings": [
+   "The check for flooding before the given date sees almost no open water here (rivers narrower than the 60 m check pixels), so it cannot confirm that the before-image is flood-free.",
+   "No pre-event OpenStreetMap buildings in the area: damaged buildings cannot be counted (zero does not mean no damage)."
+  ],
+  "verdict": "flood_detected",
+  "coverage": {
+   "s1_valid_pct": 99.0,
+   "s2_pre_clear_pct": 99.9,
+   "s2_post_clear_pct": 77.0,
+   "evaluated_pct": 99.5
+  }
+ }
+}

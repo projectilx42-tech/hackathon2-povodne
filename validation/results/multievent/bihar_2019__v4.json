@@ -1,0 +1,196 @@
+{
+ "event": "bihar_2019",
+ "tag": "v4",
+ "dataset": "kurosiwo_test",
+ "continent": "Asia (Ganges plain)",
+ "kind": "flood",
+ "event_date": "2019-09-17",
+ "aoi_bbox": [
+  85.4874,
+  25.4862,
+  85.5679,
+  25.5589
+ ],
+ "label_valid_pct": 97.4,
+ "scores": {
+  "a_seeds_own_region": {
+   "recall": 0.8219,
+   "precision": 0.8776,
+   "f1": 0.8488,
+   "truth_km2": 47.4116,
+   "pred_km2": 44.4034,
+   "tp_km2": 38.9683,
+   "fp_km2": 5.4351,
+   "region_km2": 54.924
+  },
+  "a_seeds_common_region": {
+   "recall": 0.8219,
+   "precision": 0.8776,
+   "f1": 0.8488,
+   "truth_km2": 47.4116,
+   "pred_km2": 44.4034,
+   "tp_km2": 38.9683,
+   "fp_km2": 5.4351,
+   "region_km2": 54.924
+  },
+  "b_envelope": {
+   "recall": 0.8219,
+   "precision": 0.8776,
+   "f1": 0.8488,
+   "truth_km2": 47.4116,
+   "pred_km2": 44.4034,
+   "tp_km2": 38.9683,
+   "fp_km2": 5.4351,
+   "region_km2": 54.924
+  },
+  "b_envelope_visible_label": {
+   "recall": 0.8219,
+   "precision": 0.8776,
+   "f1": 0.8488,
+   "truth_km2": 47.4123,
+   "pred_km2": 44.4034,
+   "tp_km2": 38.9683,
+   "fp_km2": 5.4351,
+   "region_km2": 54.925
+  }
+ },
+ "scores_water_total": {
+  "seeds": {
+   "recall": 0.9917,
+   "precision": 0.9094,
+   "f1": 0.9487,
+   "truth_km2": 57.5703,
+   "pred_km2": 62.7838,
+   "tp_km2": 57.0926,
+   "fp_km2": 5.6912,
+   "region_km2": 65.083
+  },
+  "envelope": {
+   "recall": 0.9917,
+   "precision": 0.9094,
+   "f1": 0.9487,
+   "truth_km2": 57.5703,
+   "pred_km2": 62.7838,
+   "tp_km2": 57.0926,
+   "fp_km2": 5.6912,
+   "region_km2": 65.083
+  }
+ },
+ "seed_transitions_km2": {
+  "water": {
+   "water": 45.6251
+  },
+  "debris": {
+   "debris": 0.0103
+  },
+  "permanent": {
+   "permanent": 17.1484
+  }
+ },
+ "components": {
+  "seeds_ai_water(2)": {
+   "km2": 46.5776,
+   "km2_in_label_region": 45.6251,
+   "share_on_truth": 0.854
+  },
+  "seeds_debris_step:debris": {
+   "km2": 0.0025,
+   "km2_in_label_region": 0.0025,
+   "share_on_truth": 0.12
+  },
+  "seeds_debris_step:flooded_vegetation": {
+   "km2": 0.0014,
+   "km2_in_label_region": 0.0014,
+   "share_on_truth": 0.0
+  },
+  "seeds_class3_not_debris_step(vhagree etc.)": {
+   "km2": 0.0071,
+   "km2_in_label_region": 0.0064,
+   "share_on_truth": 0.203
+  },
+  "seeds_permanent(4)": {
+   "km2": 17.8812,
+   "km2_in_label_region": 17.1484,
+   "share_on_truth": 0.468
+  }
+ },
+ "pred_total_km2": {
+  "seeds": 46.589,
+  "envelope": 46.589
+ },
+ "run": {
+  "timings_s": {
+   "acquire": 228.8,
+   "preprocess": 3.7,
+   "s1anomaly": 1.5,
+   "flood_ai": 18.0,
+   "debris": 10.0,
+   "envelope": 7.2,
+   "combine": 2.1,
+   "damage": 2.1,
+   "network": 2.2,
+   "report": 8.1
+  },
+  "pu_spent": 5.1,
+  "pu_estimate": 82,
+  "envelope": {
+   "used": true,
+   "reason": null,
+   "placebo_groups": 3,
+   "placebo_split": true,
+   "stat": "comb",
+   "persistence": true,
+   "reach_q": 95,
+   "final_est_precision": 0.896,
+   "final_placebo_false_km2": 6.887,
+   "added_km2": {
+    "water": 0.0005,
+    "debris": 2.1557,
+    "total": 2.1562
+   },
+   "added_by_stage_km2": {
+    "envelope": 1.2578,
+    "growth": 0.8984,
+    "permanent_water": 0.0,
+    "edges": 0.0
+   },
+   "optics": {
+    "used": true,
+    "placebo": {
+     "pre": "pre_20190831.tif",
+     "second_pre": "prex_20190806.tif",
+     "gap_days": 25,
+     "event_gap_days": 20,
+     "clear_pct": 51.6
+    },
+    "event_flagged_km2": 36.0165,
+    "placebo_flagged_km2": 6.2862,
+    "added_overlapping_optical_km2": 0.0576
+   },
+   "post_passes": 6,
+   "optical_used": true
+  },
+  "main_track": {
+   "relative_orbit": 121,
+   "orbit_direction": "DESCENDING"
+  },
+  "alt_track": true,
+  "s2": {
+   "pre": 79.0,
+   "post": 99.7,
+   "extra": null
+  },
+  "warnings": [
+   "No pre-event OpenStreetMap buildings in the area: damaged buildings cannot be counted (zero does not mean no damage).",
+   "No year-long radar normal is available (too few earlier passes or the download failed), so the radar anomaly map was not made.",
+   "Not enough Sentinel-1 passes of the main track in the year before the event to tell permanent water from seasonal high water; a swollen river in the before-image may be counted as permanent water (not flooded)."
+  ],
+  "verdict": "flood_detected",
+  "coverage": {
+   "s1_valid_pct": 98.8,
+   "s2_pre_clear_pct": 79.0,
+   "s2_post_clear_pct": 99.7,
+   "evaluated_pct": 100.0
+  }
+ }
+}
