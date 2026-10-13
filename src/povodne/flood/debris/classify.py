@@ -25,9 +25,10 @@ from .inputs import Inputs, Track, building_density
 from .stats import fisher, history_test
 
 # Sub-class codes of flood/debris_type.tif (D-M3d-02)
-DEBRIS, MUD, EROSION, FLOODED_VEGETATION, FLOODED_BUILTUP, DAMAGED_BUILTUP, UNKNOWN = 1, 2, 3, 4, 5, 6, 9
+DEBRIS, MUD, EROSION, FLOODED_VEGETATION, FLOODED_BUILTUP, DAMAGED_BUILTUP, LANDSLIDE, UNKNOWN = 1, 2, 3, 4, 5, 6, 7, 9
 TYPE_NAMES = {DEBRIS: "debris", MUD: "mud", EROSION: "erosion", FLOODED_VEGETATION: "flooded_vegetation",
-              FLOODED_BUILTUP: "flooded_builtup", DAMAGED_BUILTUP: "damaged_builtup", UNKNOWN: "unknown"}
+              FLOODED_BUILTUP: "flooded_builtup", DAMAGED_BUILTUP: "damaged_builtup", LANDSLIDE: "landslide",
+              UNKNOWN: "unknown"}
 LOW, MEDIUM, HIGH = 1, 2, 3
 CONF_NAMES = {LOW: "low", MEDIUM: "medium", HIGH: "high"}
 # Observability codes of flood/debris_observability.tif
@@ -64,6 +65,14 @@ class Params:
     dense_built: float = 0.5
     weather_rate: float = 0.05  # >= 5 % of the control area changed alike -> weather, not flood
     min_background_px: int = 1000
+    # Landslides and debris flows on slopes outside the valley rules (D-M11-03)
+    slide_slope_min_deg: float = 15.0  # below this the valley rules already look (debris_zone covers <= 25 deg near rivers)
+    slide_slope_max_deg: float = 55.0  # steeper faces are almost always layover/shadow and bare rock
+    slide_mmu_px: int = 30  # 0.3 ha: smaller patches are noise or single trees
+    slide_seed_vh_db: float = 3.0  # VH drops >= 3 dB where canopy volume scattering is lost (Handwerger 2022; Mondini 2019)
+    slide_grow_vh_db: float = 1.5
+    slide_seed_vv_db: float = 1.0  # VV must fall too (both polarizations, not just a texture change)
+    slide_connect_px: int = 3  # patch within 30 m of the low ground = reaches the valley floor (debris flow)
 
 
 @dataclass
@@ -79,6 +88,7 @@ class Result:
     n_valid: np.ndarray
     optical: np.ndarray  # optical evidence available for the pixel
     stats: dict = field(default_factory=dict)
+    source: np.ndarray | None = None  # landslide evidence: bit 1 = radar, bit 2 = optical
 
 
 def _ndvi(r):
@@ -283,6 +293,45 @@ def detect(inp: Inputs, p: Params, tracks: list[Track] | None = None, use_optica
 
     typ = np.where(drop_small(typ > 0, p.mmu_px), typ, 0).astype(np.uint8)
 
+    # --- landslides and debris flows on slopes (D-M11-03) ----------------------------------------------------------
+    # Slopes the valley rules skip. Radar (both passes, outside layover/shadow): VH and VV both darker = canopy or soil
+    # surface removed. Optics: green before -> bare ground after. Not flagged: places already bare before the event
+    # (old slides: bare in the earlier Sentinel-2 image or low VH in the radar history), snow, whole-area weather.
+    slide_zone = base & ~debris_zone & (slope >= p.slide_slope_min_deg) & (slope <= p.slide_slope_max_deg)
+    with np.errstate(invalid="ignore"):
+        rad_c = slide_zone & (n_valid >= 1) & (sign < 0)
+        seeds = rad_c & (score >= p.seed_score) & (dvh <= -p.slide_seed_vh_db) & (dvv <= -p.slide_seed_vv_db)
+        grow = rad_c & (score >= p.grow_score) & (dvh <= -p.slide_grow_vh_db)
+        slide_rad = _keep_patches_with_seeds(grow, seeds) & ~bare
+        opt_rule = opt & (ndvi_pre >= 0.3) & (dndvi <= -p.dndvi_strong) & bare_post
+        slide_opt = slide_zone & opt_rule & ~bare
+        if weather[-1]:  # whole-area darkening (wet snow, frost): radar alone cannot say it is a slide
+            slide_rad &= opt_rule
+    slide = drop_small((slide_rad | slide_opt) & (typ == 0), p.slide_mmu_px)
+    slide_rad &= slide
+    slide_opt &= slide
+    ls_source = (slide_rad.astype(np.uint8) | (slide_opt.astype(np.uint8) << 1)) * slide
+    # Reaches low ground (debris flow ending in the valley) -> more credible.
+    lab_s, n_s = label(slide, structure=np.ones((3, 3), bool))
+    connected = np.zeros(shape, bool)
+    if n_s:
+        near_low = binary_dilation(hand <= p.flat_hand_m, iterations=p.slide_connect_px)
+        hit = np.zeros(n_s + 1, bool)
+        hit[np.unique(lab_s[slide & near_low])] = True
+        hit[0] = False
+        connected = hit[lab_s]
+    ls_pts = np.where(slide_rad, np.where(n_agree >= np.minimum(n_valid, 2), 2, 1), 2).astype(np.int16)
+    ls_pts += (slide_rad & slide_opt).astype(np.int16) + (slide_rad & connected).astype(np.int16)
+    ls_pts = np.where(slide_rad ^ slide_opt, np.minimum(ls_pts, 2), ls_pts)  # one sensor alone (radar or optics): at most medium
+    ls_conf = np.select([ls_pts >= 3, ls_pts == 2], [HIGH, MEDIUM], LOW).astype(np.uint8)
+    typ = np.where(slide, LANDSLIDE, typ).astype(np.uint8)
+    # Control for the optical rule: ground too flat for slides and away from rivers (harvest, ploughing, terraces).
+    ctrl_slide = inp.aoi & opt & ~snow & (slope < p.slide_slope_min_deg) & (hand > p.debris_hand_m)
+    slide_bg = round(float((opt_rule & ctrl_slide).sum()) / ctrl_slide.sum(), 5) if ctrl_slide.any() else None
+    slide_stats = {"radar_px": int((slide & (ls_source == 1)).sum()), "optical_px": int((slide & (ls_source == 2)).sum()),
+                   "both_px": int((slide & (ls_source == 3)).sum()), "connected_px": int((slide & connected).sum()),
+                   "optical_background_rate": slide_bg}
+
     # --- confidence --------------------------------------------------------------------------------------------
     pts = np.minimum(n_agree, 2).astype(np.int16)
     urban = np.isin(typ, (FLOODED_BUILTUP, DAMAGED_BUILTUP))
@@ -295,6 +344,7 @@ def detect(inp: Inputs, p: Params, tracks: list[Track] | None = None, use_optica
     conf = np.where(wet_cover & ~water_support, np.minimum(conf, MEDIUM), conf)
     conf = np.where(typ == UNKNOWN, LOW, conf)
     conf = np.where(opt_only & (typ == DEBRIS), np.where(corridor, MEDIUM, LOW), conf)
+    conf = np.where(typ == LANDSLIDE, ls_conf, conf)
     conf = np.where(typ > 0, conf, 0).astype(np.uint8)
 
     # --- what could be seen ------------------------------------------------------------------------------------
@@ -305,8 +355,10 @@ def detect(inp: Inputs, p: Params, tracks: list[Track] | None = None, use_optica
         (pre_clear & (ndvi_pre >= p.dense_ndvi)) | (building_density(buildings) >= p.dense_built))
     obs[insensitive] = INSENSITIVE
 
-    return Result(typ, conf, candidate | opt_only, obs, dvv.astype(np.float32), dvh.astype(np.float32), score,
+    return Result(typ, conf, candidate | opt_only | (slide_zone & (n_valid >= 1)), obs, dvv.astype(np.float32), dvh.astype(np.float32), score,
                   n_agree, n_valid, opt, {"background_change": bg_rates,
                                           "weather": {"rain_like": weather[1], "snow_or_frost_like": weather[-1]},
                                           "optical_only": {"background_rate": opt_bg,
-                                                           "px": int((opt_only & (typ == DEBRIS)).sum())}})
+                                                           "px": int((opt_only & (typ == DEBRIS)).sum())},
+                                          "landslide": slide_stats},
+                  source=ls_source)

@@ -1067,3 +1067,15 @@ Malá oblast (8×9 km): 113 s bez cache, 78 s s cache (0 PU).
 - **Co nejde dál zrychlit stahováním:** Sentinel Hub počítá ~1 800 PU na běh (S1 10 m VV+VH × 6 snímků ≈ 1 160, historie ≈ 290, roční reference ≈ 245) a limit je 300 PU/min → stahování radaru má dolní mez ~5 min; víc vláken nepomůže.
   Hrubší roční reference (40 m) by ušetřila ~180 PU (~0,6 min) za cenu úzkých řek (D-M10-02) → ponecháno 20 m (netestováno proti 40 m).
 - **Co zbývá:** nejdelší je krok suti (9 min = 47 % běhu, kód mimo tuto změnu) a AI inference (4,3 min na 4 jádrech; ~210 s tvoří dlaždice dvou radarových drah a dvou optických snímků).
+
+## D-M11-03 | 2026-10-13 | přijato (uživatel: „pokracuj“ na zadání sesuvů od master session) — Sesuvy a bahnotoky na svazích mimo údolní pravidla
+Kontext: EMSR927 značí celou plochu jako sesuv/Mass Movement; část leží na svazích > 15°, které údolní pravidla suti (HAND ≤ 40 m, sklon ≤ 25°) vyřazují.
+Rozhodnutí: nový podtyp `debris_type` = **7 `landslide`** (třída masky zůstává 3), `flood/debris/classify.py`. Zóna: sklon 15–55°, mimo údolní zónu, mimo vodu a sníh.
+- **Radar (obě dráhy, mimo layover/shadow):** ztmavnutí VH ≥ 3 dB (semínko, p < 1e-4) / ≥ 1,5 dB (růst) a VV ≥ 1 dB — ztráta objemového rozptylu koruny
+  (Handwerger 2022, Mondini 2019); při celoplošném ztmavnutí (počasí) jen s potvrzením optikou.
+- **Optika:** NDVI před ≥ 0,3, pokles ≥ 0,3, po povodni holá půda (jako D-M11-02).
+- **Staré sesuvy** (holé už před událostí: NDVI před < 0,2 nebo nízké VH v historii) se nevyznačují. Min. plocha 30 px (0,3 ha).
+- **Jistota:** radar samotný / optika samotná nejvýš střední; radar + optika vysoká; napojení na nížinu (do 30 m od HAND ≤ 15 m) zvedá o stupeň (ne nad střední u jednoho senzoru).
+- **Self-test:** radarová část je v placebu (starší snímek jako „po“); optická část nemá starší pár S2 → `run.json.debris.landslide.optical_background_rate` = stejné pravidlo na rovině daleko od řek.
+- Změna kontraktu: kód 7 v `debris_type.tif` / `subtype = "landslide"`; doplněno do `flood/combine.py` (TYPE_NAMES) a `report/sitrep.py`. Prahy z literatury, neladěné podle EMS (D-006).
+Výsledky měření celého údolí doplním po běhu.

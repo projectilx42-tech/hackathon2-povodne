@@ -106,6 +106,19 @@ def calibrate(inp: Inputs, params: C.Params, target: float = TARGET_FALSE_RATE) 
                "tightened_steps": steps, "target_rate": target}
 
 
+def _slide_evidence(dvv: float, dvh: float, agree: float, valid: float, radar: float, optical: float) -> str:
+    parts = []
+    if radar > 0.5 and np.isfinite(dvh):
+        parts.append(f"radar VV {dvv:+.1f} dB, VH {dvh:+.1f} dB (vegetation or surface removed); "
+                     f"{agree:.0f} of {valid:.0f} pass direction(s) agree")
+    if optical > 0.5:
+        parts.append("Sentinel-2 shows green vegetation turned to bare ground")
+    if radar <= 0.5 and optical > 0.5:
+        parts.append("optical-only (no radar change): lower confidence")
+    parts.append("not bare before the event (not an old slide)")
+    return "; ".join(parts)
+
+
 def _evidence(t: int, dvv: float, dvh: float, agree: float, valid: float, optical: float) -> str:
     parts = []
     if np.isfinite(dvv):
@@ -138,6 +151,9 @@ def polygons(inp: Inputs, res: C.Result) -> list[dict]:
             agree = ndimage.maximum(res.n_agree, lab, idx)
             valid = ndimage.maximum(res.n_valid, lab, idx)
             optical = ndimage.mean(res.optical, lab, idx)
+            src = res.source if res.source is not None else np.zeros(res.type.shape, np.uint8)
+            s_rad = ndimage.mean((src & 1) > 0, lab, idx)
+            s_opt = ndimage.mean((src & 2) > 0, lab, idx)
             geoms: dict[int, list] = {}
             for geom, value in shapes(lab.astype(np.int32), mask=mask, transform=inp.grid.transform):
                 geoms.setdefault(int(value), []).append(shape(geom))
@@ -152,7 +168,10 @@ def polygons(inp: Inputs, res: C.Result) -> list[dict]:
                               "area_m2": round(float(area[k]), 1),
                               "mean_dvv_db": None if np.isnan(v) else round(v, 2),
                               "mean_dvh_db": None if np.isnan(h) else round(h, 2),
-                              "evidence": _evidence(int(t), v, h, float(agree[k]), float(valid[k]), float(optical[k]))})
+                              "evidence": (_slide_evidence(float(dvv[k]), float(dvh[k]), float(agree[k]), float(valid[k]),
+                                                           float(s_rad[k]), float(s_opt[k]), False)
+                                           if int(t) == C.LANDSLIDE else
+                                           _evidence(int(t), v, h, float(agree[k]), float(valid[k]), float(optical[k])))})
     return feats
 
 
