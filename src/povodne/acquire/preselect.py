@@ -51,6 +51,13 @@ def detect_onset(fractions: list[float | None], k: float = 3.0, min_jump: float 
         sigma = max(1.4826 * float(np.median(np.abs(base - med))), sigma_floor) if len(base) > 1 else sigma_floor * 2
         if v - med > max(k * sigma, min_jump) and v > min_ratio * med:
             return OnsetResult(i, False, f"water share rose from {med:.1%} to {v:.1%}")
+        # slow rise: a gradual increase drags the median of the earlier dates up with it, so also compare with the dry
+        # baseline (median of the lower half of the earlier dates) and ask for a larger total rise
+        if len(base) >= 3:
+            low_half = np.sort(base)[:max(1, len(base) // 2)]
+            low = float(np.median(low_half))
+            if v - low > max(k * sigma, 2 * min_jump) and v > min_ratio * low:
+                return OnsetResult(i, False, f"water share rose gradually from {low:.1%} to {v:.1%}")
     if len(vals) >= 2:
         first, rest = vals[0][1], [x for _, x in vals[1:]]
         if first - min(rest) > min_jump and first >= max(rest):

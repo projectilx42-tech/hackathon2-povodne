@@ -205,6 +205,7 @@ def main() -> None:
     ap.add_argument("--hand-width", type=float, default=softpost.HAND_WIDTH_M)
     ap.add_argument("--anomaly-gain", type=float, default=softpost.ANOMALY_GAIN,
                     help="odds multiplier exp(gain) of flood at the strongest radar anomaly (0 = ignore flood/s1_anomaly.tif)")
+    ap.add_argument("--s2-water-thr", type=float, default=0.5, help="optical model: P(water) at or above this counts as water")
     ap.add_argument("--min-channel-px", type=int, default=2, help="smallest flood patch right at the stream (HAND 0); grows to --min-flood-px")
     ap.add_argument("--perm-min-freq", type=float, default=PERM_MIN_FREQ,
                     help="%% of the year's passes a pixel must be water in to be permanent water (D-M10-02)")
@@ -228,8 +229,10 @@ def main() -> None:
     slope, profile = _read(run / "masks" / "slope.tif")
     if slope is None:
         sys.exit("masks/slope.tif missing (M2)")
-    slope = np.nan_to_num(slope, nan=0.0)
     hand, _ = _read(run / "masks" / "hand.tif")
+    # a hole in the DEM is unknown terrain, not flat ground (as in acquire/terrain.py, which leaves such cells out of the valley floor)
+    unknown_terrain = ~np.isfinite(slope) | (False if hand is None else ~np.isfinite(hand))
+    slope = np.nan_to_num(slope, nan=0.0)
 
     tracks = {}
     for prefix in ("s1", "s1_alt"):
@@ -261,6 +264,7 @@ def main() -> None:
     if not args.hard_rules:
         # soft terrain prior and radar-anomaly support (D-M10-07)
         w = softpost.terrain_weight(slope, hand_m, args.slope_mid, args.slope_width, args.hand_mid, args.hand_width)
+        w[unknown_terrain] = 0.0
         probs = softpost.soften(probs, w)
         z_comb, thr_z = load_anomaly(run, profile)
         strength = softpost.anomaly_strength(z_comb, thr_z) if args.anomaly_gain else None
@@ -303,14 +307,17 @@ def main() -> None:
                 p_pre, clear_pre = s2_water(s2m, s2cfg, run, "pre", args.device)
                 if p_pre is None:
                     p_pre, clear_pre = np.zeros_like(p_post), np.zeros(p_post.shape, bool)
-                wet_post = clear_post & (p_post * w >= 0.5)  # soft prior (w = 1 with --hard-rules)
+                wet_post = clear_post & (p_post * w >= args.s2_water_thr)  # soft prior (w = 1 with --hard-rules)
                 # was the pixel dry before? optical pre image if clear there, else the radar's view of the pre image
-                dry_before = np.where(clear_pre, p_pre < 0.5, radar_valid & (cls != 1))
+                dry_before = np.where(clear_pre, p_pre < args.s2_water_thr, radar_valid & (cls != 1))
                 known_before = clear_pre | radar_valid
                 s2_flood = wet_post & dry_before
                 s2_perm = wet_post & ~s2_flood
                 mask[clear_post & (mask == 0)] = 1  # optical image fills radar gaps (shadow, layover)
                 mask[s2_perm & (mask != 2)] = 4
+                # water seen by the clear optical image both before and after is not new, whatever the radar said
+                opt_perm = wet_post & clear_pre & (p_pre >= args.s2_water_thr)
+                mask[opt_perm & (mask == 2)] = 4
                 mask[s2_flood] = 2
                 p_flood = np.where(clear_post, np.maximum(p_flood, p_post * dry_before * w), p_flood).astype(np.float32)
                 s2_info = {"used": True, "model": str(args.s2_model),
@@ -324,7 +331,7 @@ def main() -> None:
     mask[seasonal] = 2
     any_valid = mask > 0
     if args.hard_rules:
-        impossible = slope > args.max_water_slope_deg
+        impossible = (slope > args.max_water_slope_deg) | unknown_terrain
         if hand_m is not None:
             impossible |= hand_m > args.max_water_hand_m
         mask[impossible & np.isin(mask, (2, 4))] = 1

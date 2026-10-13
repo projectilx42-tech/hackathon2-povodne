@@ -55,6 +55,7 @@ def collect(model, cfg, args):
     temp = cfg.get("temperature", 1.0)
     idx = load_index(args.data)
     idx = idx[idx["actid"].isin(VAL_ACTS)].reset_index(drop=True)
+    idx["row"] = idx["row"].astype(int)
     ds = KuroSiwoDataset(idx, load_arrays(idx, with_slope=True), use_slope=True)
     dl = make_loader(ds, 32, False, 2)
     P, Y, S, T, A = [], [], [], [], []
