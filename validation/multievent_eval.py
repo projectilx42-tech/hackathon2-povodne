@@ -72,7 +72,8 @@ def kurosiwo_label(ev: dict, grid: dict) -> np.ndarray:
     w, h = int(round((x1 - x0) / px)), int(round((y1 - y0) / px))
     mosaic = np.full((h, w), 255, np.uint8)
     masks = {}
-    for f in DATA.glob("ks_masks_bihar_*.npz" if lab.get("windows_file") else "ks_masks_[0-9]*.npz"):
+    stem = lab["windows_file"].replace("ks_windows_", "").replace(".json", "") if lab.get("windows_file") else None
+    for f in DATA.glob(f"ks_masks_{stem}_*.npz" if stem else "ks_masks_[0-9]*.npz"):
         masks.update(dict(np.load(f)))
     for key, (shard, b) in win["keys"].items():
         m, v = masks.get(f"{key}|mask.npy"), masks.get(f"{key}|valid_mask.npy")

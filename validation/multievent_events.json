@@ -183,6 +183,84 @@
     "post_s1_date": "2019-09-18",
     "windows_file": "ks_windows_bihar.json"
    }
+  },
+  {
+   "id": "missouri_2017",
+   "kind": "flood",
+   "dataset": "kurosiwo_test",
+   "continent": "North America",
+   "note": "Kuro Siwo test act 1111013 aoi 1, Missouri/Mississippi (USA), May 2017",
+   "event_date": "2017-05-03",
+   "aoi_bbox": [
+    -90.003,
+    37.899,
+    -89.9225,
+    37.9625
+   ],
+   "label": {
+    "type": "kurosiwo",
+    "window": "1111013_1",
+    "tile_grid_epsg3857_bbox": [
+     -10019085.0,
+     4565165.0,
+     -10010125.0,
+     4574125.0
+    ],
+    "post_s1_date": "2017-05-04",
+    "windows_file": "ks_windows_stage3.json"
+   }
+  },
+  {
+   "id": "chad_2020",
+   "kind": "flood",
+   "dataset": "kurosiwo_test",
+   "continent": "Africa (Sahel)",
+   "note": "Kuro Siwo test act 1111002 aoi 1, Chad, Sep 2020",
+   "event_date": "2020-09-14",
+   "aoi_bbox": [
+    14.817,
+    12.1959,
+    14.8975,
+    12.2746
+   ],
+   "label": {
+    "type": "kurosiwo",
+    "window": "1111002_1",
+    "tile_grid_epsg3857_bbox": [
+     1649425.0,
+     1368015.0,
+     1658385.0,
+     1376975.0
+    ],
+    "post_s1_date": "2020-09-15",
+    "windows_file": "ks_windows_stage3.json"
+   }
+  },
+  {
+   "id": "evros_2018",
+   "kind": "flood",
+   "dataset": "kurosiwo_test",
+   "continent": "Europe",
+   "note": "Kuro Siwo test act 277 aoi 3, Evros (Greece/Turkey), Mar 2018; S1 pass on the flood date = post image, event_date set to the day before",
+   "event_date": "2018-03-26",
+   "aoi_bbox": [
+    26.3049,
+    41.0417,
+    26.3854,
+    41.1024
+   ],
+   "label": {
+    "type": "kurosiwo",
+    "window": "277_3",
+    "tile_grid_epsg3857_bbox": [
+     2928245.0,
+     5018495.0,
+     2937205.0,
+     5027455.0
+    ],
+    "post_s1_date": "2018-03-27",
+    "windows_file": "ks_windows_stage3.json"
+   }
   }
  ]
 }
