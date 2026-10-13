@@ -1250,3 +1250,5 @@ budov označeno, 1972 našich zásahů) beze změny — mění se jen stupeň, n
   důkaz těsně pod prahem (1,5–2). Třetí stupeň = nižší práh t3 jen v pásu r px kolem detekcí; placebo vybralo t 2,5 / t3 1,75 / r 5
   (odhad P 0,864) → **R 0,867 / P 0,853**. Hranice R-P na tomto starém běhu: P ~0,83 při R ~0,89 → 90 % při P ≥ 0,85 vyžaduje
   kvalitnější důkaz (roční normál, trvalost přes post_series), ne další geometrii.
+
+**Dodatek k D-X-11 (master, 2026-10-13 11:00):** starý běh celého údolí přepočten s opravenou optikou S2 (`acquire` S2 z AWS znovu, bez PU) + fúze suti z main (`runs/tf_env`, `validation/results/tf_env`): semínka R 0,608 / P 0,893. `validation/envelope_edge_diag.py` (parametry jen z placeba, odhad P ≥ 0,85): obálka + růst R 0,832 / P 0,877; s okrajovým pásmem **R 0,909 / P 0,835** (odhad placeba 0,898 → placebo je při lepších semínkách o ~6 b. optimistické). Viditelná plocha = 99,4 % EMS, recall na viditelné ploše 0,909. Bez ročního normálu (s1_anomaly) a bez trvalosti přes víc průletů — ty má běh v `feat/envelope`.
