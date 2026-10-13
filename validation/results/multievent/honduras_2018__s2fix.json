@@ -14,66 +14,66 @@
  "label_valid_pct": 93.1,
  "scores": {
   "a_seeds_own_region": {
-   "recall": 0.8421,
-   "precision": 0.8706,
-   "f1": 0.8561,
-   "truth_km2": 19.2725,
-   "pred_km2": 18.6413,
-   "tp_km2": 16.2285,
-   "fp_km2": 2.4128,
-   "region_km2": 69.428
+   "recall": 0.8364,
+   "precision": 0.8984,
+   "f1": 0.8663,
+   "truth_km2": 19.2657,
+   "pred_km2": 17.9375,
+   "tp_km2": 16.1146,
+   "fp_km2": 1.8229,
+   "region_km2": 69.42
   },
   "a_seeds_common_region": {
-   "recall": 0.8421,
-   "precision": 0.8706,
-   "f1": 0.8561,
-   "truth_km2": 19.2725,
-   "pred_km2": 18.6413,
-   "tp_km2": 16.2285,
-   "fp_km2": 2.4128,
-   "region_km2": 69.428
+   "recall": 0.8364,
+   "precision": 0.8984,
+   "f1": 0.8663,
+   "truth_km2": 19.2657,
+   "pred_km2": 17.9375,
+   "tp_km2": 16.1146,
+   "fp_km2": 1.8229,
+   "region_km2": 69.42
   },
   "b_envelope": {
-   "recall": 0.8421,
-   "precision": 0.8706,
-   "f1": 0.8561,
-   "truth_km2": 19.2725,
-   "pred_km2": 18.6413,
-   "tp_km2": 16.2285,
-   "fp_km2": 2.4128,
-   "region_km2": 69.428
+   "recall": 0.8364,
+   "precision": 0.8984,
+   "f1": 0.8663,
+   "truth_km2": 19.2657,
+   "pred_km2": 17.9375,
+   "tp_km2": 16.1146,
+   "fp_km2": 1.8229,
+   "region_km2": 69.42
   },
   "b_envelope_visible_label": {
-   "recall": 0.8363,
-   "precision": 0.8706,
-   "f1": 0.8531,
+   "recall": 0.8304,
+   "precision": 0.8984,
+   "f1": 0.8631,
    "truth_km2": 19.4053,
-   "pred_km2": 18.6413,
-   "tp_km2": 16.2285,
-   "fp_km2": 2.4128,
+   "pred_km2": 17.9375,
+   "tp_km2": 16.1146,
+   "fp_km2": 1.8229,
    "region_km2": 69.892
   }
  },
  "scores_water_total": {
   "seeds": {
-   "recall": 0.8418,
-   "precision": 0.8747,
-   "f1": 0.8579,
-   "truth_km2": 20.0727,
-   "pred_km2": 19.3173,
-   "tp_km2": 16.897,
-   "fp_km2": 2.4203,
-   "region_km2": 70.229
+   "recall": 0.8363,
+   "precision": 0.9017,
+   "f1": 0.8678,
+   "truth_km2": 20.0659,
+   "pred_km2": 18.6125,
+   "tp_km2": 16.7821,
+   "fp_km2": 1.8304,
+   "region_km2": 70.22
   },
   "envelope": {
-   "recall": 0.8418,
-   "precision": 0.8747,
-   "f1": 0.8579,
-   "truth_km2": 20.0727,
-   "pred_km2": 19.3173,
-   "tp_km2": 16.897,
-   "fp_km2": 2.4203,
-   "region_km2": 70.229
+   "recall": 0.8363,
+   "precision": 0.9017,
+   "f1": 0.8678,
+   "truth_km2": 20.0659,
+   "pred_km2": 18.6125,
+   "tp_km2": 16.7821,
+   "fp_km2": 1.8304,
+   "region_km2": 70.22
   }
  },
  "seed_transitions_km2": {
@@ -81,7 +81,7 @@
    "water": 17.9012
   },
   "debris": {
-   "debris": 1.2273
+   "debris": 0.5225
   },
   "permanent": {
    "permanent": 0.1888
@@ -94,28 +94,28 @@
    "share_on_truth": 0.888
   },
   "seeds_debris_step:debris": {
-   "km2": 0.7404,
-   "km2_in_label_region": 0.7135,
-   "share_on_truth": 0.157
+   "km2": 0.0163,
+   "km2_in_label_region": 0.0163,
+   "share_on_truth": 0.0
   },
   "seeds_debris_step:mud": {
-   "km2": 0.104,
-   "km2_in_label_region": 0.1023,
-   "share_on_truth": 0.797
+   "km2": 0.0644,
+   "km2_in_label_region": 0.0644,
+   "share_on_truth": 0.902
   },
   "seeds_debris_step:erosion": {
-   "km2": 0.0412,
-   "km2_in_label_region": 0.0412,
-   "share_on_truth": 0.692
+   "km2": 0.0314,
+   "km2_in_label_region": 0.0314,
+   "share_on_truth": 0.691
   },
   "seeds_debris_step:flooded_vegetation": {
-   "km2": 0.0283,
-   "km2_in_label_region": 0.0283,
-   "share_on_truth": 0.028
+   "km2": 0.0275,
+   "km2_in_label_region": 0.0275,
+   "share_on_truth": 0.007
   },
   "seeds_debris_step:flooded_builtup": {
-   "km2": 0.0701,
-   "km2_in_label_region": 0.0701,
+   "km2": 0.07,
+   "km2_in_label_region": 0.07,
    "share_on_truth": 0.0
   },
   "seeds_debris_step:damaged_builtup": {
@@ -124,14 +124,14 @@
    "share_on_truth": 1.0
   },
   "seeds_debris_step:unknown": {
-   "km2": 0.161,
-   "km2_in_label_region": 0.1601,
-   "share_on_truth": 0.545
+   "km2": 0.2001,
+   "km2_in_label_region": 0.1984,
+   "share_on_truth": 0.571
   },
   "seeds_class3_not_debris_step(vhagree etc.)": {
-   "km2": 0.1171,
-   "km2_in_label_region": 0.1101,
-   "share_on_truth": 0.232
+   "km2": 0.1199,
+   "km2_in_label_region": 0.1128,
+   "share_on_truth": 0.248
   },
   "seeds_permanent(4)": {
    "km2": 0.7983,
@@ -140,8 +140,8 @@
   }
  },
  "pred_total_km2": {
-  "seeds": 20.805,
-  "envelope": 20.805
+  "seeds": 20.073,
+  "envelope": 20.073
  },
  "run": {
   "timings_s": {
@@ -156,7 +156,7 @@
    "network": 2.4,
    "report": 7.2
   },
-  "pu_spent": 81.3,
+  "pu_spent": 0.0,
   "pu_estimate": 94,
   "envelope": {
    "used": false,
@@ -185,8 +185,8 @@
    "extra": null
   },
   "warnings": [
-   "The check for flooding before the given date sees almost no open water here (rivers narrower than the 60 m check pixels), so it cannot confirm that the before-image is flood-free.",
-   "No pre-event OpenStreetMap buildings in the area: damaged buildings cannot be counted (zero does not mean no damage)."
+   "No pre-event OpenStreetMap buildings in the area: damaged buildings cannot be counted (zero does not mean no damage).",
+   "The check for flooding before the given date sees almost no open water here (rivers narrower than the 60 m check pixels), so it cannot confirm that the before-image is flood-free."
   ],
   "verdict": "flood_detected",
   "coverage": {

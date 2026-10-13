@@ -175,6 +175,12 @@ Bihar's "permanent water" came from a missing year-long water reference: one of 
 Fixed (skip the failing pass): **Bihar 0.82 / 0.88 / 0.85 → 0.97 / 0.89 / 0.93; mean over 9 events R 0.842 → 0.858, P 0.870 → 0.872, F1 0.850 → 0.859**;
 other events unchanged, control unchanged. Self-training (`st_strict2`, after fixing its one-track crash): 0.850 / 0.859 / 0.849 → still not merged.
 
+### New baseline `s2fix` (Sentinel-2 tile-version fix D-M14-09 + permanent-water fix D-M14-06), all 11 events rebuilt from raw S2
+Mean over 9 events: **R 0.854 / P 0.876 / F1 0.859** (permfix 0.858 / 0.872 / 0.859). Per event F1: Malawi 0.93, Honduras 0.87 (+0.010), Australia 0.88 (−0.009,
+same S2 dates; the re-processed before-image is now clear and shows water before the event → permanent, while the Kuro Siwo label calls it flood),
+Bihar 0.94 (+0.010), Missouri 0.91, Chad 0.72, Evros 0.87 (−0.011: 1.05 km² lost exactly on the former zero-SWIR pixels, only 0.64 km² of them flood in the label),
+Bolivia 0.88, Teesta 0.73; Chamoli 0.11 (was 0.04); control unchanged (0.329 km²). All later comparisons use `s2fix`.
+
 ## Cost and time
 Teesta 109 PU, Marsyangdi 99 PU, Chamoli 113 PU, Malawi 46 PU (cache), Honduras ~100 PU first fetch, Australia 39, Bolivia 101, Bihar 62 (+ failed retries); 2.5–5 min per event.
 
