@@ -1092,10 +1092,6 @@ Omezení: roční řada je jen z minulého roku (jeden cyklus, žádná vícelet
   **Cíl 90 % recallu jen z radaru to nesplní**: i při 5 % falešné kontroly zůstává ~60 % minuté plochy bez rozeznatelné odchylky (EMS kreslí celé sesuvy včetně míst, kde se radarový obraz nezměnil).
 - **Cena:** normál = 258 PU naměřeno (odhad 284) pro obě dráhy; `acquire.pu_estimate` celkem 2 385 PU (horní mez; skutečně ~2 080), nad mezí 2 000 vyjde upozornění `pu_budget_high`.
 
-## D-X-07 | 2026-10-13 | přijato (master) — Sesuv (`debris_type` 7) ničí budovy a silnice
-Krok suti nově značí čerstvé sesuvy jako `debris_type` 7 (větev fix/s2-scaling). Modul škod bral jako ničivé jen typy 1, 3, 6, takže budova zasypaná sesuvem by se nepočítala jako zničená.
-Rozhodnutí: `damage/measure.py` `DESTRUCTIVE_TYPES` = (1, 3, 6, 7). Sesuv odnese nebo zasype stavbu stejně jako suť; kontrakt souborů beze změny.
-
 ## D-M10-06 | 2026-10-13 | přijato — Radarová anomálie: průměr přes všechny snímky po události, práh z placeba
 **Kontext:** jeden snímek „po“ nese šum; úkol od master session: průměrovat anomálii přes všechny průlety 0–24 dní po události (obě dráhy, každá vůči svému normálu), práh volit jen podle placeba (cíl ≤ 0,5 % falešných pixelů), nikdy podle EMS.
 **Rozhodnutí:** `acquire/postseries.py` stáhne (40 m, VV+VH, jako normál) všechny průlety dráhy v 24 dnech po události (vždy i vybraný snímek „po“) a stejný počet **placebo** průletů z 60 dní před událostí, které **nejsou v normálu** (výběr přes `norm.json`). `flood/s1anomaly.py` spočítá z-skóre každého průletu s vlastním posunem scény a z-skóre **zprůměruje** (stálý signál zůstane, šum klesá); fallback = jediný snímek z `aligned/`. Doporučený práh `run.json.s1anomaly.threshold_z_comb` = 0,5% kvantil z_comb placeba. Nový parametr `post_series_days = 24`, `n_placebo = 4`; PU: +~100 pro oba směry (2 + 2 průlety na dráhu).
