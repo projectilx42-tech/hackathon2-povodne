@@ -189,11 +189,15 @@ def create_app() -> FastAPI:
         if event_time is not None and not (isinstance(event_time, str) and re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", event_time)):
             raise HTTPException(422, "event_time must be HH:MM (local time of the area)")
         digest = hashlib.sha1(json.dumps([aoi, date, windows, sensitivity, event_time], sort_keys=True).encode()).hexdigest()[:6]
-        run_id = f"run_{date}_{digest}"
-        d = RUNS_DIR / run_id
+        base = f"run_{date}_{digest}"
         with _lock:
-            if run_id in _procs and _procs[run_id].poll() is None:
-                return {"run_id": run_id, "already_running": True}
+            running = [r for r, p in _procs.items() if r.startswith(base) and p.poll() is None]
+            if running:
+                return {"run_id": running[0], "already_running": True}
+            # Every submission gets its own directory: a re-run must not inherit old flood/, stats.json or
+            # overlays that would pass for new results (downloads are reused from data/cache/, D-M10-04).
+            run_id = base if not (RUNS_DIR / base).exists() else f"{base}_{datetime.now(timezone.utc):%Y%m%dT%H%M%S}"
+            d = RUNS_DIR / run_id
             (d / "logs").mkdir(parents=True, exist_ok=True)
             _write_json(d / "run.json", {
                 "run_id": run_id, "aoi": aoi, "event_date": date, "event_time": event_time,
