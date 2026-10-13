@@ -1,12 +1,12 @@
 """Inputs of the surface-change step, all on the 10 m reference grid (D-M3d-01).
 
 Reads the run directory (docs/ARCHITECTURE.md):
-- radar: raw/s1[_alt]/post_*.tif, pre_*.tif and the older passes hist_*.tif (UINT16 dB = v*0.001-50, 0 = nodata;
+- radar: raw/s1[_alt]/post_[0-9]*.tif, pre_*.tif and the older passes hist_*.tif (UINT16 dB = v*0.001-50, 0 = nodata;
   hist_* may be on a coarser 20 m grid and is resampled here). Every pass keeps its own date: the change test needs
   the individual earlier passes, not their average, so the raw files are read even when aligned/ exists;
 - terrain: masks/hand.tif, masks/slope.tif, masks/s1[_alt]_layover_shadow.tif when the preprocess step made them,
   otherwise computed here from raw/dem/dem.tif with the acquire step's own functions (same HAND recipe, D-M1-04);
-- optical: raw/s2/pre_*.tif, post_*.tif (DN with scale/offset tags, SCL as band 7);
+- optical: raw/s2/pre_*.tif, post_[0-9]*.tif (DN with scale/offset tags, SCL as band 7);
 - pre-event OpenStreetMap: osm/buildings.gpkg (and osm/landuse.gpkg if the acquire step provides it);
 - the AI water map flood/ai_mask.tif if it already exists (water is the AI model's job; this step skips those pixels).
 """
@@ -131,7 +131,7 @@ def _read_mask(path: Path, grid: Grid, resampling=Resampling.nearest) -> np.ndar
 def load(run_dir: Path) -> Inputs:
     rj = json.loads((run_dir / "run.json").read_text())
     acq = rj.get("acquire") or {}
-    posts = sorted((run_dir / "raw" / "s1").glob("post_*.tif"))
+    posts = sorted((run_dir / "raw" / "s1").glob("post_[0-9]*.tif"))
     if not posts:
         raise FileNotFoundError("no Sentinel-1 after-image in raw/s1 (acquire step)")
     grid = _grid_from(posts[-1])
@@ -167,7 +167,7 @@ def load(run_dir: Path) -> Inputs:
     tracks = []
     for key in ("s1", "s1_alt"):
         folder = run_dir / "raw" / key
-        post_files = sorted(folder.glob("post_*.tif"))
+        post_files = sorted(folder.glob("post_[0-9]*.tif"))
         if not post_files:
             continue
         direction = (acq.get(key) or {}).get("orbit_direction")
