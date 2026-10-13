@@ -1083,3 +1083,12 @@ Výsledky měření celého údolí doplním po běhu.
 ## D-X-07 | 2026-10-13 | přijato (master) — Sesuv (`debris_type` 7) ničí budovy a silnice
 Krok suti nově značí čerstvé sesuvy jako `debris_type` 7 (větev fix/s2-scaling). Modul škod bral jako ničivé jen typy 1, 3, 6, takže budova zasypaná sesuvem by se nepočítala jako zničená.
 Rozhodnutí: `damage/measure.py` `DESTRUCTIVE_TYPES` = (1, 3, 6, 7). Sesuv odnese nebo zasype stavbu stejně jako suť; kontrakt souborů beze změny.
+
+## D-M11-04 | 2026-10-13 | přijato (master: „per-pixel kompozit“) — Optika pro suť = kompozit z více dnů Sentinel-2
+Kontext: jeden snímek „po“ má v monzunu jasno na ~40 % oblasti; sesuvy a nánosy ale vydrží týdny.
+Rozhodnutí: `acquire` stáhne vedle hlavního snímku „před“/„po“ až 4 další dny s jasnem ≥ 15 % (okno „po“ do 45 dnů po události, „před“ dosavadních 60 dnů) jako `raw/s2/prex_*.tif` / `postx_*.tif`;
+`run.json.acquire.s2.extra = {pre: [...], post: [...]}`, upozornění `s2_composite` (info, seznam dnů). Krok suti (`flood/debris/inputs.py`) skládá po pixelech **medián čistých pixelů** ze všech dnů;
+platný pixel = čistý aspoň v jednom dni. Hlavní snímky a `aligned/s2_*` (AI voda, náhled) se nemění — voda je jev na jeden den, kompozit by ji smazal.
+Změna kontraktu: jen přidané soubory `prex_*`/`postx_*` v `raw/s2` a klíč `extra`; kdo je nezná, funguje jako dřív.
+Výsledek (celé údolí, vs EMSR927, jen měření): plocha F1 0,776 → **0,801** (P 0,965 → 0,967, R 0,649 → 0,684); recall na svazích > 15° 32 → 39 %, ve stínu radaru 45 → 53 %; sesuvy 0,93 → 1,44 km².
+(Základ 0,776 = suť se sesuvy po 1. kroku, bez kompozitu.)

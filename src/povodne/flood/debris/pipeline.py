@@ -169,7 +169,7 @@ def polygons(inp: Inputs, res: C.Result) -> list[dict]:
                               "mean_dvv_db": None if np.isnan(v) else round(v, 2),
                               "mean_dvh_db": None if np.isnan(h) else round(h, 2),
                               "evidence": (_slide_evidence(float(dvv[k]), float(dvh[k]), float(agree[k]), float(valid[k]),
-                                                           float(s_rad[k]), float(s_opt[k]), False)
+                                                           float(s_rad[k]), float(s_opt[k]))
                                            if int(t) == C.LANDSLIDE else
                                            _evidence(int(t), v, h, float(agree[k]), float(valid[k]), float(optical[k])))})
     return feats
