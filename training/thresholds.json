@@ -7,5 +7,14 @@
       "t": 0.12,
       "source": "D-M9-15, Kuro Siwo validation (rule fixed in advance)"
     }
+  },
+  "floodseg_v0.5": {
+    "sensitive": 0.2,
+    "source": "D-M15-01, Kuro Siwo validation events (provisional, softpost calibration pending)",
+    "edge": {
+      "k": 1,
+      "t": 0.12,
+      "source": "D-M15-01, Kuro Siwo validation (same selection rule as D-M9-15)"
+    }
   }
 }
