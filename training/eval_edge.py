@@ -84,12 +84,13 @@ def main() -> None:
         preds = {}
         for i in range(len(p)):
             seeds = (arg[i] == 2) & ~steep[i]
-            base = grow_from_seeds((p[i, 2] >= args.sensitive) & ~steep[i], seeds)
+            bases = {"sens": grow_from_seeds((p[i, 2] >= args.sensitive) & ~steep[i], seeds), "std": seeds}
             allowed = ~steep[i] & (arg[i] != 1)
-            for v, m in variant_masks(base, p[i, 2], allowed).items():
-                pr = np.where(m, 2, other[i])
-                pr[steep[i] & (pr != 2)] = 0
-                preds.setdefault(v, np.empty_like(arg))[i] = pr
+            for b, base in bases.items():
+                for v, m in variant_masks(base, p[i, 2], allowed).items():
+                    pr = np.where(m, 2, other[i])
+                    pr[steep[i] & (pr != 2)] = 0
+                    preds.setdefault(f"{b}:{v}", np.empty_like(arg))[i] = pr
         for v, pr in preds.items():
             conf.setdefault(v, Confusion(IGNORE)).update(torch.from_numpy(pr), y, groups)
 
@@ -97,16 +98,20 @@ def main() -> None:
     for v, c in conf.items():
         r = name_terrain(c.report())
         out[v] = {"overall": r["overall"]["flood"], "per_event": {k: e["flood"] for k, e in r.get("per_event", {}).items()}}
-    p0 = out["base"]["overall"]["precision"]
-    ok = {v: r for v, r in out.items() if r["overall"]["precision"] >= p0 - MAX_DROP}
-    best = max(ok, key=lambda v: (ok[v]["overall"]["recall"], ok[v]["overall"]["f1"]))
-    for v, r in sorted(out.items(), key=lambda kv: kv[1]["overall"]["recall"]):
-        f = r["overall"]
-        print(f"{v:18s} P {f['precision']:.3f} R {f['recall']:.3f} F1 {f['f1']:.3f}{'  <== chosen' if v == best else ''}", flush=True)
-    out["_selection"] = {"rule": f"max flood recall s.t. precision >= base precision - {MAX_DROP}", "base_precision": p0,
-                         "chosen": best, "sensitive": args.sensitive, "border_excluded_px": BORDER}
+    sel = {}
+    for b in ("sens", "std"):  # production basis (sensitive) and the default-mode basis (standard argmax)
+        group = {v: r for v, r in out.items() if v.startswith(b + ":")}
+        p0 = group[f"{b}:base"]["overall"]["precision"]
+        ok = {v: r for v, r in group.items() if r["overall"]["precision"] >= p0 - MAX_DROP}
+        best = max(ok, key=lambda v: (ok[v]["overall"]["recall"], ok[v]["overall"]["f1"]))
+        sel[b] = {"base_precision": p0, "chosen": best}
+        for v, r in sorted(group.items(), key=lambda kv: kv[1]["overall"]["recall"]):
+            f = r["overall"]
+            print(f"{v:22s} P {f['precision']:.3f} R {f['recall']:.3f} F1 {f['f1']:.3f}{'  <== chosen' if v == best else ''}", flush=True)
+    out["_selection"] = {"rule": f"max flood recall s.t. precision >= base precision - {MAX_DROP}", "by_basis": sel,
+                         "sensitive": args.sensitive, "border_excluded_px": BORDER}
     args.out.write_text(json.dumps(out, indent=1, default=float))
-    print(f"chosen {best}; done in {time.time() - t0:.0f}s")
+    print(f"chosen {sel}; done in {time.time() - t0:.0f}s")
 
 
 if __name__ == "__main__":
