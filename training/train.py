@@ -28,7 +28,8 @@ import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from floodseg.data import (IGNORE, SEN1FLOODS11_ACT_BASE, SPLIT_ACTS, KuroSiwoDataset, compute_norm_stats,  # noqa: E402
-                           event_balanced_weights, load_arrays, load_index, open_cache, terrain_boost_weights)
+                           event_balanced_weights, hard_boost_weights, hard_tile_scores, load_arrays, load_index,
+                           open_cache, terrain_boost_weights)
 from floodseg.features import CHANNELS, DB_MAX, DB_MIN, SLOPE_SCALE_DEG  # noqa: E402
 from floodseg.gpu_features import make_batch  # noqa: E402
 from floodseg.metrics import RELIEF_BINS, Confusion  # noqa: E402
@@ -75,6 +76,11 @@ def parse_args():
     ap.add_argument("--max-dry-share", type=float, default=None,
                     help="keep a random subset of water-free training tiles so they make up at most this share of the "
                          "training split (Kuro Siwo's reference training uses only tiles with water; val/test unaffected)")
+    ap.add_argument("--init", default=None,
+                    help="fine-tune: start from this model.pt (its normalisation is kept); 'auto' = first model.pt under --data")
+    ap.add_argument("--hard-boost", type=float, default=0.0,
+                    help="sample tiles with hard cases (bright flood, flood on dark dry ground, dark dry land) up to "
+                         "1 + 3*boost times more often (data.hard_tile_scores)")
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     ap.add_argument("--max-tiles", type=int, default=None, help="limit tiles per split (smoke tests)")
@@ -220,7 +226,18 @@ def main():
     print(f"data ready in {time.time() - t0:.0f}s")
     pick = np.random.default_rng(args.seed).choice(len(tr_idx), size=min(2000, len(tr_idx)), replace=False)
     pick = np.sort(tr_rows[pick] if tr_rows is not None else pick)
-    norm = compute_norm_stats({"sar": tr_arr["sar"][pick]})  # random subset of training tiles
+    init = None
+    if args.init:
+        init_path = Path(args.init)
+        if args.init == "auto":
+            import os
+            init_path = next(Path(d) / "model.pt" for d, _, f in os.walk(args.data, followlinks=True) if "model.pt" in f)
+        init = torch.load(init_path, map_location="cpu", weights_only=False)
+        print("fine-tuning from", init_path, "epoch", init.get("epoch"))
+    if init is not None:  # keep the input normalisation of the starting model
+        norm = {k: tuple(v) for k, v in init["config"]["normalization"].items()}
+    else:
+        norm = compute_norm_stats({"sar": tr_arr["sar"][pick]})  # random subset of training tiles
     print("normalisation (dB mean, std):", norm)
 
     in_ch = len(CHANNELS) + (1 if args.slope else 0)
@@ -231,10 +248,20 @@ def main():
     if args.terrain_boost != 1.0:
         weights = (weights if weights is not None else np.ones(len(tr_ds))) * terrain_boost_weights(tr_ds.terrain, args.terrain_boost)
         weights = weights / weights.sum()
+    if args.hard_boost > 0:
+        t1 = time.time()
+        hs = hard_tile_scores(tr_arr, tr_rows if tr_rows is not None else np.arange(len(tr_idx)))
+        hw = hard_boost_weights(hs, args.hard_boost)
+        print("hard tiles (share > 1 %):", {k: int((v > 0.01).sum()) for k, v in hs.items()},
+              f"mean multiplier {hw.mean():.2f}, {time.time() - t1:.0f}s", flush=True)
+        weights = (weights if weights is not None else np.ones(len(tr_ds))) * hw
+        weights = weights / weights.sum()
     tr_dl = make_loader(tr_ds, args.batch_size, True, args.workers, weights)
     va_dl = make_loader(va_ds, args.batch_size * 2, False, args.workers)
 
     model = build_model(in_ch, args.arch, args.encoder, not args.no_pretrained, args.encoder_weights).to(device)
+    if init is not None:
+        model.load_state_dict(init["state_dict"])
     loss_fn = CEDiceLoss(IGNORE, args.dice_weight, args.loss).to(device)
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     steps = args.epochs * len(tr_dl)

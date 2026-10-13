@@ -1,0 +1,3 @@
+[
+ {"name": "r12_scratch_hard3", "args": ["--arch", "Unet", "--encoder", "resnet34", "--encoder-weights", "imagenet", "--epochs", "10", "--slope", "--sen1floods11", "--loss", "lovasz", "--seed", "42", "--hard-boost", "3"]}
+]

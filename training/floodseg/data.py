@@ -196,3 +196,42 @@ def compute_norm_stats(arrays: dict[str, np.ndarray], max_tiles: int = 2000, see
             acc[k].append(v[np.isfinite(v)])
     return {k: (round(float(np.mean(np.concatenate(v))), 4), round(float(np.std(np.concatenate(v))), 4))
             for k, v in acc.items()}
+
+
+def hard_tile_scores(arrays: dict[str, np.ndarray], rows: np.ndarray, chunk: int = 2000) -> dict[str, np.ndarray]:
+    """Per training tile, the share of pixels of three hard cases the model gets wrong in the field (model v0.5):
+
+    - ``bright_flood``: flood / water label where post VV is not dark (> -15 dB) or brightens (VV diff > +1 dB):
+      flooded vegetation and towns (double bounce), shallow wind-roughened water;
+    - ``dark_pre_flood``: flood label where the pre image is already dark (pre VV < -15 dB): smooth dry sand or bare soil
+      in arid regions (Chad, northern Australia), where the flood barely changes the radar;
+    - ``dark_dry``: no-water label where post VV is dark (< -15 dB) or darkens by > 3 dB: wet soil, mud, smooth fields
+      that look like water (Missouri, Bolivia over-detections).
+    Only the label and the radar of the training tile itself are used (no test events, no other data).
+    """
+    out = {k: np.zeros(len(rows), np.float32) for k in ("bright_flood", "dark_pre_flood", "dark_dry")}
+    for s in range(0, len(rows), chunk):
+        r = np.asarray(rows[s:s + chunk])
+        sar = np.asarray(arrays["sar"][r])[:, :, ::4, ::4]
+        lab = np.asarray(arrays["label"][r])[:, ::4, ::4]
+        db = uint8_to_db(sar)
+        post_vv = db[:, 0]
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            pre_vv = combine_pre_db(db[:, 2], db[:, 4])
+        diff = post_vv - pre_vv
+        ok = np.isfinite(post_vv)
+        flood = ok & ((lab == 2) | (lab == 3))  # 3 = Sen1Floods11 water of unknown type
+        dry = ok & (lab == 0)
+        n = np.maximum(ok.sum((1, 2)), 1)
+        with np.errstate(invalid="ignore"):
+            out["bright_flood"][s:s + len(r)] = (flood & ((post_vv > -15) | (diff > 1))).sum((1, 2)) / n
+            out["dark_pre_flood"][s:s + len(r)] = (flood & (lab == 2) & (pre_vv < -15)).sum((1, 2)) / n
+            out["dark_dry"][s:s + len(r)] = (dry & ((post_vv < -15) | (diff < -3))).sum((1, 2)) / n
+    return out
+
+
+def hard_boost_weights(scores: dict[str, np.ndarray], boost: float, sat: float = 0.05) -> np.ndarray:
+    """Multiplier per tile: 1 + boost * (sum over the hard cases of min(share / sat, 1)); 1 = ordinary tile."""
+    s = sum(np.minimum(v / sat, 1.0) for v in scores.values())
+    return 1.0 + boost * s
