@@ -1079,3 +1079,7 @@ Rozhodnutí: nový podtyp `debris_type` = **7 `landslide`** (třída masky zůst
 - **Self-test:** radarová část je v placebu (starší snímek jako „po“); optická část nemá starší pár S2 → `run.json.debris.landslide.optical_background_rate` = stejné pravidlo na rovině daleko od řek.
 - Změna kontraktu: kód 7 v `debris_type.tif` / `subtype = "landslide"`; doplněno do `flood/combine.py` (TYPE_NAMES) a `report/sitrep.py`. Prahy z literatury, neladěné podle EMS (D-006).
 Výsledky měření celého údolí doplním po běhu.
+
+## D-X-07 | 2026-10-13 | přijato (master) — Sesuv (`debris_type` 7) ničí budovy a silnice
+Krok suti nově značí čerstvé sesuvy jako `debris_type` 7 (větev fix/s2-scaling). Modul škod bral jako ničivé jen typy 1, 3, 6, takže budova zasypaná sesuvem by se nepočítala jako zničená.
+Rozhodnutí: `damage/measure.py` `DESTRUCTIVE_TYPES` = (1, 3, 6, 7). Sesuv odnese nebo zasype stavbu stejně jako suť; kontrakt souborů beze změny.
