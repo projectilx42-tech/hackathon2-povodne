@@ -58,6 +58,8 @@ runs/<run_id>/
                                  # zarovnaná s 10m mřížkou; + perm_water.json; volitelné — chybí-li, nic se nepřepisuje (D-M10-02)
     s1/norm.tif, s1_alt/norm.tif  # roční „normál“ dráhy: 5 pásem float32 na mřížce 40 m (zarovnané s 10m): medián VV [dB], MAD VV, medián VH, MAD VH, počet platných průletů;
                                  #   až 10 průletů téže dráhy za 365 dní před událostí (+ norm.json); chybí-li, krok `s1anomaly` se přeskočí (D-M10-05)
+    s1/post_series.tif, s1_alt/post_series.tif  # (+ post_series.json) všechny průlety dráhy do 24 dní po události a stejný počet „placebo“ průletů před událostí
+                                 #   (mimo normál), VV+VH [dB] na mřížce 40 m; krok `s1anomaly` z nich průměruje z-skóre (D-M10-06); chybí-li, použije se jediný snímek „po“
     s1/hist_YYYYMMDD.tif, s1_alt/hist_*.tif  # až 4 starší průlety téže dráhy před snímky „před“, VV+VH, stejné kódování, mřížka 20 m
                                  # zarovnaná s 10m mřížkou — historie pixelu pro krok změn povrchu (D-M3d-02; dodá M1)
     s2/pre_YYYYMMDD.tif, post_YYYYMMDD.tif   # S2 L2A, UINT16 DN: B02,B03,B04,B08,B11,B12 + SCL (7. pásmo); odrazivost = DN*scale+offset (tagy), 10m mřížka (D-M1-02)
@@ -89,6 +91,8 @@ runs/<run_id>/
                                  #   1 z_vv, 2 z_vh (robustní z-skóre post vs medián/MAD roční řady téže dráhy, Stouffer přes platné dráhy;
                                  #   záporné = tmavší než normál, kladné = světlejší), 3 z_comb = součet všech platných z / sqrt(počet) (pořadí, ne pravděpodobnost),
                                  #   4 n_tracks (0–2; layover/shadow dráhy ji z výpočtu vyřadí). Píše `povodne.flood.s1anomaly`, čte hlavně fúze suti/sesuvů.
+                                 #   Pásma z_* jsou průměr přes všechny průlety po události (`run.json.s1anomaly.placebo[dráha].post_passes`); `run.json.s1anomaly.threshold_z_comb` = práh
+                                 #   z_comb, který na placebo průletech označí 0,5 % scény (doporučený práh, nikdy podle EMS).
     s1_anomaly_tracks.tif        # float32, hrubá mřížka normálu (40 m): z_vv_main, z_vh_main, z_vv_alt, z_vh_alt
     selftrain_prob.tif selftrain_mask.tif selftrain_type.tif   # nepovinné (D-M12-01, pokus): float32 P / uint8 maska / uint8 podtyp (7 svah, 9 neznámá); `povodne.flood.selftrain`, zatím je nic nečte; `run.json.selftrain`
     debris_polygons.geojson      # EPSG:4326: class "debris", subtype, confidence, area_m2, mean_dvv_db, mean_dvh_db, evidence
@@ -361,8 +365,8 @@ Pipeline spouští jako podproces `python -m povodne run ...`; průběh čte z `
   |---|---|---|---|
   | `acquire` | `povodne.acquire` | ano | další kroky `skipped`, report proběhne |
   | `preprocess` | `povodne.preprocess` | ano | dtto |
+  | `s1anomaly` | `povodne.flood.s1anomaly` | ne | bez `flood/s1_anomaly.tif` (D-M10-05); běh pokračuje; běží před `flood_ai`, který anomálii používá (D-M10-07) |
   | `flood_ai` | `povodne.flood.ai` | ano | dtto |
-  | `s1anomaly` | `povodne.flood.s1anomaly` | ne | bez `flood/s1_anomaly.tif` (D-M10-05); běh pokračuje |
   | `debris` | `povodne.flood.debris` | ne | combine jen s vodou |
   | `combine` | `povodne.flood.combine` | ano | další kroky `skipped`, report proběhne |
   | `damage` | `povodne.damage` | ne | network `skipped` |

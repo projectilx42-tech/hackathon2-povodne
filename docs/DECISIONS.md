@@ -1085,10 +1085,6 @@ Malá oblast (8×9 km): 113 s bez cache, 78 s s cache (0 PU).
   Hrubší roční reference (40 m) by ušetřila ~180 PU (~0,6 min) za cenu úzkých řek (D-M10-02) → ponecháno 20 m (netestováno proti 40 m).
 - **Co zbývá:** nejdelší je krok suti (9 min = 47 % běhu, kód mimo tuto změnu) a AI inference (4,3 min na 4 jádrech; ~210 s tvoří dlaždice dvou radarových drah a dvou optických snímků).
 
-## D-X-07 | 2026-10-13 | přijato (master) — Sesuv (`debris_type` 7) ničí budovy a silnice
-Krok suti nově značí čerstvé sesuvy jako `debris_type` 7 (větev fix/s2-scaling). Modul škod bral jako ničivé jen typy 1, 3, 6, takže budova zasypaná sesuvem by se nepočítala jako zničená.
-Rozhodnutí: `damage/measure.py` `DESTRUCTIVE_TYPES` = (1, 3, 6, 7). Sesuv odnese nebo zasype stavbu stejně jako suť; kontrakt souborů beze změny.
-
 ## D-M10-05 | 2026-10-13 | přijato (úkol od master session; uživatel: záchyt plochy aspoň 90 %, místo pevných pravidel „něco inteligentního“) — Radarová anomálie proti normálu místa
 Kontext: pevná pravidla (sklon ≤ 15°, HAND ≤ 15–30 m, prahy v dB) nechávají mimo hlavně strmější svahy a okraje. Cíl: pro každý pixel změřit, **jak moc je po události jiný, než je u něj normální**
 (vlastní sezónní rozptyl a šum místa), a nechat fúzi suti a sesuvů (session `fix/s2-scaling`) použít tuto míru místo pevných pravidel.
@@ -1108,3 +1104,20 @@ Omezení: roční řada je jen z minulého roku (jeden cyklus, žádná vícelet
   při práhu −2 (5 % kontroly) P 0,896, R 0,751, F1 0,817. Chybějící plocha: z ≤ −3 zachytí ~21 % v údolí i na svazích > 15° (−2: 37 %). Signál je u svahů stejně silný jako v údolí → je to to, co pevná pravidla neumějí.
   **Cíl 90 % recallu jen z radaru to nesplní**: i při 5 % falešné kontroly zůstává ~60 % minuté plochy bez rozeznatelné odchylky (EMS kreslí celé sesuvy včetně míst, kde se radarový obraz nezměnil).
 - **Cena:** normál = 258 PU naměřeno (odhad 284) pro obě dráhy; `acquire.pu_estimate` celkem 2 385 PU (horní mez; skutečně ~2 080), nad mezí 2 000 vyjde upozornění `pu_budget_high`.
+
+## D-X-07 | 2026-10-13 | přijato (master) — Sesuv (`debris_type` 7) ničí budovy a silnice
+Krok suti nově značí čerstvé sesuvy jako `debris_type` 7 (větev fix/s2-scaling). Modul škod bral jako ničivé jen typy 1, 3, 6, takže budova zasypaná sesuvem by se nepočítala jako zničená.
+Rozhodnutí: `damage/measure.py` `DESTRUCTIVE_TYPES` = (1, 3, 6, 7). Sesuv odnese nebo zasype stavbu stejně jako suť; kontrakt souborů beze změny.
+
+## D-M10-06 | 2026-10-13 | přijato — Radarová anomálie: průměr přes všechny snímky po události, práh z placeba
+**Kontext:** jeden snímek „po“ nese šum; úkol od master session: průměrovat anomálii přes všechny průlety 0–24 dní po události (obě dráhy, každá vůči svému normálu), práh volit jen podle placeba (cíl ≤ 0,5 % falešných pixelů), nikdy podle EMS.
+**Rozhodnutí:** `acquire/postseries.py` stáhne (40 m, VV+VH, jako normál) všechny průlety dráhy v 24 dnech po události (vždy i vybraný snímek „po“) a stejný počet **placebo** průletů z 60 dní před událostí, které **nejsou v normálu** (výběr přes `norm.json`). `flood/s1anomaly.py` spočítá z-skóre každého průletu s vlastním posunem scény a z-skóre **zprůměruje** (stálý signál zůstane, šum klesá); fallback = jediný snímek z `aligned/`. Doporučený práh `run.json.s1anomaly.threshold_z_comb` = 0,5% kvantil z_comb placeba. Nový parametr `post_series_days = 24`, `n_placebo = 4`; PU: +~100 pro oba směry (2 + 2 průlety na dráhu).
+**Výsledky (Trishuli, údolí; měřeno proti EMSR927, nic se nenaladilo):**
+- **Dřívější placebo bylo příliš optimistické:** používalo snímky „před“, které jsou zároveň v normálu (0,25 %). Skutečné placebo mimo normál: |z|>3 v 0,5–1,2 % pixelů, 0,5% kvantil z_comb = −3,34.
+- Zisk z průměru 2 průletů je malý: z_comb ≤ −3 (napojené na povodeň, 1,3 % kontroly) R 0,697 → 0,701, F1 0,805 → 0,807; při −2 (5 % kontroly) R 0,751 → 0,758, F1 0,817 → 0,824. Chyba normálu (sdílená všemi snímky) a posun scény zůstávají; průměr jen sníží šum samotných snímků, a pozdější průlety jsou už po opadnutí vody.
+- Chybějící plocha zachycená při −3: údolí 21 %, svahy >15° 24 %; při −2: 37 % / 39 %.
+
+## D-M10-07 | 2026-10-13 | rozpracováno — Měkká kombinace místo pevných terénních pravidel v AI kroku
+**Kontext:** úkol od master session: nahradit pevná pravidla (sklon > 15°, HAND > 30 m, min. plocha 10 px, skok mezi dvěma prahy) spojitou kombinací; cíl recall plochy EMS ≥ 90 % bez pevných pravidel. Práh i parametry se ladí jen na ověřovacích událostech Kuro Siwo a podle placeba, nikdy podle EMS (EMS jen měření).
+**Rozhodnutí (první verze):** `training/floodseg/softpost.py`: pravděpodobnosti modelu × spojitý terénní prior w(sklon, HAND) (logistická funkce, 0,5 na 15° / 30 m), volitelná podpora z radarové anomálie (násobení šance, síla od placebo prahu `threshold_z_comb`), minimální plocha klesá z 10 px na 2 px směrem k toku (HAND). `training/run_ai.py` to používá, `--hard-rules` vrací staré chování pro srovnání. Krok `s1anomaly` běží nově PŘED `flood_ai` (config, ARCHITECTURE, test). Šířku přechodu a práh ladí `training/eval_softpost.py` na ověřovacích událostech.
+**Výsledky:** doplním po měření.
