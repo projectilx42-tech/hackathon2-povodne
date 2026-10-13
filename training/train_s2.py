@@ -118,6 +118,10 @@ def main() -> None:
     ap.add_argument("--crop", type=int, default=256)
     ap.add_argument("--lr", type=float, default=5e-4)
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--init", type=Path, default=None, help="fine-tune from this model.pt (its normalisation is kept)")
+    ap.add_argument("--hard-boost", type=float, default=0.0,
+                    help="sample chips more often when their water is optically unclear (MNDWI < 0.2: turbid, shallow, "
+                         "vegetated water) or their dry land looks wet (MNDWI > 0): weight x (1 + boost * share/0.05)")
     ap.add_argument("--test", action="store_true", help="evaluate the chosen checkpoint once on the test event")
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     args = ap.parse_args()
@@ -131,13 +135,31 @@ def main() -> None:
     test = [c for c in chips if c["event"] in TEST_EVENTS]
     print(f"chips: train {len(train)} val {len(val)} test {len(test)} ({time.time() - t0:.0f}s)", flush=True)
     norm = norm_stats(train)
+    init = torch.load(args.init, map_location="cpu", weights_only=False) if args.init else None
+    if init is not None:
+        norm = {k: tuple(v) for k, v in init["config"]["normalization"].items()}
+        args.encoder = init["config"]["encoder"]
     model = build_model(len(S2_INPUTS), "Unet", args.encoder, pretrained=True, classes=2).to(args.device)
+    if init is not None:
+        model.load_state_dict(init["state_dict"])
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=args.lr, total_steps=args.epochs * args.iters)
     gen = torch.Generator(device="cpu").manual_seed(args.seed)
     # sample chips with water more often (water is ~10 % of labelled pixels)
     wfrac = np.array([(c["label"] == 1).mean() for c in train])
-    pick_p = (0.3 + (wfrac > 0)) / (0.3 + (wfrac > 0)).sum()
+    pick_w = 0.3 + (wfrac > 0)
+    if args.hard_boost > 0:
+        g, sw = S2_BANDS.index("B03"), S2_BANDS.index("B11")
+        hard = []
+        for c in train:
+            r = c["refl"].astype(np.float32)
+            with np.errstate(invalid="ignore", divide="ignore"):
+                mndwi = (r[g] - r[sw]) / (r[g] + r[sw])
+            n = max(int((c["label"] != IGNORE).sum()), 1)
+            hard.append((((c["label"] == 1) & (mndwi < 0.2)).sum() + ((c["label"] == 0) & (mndwi > 0)).sum()) / n)
+        pick_w = pick_w * (1 + args.hard_boost * np.minimum(np.array(hard) / 0.05, 1.0))
+        print(f"hard chips (share > 1 %): {int((np.array(hard) > 0.01).sum())} of {len(train)}", flush=True)
+    pick_p = pick_w / pick_w.sum()
     args.out.mkdir(parents=True, exist_ok=True)
     best, history = -1.0, []
     for ep in range(1, args.epochs + 1):
