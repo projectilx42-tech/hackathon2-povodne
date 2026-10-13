@@ -6,7 +6,7 @@ Plán je orientační — rozhoduje, co uživatel zadá v dané session.
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Jeden řádek, ≤ ~250 znaků, odkaz na rozhodnutí. Vyřízené / starší než ~2 dny přesuň do archivu.)*
-- **2026-10-13 — radarový model v0.5 sloučen (D-M15-01):** výchozí `models/floodseg_v0.5` (`python training/fetch_model.py`, Kaggle `floodseg-model-v05`); 11 událostí F1 0,865 → 0,871, Kuro Siwo test 0,780 → 0,792; práh citlivého režimu 0,25.
+- **2026-10-13 — radarový model v0.5 sloučen (D-M15-01):** výchozí `models/floodseg_v0.5` (`python training/fetch_model.py`, Kaggle `floodseg-model-v05`); 11 událostí F1 0,859 → 0,864 (proti `s2fix`), Kuro Siwo test 0,780 → 0,792; práh citlivého režimu 0,25.
 - **2026-10-13 — signál: oprava trvalé vody (D-M14-06)** — referenční rok vody se už nevzdá při selhání 1 průletu; Bihár F1 0,85 → 0,93, průměr 9 událostí 0,850 → 0,859. Ve `feat/signal`, čeká na sloučení do main.
 - **2026-10-13 — signál (`feat/signal`):** zesvětlení, vodní index S2, samoučení s pojistkou, nejtmavší přelet, 2 modely — nic neprošlo pravidlem, vše jen opt-in (D-M14-01–05); runs 11 událostí na Kaggle `povodne-multievent-runs`, porovnání `validation/multievent_compare.py`.
 - **2026-10-13 — údržba docs:** CLAUDE.md a hlášení hooků zkráceny; starý log a oznámení → `docs/archive/PROGRESS_LOG.md`; `REQUEST_M1_POIS.md` (hotový) → `docs/archive/`. Pravidla beze změny.
