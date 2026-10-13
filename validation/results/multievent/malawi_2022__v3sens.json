@@ -1,0 +1,197 @@
+{
+ "event": "malawi_2022",
+ "tag": "v3sens",
+ "dataset": "kurosiwo_test",
+ "continent": "Africa",
+ "kind": "flood",
+ "event_date": "2022-01-24",
+ "aoi_bbox": [
+  34.8217,
+  -16.1383,
+  34.9022,
+  -16.061
+ ],
+ "label_valid_pct": 96.6,
+ "scores": {
+  "a_seeds_own_region": {
+   "recall": 0.9311,
+   "precision": 0.9331,
+   "f1": 0.9321,
+   "truth_km2": 13.2524,
+   "pred_km2": 13.2249,
+   "tp_km2": 12.3395,
+   "fp_km2": 0.8854,
+   "region_km2": 65.775
+  },
+  "a_seeds_common_region": {
+   "recall": 0.9311,
+   "precision": 0.9331,
+   "f1": 0.9321,
+   "truth_km2": 13.2524,
+   "pred_km2": 13.2249,
+   "tp_km2": 12.3395,
+   "fp_km2": 0.8854,
+   "region_km2": 65.775
+  },
+  "b_envelope": {
+   "recall": 0.9311,
+   "precision": 0.9331,
+   "f1": 0.9321,
+   "truth_km2": 13.2524,
+   "pred_km2": 13.2249,
+   "tp_km2": 12.3395,
+   "fp_km2": 0.8854,
+   "region_km2": 65.775
+  },
+  "b_envelope_visible_label": {
+   "recall": 0.8736,
+   "precision": 0.9331,
+   "f1": 0.9024,
+   "truth_km2": 14.1241,
+   "pred_km2": 13.2249,
+   "tp_km2": 12.3395,
+   "fp_km2": 0.8854,
+   "region_km2": 70.444
+  }
+ },
+ "scores_water_total": {
+  "seeds": {
+   "recall": 0.9474,
+   "precision": 0.9419,
+   "f1": 0.9446,
+   "truth_km2": 15.2706,
+   "pred_km2": 15.3605,
+   "tp_km2": 14.4674,
+   "fp_km2": 0.8931,
+   "region_km2": 67.793
+  },
+  "envelope": {
+   "recall": 0.9474,
+   "precision": 0.9419,
+   "f1": 0.9446,
+   "truth_km2": 15.2706,
+   "pred_km2": 15.3605,
+   "tp_km2": 14.4674,
+   "fp_km2": 0.8931,
+   "region_km2": 67.793
+  }
+ },
+ "seed_transitions_km2": {
+  "water": {
+   "water": 13.2931
+  },
+  "debris": {
+   "debris": 0.2001
+  },
+  "permanent": {
+   "permanent": 1.8673
+  }
+ },
+ "components": {
+  "seeds_ai_water(2)": {
+   "km2": 13.8346,
+   "km2_in_label_region": 13.2931,
+   "share_on_truth": 0.919
+  },
+  "seeds_debris_step:debris": {
+   "km2": 0.1915,
+   "km2_in_label_region": 0.1826,
+   "share_on_truth": 0.643
+  },
+  "seeds_debris_step:mud": {
+   "km2": 0.0174,
+   "km2_in_label_region": 0.0174,
+   "share_on_truth": 0.0
+  },
+  "seeds_debris_step:unknown": {
+   "km2": 0.0001,
+   "km2_in_label_region": 0.0001,
+   "share_on_truth": 0.0
+  },
+  "seeds_permanent(4)": {
+   "km2": 1.9711,
+   "km2_in_label_region": 1.8673,
+   "share_on_truth": 0.067
+  }
+ },
+ "pred_total_km2": {
+  "seeds": 14.044,
+  "envelope": 14.044
+ },
+ "run": {
+  "timings_s": {
+   "acquire": 153.5,
+   "preprocess": 3.0,
+   "s1anomaly": 1.3,
+   "flood_ai": 14.2,
+   "debris": 11.3,
+   "envelope": 15.3,
+   "combine": 2.2,
+   "damage": 4.0,
+   "network": 3.2,
+   "report": 7.4
+  },
+  "pu_spent": 45.5,
+  "pu_estimate": 52,
+  "envelope": {
+   "used": true,
+   "reason": null,
+   "placebo_groups": 2,
+   "placebo_split": true,
+   "stat": "comb",
+   "persistence": true,
+   "reach_q": 95,
+   "final_est_precision": 0.86,
+   "final_placebo_false_km2": 2.2984,
+   "added_km2": {
+    "water": 0.8365,
+    "debris": 0.1275,
+    "total": 0.964
+   },
+   "added_by_stage_km2": {
+    "envelope": 0.5413,
+    "growth": 0.4227,
+    "permanent_water": 0.0,
+    "edges": 0.0
+   },
+   "optics": {
+    "used": false,
+    "placebo": {
+     "pre": "pre_20211129.tif",
+     "second_pre": "prex_20220103.tif",
+     "gap_days": 35,
+     "event_gap_days": 65,
+     "clear_pct": 54.0
+    },
+    "event_flagged_km2": 5.2438,
+    "placebo_flagged_km2": 18.5123,
+    "dropped": true,
+    "reason": "optics dropped: no setting reached the placebo precision with them (the optical rule marks about as much on two before-images as on the before/after pair); radar-only envelope",
+    "added_overlapping_optical_km2": 0.0
+   },
+   "post_passes": 2,
+   "optical_used": false
+  },
+  "main_track": {
+   "relative_orbit": 79,
+   "orbit_direction": "DESCENDING"
+  },
+  "alt_track": false,
+  "s2": {
+   "pre": 100.0,
+   "post": 38.6,
+   "extra": null
+  },
+  "warnings": [
+   "No usable Sentinel-1 pass from the opposite flight direction: areas hidden behind mountains for the main track stay unmapped.",
+   "No setting reached an estimated precision of 85% on the placebo, so nothing was added (the weak evidence is too noisy here)."
+  ],
+  "verdict": "flood_detected",
+  "coverage": {
+   "s1_valid_pct": 90.0,
+   "s2_pre_clear_pct": 100.0,
+   "s2_post_clear_pct": 38.6,
+   "evaluated_pct": 94.8
+  }
+ }
+}
