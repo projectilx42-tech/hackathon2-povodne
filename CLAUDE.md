@@ -34,6 +34,13 @@ Podrobnosti se **nenačítají automaticky** (šetření tokenů — dohromady ~
 - Povinné atribuce (README, report, dashboard) — viz `docs/TASK.md`.
 - Respekt k obětem: žádné fotky obětí v dema ani reportu. Jde o edukační prototyp.
 
+## Cíl: funguje na CELÉM SVĚTĚ (pravidlo uživatele)
+- Systém musí fungovat **kdekoliv na světě** (Himálaj, nížiny, tropy, sucho, města), ne jen v Nepálu. **Trishuli je jen case study pro report, ne cíl ladění.**
+- Každou změnu metody nebo parametru hodnoť na **sadě nezávislých událostí** (`validation/results/multievent/`, 11 povodní + kontrola bez povodně;
+  skript `validation/multievent_rerun.sh`), ne na Trishuli. Zlepšení jen na Trishuli = žádné zlepšení.
+- Prahy a parametry kalibruj na tréninkových/validačních datech (Kuro Siwo / Sen1Floods11 val) nebo placebem, nikdy na jedné oblasti.
+- Cílová laťka uživatele: ≥ 90 % zachycené viditelné zaplavené plochy při ≥ 85 % správnosti, a to napříč regiony.
+
 ## Technologie
 Python ≥ 3.11, balík `src/povodne/` (CLI `python -m povodne ...`). Rastr: rasterio/rioxarray, vektor: geopandas/shapely,
 síť: networkx, AI: PyTorch + segmentation-models-pytorch. Detaily a otevřené volby v `docs/DECISIONS.md`.
