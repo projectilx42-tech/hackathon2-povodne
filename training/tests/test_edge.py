@@ -46,3 +46,15 @@ def test_k0_and_mixed():
     p[4, 5] = 0.3
     out = grow_mixed(flood, p, ok, 1, 0.1)
     assert out[4, 5] and not out[2, 2]
+
+
+def test_edge_params_env_switch(tmp_path, monkeypatch):
+    import run_ai
+    model = tmp_path / "floodseg_v0.4" / "model.pt"
+    thr = {"floodseg_v0.4": {"sensitive": 0.2, "edge": {"k": 1, "t": 0.1}}}
+    monkeypatch.setattr(run_ai, "__file__", str(tmp_path / "run_ai.py"))
+    (tmp_path / "thresholds.json").write_text(__import__("json").dumps(thr))
+    monkeypatch.delenv("POVODNE_AI_EDGE", raising=False)
+    assert run_ai.edge_params(model) == {"k": 1, "t": 0.1}
+    monkeypatch.setenv("POVODNE_AI_EDGE", "0")
+    assert run_ai.edge_params(model) is None
