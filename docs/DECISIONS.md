@@ -1080,6 +1080,26 @@ Rozhodnutí: nový podtyp `debris_type` = **7 `landslide`** (třída masky zůst
 - Změna kontraktu: kód 7 v `debris_type.tif` / `subtype = "landslide"`; doplněno do `flood/combine.py` (TYPE_NAMES) a `report/sitrep.py`. Prahy z literatury, neladěné podle EMS (D-006).
 Výsledek (celé údolí, vs EMS, jen měření): první verze zvedla plochu F1 z 0,759 na 0,776 (recall na svazích > 15° 21 → 32 %). **Pevná brána sklonu 15–55° byla nahrazena fúzí důkazů (D-M11-05)**; podtyp 7 zůstává, sklon ≥ 15° už jen pojmenovává nalezenou plochu.
 
+## D-M10-05 | 2026-10-13 | přijato (úkol od master session; uživatel: záchyt plochy aspoň 90 %, místo pevných pravidel „něco inteligentního“) — Radarová anomálie proti normálu místa
+Kontext: pevná pravidla (sklon ≤ 15°, HAND ≤ 15–30 m, prahy v dB) nechávají mimo hlavně strmější svahy a okraje. Cíl: pro každý pixel změřit, **jak moc je po události jiný, než je u něj normální**
+(vlastní sezónní rozptyl a šum místa), a nechat fúzi suti a sesuvů (session `fix/s2-scaling`) použít tuto míru místo pevných pravidel.
+Rozhodnutí (nový kontrakt, ARCHITECTURE upraven ve stejném commitu):
+- **Normál místa** (`acquire/seriesnorm.py` → `raw/s1/norm.tif`, `raw/s1_alt/norm.tif`): až 10 průletů téže dráhy rozložených v 365 dnech před událostí, **VV i VH, 40 m** (LEE 7×7 ze Sentinel Hubu), na pixel
+  **medián a MAD v dB** + počet platných průletů (NaN při < 5). Obě dráhy, na pozadí vedle ostatního stahování, přes mezipaměť (D-M10-04).
+- **Anomálie** (`flood/s1anomaly.py`, nový nepovinný krok `s1anomaly` mezi `flood_ai` a `debris`): z = (post_dB − medián) / max(1,4826·MAD, 0,7 dB) zvlášť VV a VH; post se zprůměruje na 40 m (lineárně) ⇒ šum obrazu a šum normálu mají stejné měřítko, výsledek
+  se interpoluje na mřížku 10 m. Záporné z = tmavší (voda, hladké bahno, strženo listí → pokles VH), kladné = světlejší (drsná suť, zaplavená vegetace/zástavba). Pixel v layover/shadow dráhy tuto dráhu nedostane. Dráhy se spojují
+  Stouffer: Σz/√n (jen z platných drah). Výstup `flood/s1_anomaly.tif` (z_vv, z_vh, z_comb, n_tracks) a `flood/s1_anomaly_tracks.tif`; `run.json.s1anomaly` (včetně **placeba**: stejný test na snímku „před“ — podíl |z| > 3 má být malý).
+  Prahy (0,7 dB šumové dno, MAD) jsou obecné, neladěné na EMS; samotná mapa nic nerozhoduje, jen měří.
+- **Rozpočet PU** (měsíční limit ~10 000): `run.json.acquire.pu_estimate` (horní mez bez mezipaměti, po částech) a upozornění `pu_budget_high` nad 2 000 PU (`AcquireConfig.pu_warn`). Normál stojí ~250 PU (40 m, VV+VH, 2 dráhy, 10 průletů) pro údolí 42×46 km.
+Omezení: roční řada je jen z minulého roku (jeden cyklus, žádná víceletá klimatologie) → u silně sezónních ploch je MAD velké a anomálie slabá; 40 m rozmaže úzké rysy; z je pořadí, ne pravděpodobnost (VV, VH a obě dráhy nejsou nezávislé).
+**Zpřesnění a výsledky (Trishuli, celé údolí, jen měření proti EMSR927 — nic se podle něj nenastavovalo):**
+- **Sezónní posun scény:** snímek „po“ je z vrcholu monzunu a je vůči ročnímu mediánu celý světlejší (VV +0,83 dB, VH +0,93 dB hlavní dráha); bez korekce byl medián kontrolních pixelů z_comb = +0,87. Proto se od každého snímku odečte **medián rozdílu přes celou scénu**
+  (robustní, povodeň zabírá malou část; `scene_offset`). Po korekci medián kontroly −0,30 a **placebo (snímek „před“): |z| > 3 v 0,25–0,28 % pixelů** (Gaussovo očekávání 0,27 %), post 0,9–1,9 %.
+- **Co z_comb umí** (rozdělení pixelů mimo EMS vs. EMS ploch, které nemáme v masce): po přidání pixelů se z_comb ≤ −3 **navazujících na dosavadní povodeň** (oba směry pohledu, 1,3 % kontroly): P 0,971 → 0,953, R 0,623 → **0,697**, F1 0,759 → 0,805;
+  při práhu −2 (5 % kontroly) P 0,896, R 0,751, F1 0,817. Chybějící plocha: z ≤ −3 zachytí ~21 % v údolí i na svazích > 15° (−2: 37 %). Signál je u svahů stejně silný jako v údolí → je to to, co pevná pravidla neumějí.
+  **Cíl 90 % recallu jen z radaru to nesplní**: i při 5 % falešné kontroly zůstává ~60 % minuté plochy bez rozeznatelné odchylky (EMS kreslí celé sesuvy včetně míst, kde se radarový obraz nezměnil).
+- **Cena:** normál = 258 PU naměřeno (odhad 284) pro obě dráhy; `acquire.pu_estimate` celkem 2 385 PU (horní mez; skutečně ~2 080), nad mezí 2 000 vyjde upozornění `pu_budget_high`.
+
 ## D-X-07 | 2026-10-13 | přijato (master) — Sesuv (`debris_type` 7) ničí budovy a silnice
 Krok suti nově značí čerstvé sesuvy jako `debris_type` 7 (větev fix/s2-scaling). Modul škod bral jako ničivé jen typy 1, 3, 6, takže budova zasypaná sesuvem by se nepočítala jako zničená.
 Rozhodnutí: `damage/measure.py` `DESTRUCTIVE_TYPES` = (1, 3, 6, 7). Sesuv odnese nebo zasype stavbu stejně jako suť; kontrakt souborů beze změny.
@@ -1113,3 +1133,41 @@ Změna kontraktu: žádná v souborech; `debris_type` 7 = fúzí nalezená ploch
 - **Pokles AI vody (D-M11-01):** po opravě reflektance klesla optická „voda“ z 11,3 na 8,6 km² a plošné F1 vůči EMS z 0,772 na 0,759. Přijato: model `floodseg_s2_v0.1` byl trénován na odrazivosti DN/10 000 bez ofsetu (Sen1Floods11); dřívější dvojí odečet ofsetu vytvářel uměle nulové (tmavé) pixely, které model brával jako vodu. Správná data = správný vstup modelu, tedy výsledek se nehladí zpět.
 - **Zrychlení kroku suti beze změny výsledků:** profil ukázal, že 372 s z ~540 s bylo načítání vstupů (maskovaný medián, filtr 3×3 po jednom souboru) a ~70 s t-rozdělení ze `scipy.stats`. Nově: čtení souborů v 4 vláknech (pořadí zachováno), rychlý medián kompozitu řazením, `scipy.special.stdtr` / `chdtrc` místo `stats.t` / `stats.chi2` (jedno vyhodnocení pro oba chvosty, 4 vlákna).
   Kontrola: z-skóre, ΔVV/ΔVH, počty drah i typy (mimo odstraněné pravidlo sesuvů) **bit po bitu stejné** (0 odlišných pixelů). Načtení 380 → 110 s, detekce 116 → 87 s; krok suti celkem 424 → 342 s i s kompozitem a fúzí (bez nich ~250 s).
+
+## D-M10-06 | 2026-10-13 | přijato — Radarová anomálie: průměr přes všechny snímky po události, práh z placeba
+**Kontext:** jeden snímek „po“ nese šum; úkol od master session: průměrovat anomálii přes všechny průlety 0–24 dní po události (obě dráhy, každá vůči svému normálu), práh volit jen podle placeba (cíl ≤ 0,5 % falešných pixelů), nikdy podle EMS.
+**Rozhodnutí:** `acquire/postseries.py` stáhne (40 m, VV+VH, jako normál) všechny průlety dráhy v 24 dnech po události (vždy i vybraný snímek „po“) a stejný počet **placebo** průletů z 60 dní před událostí, které **nejsou v normálu** (výběr přes `norm.json`). `flood/s1anomaly.py` spočítá z-skóre každého průletu s vlastním posunem scény a z-skóre **zprůměruje** (stálý signál zůstane, šum klesá); fallback = jediný snímek z `aligned/`. Doporučený práh `run.json.s1anomaly.threshold_z_comb` = 0,5% kvantil z_comb placeba. Nový parametr `post_series_days = 24`, `n_placebo = 4`; PU: +~100 pro oba směry (2 + 2 průlety na dráhu).
+**Výsledky (Trishuli, údolí; měřeno proti EMSR927, nic se nenaladilo):**
+- **Dřívější placebo bylo příliš optimistické:** používalo snímky „před“, které jsou zároveň v normálu (0,25 %). Skutečné placebo mimo normál: |z|>3 v 0,5–1,2 % pixelů, 0,5% kvantil z_comb = −3,34.
+- Zisk z průměru 2 průletů je malý: z_comb ≤ −3 (napojené na povodeň, 1,3 % kontroly) R 0,697 → 0,701, F1 0,805 → 0,807; při −2 (5 % kontroly) R 0,751 → 0,758, F1 0,817 → 0,824. Chyba normálu (sdílená všemi snímky) a posun scény zůstávají; průměr jen sníží šum samotných snímků, a pozdější průlety jsou už po opadnutí vody.
+- Chybějící plocha zachycená při −3: údolí 21 %, svahy >15° 24 %; při −2: 37 % / 39 %.
+
+## D-M10-07 | 2026-10-13 | rozpracováno — Měkká kombinace místo pevných terénních pravidel v AI kroku
+**Kontext:** úkol od master session: nahradit pevná pravidla (sklon > 15°, HAND > 30 m, min. plocha 10 px, skok mezi dvěma prahy) spojitou kombinací; cíl recall plochy EMS ≥ 90 % bez pevných pravidel. Práh i parametry se ladí jen na ověřovacích událostech Kuro Siwo a podle placeba, nikdy podle EMS (EMS jen měření).
+**Rozhodnutí (první verze):** `training/floodseg/softpost.py`: pravděpodobnosti modelu × spojitý terénní prior w(sklon, HAND) (logistická funkce, 0,5 na 15° / 30 m), volitelná podpora z radarové anomálie (násobení šance, síla od placebo prahu `threshold_z_comb`), minimální plocha klesá z 10 px na 2 px směrem k toku (HAND). `training/run_ai.py` to používá, `--hard-rules` vrací staré chování pro srovnání. Krok `s1anomaly` běží nově PŘED `flood_ai` (config, ARCHITECTURE, test). Šířku přechodu a práh ladí `training/eval_softpost.py` na ověřovacích událostech.
+**Výsledky:** doplním po měření.
+
+## D-X-08 | 2026-10-13 | přijato (master) — Cíl detekce: ≥ 90 % recall viditelné plochy při odhadnuté přesnosti ≥ 85 %
+- **Rozhodnutí uživatele:** cíl = zachytit ≥ 90 % zasažené plochy, kterou vidí aspoň jeden senzor (S1 libovolná dráha mimo
+  layover/shadow, nebo čistý pixel S2 po události). Zbytek se v reportu/dashboardu hlásí poctivě jako „nelze posoudit“.
+  Přesnost má zůstat ≥ 85 %.
+- **Pracovní bod se NESMÍ ladit proti EMS** (datové pravidlo). Volí se jen z vlastních dat: placebo (dvojice před událostí)
+  → odhad přesnosti = 1 − (falešná plocha na placebu ÷ detekovaná plocha); případně Kuro Siwo validace.
+  EMS slouží jen k měření v `validation/`.
+- `validation/miss_analysis.py` nově tiskne „recall on visible“ a plochu „not assessable“.
+- **Zjištění (runs/trishuli_full):** obě dráhy S1 dohromady vidí 98 % plochy EMS → viditelnost není hlavní příčina nezachycení.
+  Chybí hlavně plochy, které senzory vidí, ale změnu na nich naše metody nenajdou (dříve: ~60 % nezachycené plochy bez radarové anomálie).
+  Další páky: fúze důkazů (radar + optika + terén), rozhodování po celých segmentech/objektech, self-training.
+
+## D-X-09 | 2026-10-13 | přijato (master) — Obálka hladiny podle úseku údolí + slabé důkazy změny („průlom“)
+- **Myšlenka:** místo pevných pravidel (sklon > 15°, HAND > 30 m) program z jistých detekcí (třída 2/3) odhadne pro každý úsek
+  údolí (blok ~500 m + sousedé) **výšku hladiny nad tokem** (percentil HAND jistých detekcí) a vytvoří **obálku** = pixely pod touto
+  hladinou propojené s detekcemi. Uvnitř obálky stačí **slabý důkaz změny** (radar: anomálie vůči normálu / změna dB na kterékoli
+  dráze mimo stín; optika: pokles NDVI na čistých pixelech), vyhlazený (median 5×5). Analytici mapují stejně (rozliv do úrovně stop vody).
+- **Diagnostika (runs/trishuli_full, starý běh R 0,432 / P 0,966):** samotná obálka R 0,84–0,91 / P 0,57–0,64; obálka + slabý důkaz
+  např. R 0,83 / P 0,82–0,84 (F1 0,83, main dosud 0,82). Skript diagnostiky: master scratch (přepíše se do `validation/`).
+- **Šedá zóna, přiznat v reportu:** tato čísla jsme viděli proti EMS jen pro volbu směru. **Žádný parametr se z nich nepřebírá.**
+  Percentil, velikost bloku a prahy důkazů se volí **jen z placeba** (dvojice před událostí: semena z placebo detekcí → obálka →
+  důkaz → falešná plocha), pracovní bod = nejcitlivější nastavení s odhadnutou přesností ≥ 85 % (D-X-08).
+- Implementace: nový modul `src/povodne/flood/envelope.py`, nepovinný krok po `debris`, před `combine`; výstup přidané pixely jako
+  třída 2 (voda) / 3 (suť) podle převládajícího důkazu, s nízkou jistotou. Kontrakt doplní implementující session do ARCHITECTURE.

@@ -38,3 +38,16 @@ P=(O&region&E_).sum()/max((O&region).sum(),1)
 print(f"overall: recall {100*hit.sum()/E_.sum():.1f}%  precision {100*P:.1f}%")
 for nm,c in [('slope>15',sl>15),('slope<=15',sl<=15),('radar shadow main track',ls>0)]:
   e=E_&c; print(f"{nm:24s} EMS share {100*e.sum()/E_.sum():3.0f}%  recall {100*(e&O).sum()/max(e.sum(),1):4.1f}%")
+# Visible area = seen by at least one sensor: either radar track outside layover/shadow, or a clear S2 post pixel.
+# The rest is "cannot be assessed" and is reported separately, not counted as a miss.
+vis=ls==0
+for p_ in ('masks/s1_alt_layover_shadow.tif',):
+  if (d/p_).exists(): vis|=rd(p_)==0
+vis_r=vis.copy()
+if (d/'masks/s2_post_valid.tif').exists(): vis|=rd('masks/s2_post_valid.tif')==1
+for nm,c in [('radar sees it (either track)',vis_r),('both radar tracks blind',~vis_r)]:
+  e=E_&c; print(f"{nm:30s} EMS share {100*e.sum()/E_.sum():3.0f}%  recall {100*(e&O).sum()/max(e.sum(),1):4.1f}%")
+e=E_&vis
+print('--- visible area (>=1 sensor sees it) ---')
+print(f"EMS visible {100*e.sum()/E_.sum():.0f}% of EMS  recall on visible {100*(e&O).sum()/max(e.sum(),1):.1f}%  "
+      f"not assessable {(E_&~vis).sum()*1e-4:.2f} km2")

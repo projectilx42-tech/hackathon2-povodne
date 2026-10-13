@@ -34,6 +34,8 @@ SEVERITY = {
     # info
     "post_image_date": "info",
     "perm_water_ref_short": "warning",
+    "pu_budget_high": "warning",
+    "year_normal_missing": "warning",
     "pre_rise_detected": "info",
     "event_day_pass_used": "info",
     "event_day_pass_dropped": "info",

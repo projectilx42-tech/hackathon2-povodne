@@ -8,6 +8,7 @@ SRC_DIR = REPO_ROOT / "src"
 STEPS: list[tuple[str, str]] = [
     ("acquire", "povodne.acquire"),
     ("preprocess", "povodne.preprocess"),
+    ("s1anomaly", "povodne.flood.s1anomaly"),  # optional: radar departure from the year-long normal (D-M10-05); before flood_ai, which uses it (D-M10-07)
     ("flood_ai", "povodne.flood.ai"),
     ("debris", "povodne.flood.debris"),
     ("combine", "povodne.flood.combine"),
