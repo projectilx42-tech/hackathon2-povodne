@@ -58,6 +58,22 @@ that is why water-only recall drops although nothing is lost in the affected are
 `validation/multievent_rerun.sh <tag> [VAR=value ...]` (runs stay on disk under `/home/user/run-wt/runs/me_<event>`, no new PU), e.g.
 `validation/multievent_rerun.sh mytag POVODNE_ENVELOPE_OPTICS=0`; table: `python validation/multievent_eval.py table --tags mytag`.
 
+## Stage 3 + all events on one code state (tag `v3default`)
+Code: feat/envelope 99af64d (D-M13-10) merged with main 4987721 (year-normal skips a failing pass); envelope + combine re-run on every event (raw data cached, no PU). Missouri 2017, Chad 2020, Evros 2018 were added in stage 3; Bihar was re-run after the main fix (normal built from 9 of 10 passes, 5 PU; the envelope step now runs). PU column = Sentinel Hub PU of the last acquire run of that event.
+| event | label km² | seeds R / P / F1 | envelope R / P / F1 | env. added km² (used?) | placebo groups / est. P | added-pixel P | PU |
+|---|---|---|---|---|---|---|---|
+| malawi_2022 | 13.5556 | 0.89 / 0.95 / 0.92 | 0.92 / 0.91 / 0.92 | 0.964 (yes) | 2 / 0.86 | 0.42 | 45.5 |
+| honduras_2018 | 19.3096 | 0.65 / 0.90 / 0.76 | 0.68 / 0.89 / 0.77 | 0.8328 (yes) | 3 / 0.853 | 0.69 | 0.0 |
+| australia_2022 | 51.6764 | 0.69 / 0.99 / 0.81 | 0.73 / 0.84 / 0.78 | 9.5221 (yes) | 2 / 0.86 | 0.26 | 38.9 |
+| bihar_2019 | 47.4117 | 0.82 / 0.89 / 0.85 | 0.82 / 0.85 / 0.84 | 2.1562 (yes) | 3 / 0.896 | 0.17 | 5.1 |
+| missouri_2017 | 26.6915 | 0.98 / 0.90 / 0.94 | 0.98 / 0.76 / 0.86 | 6.3639 (yes) | 2 / 0.863 | 0.03 | 32.2 |
+| chad_2020 | 9.4086 | 0.61 / 0.78 / 0.69 | 0.61 / 0.78 / 0.69 | – (no) | 2 / None | – | 82.3 |
+| evros_2018 | 23.4868 | 0.92 / 0.85 / 0.89 | 0.93 / 0.71 / 0.81 | 5.4279 (yes) | 4 / 0.85 | 0.04 | 56.8 |
+| bolivia_2018 (water label, 2+4) | 14.9948 | 0.92 / 0.84 / 0.88 | 0.93 / 0.83 / 0.88 | 10.2819 (yes) | 3 / 0.949 | 0.08 | 100.9 |
+| teesta_2023_sub (water label, all classes) | 1.1923 | 0.65 / 0.63 / 0.64 | 0.79 / 0.64 / 0.71 | 0.2643 (yes) | 2 / 0.945 | 0.71 | 109.3 |
+| marsyangdi_2024_noflood_sub (water label, all classes) | 0.1873 | 0.89 / 0.17 / 0.29 | 0.91 / 0.16 / 0.28 | 0.0699 (yes) | 2 / 0.977 | 0.03 | 99.2 |
+| chamoli_2021_sub (water label, all classes) | 0.0402 | 0.09 / 0.01 / 0.02 | 0.09 / 0.01 / 0.02 | – (no) | 3 / None | – | 113.4 |
+
 ## Boundary diagnostic (`multievent_boundary_diag.py`, v2default masks, no new PU)
 Question: is the recall gap boundary pixels or missed regions? Missed = label flood not predicted as 2/3/4; distance in 10 m px to the nearest predicted flood
 pixel; dilation of the predicted flood (2+3; for water labels 2+3+4) by 0–3 px, restricted to valid data and valid labels.
@@ -65,11 +81,14 @@ pixel; dilation of the predicted flood (2+3; for water labels 2+3+4) by 0–3 px
 |---|---|---|---|---|---|---|---|
 | teesta_2023_sub | 0.248 | 0.76 | 0.49 / 0.18 / 0.09 / 0.13 / 0.11 / 0.00 | 0.79 / 0.64 | 0.89 / 0.57 | 0.93 / 0.51 | 0.95 / 0.46 |
 | honduras_2018 | 6.113 | 0.74 | 0.38 / 0.22 / 0.14 / 0.22 / 0.04 / 0.00 | 0.68 / 0.89 | 0.80 / 0.85 | 0.87 / 0.81 | 0.92 / 0.76 |
-| malawi_2022 | 1.085 | 0.78 | 0.45 / 0.23 / 0.10 / 0.18 / 0.03 / 0.01 | 0.91 / 0.95 | 0.95 / 0.93 | 0.97 / 0.91 | 0.98 / 0.88 |
+| malawi_2022 | 0.989 | 0.78 | 0.45 / 0.22 / 0.11 / 0.20 / 0.02 / 0.00 | 0.92 / 0.91 | 0.96 / 0.88 | 0.97 / 0.85 | 0.98 / 0.81 |
 | australia_2022 | 10.52 | 0.67 | 0.28 / 0.21 / 0.18 / 0.32 / 0.02 / 0.00 | 0.73 / 0.84 | 0.81 / 0.83 | 0.86 / 0.83 | 0.90 / 0.82 |
 | bolivia_2018 | 0.116 | 0.80 | 0.52 / 0.19 / 0.09 / 0.12 / 0.08 / 0.00 | 0.99 / 0.58 | 1.00 / 0.55 | 1.00 / 0.54 | 1.00 / 0.52 |
-| bihar_2019 | 0.593 | 0.80 | 0.35 / 0.26 / 0.20 / 0.20 / 0.00 / 0.00 | 0.82 / 0.88 | 0.85 / 0.88 | 0.87 / 0.88 | 0.90 / 0.87 |
-Reading: 67–80 % of the missed area lies within 3 px of a detection on every independent label (Trishuli: 76 %), so a large part of the gap is edge/mixed pixels.
+| bihar_2019 | 0.241 | 0.87 | 0.43 / 0.26 / 0.17 / 0.13 / 0.00 / 0.00 | 0.82 / 0.85 | 0.85 / 0.85 | 0.88 / 0.85 | 0.90 / 0.85 |
+| missouri_2017 | 0.341 | 0.85 | 0.54 / 0.24 / 0.07 / 0.13 / 0.02 / 0.00 | 0.98 / 0.76 | 0.99 / 0.72 | 1.00 / 0.70 | 1.00 / 0.67 |
+| chad_2020 | 3.022 | 0.51 | 0.21 / 0.16 / 0.14 / 0.31 / 0.11 / 0.07 | 0.61 / 0.78 | 0.70 / 0.72 | 0.76 / 0.67 | 0.82 / 0.62 |
+| evros_2018 | 0.837 | 0.78 | 0.40 / 0.23 / 0.15 / 0.22 / 0.00 / 0.00 | 0.93 / 0.71 | 0.97 / 0.69 | 0.99 / 0.66 | 0.99 / 0.64 |
+Reading (v3default masks; the table above was refreshed with the 9 events that have a label, Chad is the exception at 0.51): 67–87 % of the missed area lies within 3 px of a detection on 8 of 9 independent labels (Trishuli: 76 %), so a large part of the gap is edge/mixed pixels.
 But dilation trades precision: 1 px adds +0.04 to +0.12 recall (Honduras 0.68 → 0.80, Australia 0.73 → 0.81, Malawi 0.91 → 0.95, Bihar 0.82 → 0.85) for −0.01 to −0.03 precision;
 3 px reaches R ≥ 0.90 on Malawi, Honduras (0.92), Australia (0.90) and Bihar (0.90) at precision 0.76–0.88. Caveats: the labels themselves have a boundary uncertainty
 of about 1 px (hand labelling; Sen1Floods11 / Sentinel-2 labels were made at 10 m with different pixel footprints), so part of the "boundary gain" can be label noise rather than

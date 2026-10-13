@@ -1,0 +1,230 @@
+{
+ "event": "missouri_2017",
+ "tag": "v3default",
+ "dataset": "kurosiwo_test",
+ "continent": "North America",
+ "kind": "flood",
+ "event_date": "2017-05-03",
+ "aoi_bbox": [
+  -90.003,
+  37.899,
+  -89.9225,
+  37.9625
+ ],
+ "label_valid_pct": 93.8,
+ "scores": {
+  "a_seeds_own_region": {
+   "recall": 0.9849,
+   "precision": 0.9049,
+   "f1": 0.9432,
+   "truth_km2": 26.5291,
+   "pred_km2": 28.8737,
+   "tp_km2": 26.1291,
+   "fp_km2": 2.7446,
+   "region_km2": 42.165
+  },
+  "a_seeds_common_region": {
+   "recall": 0.9789,
+   "precision": 0.9049,
+   "f1": 0.9405,
+   "truth_km2": 26.6915,
+   "pred_km2": 28.8737,
+   "tp_km2": 26.1291,
+   "fp_km2": 2.7446,
+   "region_km2": 47.919
+  },
+  "b_envelope": {
+   "recall": 0.985,
+   "precision": 0.7593,
+   "f1": 0.8575,
+   "truth_km2": 26.6915,
+   "pred_km2": 34.6271,
+   "tp_km2": 26.2915,
+   "fp_km2": 8.3356,
+   "region_km2": 47.919
+  },
+  "b_envelope_visible_label": {
+   "recall": 0.97,
+   "precision": 0.7593,
+   "f1": 0.8518,
+   "truth_km2": 27.1049,
+   "pred_km2": 34.6271,
+   "tp_km2": 26.2915,
+   "fp_km2": 8.3356,
+   "region_km2": 48.639
+  }
+ },
+ "scores_water_total": {
+  "seeds": {
+   "recall": 0.972,
+   "precision": 0.9069,
+   "f1": 0.9383,
+   "truth_km2": 27.9383,
+   "pred_km2": 29.9438,
+   "tp_km2": 27.1556,
+   "fp_km2": 2.7882,
+   "region_km2": 49.165
+  },
+  "envelope": {
+   "recall": 0.9861,
+   "precision": 0.7668,
+   "f1": 0.8627,
+   "truth_km2": 27.9383,
+   "pred_km2": 35.9295,
+   "tp_km2": 27.5503,
+   "fp_km2": 8.3792,
+   "region_km2": 49.165
+  }
+ },
+ "seed_transitions_km2": {
+  "water": {
+   "water": 28.9848
+  },
+  "debris": {
+   "debris": 0.107
+  },
+  "permanent": {
+   "permanent": 0.852
+  }
+ },
+ "components": {
+  "seeds_ai_water(2)": {
+   "km2": 30.2818,
+   "km2_in_label_region": 28.9848,
+   "share_on_truth": 0.9
+  },
+  "seeds_debris_step:debris": {
+   "km2": 0.1012,
+   "km2_in_label_region": 0.1012,
+   "share_on_truth": 0.451
+  },
+  "seeds_debris_step:mud": {
+   "km2": 0.0013,
+   "km2_in_label_region": 0.0013,
+   "share_on_truth": 0.231
+  },
+  "seeds_debris_step:flooded_vegetation": {
+   "km2": 0.0018,
+   "km2_in_label_region": 0.0018,
+   "share_on_truth": 0.0
+  },
+  "seeds_debris_step:unknown": {
+   "km2": 0.003,
+   "km2_in_label_region": 0.0027,
+   "share_on_truth": 0.0
+  },
+  "seeds_permanent(4)": {
+   "km2": 1.0942,
+   "km2_in_label_region": 0.852,
+   "share_on_truth": 0.069
+  },
+  "env_stage1_envelope:water": {
+   "km2": 0.0253,
+   "km2_in_label_region": 0.0229,
+   "share_on_truth": 0.367
+  },
+  "env_stage1_envelope:debris": {
+   "km2": 4.7936,
+   "km2_in_label_region": 4.5585,
+   "share_on_truth": 0.018
+  },
+  "env_stage2_growth:water": {
+   "km2": 0.0418,
+   "km2_in_label_region": 0.0408,
+   "share_on_truth": 0.951
+  },
+  "env_stage2_growth:debris": {
+   "km2": 1.3578,
+   "km2_in_label_region": 1.2244,
+   "share_on_truth": 0.016
+  },
+  "env_stage4_edges:water": {
+   "km2": 0.0132,
+   "km2_in_label_region": 0.012,
+   "share_on_truth": 1.0
+  },
+  "env_stage4_edges:debris": {
+   "km2": 0.1322,
+   "km2_in_label_region": 0.1271,
+   "share_on_truth": 0.015
+  }
+ },
+ "pred_total_km2": {
+  "seeds": 30.389,
+  "envelope": 36.753
+ },
+ "run": {
+  "timings_s": {
+   "acquire": 160.7,
+   "preprocess": 2.1,
+   "s1anomaly": 1.2,
+   "flood_ai": 13.8,
+   "debris": 8.0,
+   "envelope": 4.3,
+   "combine": 2.0,
+   "damage": 2.5,
+   "network": 3.0,
+   "report": 6.3
+  },
+  "pu_spent": 32.2,
+  "pu_estimate": 36,
+  "envelope": {
+   "used": true,
+   "reason": null,
+   "placebo_groups": 2,
+   "placebo_split": true,
+   "stat": "comb",
+   "persistence": true,
+   "reach_q": 95,
+   "final_est_precision": 0.863,
+   "final_placebo_false_km2": 5.1753,
+   "added_km2": {
+    "water": 0.0803,
+    "debris": 6.2836,
+    "total": 6.3639
+   },
+   "added_by_stage_km2": {
+    "envelope": 4.8189,
+    "growth": 1.3996,
+    "permanent_water": 0.0,
+    "edges": 0.1454
+   },
+   "optics": {
+    "used": true,
+    "placebo": {
+     "pre": "pre_20170315.tif",
+     "second_pre": "prex_20170424.tif",
+     "gap_days": 40,
+     "event_gap_days": 60,
+     "clear_pct": 96.3
+    },
+    "event_flagged_km2": 24.9262,
+    "placebo_flagged_km2": 3.0577,
+    "added_overlapping_optical_km2": 1.9872
+   },
+   "post_passes": 2,
+   "optical_used": true
+  },
+  "main_track": {
+   "relative_orbit": 92,
+   "orbit_direction": "ASCENDING"
+  },
+  "alt_track": false,
+  "s2": {
+   "pre": 98.7,
+   "post": 92.9,
+   "extra": null
+  },
+  "warnings": [
+   "No usable Sentinel-1 pass from the opposite flight direction: areas hidden behind mountains for the main track stay unmapped.",
+   "No pre-event OpenStreetMap buildings in the area: damaged buildings cannot be counted (zero does not mean no damage)."
+  ],
+  "verdict": "flood_detected",
+  "coverage": {
+   "s1_valid_pct": 88.7,
+   "s2_pre_clear_pct": 98.7,
+   "s2_post_clear_pct": 92.9,
+   "evaluated_pct": 98.5
+  }
+ }
+}
