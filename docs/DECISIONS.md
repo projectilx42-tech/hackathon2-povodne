@@ -1448,3 +1448,9 @@ po dlaždicích. Test `tests/test_acquire_partial_failure.py::test_s2_keeps_only
 Sada 11 událostí (tag `s2fix` proti `permfix`): F1 0,859 → 0,858 (R 0,858 → 0,855, P 0,872 → 0,873); Bihár +0,010, Bolívie +0,002, Čad −0,004,
 Austrálie −0,009 (jiná volba snímku po deduplikaci), Evros −0,011. Nulové SWIR byly jen na opravdu tmavých (mokrých) pixelech, takže chyba výsledek
 skoro neměnila. Pravidlo (žádná událost −0,01) neprošlo o 0,001; jde ale o správnost vstupních dat → doporučeno sloučit jako opravu chyby.
+
+## D-M14-10 | 2026-10-13 | rozpracováno — Okraje povodně podle místního radarového prahu
+Rozbor chyb: okraje jsou největší zbytek (přehlédnuté +0,034, falešné +0,025 F1). `floodseg.edge.grow_radar`: v okolí k px od povodně se přidá pixel,
+jehož VV po povodni ≤ mu_in + frac·(mu_out − mu_in) (místní průměry povodně a okolí v okně 15 px, obdoba místního Otsu). Kalibrace jen na validačních
+událostech Kuro Siwo (`training/eval_edge_radar.py`, k ∈ {1,2,3}, frac ∈ {0,3; 0,5; 0,7}); pravidlo výběru dané předem: max F1 při poklesu přesnosti ≤ 0,01.
+Výsledek doplním.
