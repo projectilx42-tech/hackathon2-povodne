@@ -1069,5 +1069,5 @@ Malá oblast (8×9 km): 113 s bez cache, 78 s s cache (0 PU).
 - **Co zbývá:** nejdelší je krok suti (9 min = 47 % běhu, kód mimo tuto změnu) a AI inference (4,3 min na 4 jádrech; ~210 s tvoří dlaždice dvou radarových drah a dvou optických snímků).
 
 ## D-X-07 | 2026-10-13 | přijato (master) — Sesuv (`debris_type` 7) ničí budovy a silnice
-Krok suti nově značí čerstvé sesuvy jako `debris_type` 7 (D-M11-03). Modul škod bral jako ničivé jen typy 1, 3, 6, takže budova zasypaná sesuvem by se nepočítala jako zničená.
+Krok suti nově značí čerstvé sesuvy jako `debris_type` 7 (větev fix/s2-scaling). Modul škod bral jako ničivé jen typy 1, 3, 6, takže budova zasypaná sesuvem by se nepočítala jako zničená.
 Rozhodnutí: `damage/measure.py` `DESTRUCTIVE_TYPES` = (1, 3, 6, 7). Sesuv odnese nebo zasype stavbu stejně jako suť; kontrakt souborů beze změny.
