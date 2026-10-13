@@ -90,6 +90,7 @@ runs/<run_id>/
                                  #   záporné = tmavší než normál, kladné = světlejší), 3 z_comb = součet všech platných z / sqrt(počet) (pořadí, ne pravděpodobnost),
                                  #   4 n_tracks (0–2; layover/shadow dráhy ji z výpočtu vyřadí). Píše `povodne.flood.s1anomaly`, čte hlavně fúze suti/sesuvů.
     s1_anomaly_tracks.tif        # float32, hrubá mřížka normálu (40 m): z_vv_main, z_vh_main, z_vv_alt, z_vh_alt
+    selftrain_prob.tif selftrain_mask.tif selftrain_type.tif   # nepovinné (D-M12-01, pokus): float32 P / uint8 maska / uint8 podtyp (7 svah, 9 neznámá); `povodne.flood.selftrain`, zatím je nic nečte; `run.json.selftrain`
     debris_polygons.geojson      # EPSG:4326: class "debris", subtype, confidence, area_m2, mean_dvv_db, mean_dvh_db, evidence
     flood_polygons.geojson       # EPSG:4326, polygonizace flood_mask (třídy 2,3), atributy: class ("water" | "debris"), area_m2 (D-035);
                                  #   debris navíc subtype, confidence, evidence (D-M0-01). flood_prob.tif: nodata = NaN
