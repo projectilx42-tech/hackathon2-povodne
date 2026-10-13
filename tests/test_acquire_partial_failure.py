@@ -55,3 +55,38 @@ def test_s2_keeps_only_latest_item_version():
     keep = latest_versions(items)
     assert sorted(i["id"] for i in keep) == ["S2B_45RTJ_20190920_0_L2A", "S2B_45RUJ_20190920_1_L2A"]
     assert boa_offset_applied(latest_versions(items[:2]))
+
+
+def test_http500_gives_up_fast_but_rate_limits_keep_retrying(monkeypatch):
+    """HTTP 500 for one product: 3 attempts, 15 s of pauses (was 6 attempts, ~195 s); 429 still gets all attempts (D-M14-14)."""
+    from types import SimpleNamespace
+    from povodne.acquire import sentinelhub as shm
+
+    slept, calls = [], []
+    monkeypatch.setattr(shm.time, "sleep", lambda s: slept.append(s))
+    sh = shm.SentinelHub.__new__(shm.SentinelHub)
+    import threading
+    sh._slots, sh._lock, sh.pu_spent = threading.Semaphore(4), threading.Lock(), 0.0
+    sh._auth = lambda: "t"
+
+    def post(code):
+        def f(*a, **k):
+            calls.append(code)
+            return SimpleNamespace(status_code=code, headers={}, text="", content=b"")
+        return f
+
+    monkeypatch.setattr(shm.requests, "post", post(500))
+    try:
+        sh.process({})
+        assert False
+    except shm.SentinelHubError:
+        pass
+    assert len(calls) == 3 and sum(slept) == 15
+    calls.clear(); slept.clear()
+    monkeypatch.setattr(shm.requests, "post", post(429))
+    try:
+        sh.process({})
+        assert False
+    except shm.SentinelHubError:
+        pass
+    assert len(calls) == 6 and len(slept) == 5

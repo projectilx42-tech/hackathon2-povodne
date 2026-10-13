@@ -22,6 +22,7 @@ import requests
 from . import cache
 
 TOKEN_URL = "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token"
+RETRIES_500 = 3  # attempts for HTTP 500 (D-M14-14)
 PROCESS_URL = "https://sh.dataspace.copernicus.eu/api/v1/process"
 MAX_PX = 2500
 # UINT16 encoding of S1 backscatter in dB: dB = value * S1_DB_SCALE + S1_DB_OFFSET, value 0 = nodata.
@@ -95,8 +96,13 @@ class SentinelHub:
             self._token, self._expires = d["access_token"], time.time() + float(d.get("expires_in", 1800))
         return self._token
 
-    def process(self, body: dict, retries: int = 6) -> bytes:
-        """POST a Process API request; retries on rate limits (429) and server errors."""
+    def process(self, body: dict, retries: int = 6, retries_500: int = RETRIES_500) -> bytes:
+        """POST a Process API request; retries on rate limits (429) and server errors.
+
+        HTTP 500 (internal error) for one product tends to be persistent (the same pass failed in separate runs days apart),
+        so it gets fewer attempts than rate limits / gateway errors, and there is no pause after the last attempt; the callers
+        skip such a pass (D-M14-07, D-M14-14). Before: ~195 s of pauses per failing request."""
+        n500 = 0
         for attempt in range(retries):
             with self._slots:
                 r = requests.post(PROCESS_URL, headers={"Authorization": "Bearer " + self._auth(), "Accept": "image/tiff"},
@@ -109,7 +115,12 @@ class SentinelHub:
                 self._expires = 0  # token expired early: fetch a new one
             elif r.status_code not in (429, 500, 502, 503, 504):
                 raise SentinelHubError(f"Sentinel Hub HTTP {r.status_code}: {r.text[:300]}")
-            time.sleep(min(60, 5 * 2 ** attempt))
+            if r.status_code == 500:
+                n500 += 1
+                if n500 >= retries_500:
+                    break
+            if attempt < retries - 1:
+                time.sleep(min(60, 5 * 2 ** attempt))
         raise SentinelHubError(f"Sentinel Hub kept failing (HTTP {r.status_code}).")
 
 
