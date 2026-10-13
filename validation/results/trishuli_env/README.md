@@ -4,25 +4,25 @@ Reference: European Union, Copernicus Emergency Management Service data. Used **
 
 - Our post-event Sentinel-1 image: 2026-08-28; EMS VHR images: 2026-08-27, 2026-08-31
 - EMS products used: AOI01_GRA_PRODUCT_v1, AOI02_GRA_PRODUCT_v2, AOI03_GRA_PRODUCT_v1, AOI05_GRA_PRODUCT_v3
-- Compared area (EMS analysed area ∩ our valid pixels): 40.4409 km²
+- Compared area (EMS analysed area ∩ our valid pixels): 40.4307 km²
 
 ## Affected area (pixel level, 10 m)
 
 | | km² |
 |---|---|
-| ems affected | 11.7152 |
-| ours affected | 13.8579 |
-| both | 10.7956 |
-| only ours | 3.0623 |
-| only ems | 0.9196 |
+| ems affected | 11.7088 |
+| ours affected | 12.7552 |
+| both | 10.6498 |
+| only ours | 2.1054 |
+| only ems | 1.059 |
 
-IoU 0.731, precision 0.779, recall 0.921, F1 0.844.
-EMS maps the whole event as one class (mass movement), so water and debris are not scored separately; inside the EMS footprint our affected pixels are water 6.3511 km², debris 4.4445 km².
+IoU 0.771, precision 0.835, recall 0.910, F1 0.871.
+EMS maps the whole event as one class (mass movement), so water and debris are not scored separately; inside the EMS footprint our affected pixels are water 6.2143 km², debris 4.4355 km².
 
 ## Buildings
 
 EMS damaged buildings in compared area: 3377 {'Destroyed': 2435, 'Possibly damaged': 621, 'Damaged': 321}.
-Share inside our affected area (±10 m): 87.0 % (destroyed/damaged only: 96.3 %).
+Share inside our affected area (±10 m): 84.2 % (destroyed/damaged only: 95.4 %).
 Matched to an OSM building: 2511; of those flagged by us: 89.0 %. Our hit buildings in the area: 3157, of which not listed by EMS: 1336 (EMS lists only damaged buildings, so these are either our false alarms or EMS omissions).
 
 ## Roads

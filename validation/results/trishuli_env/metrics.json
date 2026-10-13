@@ -35,30 +35,30 @@
  "coverage": {
   "ems_analysed_km2": 40.6501,
   "ems_analysed_outside_our_grid_km2": 2.9699,
-  "ems_analysed_our_nodata_km2": 0.2101
+  "ems_analysed_our_nodata_km2": 0.2203
  },
  "area": {
   "pixels": {
-   "tp": 107956,
-   "fp": 30623,
-   "fn": 9196,
-   "tn": 256634
+   "tp": 106498,
+   "fp": 21054,
+   "fn": 10590,
+   "tn": 266165
   },
   "km2": {
-   "region": 40.4409,
-   "ems_affected": 11.7152,
-   "ours_affected": 13.8579,
-   "both": 10.7956,
-   "only_ours": 3.0623,
-   "only_ems": 0.9196
+   "region": 40.4307,
+   "ems_affected": 11.7088,
+   "ours_affected": 12.7552,
+   "both": 10.6498,
+   "only_ours": 2.1054,
+   "only_ems": 1.059
   },
-  "iou": 0.7305,
-  "precision": 0.779,
-  "recall": 0.9215,
-  "f1": 0.8443,
+  "iou": 0.7709,
+  "precision": 0.8349,
+  "recall": 0.9096,
+  "f1": 0.8707,
   "ours_class_split_inside_ems_km2": {
-   "water": 6.3511,
-   "debris": 4.4445
+   "water": 6.2143,
+   "debris": 4.4355
   }
  },
  "buildings": {
@@ -68,8 +68,8 @@
    "Possibly damaged": 621,
    "Damaged": 321
   },
-  "recall_pixel": 0.87,
-  "recall_pixel_sure": 0.9634,
+  "recall_pixel": 0.8425,
+  "recall_pixel_sure": 0.9536,
   "matched_to_osm": 2511,
   "recall_osm": 0.8905,
   "ours_hit_in_region": 3157,
