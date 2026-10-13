@@ -15,7 +15,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from povodne.cli import parse_aoi, prepare_run  # noqa: E402
 
-ALL = ["acquire", "preprocess", "flood_ai", "s1anomaly", "debris", "combine", "damage", "network", "report"]
+ALL = ["acquire", "preprocess", "s1anomaly", "flood_ai", "debris", "combine", "damage", "network", "report"]
 FAKE = '''import json, sys, time
 from pathlib import Path
 run = Path(sys.argv[1])

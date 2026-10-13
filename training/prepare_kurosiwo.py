@@ -121,7 +121,8 @@ def write_part(out_dir: Path, name: str, buf: dict[str, list]) -> None:
     )
 
 
-def process_shard(split: str, shard: int, out: Path, max_samples: int | None, min_valid: float) -> None:
+def process_shard(split: str, shard: int, out: Path, max_samples: int | None, min_valid: float,
+                  acts: set[int] | None = None) -> None:
     out_dir = out / split
     out_dir.mkdir(parents=True, exist_ok=True)
     index_path = out_dir / f"index_{shard:05d}.csv"
@@ -137,6 +138,8 @@ def process_shard(split: str, shard: int, out: Path, max_samples: int | None, mi
         if not SAMPLE_FILES <= files.keys():
             print(f"[{split}/{shard}] incomplete sample {key}, skipping", flush=True)
             continue
+        if acts is not None and json.loads(files["info.json"]).get("actid") not in acts:
+            continue  # only these events (e.g. the validation events) are wanted
         n_seen += 1
         sar, dem, label, meta = convert(files)
         if meta["valid_frac"] < min_valid:
@@ -172,11 +175,13 @@ def main() -> None:
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--max-samples", type=int, default=None, help="stop after N samples per shard (testing)")
     ap.add_argument("--min-valid", type=float, default=0.05, help="drop tiles with fewer valid labelled pixels")
+    ap.add_argument("--acts", type=int, nargs="+", default=None, help="keep only samples of these event ids (actid)")
     args = ap.parse_args()
+    acts = set(args.acts) if args.acts else None
     for shard in args.shards:
         for attempt in range(1, 4):  # long HTTP streams sometimes break; redo the whole shard
             try:
-                process_shard(args.split, shard, args.out, args.max_samples, args.min_valid)
+                process_shard(args.split, shard, args.out, args.max_samples, args.min_valid, acts)
                 break
             except (requests.RequestException, urllib3.exceptions.HTTPError, OSError, tarfile.TarError) as e:
                 print(f"[{args.split}/{shard}] attempt {attempt} failed: {e!r}", flush=True)
