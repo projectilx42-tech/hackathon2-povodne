@@ -1,0 +1,4 @@
+[
+ {"name": "r12_ft_hard3_lr1e4_e8", "args": ["--arch", "Unet", "--encoder", "resnet34", "--encoder-weights", "imagenet", "--slope", "--sen1floods11", "--loss", "lovasz", "--seed", "42", "--init", "auto", "--epochs", "8", "--lr", "0.0001", "--hard-boost", "3"]},
+ {"name": "r12_ft_hard3_lr1e3_gain1", "args": ["--arch", "Unet", "--encoder", "resnet34", "--encoder-weights", "imagenet", "--slope", "--sen1floods11", "--loss", "lovasz", "--seed", "42", "--init", "auto", "--epochs", "5", "--lr", "0.001", "--hard-boost", "3", "--gain-db", "1.0", "--speckle-p", "0.5"]}
+]
