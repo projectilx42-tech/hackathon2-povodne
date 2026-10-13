@@ -475,8 +475,9 @@ def search(c: dict, persist: bool, reach_q: int | None = None) -> dict:
         cur_added = int(aw.sum() + ad.sum())
 
     # stage 3: permanent water inside the envelope with a strong change
+    # Off by default (D-M13-10): the envelope must never change an existing detection or permanent water; POVODNE_ENVELOPE_PERMANENT=1 enables it.
     env_perm, perms = env & perm, []
-    for tp in TP_GRID:
+    for tp in (TP_GRID if os.environ.get("POVODNE_ENVELOPE_PERMANENT", "0") == "1" else ()):
         evp, dkp = evidence_w(sE, tp, Pe)
         newp = env_perm & evp
         pfs = [int((env_perm & evidence_w(sPs[k], tp, Pp[k])[0]).sum()) for k in range(npl)]
@@ -678,6 +679,14 @@ def run(run_dir: Path) -> dict:
     reaches = {"off": [None], "auto": [95, 99]}.get(reach_mode, [int(reach_mode)] if reach_mode.isdigit() else [None])
     results = [search(c, v, rq) for v in variants for rq in reaches]
     good = [r for r in results if r.get("final")]
+    if not good and opt is not None:
+        # The optical rule fails its own placebo (false area larger than the event's): drop only the optics, keep the radar envelope.
+        results = [search({**c, "opt": None}, v, rq) for v in variants for rq in reaches]
+        good = [r for r in results if r.get("final")]
+        optics_info = {**optics_info, "used": False, "dropped": True,
+                       "reason": "optics dropped: no setting reached the placebo precision with them (the optical rule marks about as much on two "
+                                 "before-images as on the before/after pair); radar-only envelope"}
+        opt = None
     section = {"used": False, "reach_mode": reach_mode, "min_precision": MIN_PRECISION, "placebo": "series", "existing_km2": round(c["n_exist"] * px_km2, 4),
                "placebo_seeds_km2": [round(int(g["seeds"].sum()) * px_km2, 4) for g in pl], "placebo_groups": npl, "ndvi_drop": NDVI_DROP, "ndvi_post_max": NDVI_POST_MAX,
                "optical_used": opt is not None, "optics": optics_info, "post_passes": ne, "placebo_split": split, "stat": stat,

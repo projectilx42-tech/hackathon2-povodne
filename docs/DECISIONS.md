@@ -1326,3 +1326,8 @@ Kontrola bez povodně (Marsyangdi, leden 2024) ukázala falešné přidané ploc
 ## D-M13-09 | 2026-10-13 | přijato (master, rozpis Marsyangdi bez povodně) — Hladina obálky jen ze semínek vody
 Falešné přidané plochy v kontrole bez povodně vznikaly hlavně v kroku 1: úroveň HAND po blocích se brala ze všech semínek, a falešné sesuvy z fúze suti na svazích zvedly hladinu. Úroveň obálky kroku 1 se nově počítá jen ze semínek vody
 (třída 2 z AI), stejně jako dosah (D-M13-03); suť a sesuvy ve výsledku zůstávají, jen nerozhodují o hladině. Bez dost semínek vody (< 20 px) se použijí všechna. `POVODNE_ENVELOPE_LEVEL_SEEDS=all` vrací starou volbu.
+
+## D-M13-10 | 2026-10-13 | přijato (master, ověření na více událostech) — Obálka nikdy nemění existující detekce ani trvalou vodu; selhání optiky shodí jen optiku
+1. **Chyba Teesta:** přepsání trvalé vody (třída 4) na třídu 3 snížilo recall vody (0,61 → 0,42). Stupeň „trvalá voda se silnou změnou“ (D-M13-01) je proto **vypnutý** (`POVODNE_ENVELOPE_PERMANENT=1` ho zapne); obálka přidává jen k pixelům třídy 1. Test: trvalá voda zůstane beze změny.
+2. **Malawi:** když optické pravidlo na dvojici snímků před událostí označí víc než událost samotná, žádné nastavení nedosáhlo odhadu přesnosti a celá obálka se přeskočila. Nově se v tom případě zahodí jen optika
+   a obálka běží jen z radaru; důvod v `run.json.envelope.optics` (`dropped: true`, `reason`).

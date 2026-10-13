@@ -124,7 +124,7 @@ def test_step_adds_inside_envelope_and_combine_uses_it(tmp_path):
         env = ds.read(1)
     assert (env[105:145, 87:95] == 2).mean() > 0.8        # added as water beside the river where no seed was
     assert not env[:, :20].any()                          # far slope: outside the envelope
-    assert (env[105:145, 98:102] == 2).mean() > 0.8       # stage 3: permanent water with a strong change is affected
+    assert not env[100:, 96:104].any()                    # permanent water is never changed (stage 3 is off by default, D-M13-10)
     assert not env[160:, 96:104].any()                    # ... but not where nothing changed
     assert not env[:100, 85:115].any()                    # existing detections untouched
     rj = json.loads((run / "run.json").read_text())
@@ -137,7 +137,7 @@ def test_step_adds_inside_envelope_and_combine_uses_it(tmp_path):
     combine.run(run)
     with rasterio.open(run / "flood" / "flood_mask.tif") as ds:
         m = ds.read(1)
-    assert (m[105:145, 98:102] == 2).mean() > 0.8 and (m[105:145, 87:95] == 2).mean() > 0.8 and (m[:100, 85:115] == 2).all() and not (m[:, :20] == 2).any()
+    assert (m[100:, 96:104] == 4).all() and (m[105:145, 87:95] == 2).mean() > 0.8 and (m[:100, 85:115] == 2).all() and not (m[:, :20] == 2).any()
 
 
 def test_noisy_placebo_blocks_the_envelope(tmp_path):
@@ -310,3 +310,29 @@ def test_optical_placebo_uses_second_before_image(tmp_path):
     opt_p, info = envelope.optical_placebo(tmp_path, (60, 60))
     assert opt_p is not None and opt_p.all() and info["second_pre"] == "prex_20260725.tif"
     assert info["gap_days"] == 16 and info["event_gap_days"] == 17
+
+
+def test_permanent_water_override_only_when_enabled(tmp_path, monkeypatch):
+    run = _run_dir(tmp_path, noisy_placebo=False)
+    monkeypatch.setenv("POVODNE_ENVELOPE_PERMANENT", "1")
+    res = envelope.run(run)
+    assert res["used"]
+    with rasterio.open(run / "flood" / "envelope_mask.tif") as ds:
+        env = ds.read(1)
+    assert (env[105:145, 98:102] == 2).mean() > 0.8       # opt-in: permanent water with a strong change counts as affected
+
+
+def test_optics_that_fail_their_placebo_are_dropped_not_the_whole_envelope(tmp_path, monkeypatch):
+    run = _run_dir(tmp_path, noisy_placebo=False)
+    tr = from_origin(600000, 3100000, 10, 10)
+    shape = (200, 200)
+    for k in ("pre", "post"):
+        _write(run / "aligned" / f"s2_{k}.tif", np.full((6, *shape), 0.1, np.float32), tr, "float32")
+        _write(run / "masks" / f"s2_{k}_valid.tif", np.ones(shape, np.uint8), tr)
+    monkeypatch.setattr(envelope, "optical_placebo", lambda rd, sh: (np.ones(sh, bool), {"pre": "x"}))
+    real = envelope.search
+    monkeypatch.setattr(envelope, "search", lambda c, v, rq=None: {"final": None, "stages": {}, "persistence": v, "reach_q": rq}
+                        if c["opt"] is not None else real(c, v, rq))                        # with optics no setting passes its placebo
+    res = envelope.run(run)
+    assert res["used"] and res["optics"]["dropped"] and not res["optics"]["used"]    # radar-only envelope still produced
+    assert "placebo" in res["optics"]["reason"]
