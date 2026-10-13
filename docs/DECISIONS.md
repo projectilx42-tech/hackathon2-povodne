@@ -1105,7 +1105,7 @@ Rozhodnutí: `damage/measure.py` `DESTRUCTIVE_TYPES` = (1, 3, 6, 7). Sesuv odnes
 **Rozhodnutí (první verze):** `training/floodseg/softpost.py`: pravděpodobnosti modelu × spojitý terénní prior w(sklon, HAND) (logistická funkce, 0,5 na 15° / 30 m), volitelná podpora z radarové anomálie (násobení šance, síla od placebo prahu `threshold_z_comb`), minimální plocha klesá z 10 px na 2 px směrem k toku (HAND). `training/run_ai.py` to používá, `--hard-rules` vrací staré chování pro srovnání. Krok `s1anomaly` běží nově PŘED `flood_ai` (config, ARCHITECTURE, test). Šířku přechodu a práh ladí `training/eval_softpost.py` na ověřovacích událostech.
 **Výsledky:** doplním po měření.
 
-## D-X-08 — Cíl detekce: ≥ 90 % recall viditelné plochy při odhadnuté přesnosti ≥ 85 % (master, 2026-10-13)
+## D-X-08 | 2026-10-13 | přijato (master) — Cíl detekce: ≥ 90 % recall viditelné plochy při odhadnuté přesnosti ≥ 85 %
 - **Rozhodnutí uživatele:** cíl = zachytit ≥ 90 % zasažené plochy, kterou vidí aspoň jeden senzor (S1 libovolná dráha mimo
   layover/shadow, nebo čistý pixel S2 po události). Zbytek se v reportu/dashboardu hlásí poctivě jako „nelze posoudit“.
   Přesnost má zůstat ≥ 85 %.
