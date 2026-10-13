@@ -31,13 +31,14 @@ def main() -> None:
     shutil.copytree(code, WORK / "code", dirs_exist_ok=True)
     exps = EXPS
     help_text = subprocess.run([sys.executable, str(WORK / "code/train.py"), "--help"], capture_output=True, text=True).stdout
-    unknown = sorted({a for e in exps for a in e["args"] if a.startswith("--") and a not in help_text})
+    unknown = sorted({a for e in exps if "script" not in e for a in e["args"] if a.startswith("--") and a not in help_text})
     if unknown:  # stale code dataset mounted: fail fast instead of wasting GPU time
         raise SystemExit(f"train.py in the mounted code dataset does not know {unknown}")
     # One shared, memory-mapped copy of the train/val tiles for all experiments (RAM: two in-memory copies
     # of ~50k tiles do not fit into Kaggle's 31 GB).
     cache = Path("/tmp/floodseg_cache")
-    subprocess.run([sys.executable, str(WORK / "code/build_cache.py"), "--data", str(INPUT), "--out", str(cache)], check=True)
+    if any("script" not in e for e in exps):
+        subprocess.run([sys.executable, str(WORK / "code/build_cache.py"), "--data", str(INPUT), "--out", str(cache)], check=True)
     subprocess.run("df -h /tmp; free -g", shell=True)
     n_gpu = int(subprocess.run(["nvidia-smi", "-L"], capture_output=True, text=True).stdout.count("GPU "))
     print(f"{len(exps)} experiments on {n_gpu} GPU(s)", flush=True)
@@ -49,8 +50,12 @@ def main() -> None:
             exp, gpu = queue.pop(0), free.pop(0)
             out = WORK / exp["name"]
             out.mkdir(parents=True, exist_ok=True)
-            cmd = [sys.executable, str(WORK / "code/train.py"), "--data", str(INPUT), "--out", str(out),
-                   "--device", "cuda", "--workers", str(max(1, 4 // max(n_gpu, 1))), "--cache", str(cache)] + exp["args"]
+            if "script" in exp:  # evaluation script on the val split with a published model (e.g. eval_edge.py)
+                cmd = [sys.executable, str(WORK / "code" / exp["script"]), "--data", str(INPUT), "--out", str(out / "result.json"),
+                       "--model", str(find("model.pt") / "model.pt"), "--device", "cuda", "--workers", "2"] + exp["args"]
+            else:
+                cmd = [sys.executable, str(WORK / "code/train.py"), "--data", str(INPUT), "--out", str(out),
+                       "--device", "cuda", "--workers", str(max(1, 4 // max(n_gpu, 1))), "--cache", str(cache)] + exp["args"]
             env = dict(os.environ, CUDA_VISIBLE_DEVICES=str(gpu), PYTHONUNBUFFERED="1")
             log = open(out / "train.log", "w")
             print(f"start {exp['name']} on GPU {gpu}: {' '.join(cmd)}", flush=True)
