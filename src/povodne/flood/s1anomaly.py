@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import warnings
 from pathlib import Path
@@ -132,8 +133,17 @@ def _z_pair(x_vv: np.ndarray, x_vh: np.ndarray, norm: np.ndarray):
 def _mean_z(pairs: list):
     """Mean over the passes of the z maps (NaN where a pass has no data; NaN if none has). Noise falls with the square root of
     the number of passes, a persistent signal (standing flood water) stays."""
+    # POVODNE_ANOMALY_POST=min (D-M14-05): per pixel the darkest pass (water that appears only on a later pass), the placebo
+    # gets the same statistic so its threshold stays calibrated; default = mean (D-M10-06)
+    f = np.nanmin if os.environ.get("POVODNE_ANOMALY_POST", "mean") == "min" else np.nanmean
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", RuntimeWarning)
+        if f is np.nanmin:  # darkest pass judged by the combined VV+VH score, both polarisations taken from that pass
+            zc = np.stack([np.where(np.isfinite(p[0] + p[1]), p[0] + p[1], np.inf) for p in pairs])
+            k = np.argmin(zc, 0)
+            zv = np.take_along_axis(np.stack([p[0] for p in pairs]), k[None], 0)[0]
+            zh = np.take_along_axis(np.stack([p[1] for p in pairs]), k[None], 0)[0]
+            return zv.astype(np.float32), zh.astype(np.float32)
         return (np.nanmean(np.stack([p[0] for p in pairs]), 0).astype(np.float32),
                 np.nanmean(np.stack([p[1] for p in pairs]), 0).astype(np.float32))
 
