@@ -1522,3 +1522,13 @@ Bihár (z 11 událostí): znovu stažené `perm_water`, roční normály a řady
 denní kvóta klíče ohsome (~250 dotazů, 7 na běh) byla po dnešním testování vyčerpaná (HTTP 403 „Quota exceeded“) → škody a odříznutí nešly spočítat
 (systém to hlásí). Hláška teď říká srozumitelně, že je vyčerpaná denní kvóta a co dělat (zítra / jiný bezplatný klíč). Test
 `tests/test_acquire_partial_failure.py::test_ohsome_quota_message_is_plain`. Pro živou ukázku: den předem netestovat přes ohsome naplno.
+
+## D-M14-16 | 2026-10-13 | přijato — OpenStreetMap: 3 dotazy na ohsome místo 8
+Denní kvóta klíče ohsome počítá dotazy (D-M14-15). Dosud: metadata + 2 dotazy na oblast (budovy, využití půdy) + 5 na oblast s okrajem 15 km
+(silnice, mostní polygony, sídla, zdravotnictví, důležitá místa) = 8 na běh. Teď `osm.fetch_layers`: jeden dotaz na každý výřez se sloučeným filtrem
+„(f1) or (f2) …“ a rozdělení odpovědi lokálně pravidly `LAYER_RULES` (stejný výběr jako `FILTERS`) → **3 dotazy na běh** (~80 běhů denně místo ~30).
+Pravidla dat beze změny (jen ohsome, snapshot před událostí). Ověřeno offline na uložených odpovědích starého způsobu z 21 běhů (11 událostí + 10
+živých oblastí, do 82 tis. budov a 49 tis. silnic): složené a znovu rozdělené vrstvy mají totožné prvky ve všech vrstvách (degenerované budovy, které
+ohsome vrací jako bod, se zachovají). Mezipaměť OpenStreetMap podle (oblast, datum, souřadnicový systém, okraj): opakovaný běh Valencie bez klíče =
+0 dotazů, `osm/*.gpkg` bajt po bajtu stejné. Starý způsob: `POVODNE_OSM_SPLIT_REQUESTS=1`. Test `test_osm_layers_one_request_per_bbox`.
+Naostro (živý dotaz) neověřeno — kvóta je dnes vyčerpaná.

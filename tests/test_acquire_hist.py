@@ -69,7 +69,7 @@ def test_landuse_layer_keeps_only_known_kinds(tmp_path, monkeypatch):
     }
     empty = lambda: gpd.GeoDataFrame({"osm_id": []}, geometry=[], crs="EPSG:4326")
     monkeypatch.setattr(osm, "snapshot_date", lambda event: event - timedelta(days=1))
-    monkeypatch.setattr(osm, "fetch", lambda bbox, when, flt: layers["landuse"] if flt == osm.FILTERS["landuse"] else empty())
+    monkeypatch.setattr(osm, "fetch", lambda bbox, when, flt: layers["landuse"] if f"({osm.FILTERS['landuse']})" in flt or flt == osm.FILTERS["landuse"] else empty())
     info = osm.extract(box(85.1, 27.9, 85.2, 28.0), date(2026, 8, 26), 32645, tmp_path / "raw", tmp_path / "osm")
     lu = gpd.read_file(tmp_path / "osm" / "landuse.gpkg")
     assert sorted(lu["kind"]) == ["farmland", "wood"] and info["counts"]["landuse"] == 2
@@ -107,7 +107,7 @@ def test_important_places_get_one_kind_and_keep_their_shape(tmp_path, monkeypatc
     # through extract(): the layer is written in UTM and counted
     monkeypatch.setattr(osm, "snapshot_date", lambda event: event - timedelta(days=1))
     empty = gpd.GeoDataFrame({"osm_id": []}, geometry=[], crs="EPSG:4326")
-    monkeypatch.setattr(osm, "fetch", lambda bbox, when, flt: feats if flt == osm.FILTERS["pois"] else empty)
+    monkeypatch.setattr(osm, "fetch", lambda bbox, when, flt: feats if f"({osm.FILTERS['pois']})" in flt or flt == osm.FILTERS["pois"] else empty)
     info = osm.extract(box(85.0, 28.0, 85.2, 28.2), date(2026, 8, 26), 32645, tmp_path / "raw", tmp_path / "osm")
     layer = gpd.read_file(tmp_path / "osm" / "pois.gpkg")
     assert info["counts"]["pois"] == 10 and layer.crs.to_epsg() == 32645 and set(layer.geom_type) == {"Polygon", "Point", "LineString"}

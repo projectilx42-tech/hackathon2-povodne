@@ -115,6 +115,53 @@ def fetch(bbox: list[float], when: date, flt: str) -> gpd.GeoDataFrame:
     return out
 
 
+def _tag(gdf: gpd.GeoDataFrame, key: str) -> pd.Series:
+    return _col(gdf, key).fillna("").astype(str)
+
+
+def _in(gdf, key, values) -> pd.Series:
+    return _tag(gdf, key).isin(list(values))
+
+
+_POLY, _LINE = ("Polygon", "MultiPolygon"), ("LineString", "MultiLineString")
+# The same selection as FILTERS, evaluated locally on the features of one combined request (D-M14-16). Must stay in sync with FILTERS.
+LAYER_RULES = {
+    # buildings and land use are only ever requested together and both clauses are polygon-only, so every returned feature with
+    # the tag passed its own clause (ohsome returns a degenerate closed way as a point: no geometry test here)
+    "buildings": lambda g: _tag(g, "building") != "",
+    "landuse": lambda g: _in(g, "landuse", LANDUSE_KINDS) | _in(g, "natural", NATURAL_KINDS),
+    "roads": lambda g: _in(g, "highway", ROAD_TYPES) & g.geom_type.isin(_LINE),
+    "bridge_polygons": lambda g: (_tag(g, "man_made") == "bridge") & g.geom_type.isin(_POLY),
+    "places": lambda g: _in(g, "place", ("city", "town", "village", "hamlet", "locality")),
+    "health": lambda g: (_in(g, "amenity", ("hospital", "clinic", "doctors", "health_post"))
+                         | _in(g, "healthcare", ("hospital", "clinic", "centre", "doctor"))),
+    "pois": lambda g: (_in(g, "amenity", ("hospital", "clinic", "doctors", "health_post", "school", "college", "university",
+                                          "kindergarten", "police", "fire_station", "shelter"))
+                       | _in(g, "healthcare", ("hospital", "clinic", "centre", "doctor")) | (_tag(g, "emergency") == "assembly_point")
+                       | _in(g, "power", ("plant", "substation")) | (_tag(g, "man_made") == "dam")
+                       | _in(g, "waterway", ("dam", "weir")) | _in(g, "aeroway", ("helipad", "heliport", "aerodrome"))),
+}
+
+
+def split_layers(combined: gpd.GeoDataFrame, names) -> dict[str, gpd.GeoDataFrame]:
+    """Split the answer of one combined request ("(f1) or (f2) ...") back into the layers of `names`."""
+    out = {}
+    for n in names:
+        sel = combined[LAYER_RULES[n](combined).to_numpy()] if len(combined) else combined
+        out[n] = sel.dropna(axis=1, how="all").reset_index(drop=True) if len(sel) else \
+            gpd.GeoDataFrame({"osm_id": []}, geometry=[], crs="EPSG:4326")
+    return out
+
+
+def fetch_layers(bbox: list[float], when: date, names) -> dict[str, gpd.GeoDataFrame]:
+    """All layers `names` of one bounding box with ONE ohsome request (the daily quota counts requests, D-M14-16);
+    POVODNE_OSM_SPLIT_REQUESTS=1 brings back one request per layer."""
+    if os.environ.get("POVODNE_OSM_SPLIT_REQUESTS", "0") == "1":
+        return {n: fetch(bbox, when, FILTERS[n]) for n in names}
+    combined = fetch(bbox, when, " or ".join(f"({FILTERS[n]})" for n in names))
+    return split_layers(combined, names)
+
+
 def poi_layer(raw: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """Important places from the raw ohsome features: one `kind` per feature (first match in a fixed order, so a hospital
     that is also a building stays a hospital), original geometry (point, line or polygon), `subtype` = the matching tag value."""
@@ -161,9 +208,8 @@ def extract(aoi: BaseGeometry, event: date, epsg: int, raw_dir: Path, osm_dir: P
     when = snapshot_date(event)
     crs = f"EPSG:{epsg}"
     big, small = _bbox(aoi, buffer_m), _bbox(aoi)
-    raw = {"buildings": fetch(small, when, FILTERS["buildings"]), "landuse": fetch(small, when, FILTERS["landuse"])}
-    for name in ("roads", "bridge_polygons", "places", "health", "pois"):
-        raw[name] = fetch(big, when, FILTERS[name])
+    raw = {**fetch_layers(small, when, ("buildings", "landuse")),
+           **fetch_layers(big, when, ("roads", "bridge_polygons", "places", "health", "pois"))}
     raw_dir.mkdir(parents=True, exist_ok=True)
     osm_dir.mkdir(parents=True, exist_ok=True)
     for name, gdf in raw.items():
