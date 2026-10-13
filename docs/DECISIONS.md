@@ -1431,3 +1431,9 @@ v den povodně (D-M1-03) — vadný starší průlet se vynechá, vadný průlet
 „před“ — vadný se vynechá (chybí-li snímek „po“ nebo všechny „před“, krok selže jako dřív); (4) řada snímků po povodni (`postseries`, D-M10-06) —
 vadný průlet se vynechá, ne celá řada. Chybějící přihlašovací údaje dál končí chybou. Testy `tests/test_acquire_partial_failure.py`.
 Na sadě 11 událostí bez vlivu na čísla (jediná selhání v Biháru už ošetřoval roční normál a D-M14-06).
+
+## D-M14-08 | 2026-10-13 | zamítnuto (opt-in `POVODNE_CHANNEL=1`) — Dno koryta u nalezené povodně
+Rozbor chyb na stavu `permfix` (`error_diag_permfix.json`): Teesta přehlíží úzkou horskou řeku (~4–5 px široká); model tam dává P ≈ 0 i na správně
+nalezených pixelech (nález z kroku změn povrchu), jasno na S2 jen 3 % přehlédnutých pixelů → mez radaru (D-M9-03). Čad: tichý radar (P < 0,05) a okraje.
+Pokus `flood/channel.py`: pixely s HAND ≤ 1 m do 3 px od nalezené povodně a napojené na ni → třída 3. Sada 11 událostí (proti `permfix`):
+`chan1` R 0,858 → 0,895, P 0,872 → 0,826, F1 0,859 → 0,852 (Missouri −0,034, Čad −0,021, Teesta ±0); HAND ≤ 2 m 0,849 → nesloučeno.
