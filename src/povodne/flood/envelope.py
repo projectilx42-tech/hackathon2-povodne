@@ -306,7 +306,7 @@ def persistence_mask(run_dir: Path, shape, which: str) -> tuple[np.ndarray | Non
     return persistence_from_pairs([(p, f) for p, f in _track_pairs(run_dir, which).values()], shape)
 
 
-def placebo_groups(run_dir: Path, shape) -> list[dict]:
+def placebo_groups(run_dir: Path, shape, split: bool = False) -> list[dict]:
     """Two placebo "pairs" (leave-one-out over the placebo passes, D-M13-04): group A = all passes but the last, group B = all
     but the first (with fewer than 3 passes per track: one group of all passes). Each group = a z_comb map on the run grid plus
     its persistence mask, produced exactly like the event's. [] if there are no placebo passes."""
@@ -315,7 +315,10 @@ def placebo_groups(run_dir: Path, shape) -> list[dict]:
     if n == 0:
         z, _kind = _placebo_z_comb(run_dir, shape)      # older fallback: the single before-image
         return [{"z": z, "P": None}] if z is not None else []
-    cuts = [(slice(None, -1)), (slice(1, None))] if n >= 3 else [slice(None)]
+    if split:   # one group per placebo pass (the passes of a track in the same order); no persistence for single passes
+        cuts = [slice(i, i + 1) for i in range(n)]
+    else:
+        cuts = [(slice(None, -1)), (slice(1, None))] if n >= 3 else [slice(None)]
     groups = []
     for cut in cuts:
         per_vv, per_vh, sel = [], [], []
@@ -332,7 +335,8 @@ def placebo_groups(run_dir: Path, shape) -> list[dict]:
             per_vh.append(h)
             sel.append((pr, f))
         if per_vv:
-            groups.append({"z": s1anomaly.combine_tracks(per_vv, per_vh)[2], "P": persistence_from_pairs(sel, shape)[0]})
+            groups.append({"z": s1anomaly.combine_tracks(per_vv, per_vh)[2],
+                           "P": None if split else persistence_from_pairs(sel, shape)[0]})
     return groups
 
 
@@ -510,7 +514,13 @@ def run(run_dir: Path) -> dict:
         msg = "No HAND mask or radar anomaly map: the water-level envelope was not made."
         notices.append(_notice("envelope_no_reference", msg))
         return finish({"used": False, "reason": msg}, "skipped", msg)
-    pl = placebo_groups(run_dir, shape)
+    global Q_GRID_RUN, TZ_GRID_RUN, R_GRID_RUN, W_GRID
+    cfg = json.loads(os.environ.get("POVODNE_ENVELOPE_STAGE1", "null") or "null")   # e.g. {"q": [75], "tz": [2.0, 2.5], "r": [0], "w": [1]}
+    if cfg:
+        Q_GRID_RUN, TZ_GRID_RUN = tuple(cfg.get("q", Q_GRID_RUN)), tuple(cfg.get("tz", TZ_GRID_RUN))
+        R_GRID_RUN, W_GRID = tuple(cfg.get("r", R_GRID_RUN)), tuple(cfg.get("w", W_GRID))
+    split = os.environ.get("POVODNE_ENVELOPE_PLACEBO", "") == "split"
+    pl = placebo_groups(run_dir, shape, split)
     if not pl:
         msg = "No placebo passes (no year-long normal): the envelope parameters cannot be chosen without a placebo, so nothing was added."
         notices.append(_notice("envelope_no_reference", msg))
@@ -538,13 +548,12 @@ def run(run_dir: Path) -> dict:
 
     Pe, ne = persistence_mask(run_dir, shape, "post")
     npl = len(pl)
-    Pp = True if all(g["P"] is not None for g in pl) else None   # persistence is available for the placebo
     ctrl = optical_false_rate(opt, optq & ~existing) if opt is not None else 0.0
     labelled = np.where(ai == WATER, WATER, np.where(deb == 1, DEBRIS, 0)).astype(np.uint8) if deb is not None else np.where(ai == WATER, WATER, 0).astype(np.uint8)
     c = {"z": z, "hand": hand, "perm": perm, "existing": existing, "seeds": seeds, "pl": pl, "opt": opt, "optq": optq,
          "labelled": labelled, "seeds_w": ai == WATER, "n_exist": int(existing.sum()), "Pe": Pe, "ctrl_rate": ctrl, "px_km2": px_km2}
     mode = os.environ.get("POVODNE_ENVELOPE_PERSIST", "1")   # "1" on (default; falls back to off without enough passes), "0" off, "auto" = both
-    have_persist = Pe is not None and Pp is not None
+    have_persist = Pe is not None   # the placebo may lack persistence (split mode): then it is stricter than the event
     variants = [False, True] if mode == "auto" and have_persist else [mode == "1" and have_persist]
     reach_mode = os.environ.get("POVODNE_ENVELOPE_REACH", "off")   # "off" | "95" | "99" | "auto" (both, the larger area wins)
     reaches = {"off": [None], "auto": [95, 99]}.get(reach_mode, [int(reach_mode)] if reach_mode.isdigit() else [None])
@@ -552,7 +561,7 @@ def run(run_dir: Path) -> dict:
     good = [r for r in results if r.get("final")]
     section = {"used": False, "reach_mode": reach_mode, "min_precision": MIN_PRECISION, "placebo": "series", "existing_km2": round(c["n_exist"] * px_km2, 4),
                "placebo_seeds_km2": [round(int(g["seeds"].sum()) * px_km2, 4) for g in pl], "placebo_groups": npl, "ndvi_drop": NDVI_DROP, "ndvi_post_max": NDVI_POST_MAX,
-               "optical_used": opt is not None, "optical_false_rate": round(ctrl, 5), "post_passes": ne, "placebo_passes": npl,
+               "optical_used": opt is not None, "optical_false_rate": round(ctrl, 5), "post_passes": ne, "placebo_split": split,
                "t_pass": T_PASS,
                "variants": [{"persistence": r["persistence"], "reach_q": r["reach_q"], "final": r.get("final"),
                              "stages": {k: v for k, v in r["stages"].items()}} for r in results],
