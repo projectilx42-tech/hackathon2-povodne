@@ -378,6 +378,7 @@ def _pick(rows: list[dict], key: str) -> dict | None:
 
 
 def search(c: dict, persist: bool, reach_q: int | None = None) -> dict:
+    import os
     """The four-stage search for one evidence variant; every threshold is picked by the placebo (est. precision >= MIN_PRECISION).
     `c` = context (arrays + constants); c["pl"] = the placebo groups [{"z", "P", "seeds"}]: the false area is the mean over them
     (leave-one-out placebo pairs, D-M13-04). Returns {"final": {...}, "added_water", "added_debris", "stage", "stages": {...}}."""
@@ -397,7 +398,9 @@ def search(c: dict, persist: bool, reach_q: int | None = None) -> dict:
     # stage 1: envelope + evidence + closing, jointly over q, w, tz, r
     rows, keep = [], {}
     for q in Q_GRID_RUN:
-        env, einfo = envelope(hand, seeds, perm, q, BLOCK_GRID[0])
+        # The water level comes from the WATER seeds only (D-M13-09): false landslide seeds on slopes with high HAND would raise it.
+        lvl_seeds = c["seeds_w"] if int(c["seeds_w"].sum()) >= MIN_BLOCK_SEEDS and os.environ.get("POVODNE_ENVELOPE_LEVEL_SEEDS", "water") == "water" else seeds
+        env, einfo = envelope(hand, lvl_seeds, perm, q, BLOCK_GRID[0])
         penvs = [envelope(hand, g["seeds"], perm, q, BLOCK_GRID[0])[0] for g in pl]
         env_px = int((env & ~existing).sum())
         for w in W_GRID:

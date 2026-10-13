@@ -1322,3 +1322,7 @@ Kontrola bez povodně (Marsyangdi, leden 2024) ukázala falešné přidané ploc
   (ten, jehož odstup od snímku „před“ je nejblíž odstupu mezi „před“ a „po“; starší = „před“, novější = „po“). Co pravidlo na dvojici označí, je falešné a vstupuje do placebo skupin stejně jako radarový důkaz
   (nahrazuje dřívější odhad z kontrolních pixelů daleko od detekcí). **Bez druhého snímku před událostí se optika v obálce nepoužije.** Žádné nové stahování (extra dny už stahuje krok stahování pro kompozity).
 - `POVODNE_ENVELOPE_OPTICS=0` optiku v obálce vypne. `run.json.envelope.optics` (použita?, snímky, plocha označená optikou v události / placebu, přidaná plocha překrytá optikou), `added_by_stage_km2` (obálka, růst, trvalá voda, okraje).
+
+## D-M13-09 | 2026-10-13 | přijato (master, rozpis Marsyangdi bez povodně) — Hladina obálky jen ze semínek vody
+Falešné přidané plochy v kontrole bez povodně vznikaly hlavně v kroku 1: úroveň HAND po blocích se brala ze všech semínek, a falešné sesuvy z fúze suti na svazích zvedly hladinu. Úroveň obálky kroku 1 se nově počítá jen ze semínek vody
+(třída 2 z AI), stejně jako dosah (D-M13-03); suť a sesuvy ve výsledku zůstávají, jen nerozhodují o hladině. Bez dost semínek vody (< 20 px) se použijí všechna. `POVODNE_ENVELOPE_LEVEL_SEEDS=all` vrací starou volbu.
