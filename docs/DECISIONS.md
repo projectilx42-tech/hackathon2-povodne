@@ -1414,3 +1414,12 @@ Modely r12 (doladění v0.4 bez Bolívie, session tréninku) se změří, až do
 Radarová anomálie bere u každého pixelu nejtmavší z přeletů po povodni (`post_series`, 24 dní, obě dráhy zvlášť) místo průměru; placebo stejnou statistikou.
 Sada 11 událostí (tag `multimin`): F1 0,850 → 0,849 (Bolívie −0,005, Honduras −0,003, ostatní ±0), kontrola beze změny → nesloučeno.
 Anomálie ovlivňuje jen malou část mapy (podpora a napojení slabé povodně); hlavní mapu dělá model z jednoho snímku „po“ na dráhu.
+
+## D-M14-06 | 2026-10-13 | přijato (oprava chyby, prošlo pravidlem sloučení) — Referenční rok trvalé vody přežije selhání jednoho průletu
+Rozbor chyb na 9 povodních (`validation/multievent_error_diag.py`, `error_diag.json`) ukázal největší jednotlivou ztrátu v Biháru: 8 km² povodně označeno jako
+trvalá voda (ΔF1 +0,093, kdyby se opravilo). Příčina: `acquire/permwater.build` (četnost vody za rok, D-M10-02) se celé vzdalo, když jeden z 10 průletů vrátil
+HTTP 500 (Sentinel Hub, opakovaně tentýž snímek 21. 1. 2019) → bez reference zůstala sezónně rozvodněná řeka „trvalou vodou“. Roční normál (s1anomaly)
+přitom vadný průlet už přeskakoval. Oprava: vadný průlet se přeskočí, reference vznikne z ostatních, pokud jich je ≥ `MIN_OBS` (4); seznam v
+`perm_water.json.failed`. Test `tests/test_permwater.py::test_build_survives_one_failing_pass`.
+Sada 11 událostí (tag `permfix`): Bihár F1 0,85 → 0,93 (R 0,82 → 0,97, P 0,88 → 0,89), ostatní beze změny (měly referenci); průměr 9 událostí
+R 0,842 → 0,858, P 0,870 → 0,872, F1 0,850 → 0,859; kontrola bez povodně beze změny. Kontrakt beze změny.

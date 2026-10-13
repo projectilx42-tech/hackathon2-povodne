@@ -74,10 +74,21 @@ def build(run_dir: Path, sh: SentinelHub, aoi, event: date, key: tuple[int, str]
     if len(passes) < MIN_OBS:
         return {**info, "file": None}
     def one(a):
-        vv = decode_db(fetch_s1(sh, grid, a.start, key[1], speckle, bands=("VV",))[0])
+        # one failing pass (e.g. Sentinel Hub HTTP 500) must not cost the whole reference, as in the year-long normal (D-M14-06)
+        try:
+            vv = decode_db(fetch_s1(sh, grid, a.start, key[1], speckle, bands=("VV",))[0])
+        except Exception as exc:
+            return f"{a.start:%Y-%m-%d}: {exc}"
         return preselect.smooth_db(vv)
 
-    imgs = list(pool.map(one, passes)) if pool is not None else [one(a) for a in passes]
+    got = list(pool.map(one, passes)) if pool is not None else [one(a) for a in passes]
+    imgs = [g for g in got if not isinstance(g, str)]
+    failed = [g for g in got if isinstance(g, str)]
+    if failed:
+        info["failed"] = failed
+    if len(imgs) < MIN_OBS:
+        return {**info, "file": None, "error": "; ".join(failed)[:300]}
+    info["n_passes"] = len(imgs)
     freq = water_frequency(imgs)
     if hidden is not None:
         freq[hidden] = NODATA

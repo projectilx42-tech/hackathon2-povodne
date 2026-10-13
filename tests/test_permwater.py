@@ -75,3 +75,25 @@ def test_vh_agreement_grows_only_what_both_tracks_see_and_touches_flood():
     # one weak pass alone adds nothing
     g2, _ = vhagree.grow(a, np.zeros(shape, np.float32), floor, flood, np.zeros(shape, bool))
     assert not g2.any()
+
+
+def test_build_survives_one_failing_pass(tmp_path, monkeypatch):
+    """One pass failing on the server (HTTP 500) must not cost the whole reference (D-M14-06)."""
+    from types import SimpleNamespace
+    from datetime import datetime
+
+    passes = [SimpleNamespace(start=datetime(2019, m, 1)) for m in range(1, 8)]
+    monkeypatch.setattr(permwater, "reference_passes", lambda *a, **k: passes)
+
+    def fake_fetch(sh, grid, start, orbit, speckle, bands):
+        if start.month == 3:
+            raise RuntimeError("Sentinel Hub kept failing (HTTP 500).")
+        return [np.zeros((4, 5), np.uint16)]
+
+    monkeypatch.setattr(permwater, "fetch_s1", fake_fetch)
+    monkeypatch.setattr(permwater, "decode_db", lambda a: np.full(a.shape, -22.0, np.float32))
+    monkeypatch.setattr(permwater.preselect, "smooth_db", lambda a: a)
+    grid = SimpleNamespace(res=20.0, height=4, width=5, epsg=32645, x0=0.0, y1=100.0)
+    info = permwater.build(tmp_path, None, None, None, (1, "DESCENDING"), None, grid, None)
+    assert info["file"] == "perm_water.tif" and info["n_passes"] == 6 and len(info["failed"]) == 1
+    assert (tmp_path / "raw" / "s1" / "perm_water.tif").exists()

@@ -1,0 +1,192 @@
+{
+ "event": "chad_2020",
+ "tag": "permfix",
+ "dataset": "kurosiwo_test",
+ "continent": "Africa (Sahel)",
+ "kind": "flood",
+ "event_date": "2020-09-14",
+ "aoi_bbox": [
+  14.817,
+  12.1959,
+  14.8975,
+  12.2746
+ ],
+ "label_valid_pct": 99.6,
+ "scores": {
+  "a_seeds_own_region": {
+   "recall": 0.6736,
+   "precision": 0.7787,
+   "f1": 0.7224,
+   "truth_km2": 9.4086,
+   "pred_km2": 8.1393,
+   "tp_km2": 6.338,
+   "fp_km2": 1.8013,
+   "region_km2": 75.053
+  },
+  "a_seeds_common_region": {
+   "recall": 0.6736,
+   "precision": 0.7787,
+   "f1": 0.7224,
+   "truth_km2": 9.4086,
+   "pred_km2": 8.1393,
+   "tp_km2": 6.338,
+   "fp_km2": 1.8013,
+   "region_km2": 75.053
+  },
+  "b_envelope": {
+   "recall": 0.6736,
+   "precision": 0.7787,
+   "f1": 0.7224,
+   "truth_km2": 9.4086,
+   "pred_km2": 8.1393,
+   "tp_km2": 6.338,
+   "fp_km2": 1.8013,
+   "region_km2": 75.053
+  },
+  "b_envelope_visible_label": {
+   "recall": 0.6736,
+   "precision": 0.7787,
+   "f1": 0.7224,
+   "truth_km2": 9.4086,
+   "pred_km2": 8.1393,
+   "tp_km2": 6.338,
+   "fp_km2": 1.8013,
+   "region_km2": 75.053
+  }
+ },
+ "scores_water_total": {
+  "seeds": {
+   "recall": 0.7559,
+   "precision": 0.8022,
+   "f1": 0.7784,
+   "truth_km2": 10.4903,
+   "pred_km2": 9.8836,
+   "tp_km2": 7.9291,
+   "fp_km2": 1.9545,
+   "region_km2": 76.134
+  },
+  "envelope": {
+   "recall": 0.7559,
+   "precision": 0.8022,
+   "f1": 0.7784,
+   "truth_km2": 10.4903,
+   "pred_km2": 9.8836,
+   "tp_km2": 7.9291,
+   "fp_km2": 1.9545,
+   "region_km2": 76.134
+  }
+ },
+ "seed_transitions_km2": {
+  "water": {
+   "water": 7.2339
+  },
+  "debris": {
+   "debris": 0.9272
+  },
+  "permanent": {
+   "permanent": 1.7225
+  }
+ },
+ "components": {
+  "seeds_ai_water(2)": {
+   "km2": 7.26,
+   "km2_in_label_region": 7.2339,
+   "share_on_truth": 0.844
+  },
+  "seeds_debris_step:debris": {
+   "km2": 0.4523,
+   "km2_in_label_region": 0.4523,
+   "share_on_truth": 0.185
+  },
+  "seeds_debris_step:mud": {
+   "km2": 0.0005,
+   "km2_in_label_region": 0.0005,
+   "share_on_truth": 0.4
+  },
+  "seeds_debris_step:erosion": {
+   "km2": 0.0006,
+   "km2_in_label_region": 0.0006,
+   "share_on_truth": 0.0
+  },
+  "seeds_debris_step:flooded_vegetation": {
+   "km2": 0.0073,
+   "km2_in_label_region": 0.0073,
+   "share_on_truth": 0.0
+  },
+  "seeds_debris_step:unknown": {
+   "km2": 0.0096,
+   "km2_in_label_region": 0.0096,
+   "share_on_truth": 0.135
+  },
+  "seeds_class3_not_debris_step(vhagree etc.)": {
+   "km2": 0.457,
+   "km2_in_label_region": 0.4569,
+   "share_on_truth": 0.322
+  },
+  "seeds_permanent(4)": {
+   "km2": 1.734,
+   "km2_in_label_region": 1.7225,
+   "share_on_truth": 0.305
+  }
+ },
+ "pred_total_km2": {
+  "seeds": 8.187,
+  "envelope": 8.187
+ },
+ "run": {
+  "timings_s": {
+   "acquire": 102.6,
+   "preprocess": 2.9,
+   "s1anomaly": 1.3,
+   "flood_ai": 28.0,
+   "debris": 255.1,
+   "envelope": 0.6,
+   "combine": 1.7,
+   "damage": 1.3,
+   "network": 1.0,
+   "report": 5.4
+  },
+  "pu_spent": 82.3,
+  "pu_estimate": 94,
+  "envelope": {
+   "used": false,
+   "reason": "Water-level envelope is off (opt-in: set POVODNE_ENVELOPE=1 or pass --envelope); the flood map is unchanged.",
+   "placebo_groups": null,
+   "placebo_split": null,
+   "stat": null,
+   "persistence": null,
+   "reach_q": null,
+   "final_est_precision": null,
+   "final_placebo_false_km2": null,
+   "added_km2": null,
+   "added_by_stage_km2": null,
+   "optics": null,
+   "post_passes": null,
+   "optical_used": null
+  },
+  "main_track": {
+   "relative_orbit": 80,
+   "orbit_direction": "DESCENDING"
+  },
+  "alt_track": true,
+  "s2": {
+   "pre": 99.9,
+   "post": 40.6,
+   "extra": null
+  },
+  "warnings": [
+   "OpenStreetMap (buildings, roads) could not be downloaded (ohsome API unavailable (https://api.heigit.org/ohsome-api/v2/extraction/features.parquet); OSM layers could not be downloaded.); damage and cut-off analysis are not possible.",
+   "No pre-event OpenStreetMap buildings: flooded or damaged built-up areas cannot be told apart from other changes.",
+   "No pre-event OpenStreetMap buildings in the area: damaged buildings cannot be counted (zero does not mean no damage).",
+   "No pre-event OpenStreetMap roads in the area: blocked roads and cut-off settlements cannot be assessed.",
+   "The cut-off analysis was not done in this run (the road network step did not finish); the report does not say which settlements are cut off."
+  ],
+  "verdict": "flood_detected",
+  "coverage": {
+   "s1_valid_pct": 100.0,
+   "s2_pre_clear_pct": 99.9,
+   "s2_post_clear_pct": 40.6,
+   "evaluated_pct": 100.0
+  }
+ }
+}

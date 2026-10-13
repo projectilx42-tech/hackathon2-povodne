@@ -1,0 +1,196 @@
+{
+ "event": "bolivia_2018",
+ "tag": "permfix",
+ "dataset": "sen1floods11_test",
+ "continent": "South America",
+ "kind": "flood",
+ "event_date": "2018-02-14",
+ "aoi_bbox": [
+  -65.1271,
+  -14.396,
+  -65.0352,
+  -14.304
+ ],
+ "label_valid_pct": 32.4,
+ "scores": {
+  "a_seeds_water_2_4": {
+   "recall": 0.9441,
+   "precision": 0.8194,
+   "f1": 0.8773,
+   "truth_km2": 14.8783,
+   "pred_km2": 17.1433,
+   "tp_km2": 14.047,
+   "fp_km2": 3.0963,
+   "region_km2": 33.027
+  },
+  "a_seeds_common_water_2_4": {
+   "recall": 0.9441,
+   "precision": 0.8194,
+   "f1": 0.8773,
+   "truth_km2": 14.8783,
+   "pred_km2": 17.1433,
+   "tp_km2": 14.047,
+   "fp_km2": 3.0963,
+   "region_km2": 33.027
+  },
+  "b_envelope_water_2_4": {
+   "recall": 0.9441,
+   "precision": 0.8194,
+   "f1": 0.8773,
+   "truth_km2": 14.8783,
+   "pred_km2": 17.1433,
+   "tp_km2": 14.047,
+   "fp_km2": 3.0963,
+   "region_km2": 33.027
+  },
+  "a_seeds_all_2_3_4": {
+   "recall": 0.9904,
+   "precision": 0.615,
+   "f1": 0.7589,
+   "truth_km2": 14.8783,
+   "pred_km2": 23.9595,
+   "tp_km2": 14.7362,
+   "fp_km2": 9.2233,
+   "region_km2": 33.027
+  },
+  "a_seeds_common_all_2_3_4": {
+   "recall": 0.9904,
+   "precision": 0.615,
+   "f1": 0.7589,
+   "truth_km2": 14.8783,
+   "pred_km2": 23.9595,
+   "tp_km2": 14.7362,
+   "fp_km2": 9.2233,
+   "region_km2": 33.027
+  },
+  "b_envelope_all_2_3_4": {
+   "recall": 0.9904,
+   "precision": 0.615,
+   "f1": 0.7589,
+   "truth_km2": 14.8783,
+   "pred_km2": 23.9595,
+   "tp_km2": 14.7362,
+   "fp_km2": 9.2233,
+   "region_km2": 33.027
+  }
+ },
+ "false_alarm_dry_label": {
+  "seeds": 0.50715,
+  "envelope": 0.50715
+ },
+ "seed_transitions_km2": {
+  "water": {
+   "water": 16.7451
+  },
+  "debris": {
+   "debris": 6.8162
+  },
+  "permanent": {
+   "permanent": 0.3982
+  }
+ },
+ "components": {
+  "seeds_ai_water(2)": {
+   "km2": 31.6292,
+   "km2_in_label_region": 16.7451,
+   "share_on_truth": 0.816
+  },
+  "seeds_debris_step:debris": {
+   "km2": 1.8155,
+   "km2_in_label_region": 0.5443,
+   "share_on_truth": 0.252
+  },
+  "seeds_debris_step:mud": {
+   "km2": 1.9869,
+   "km2_in_label_region": 0.543,
+   "share_on_truth": 0.146
+  },
+  "seeds_debris_step:erosion": {
+   "km2": 4.032,
+   "km2_in_label_region": 1.6843,
+   "share_on_truth": 0.151
+  },
+  "seeds_debris_step:flooded_vegetation": {
+   "km2": 3.7837,
+   "km2_in_label_region": 1.0528,
+   "share_on_truth": 0.012
+  },
+  "seeds_debris_step:landslide": {
+   "km2": 0.0051,
+   "km2_in_label_region": 0.0004,
+   "share_on_truth": 0.0
+  },
+  "seeds_debris_step:unknown": {
+   "km2": 7.7876,
+   "km2_in_label_region": 2.8595,
+   "share_on_truth": 0.067
+  },
+  "seeds_class3_not_debris_step(vhagree etc.)": {
+   "km2": 0.5391,
+   "km2_in_label_region": 0.1319,
+   "share_on_truth": 0.104
+  },
+  "seeds_permanent(4)": {
+   "km2": 1.4736,
+   "km2_in_label_region": 0.3982,
+   "share_on_truth": 0.951
+  }
+ },
+ "pred_total_km2": {
+  "seeds": 51.579,
+  "envelope": 51.579
+ },
+ "run": {
+  "timings_s": {
+   "acquire": 90.2,
+   "preprocess": 3.8,
+   "s1anomaly": 1.6,
+   "flood_ai": 19.1,
+   "debris": 285.9,
+   "envelope": 0.8,
+   "combine": 3.4,
+   "damage": 1.4,
+   "network": 1.4,
+   "report": 7.4
+  },
+  "pu_spent": 100.9,
+  "pu_estimate": 121,
+  "envelope": {
+   "used": false,
+   "reason": "Water-level envelope is off (opt-in: set POVODNE_ENVELOPE=1 or pass --envelope); the flood map is unchanged.",
+   "placebo_groups": null,
+   "placebo_split": null,
+   "stat": null,
+   "persistence": null,
+   "reach_q": null,
+   "final_est_precision": null,
+   "final_placebo_false_km2": null,
+   "added_km2": null,
+   "added_by_stage_km2": null,
+   "optics": null,
+   "post_passes": null,
+   "optical_used": null
+  },
+  "main_track": {
+   "relative_orbit": 156,
+   "orbit_direction": "DESCENDING"
+  },
+  "alt_track": true,
+  "s2": {
+   "pre": 65.8,
+   "post": 45.9,
+   "extra": null
+  },
+  "warnings": [
+   "No pre-event OpenStreetMap buildings in the area: damaged buildings cannot be counted (zero does not mean no damage).",
+   "No hospital or town within reach of the downloaded road network; only the edge of the mapped area counts as a destination."
+  ],
+  "verdict": "flood_detected",
+  "coverage": {
+   "s1_valid_pct": 98.3,
+   "s2_pre_clear_pct": 65.8,
+   "s2_post_clear_pct": 45.9,
+   "evaluated_pct": 98.9
+  }
+ }
+}
