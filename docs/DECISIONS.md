@@ -1068,6 +1068,10 @@ Malá oblast (8×9 km): 113 s bez cache, 78 s s cache (0 PU).
   Hrubší roční reference (40 m) by ušetřila ~180 PU (~0,6 min) za cenu úzkých řek (D-M10-02) → ponecháno 20 m (netestováno proti 40 m).
 - **Co zbývá:** nejdelší je krok suti (9 min = 47 % běhu, kód mimo tuto změnu) a AI inference (4,3 min na 4 jádrech; ~210 s tvoří dlaždice dvou radarových drah a dvou optických snímků).
 
+## D-X-07 | 2026-10-13 | přijato (master) — Sesuv (`debris_type` 7) ničí budovy a silnice
+Krok suti nově značí čerstvé sesuvy jako `debris_type` 7 (větev fix/s2-scaling). Modul škod bral jako ničivé jen typy 1, 3, 6, takže budova zasypaná sesuvem by se nepočítala jako zničená.
+Rozhodnutí: `damage/measure.py` `DESTRUCTIVE_TYPES` = (1, 3, 6, 7). Sesuv odnese nebo zasype stavbu stejně jako suť; kontrakt souborů beze změny.
+
 ## D-M10-05 | 2026-10-13 | přijato (úkol od master session; uživatel: záchyt plochy aspoň 90 %, místo pevných pravidel „něco inteligentního“) — Radarová anomálie proti normálu místa
 Kontext: pevná pravidla (sklon ≤ 15°, HAND ≤ 15–30 m, prahy v dB) nechávají mimo hlavně strmější svahy a okraje. Cíl: pro každý pixel změřit, **jak moc je po události jiný, než je u něj normální**
 (vlastní sezónní rozptyl a šum místa), a nechat fúzi suti a sesuvů (session `fix/s2-scaling`) použít tuto míru místo pevných pravidel.
