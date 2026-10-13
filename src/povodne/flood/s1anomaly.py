@@ -3,7 +3,9 @@
 For each track: robust z-score of the after-image against the year-long per-pixel normal (median, MAD of VV and VH over
 ~10 passes of the same track, `acquire/seriesnorm.py`):
 
-    z = (post_dB - median_dB) / max(1.4826 * MAD_dB, SIGMA_FLOOR_DB)
+    z = (post_dB - median_dB - scene_offset) / max(1.4826 * MAD_dB, SIGMA_FLOOR_DB)
+
+where scene_offset is the median of (post_dB - median_dB) over the whole scene (season / calibration shift of the whole image).
 
 Negative z = darker than normal (water, smooth mud, stripped vegetation: VH drops), positive = brighter (rough debris,
 flooded vegetation or buildings). The normal contains the place's own seasonal variation and noise, so a forest, a
@@ -63,9 +65,18 @@ def to_coarse_db(linear: np.ndarray, f: int, shape: tuple[int, int]) -> np.ndarr
     return out
 
 
-def zscore(x_db: np.ndarray, median_db: np.ndarray, mad_db: np.ndarray, floor_db: float = SIGMA_FLOOR_DB) -> np.ndarray:
+def scene_offset(x_db: np.ndarray, median_db: np.ndarray) -> float:
+    """Scene-wide shift of the image against the year's median (dB): the season (a monsoon image is wetter and brighter than the
+    annual median) and calibration move every pixel together. The median over the whole scene is robust because only a small
+    part of it is affected by the flood. 0 if there is nothing to measure."""
+    d = (x_db - median_db)[np.isfinite(x_db) & np.isfinite(median_db)]
+    return float(np.median(d)) if d.size > 1000 else 0.0
+
+
+def zscore(x_db: np.ndarray, median_db: np.ndarray, mad_db: np.ndarray, floor_db: float = SIGMA_FLOOR_DB,
+           offset_db: float = 0.0) -> np.ndarray:
     sigma = np.maximum(1.4826 * mad_db, floor_db)
-    return ((x_db - median_db) / sigma).astype(np.float32)
+    return ((x_db - median_db - offset_db) / sigma).astype(np.float32)
 
 
 def upsample(z: np.ndarray, f: int, shape: tuple[int, int]) -> np.ndarray:
@@ -115,11 +126,14 @@ def _track_z(run_dir: Path, prefix: str, shape10: tuple[int, int], when: str = "
     norm, prof = _read(norm_p)
     cs = norm.shape[1:]
     f = int(round(abs(prof["transform"].a) / 10.0))
-    out = []
+    out, offsets = [], []
     for fp, (med, mad) in zip(files, ((norm[0], norm[1]), (norm[2], norm[3]))):
         lin, _ = _read(fp)
-        out.append(zscore(to_coarse_db(lin[0].astype(np.float32), f, cs), med, mad))
-    return out[0], out[1], f, prof
+        x = to_coarse_db(lin[0].astype(np.float32), f, cs)
+        off = scene_offset(x, med)
+        offsets.append(round(off, 2))
+        out.append(zscore(x, med, mad, offset_db=off))
+    return out[0], out[1], f, prof, offsets
 
 
 def run(run_dir: Path) -> dict:
@@ -134,7 +148,7 @@ def run(run_dir: Path) -> dict:
         got = _track_z(run_dir, prefix, shape10, "post")
         if got is None:
             continue
-        zv, zh, f, cprof = got
+        zv, zh, f, cprof, offs = got
         coarse.append((zv, zh))
         ls = run_dir / "masks" / f"{prefix}_layover_shadow.tif"
         hidden = (_read(ls)[0][0] > 0) if ls.exists() else np.zeros(shape10, bool)
@@ -148,6 +162,7 @@ def run(run_dir: Path) -> dict:
             placebo[label] = {"vv_abs_z_gt3_pct": round(100 * float(np.nanmean(np.abs(pre[0]) > 3)), 2),
                               "vh_abs_z_gt3_pct": round(100 * float(np.nanmean(np.abs(pre[1]) > 3)), 2)}
         placebo.setdefault(label, {}).update(
+            scene_offset_db={"vv": offs[0], "vh": offs[1]},
             post_vv_abs_z_gt3_pct=round(100 * float(np.nanmean(np.abs(zv) > 3)), 2),
             post_vh_abs_z_gt3_pct=round(100 * float(np.nanmean(np.abs(zh) > 3)), 2))
     if not used:

@@ -1080,3 +1080,10 @@ Rozhodnutí (nový kontrakt, ARCHITECTURE upraven ve stejném commitu):
   Prahy (0,7 dB šumové dno, MAD) jsou obecné, neladěné na EMS; samotná mapa nic nerozhoduje, jen měří.
 - **Rozpočet PU** (měsíční limit ~10 000): `run.json.acquire.pu_estimate` (horní mez bez mezipaměti, po částech) a upozornění `pu_budget_high` nad 2 000 PU (`AcquireConfig.pu_warn`). Normál stojí ~250 PU (40 m, VV+VH, 2 dráhy, 10 průletů) pro údolí 42×46 km.
 Omezení: roční řada je jen z minulého roku (jeden cyklus, žádná víceletá klimatologie) → u silně sezónních ploch je MAD velké a anomálie slabá; 40 m rozmaže úzké rysy; z je pořadí, ne pravděpodobnost (VV, VH a obě dráhy nejsou nezávislé).
+**Zpřesnění a výsledky (Trishuli, celé údolí, jen měření proti EMSR927 — nic se podle něj nenastavovalo):**
+- **Sezónní posun scény:** snímek „po“ je z vrcholu monzunu a je vůči ročnímu mediánu celý světlejší (VV +0,83 dB, VH +0,93 dB hlavní dráha); bez korekce byl medián kontrolních pixelů z_comb = +0,87. Proto se od každého snímku odečte **medián rozdílu přes celou scénu**
+  (robustní, povodeň zabírá malou část; `scene_offset`). Po korekci medián kontroly −0,30 a **placebo (snímek „před“): |z| > 3 v 0,25–0,28 % pixelů** (Gaussovo očekávání 0,27 %), post 0,9–1,9 %.
+- **Co z_comb umí** (rozdělení pixelů mimo EMS vs. EMS ploch, které nemáme v masce): po přidání pixelů se z_comb ≤ −3 **navazujících na dosavadní povodeň** (oba směry pohledu, 1,3 % kontroly): P 0,971 → 0,953, R 0,623 → **0,697**, F1 0,759 → 0,805;
+  při práhu −2 (5 % kontroly) P 0,896, R 0,751, F1 0,817. Chybějící plocha: z ≤ −3 zachytí ~21 % v údolí i na svazích > 15° (−2: 37 %). Signál je u svahů stejně silný jako v údolí → je to to, co pevná pravidla neumějí.
+  **Cíl 90 % recallu jen z radaru to nesplní**: i při 5 % falešné kontroly zůstává ~60 % minuté plochy bez rozeznatelné odchylky (EMS kreslí celé sesuvy včetně míst, kde se radarový obraz nezměnil).
+- **Cena:** normál = 258 PU naměřeno (odhad 284) pro obě dráhy; `acquire.pu_estimate` celkem 2 385 PU (horní mez; skutečně ~2 080), nad mezí 2 000 vyjde upozornění `pu_budget_high`.
