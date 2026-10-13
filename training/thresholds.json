@@ -1,3 +1,11 @@
 {
-  "floodseg_v0.4": {"sensitive": 0.20, "source": "D-M10-07, Kuro Siwo validation events (best flood F1 0.807)"}
+  "floodseg_v0.4": {
+    "sensitive": 0.2,
+    "source": "D-M10-07, Kuro Siwo validation events (best flood F1 0.807)",
+    "edge": {
+      "k": 1,
+      "t": 0.12,
+      "source": "D-M9-15, Kuro Siwo validation (rule fixed in advance)"
+    }
+  }
 }
