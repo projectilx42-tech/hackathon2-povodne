@@ -365,7 +365,7 @@ def build(run_dir: Path, rj: dict, cfg: ReportConfig) -> tuple[dict, list[dict]]
     stats = {
         "schema_version": 2, "generated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "run_id": rj.get("run_id") or run_dir.name, "event_date": rj.get("event_date"), "event_time": rj.get("event_time"),
-        "aoi_area_km2": _r(aoi_km2, 1), "sensitivity": rj.get("sensitivity") or "standard",
+        "aoi_area_km2": _r(aoi_km2, 1), "sensitivity": rj.get("sensitivity") or "sensitive",
         "verdict": verdict, "verdict_reasons": reasons,
         "verdict_params": {"min_affected_km2": cfg.min_affected_km2, "min_evaluated_pct": cfg.min_evaluated_pct},
         "coverage": coverage, "scenes": _scenes(acq), "post_image": post_image(acq, rj.get("event_date")),

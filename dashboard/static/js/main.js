@@ -21,7 +21,7 @@ let running = false;
 let basemap = DEFAULT_BASEMAP;
 let areaTool = null, layers = null, results = null, compare = null, measure = null;
 let overviewNodes = null;
-let sensitivity = 'standard'; // 'standard' | 'sensitive'
+let sensitivity = 'sensitive'; // 'standard' | 'sensitive' (default sensitive, D-X-13)
 
 const today = new Date().toISOString().slice(0, 10);
 
@@ -106,14 +106,14 @@ function validateWindows() {
   else if (d && w.pre && w.pre[1] >= d) msg = 'The “before” window should end before the flood date.';
   else if (d && w.post && w.post[0] < d) msg = 'The “after” window should not start before the flood date.';
   warn.textContent = msg; warn.hidden = !msg;
-  $('adv-dot').hidden = !(w.any || sensitivity !== 'standard' || $('event-time').value);
+  $('adv-dot').hidden = !(w.any || sensitivity !== 'sensitive' || $('event-time').value);
   return { hard: !w.complete || /ends before it starts/.test(msg) };
 }
 winIds.forEach(i => $(i).addEventListener('input', validateWindows));
 $('event-time').addEventListener('input', validateWindows);
 const SENS_HELP = {
-  standard: 'Balanced: marks flooded area only where the model is fairly sure. Fewer false alarms.',
-  sensitive: 'Finds more flooded area, including uncertain places, but also gives more false alarms. Use it when missing a flood is worse than a false alarm.',
+  standard: 'Conservative: marks flooded area only where flood is the most likely class. Misses more flood edges.',
+  sensitive: 'Default: also takes likely flood next to confident flood (threshold calibrated on training validation data). Finds clearly more flooded area at almost the same precision on independent test floods.',
 };
 function setSensitivity(v) {
   sensitivity = v;

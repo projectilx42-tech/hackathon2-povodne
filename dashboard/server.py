@@ -175,7 +175,7 @@ def create_app() -> FastAPI:
             datetime.strptime(date, "%Y-%m-%d")
         except ValueError:
             raise HTTPException(422, "event_date is not a valid date") from None
-        sensitivity = body.get("sensitivity", "standard")
+        sensitivity = body.get("sensitivity", "sensitive")  # default since D-X-13
         if sensitivity not in ("standard", "sensitive"):
             raise HTTPException(422, "sensitivity must be 'standard' or 'sensitive'")
         windows = {}

@@ -288,7 +288,7 @@ def main() -> None:
 
     run_json = run / "run.json"
     meta = json.loads(run_json.read_text()) if run_json.exists() else {}
-    sensitivity = args.sensitivity or meta.get("sensitivity") or "standard"
+    sensitivity = args.sensitivity or meta.get("sensitivity") or "sensitive"  # default since D-X-13
     threshold = None
     cls = probs.argmax(0)  # 0 no water, 1 permanent, 2 flood (model classes)
     if sensitivity == "sensitive":

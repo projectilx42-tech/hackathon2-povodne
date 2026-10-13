@@ -160,7 +160,7 @@ runs/<run_id>/
     "s2": {"pre": {"date": "...", "ids": [...], "clear_pct": 0, "scale": [...], "offset": [...]} | null, "post": {...} | null, "extra": {"pre": [...], "post": [...]}},
     "dem": {"source": "...", "product": "COP-DEM GLO-30", "water_mask": true, "hand_stream_cells": 100}   // D-M1-04
   },
-  "sensitivity": "standard",                                  // "standard" | "sensitive" (D-M9-08); píše UI/CLI, čte M3
+  "sensitivity": "sensitive",                                 // "standard" | "sensitive" (D-M9-08; výchozí sensitive od D-X-13); píše UI/CLI, čte M3
   "flood": {"method": "ai", "model": "models/<name>", "params": {"sensitivity": "...", "flood_threshold": null, ...}},
   "debris": {"method": "...", "params": {...}, "inputs": {...}, "placebo": {"available": true, "rate": 0.0, "flagged_km2": 0.0,
              "estimated_false_share": 0.0, ...}, "areas_km2": {"debris": 0, "mud": 0, ...}, "total_km2": 0,
@@ -423,7 +423,7 @@ inference), `model.py`. M3 tento kód **používá, nereimplementuje** (po vznik
 - **Sklon** (kanál `slope`, D-032) = `masks/slope.tif` ve stupních (z DEM na mřížce 10 m); v tréninku zaokrouhlen na celé stupně.
 - `model_card.json` obsahuje `temperature` (kalibrace z val): pravděpodobnosti = softmax(logits / T) — `infer.predict_probs(..., temperature=T)`.
 - Mapování na třídy masky (M3): model 2 flood → `ai_mask` 2, model 1 permanent water → 4, model 0 → 1; nodata/layover/shadow → 0.
-- **Citlivost (D-M9-08):** `run.json.sensitivity` = `"standard"` (nejpravděpodobnější třída, výchozí) nebo `"sensitive"`
+- **Citlivost (D-M9-08):** `run.json.sensitivity` = `"standard"` (nejpravděpodobnější třída) nebo `"sensitive"` (výchozí od D-X-13)
   (povodeň už od P(flood) ≥ `model_card.flood_thresholds.sensitive`, pro v0.2 = 0,25, ale jen v ploše, která obsahuje i „jistou“
   povodeň = dvoustupňový práh, D-M9-11: najde víc zaplavené plochy, víc falešných).
   Nastavuje UI (`POST /api/runs`) / CLI `povodne run --sensitivity standard|sensitive`; M3 (`training/run_ai.py --sensitivity`) ji čte.

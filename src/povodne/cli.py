@@ -99,7 +99,7 @@ def prepare_run(out: Path, aoi: str | None, event_date: str | None, pre_window=N
         for key, value in given.items():
             if rj.get(key) is None:
                 rj[key] = value
-        rj["sensitivity"] = rj.get("sensitivity") or "standard"
+        rj["sensitivity"] = rj.get("sensitivity") or "sensitive"  # D-X-13
         rj.setdefault("created_utc", datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))
         if not rj.get("code_version"):
             rj["code_version"] = _code_version()
@@ -279,7 +279,7 @@ def main(argv: list[str] | None = None) -> None:
     r.add_argument("--pre-window", help="FROM,TO (YYYY-MM-DD) for the before-images; default: automatic")
     r.add_argument("--post-window", help="FROM,TO (YYYY-MM-DD) for the after-images; default: automatic")
     r.add_argument("--event-time", help="local time of the flood HH:MM in the area's time zone (optional)")
-    r.add_argument("--sensitivity", choices=["standard", "sensitive"], help="flood detection mode (default standard)")
+    r.add_argument("--sensitivity", choices=["standard", "sensitive"], help="flood detection mode (default sensitive, D-X-13)")
     r.add_argument("--envelope", action="store_true", help="also run the experimental water-level envelope step (opt-in, D-M13-11)")
     r.set_defaults(func=cmd_run)
     s = sub.add_parser("serve", help="start the dashboard on http://127.0.0.1:<port>")

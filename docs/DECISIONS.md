@@ -1350,3 +1350,17 @@ Ověření na 11 událostech s nezávislými popisky Kuro Siwo / Sen1Floods11 (`
 Pipeline i `combine` fungují beze změny bez `flood/envelope_mask.tif`. Kontrakt souborů (`envelope_mask.tif`, `envelope_stage.tif`) se nemění, jen jsou nepovinné.
 **Přiznání k použití dat:** o vypnutí se rozhodlo podle **testovacích popisků Kuro Siwo / Sen1Floods11** (ne podle EMS); jde tedy o použití testovací sady k volbě nastavení a v reportu to uvádíme jako takové.
 Čísla Trishuli vs EMS (jen měření, žádné ladění): malá výchozí mřížka P 0,87 / R 0,85, velká mřížka P 0,84 / R 0,91 s odhadem z placeba 0,86 — na jiných událostech se tento odhad nepotvrdil.
+
+## D-X-13 | 2026-10-13 | přijato (master) — Výchozí citlivost AI kroku = „sensitive“
+**Kontext:** `run.json.sensitivity` měl výchozí `"standard"` (nejpravděpodobnější třída). Kalibrovaný citlivý práh (v0.4: P(flood) ≥ 0,20
+jen v ploše navazující na jistou povodeň, D-M9-11; práh zvolen na VALIDAČNÍ části Kuro Siwo) se tak bez ručního přepnutí nepoužíval.
+Diagnostika chybějících oblastí na nezávislých popiscích (feat/multievent, `miss_diag.json`) ukázala, že velká část přehlédnuté povodně
+má P(flood) 0,05–0,50 (Honduras 66 %, Austrálie 71 %).
+**Měření (11 událostí, testovací popisky Kuro Siwo/Sen1Floods11, bez obálky, R/P plochy; standard → sensitive):** Malawi 0,89/0,95 → 0,93/0,93;
+Honduras 0,65/0,90 → 0,82/0,88; Austrálie 0,69/0,99 → 0,79/0,99; Bihar 0,82/0,89 → 0,82/0,88; Missouri 0,98/0,90 → 0,99/0,86;
+Chad 0,61/0,78 → 0,66/0,78; Evros 0,92/0,85 → 0,94/0,84; Bolívie (voda) 0,92/0,84 → 0,94/0,83; Teesta 0,65/0,63 → 0,69/0,63.
+Kontrola bez povodně (Marsyangdi, suché období): falešná plocha 2,112 → 2,115 km².
+**Rozhodnutí:** výchozí `sensitivity = "sensitive"` v CLI (`prepare_run`), `training/run_ai.py`, dashboardu (`POST /api/runs`, přepínač) a reportu.
+`"standard"` zůstává volitelný. Práh se NEMĚNÍ (pořád z Kuro Siwo val, `training/thresholds.json`).
+**Přiznání:** volba výchozího režimu (ne prahu) byla potvrzena na TESTOVACÍCH popiscích Kuro Siwo/Sen1Floods11 = použití testovací sady
+pro volbu metody; EMS ani jiné publikované mapy škod nebyly použity. Uvést v reportu.

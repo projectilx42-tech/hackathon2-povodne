@@ -52,7 +52,8 @@ def test_run_ai_outputs():
         ls[-10:, :10] = 1  # layover/shadow block -> nodata
         _write(run / "masks" / "s1_layover_shadow.tif", ls, "uint8")
 
-        subprocess.run([sys.executable, str(ROOT / "run_ai.py"), str(run), "--model", str(tmp / "model.pt")], check=True)
+        subprocess.run([sys.executable, str(ROOT / "run_ai.py"), str(run), "--model", str(tmp / "model.pt"),
+                        "--sensitivity", "standard"], check=True)
 
         with rasterio.open(run / "flood" / "ai_mask.tif") as r:
             mask = r.read(1)
