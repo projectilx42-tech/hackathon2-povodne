@@ -914,6 +914,12 @@ Rozhodnutí: pixel, který radar nezařadil (`typ == 0`), je suť, když je S2 p
 Ochrana: kontrolní území (mimo zónu suti, sklon ≤ 25°) dostane stejné pravidlo; podíl označené plochy je `run.json.debris.optical_only.background_rate`
 (odhad podílu planých poplachů z jiných příčin) a `optical_only.px` (počet pixelů). Radarový placebo test tyto pixely nezahrnuje.
 
+## D-M12-01 | 2026-10-13 | přijato (úkol od master session) — Self-training na scéně místo pevných pravidel (pokus, `flood/selftrain.py`)
+Cíl: zachytit ≥ 90 % zasažené plochy bez pevných pravidel typu „sklon > 15° = nezasaženo“. Postup: pseudo-popisky z jistého důkazu (AI voda P ≥ 0,9, silná radarová anomálie z obou drah, silný optický úbytek vegetace)
+a jistě nezasažené (stabilní, daleko od zasažených); lehký klasifikátor (LightGBM) na rysech scény; **co-training** (radarový model se učí z popisků z optiky a AI, optický z popisků z radaru a AI), terén jako rys s
+převážením tříd na stejné rozdělení sklon × HAND. Práh statisticky: 2 % out-of-fold jistě stabilních vzorků (prostorové bloky 2 km), hystereze (semínko 0,2 %), min. plocha 10 px. Žádná EMS jako vstup ani pro volbu prahů (D-006);
+EMS jen měření. Výstupy `flood/selftrain_{prob,mask,type}.tif` a `run.json.selftrain` jsou nepovinné, zatím je nic nečte (nová soubory zapsány do ARCHITECTURE).
+
 ---
 
 # Otevřené otázky (k rozhodnutí)
