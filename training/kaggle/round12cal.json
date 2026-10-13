@@ -1,0 +1,6 @@
+[
+ {"name": "cal_softpost", "script": "eval_softpost.py", "args": ["--mid", "15", "--width", "3", "--thr", "0.1", "0.15", "0.2", "0.25", "0.3", "0.4"]},
+ {"name": "cal_edge_s015", "script": "eval_edge.py", "args": ["--sensitive", "0.15"]},
+ {"name": "cal_edge_s020", "script": "eval_edge.py", "args": ["--sensitive", "0.20"]},
+ {"name": "cal_edge_s025", "script": "eval_edge.py", "args": ["--sensitive", "0.25"]}
+]
