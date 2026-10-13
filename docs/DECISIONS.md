@@ -1533,3 +1533,8 @@ denní kvóta klíče ohsome (~250 dotazů, 7 na běh) byla po dnešním testov�
 - **Výběr jen podle val** → `s2_r34_hard3_e60`; jednorázově: Sen1Floods11 Bolívie F1 0,885 → 0,896; 11 událostí (tag `s2opt02` proti `v05main`):
   F1 0,864 → 0,865, ale **kontrola bez povodně (Marsyangdi) 0,328 → 0,500 km²** falešné plochy → pravidlo sloučení nesplněno, výchozí zůstává `floodseg_s2_v0.1`.
 - `run_ai.py`: env `POVODNE_AI_S2_MODEL` pro srovnání optických modelů (výchozí beze změny).
+
+## D-M15-03 | 2026-10-14 | přijato (úkol master session) — Radar: doladění v0.5 s horskými výřezy bez přínosu, výchozí zůstává v0.5
+- Jediný kandidát (`floodseg-r13`, `training/kaggle/round13.json`): v0.5 doladěn 3 epochy (lr 1e-4), těžké výřezy ×(1+5·s), rovnoměrně po událostech, horské výřezy 4× častěji.
+- Val (výběr epochy): nejlepší 1. epocha, val score 0,605 (v0.5 0,606) → podle val bez zlepšení. Jednorázově: Kuro Siwo test F1 povodně 0,794 (v0.5 0,792),
+  hory 0,535 (0,519); 11 událostí (tag `r13` proti `v05main`): F1 0,864 → 0,864, nejhorší Teesta −0,005, kontrola 0,328 → 0,326 km² → průměr nestoupl, pravidlo nesplněno.

@@ -1,0 +1,161 @@
+{
+ "event": "malawi_2022",
+ "tag": "r13",
+ "dataset": "kurosiwo_test",
+ "continent": "Africa",
+ "kind": "flood",
+ "event_date": "2022-01-24",
+ "aoi_bbox": [
+  34.8217,
+  -16.1383,
+  34.9022,
+  -16.061
+ ],
+ "label_valid_pct": 96.6,
+ "scores": {
+  "a_seeds_own_region": {
+   "recall": 0.933,
+   "precision": 0.9298,
+   "f1": 0.9314,
+   "truth_km2": 13.2274,
+   "pred_km2": 13.2723,
+   "tp_km2": 12.3407,
+   "fp_km2": 0.9316,
+   "region_km2": 65.747
+  },
+  "a_seeds_common_region": {
+   "recall": 0.933,
+   "precision": 0.9298,
+   "f1": 0.9314,
+   "truth_km2": 13.2274,
+   "pred_km2": 13.2723,
+   "tp_km2": 12.3407,
+   "fp_km2": 0.9316,
+   "region_km2": 65.747
+  },
+  "b_envelope": {
+   "recall": 0.933,
+   "precision": 0.9298,
+   "f1": 0.9314,
+   "truth_km2": 13.2274,
+   "pred_km2": 13.2723,
+   "tp_km2": 12.3407,
+   "fp_km2": 0.9316,
+   "region_km2": 65.747
+  },
+  "b_envelope_visible_label": {
+   "recall": 0.8737,
+   "precision": 0.9298,
+   "f1": 0.9009,
+   "truth_km2": 14.1241,
+   "pred_km2": 13.2723,
+   "tp_km2": 12.3407,
+   "fp_km2": 0.9316,
+   "region_km2": 70.444
+  }
+ },
+ "scores_water_total": {
+  "seeds": {
+   "recall": 0.9503,
+   "precision": 0.9391,
+   "f1": 0.9447,
+   "truth_km2": 15.2456,
+   "pred_km2": 15.4265,
+   "tp_km2": 14.4873,
+   "fp_km2": 0.9392,
+   "region_km2": 67.765
+  },
+  "envelope": {
+   "recall": 0.9503,
+   "precision": 0.9391,
+   "f1": 0.9447,
+   "truth_km2": 15.2456,
+   "pred_km2": 15.4265,
+   "tp_km2": 14.4873,
+   "fp_km2": 0.9392,
+   "region_km2": 67.765
+  }
+ },
+ "seed_transitions_km2": {
+  "water": {
+   "water": 13.3955
+  },
+  "debris": {
+   "debris": 0.0774
+  },
+  "permanent": {
+   "permanent": 1.9536
+  }
+ },
+ "components": {
+  "seeds_ai_water(2)": {
+   "km2": 13.9296,
+   "km2_in_label_region": 13.3955,
+   "share_on_truth": 0.916
+  },
+  "seeds_debris_step:debris": {
+   "km2": 0.0811,
+   "km2_in_label_region": 0.0761,
+   "share_on_truth": 0.89
+  },
+  "seeds_debris_step:unknown": {
+   "km2": 0.0013,
+   "km2_in_label_region": 0.0013,
+   "share_on_truth": 0.0
+  },
+  "seeds_permanent(4)": {
+   "km2": 2.0766,
+   "km2_in_label_region": 1.9536,
+   "share_on_truth": 0.073
+  }
+ },
+ "pred_total_km2": {
+  "seeds": 14.012,
+  "envelope": 14.012
+ },
+ "run": {
+  "timings_s": {
+   "acquire": 162.2,
+   "preprocess": 6.6,
+   "s1anomaly": 3.5,
+   "flood_ai": 55.9,
+   "debris": 19.7,
+   "envelope": 0.7,
+   "combine": 1.7,
+   "damage": 3.4,
+   "network": 4.0,
+   "report": 11.8
+  },
+  "pu_spent": 0.0,
+  "pu_estimate": 52,
+  "envelope": {
+   "used": false,
+   "reason": "Water-level envelope is off (opt-in: set POVODNE_ENVELOPE=1 or pass --envelope); the flood map is unchanged.",
+   "placebo_groups": null,
+   "placebo_split": null,
+   "stat": null,
+   "persistence": null,
+   "reach_q": null,
+   "final_est_precision": null,
+   "final_placebo_false_km2": null,
+   "added_km2": null,
+   "added_by_stage_km2": null,
+   "optics": null,
+   "post_passes": null,
+   "optical_used": null
+  },
+  "main_track": {
+   "relative_orbit": 79,
+   "orbit_direction": "DESCENDING"
+  },
+  "alt_track": false,
+  "s2": {
+   "pre": 100.0,
+   "post": 38.6,
+   "extra": null
+  },
+  "warnings": [
+   "No usable Sentinel-1 pass from the opposite flight direction: areas hidden behind mountains for the main track stay unmapped."
+  ]
+ }
+}
