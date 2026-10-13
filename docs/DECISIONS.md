@@ -1437,3 +1437,14 @@ Rozbor chyb na stavu `permfix` (`error_diag_permfix.json`): Teesta přehlíží 
 nalezených pixelech (nález z kroku změn povrchu), jasno na S2 jen 3 % přehlédnutých pixelů → mez radaru (D-M9-03). Čad: tichý radar (P < 0,05) a okraje.
 Pokus `flood/channel.py`: pixely s HAND ≤ 1 m do 3 px od nalezené povodně a napojené na ni → třída 3. Sada 11 událostí (proti `permfix`):
 `chan1` R 0,858 → 0,895, P 0,872 → 0,826, F1 0,859 → 0,852 (Missouri −0,034, Čad −0,021, Teesta ±0); HAND ≤ 2 m 0,849 → nesloučeno.
+
+## D-M14-09 | 2026-10-13 | oprava dat, ke sloučení rozhodne master (pravidlo těsně neprošlo) — Sentinel-2: dvě verze téže dlaždice
+Rozbor falešných nálezů v Biháru (4,3 km², P ≈ 1 při VV −10 dB): optický model tam viděl vodu, protože pásma SWIR (B11, B12) byla 0 na 65 km² „jasné“
+plochy. Příčina: earth-search pro tentýž den a dlaždici vrací původní (`..._0_L2A`, baseline 02.13, offset 0) i přepracovanou verzi (`..._1_L2A`,
+baseline 05.00, offset už v DN); kód je smíchal a protože ne všechny měly `earthsearch:boa_offset_applied`, odečetl −0,1 i u přepracované → tmavé
+pixely pod nulu → 0. Postiženo 4 z 11 událostí (Bihár 65 km², Bolívie 36, Evros 34, Čad 10), všechny snímky před 2022.
+Oprava `acquire/sentinel2.py`: `latest_versions` (z verzí téže dlaždice a dne jen nejnovější); mozaika dlaždic s různým zpracováním se převede na offset 0
+po dlaždicích. Test `tests/test_acquire_partial_failure.py::test_s2_keeps_only_latest_item_version`. Mezipaměť se nemíchá (klíč obsahuje id snímků).
+Sada 11 událostí (tag `s2fix` proti `permfix`): F1 0,859 → 0,858 (R 0,858 → 0,855, P 0,872 → 0,873); Bihár +0,010, Bolívie +0,002, Čad −0,004,
+Austrálie −0,009 (jiná volba snímku po deduplikaci), Evros −0,011. Nulové SWIR byly jen na opravdu tmavých (mokrých) pixelech, takže chyba výsledek
+skoro neměnila. Pravidlo (žádná událost −0,01) neprošlo o 0,001; jde ale o správnost vstupních dat → doporučeno sloučit jako opravu chyby.

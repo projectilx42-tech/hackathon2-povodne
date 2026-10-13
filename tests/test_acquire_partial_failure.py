@@ -43,3 +43,15 @@ def test_post_series_skips_a_failing_pass(tmp_path, monkeypatch):
     with __import__("rasterio").open(tmp_path / "raw" / "s1" / "post_series.tif") as ds:
         assert ds.count == 6
     assert json.loads((tmp_path / "raw" / "s1" / "post_series.json").read_text())["placebo"][0]["bands"] == [4, 5]
+
+
+def test_s2_keeps_only_latest_item_version():
+    """Original + reprocessed version of the same tile/day: only the reprocessed one is used (D-M14-09)."""
+    from povodne.acquire.sentinel2 import boa_offset_applied, latest_versions
+
+    items = [{"id": "S2B_45RUJ_20190920_1_L2A", "properties": {"earthsearch:boa_offset_applied": True}},
+             {"id": "S2B_45RUJ_20190920_0_L2A", "properties": {"earthsearch:boa_offset_applied": False}},
+             {"id": "S2B_45RTJ_20190920_0_L2A", "properties": {}}]
+    keep = latest_versions(items)
+    assert sorted(i["id"] for i in keep) == ["S2B_45RTJ_20190920_0_L2A", "S2B_45RUJ_20190920_1_L2A"]
+    assert boa_offset_applied(latest_versions(items[:2]))
