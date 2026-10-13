@@ -1,0 +1,140 @@
+{
+ "_about": "Events for the independent multi-event check (M14). Labels are never EMS/UNOSAT: Himalaya = our own clear-sky Sentinel-2 water labels (training/himalaya/make_s2_labels.py rule); Kuro Siwo = hand-labelled TEST-split events (never trained on). AOIs are sub-windows (<= ~10 km) of the original scenes to save Sentinel Hub processing units.",
+ "events": [
+  {
+   "id": "teesta_2023_sub",
+   "kind": "flood",
+   "dataset": "himalaya_s2",
+   "continent": "Asia (Himalaya)",
+   "note": "South Lhonak GLOF, Teesta, Sikkim; only the lower-left corner of the original scene has clear sky",
+   "event_date": "2023-10-04",
+   "aoi_bbox": [
+    88.4,
+    27.0,
+    88.5,
+    27.09
+   ],
+   "label": {
+    "type": "s2",
+    "s2_date": "2023-10-16",
+    "mgrs_tile": "45RXK",
+    "label_max_elev_m": 2500
+   }
+  },
+  {
+   "id": "chamoli_2021_sub",
+   "kind": "flood",
+   "dataset": "himalaya_s2",
+   "continent": "Asia (Himalaya)",
+   "note": "Rishiganga/Dhauliganga debris flood around Raini-Tapovan; label = optical water only (debris/turbid water mostly invisible to MNDWI)",
+   "event_date": "2021-02-07",
+   "aoi_bbox": [
+    79.63,
+    30.45,
+    79.735,
+    30.54
+   ],
+   "label": {
+    "type": "s2",
+    "s2_date": "2021-02-10",
+    "mgrs_tile": "44RLU",
+    "label_max_elev_m": 3000
+   }
+  },
+  {
+   "id": "marsyangdi_2024_noflood_sub",
+   "kind": "no_flood_control",
+   "dataset": "himalaya_s2",
+   "continent": "Asia (Himalaya)",
+   "note": "dry-season control, every flood pixel is a false alarm",
+   "event_date": "2024-01-15",
+   "aoi_bbox": [
+    84.35,
+    28.17,
+    84.44,
+    28.26
+   ],
+   "label": {
+    "type": "s2",
+    "s2_date": "2024-01-20",
+    "mgrs_tile": "45RTM",
+    "label_max_elev_m": 2500
+   }
+  },
+  {
+   "id": "honduras_2018",
+   "kind": "flood",
+   "dataset": "kurosiwo_test",
+   "continent": "Central America",
+   "note": "Kuro Siwo test act 321 aoi 4, Honduras, Oct 2018",
+   "event_date": "2018-10-06",
+   "aoi_bbox": [
+    -87.3806,
+    13.1528,
+    -87.3001,
+    13.2312
+   ],
+   "label": {
+    "type": "kurosiwo",
+    "window": "321_4",
+    "tile_grid_epsg3857_bbox": [
+     -9727165.0,
+     1477195.0,
+     -9718205.0,
+     1486155.0
+    ],
+    "post_s1_date": "2018-10-07"
+   }
+  },
+  {
+   "id": "malawi_2022",
+   "kind": "flood",
+   "dataset": "kurosiwo_test",
+   "continent": "Africa",
+   "note": "Kuro Siwo test act 561 aoi 1, Malawi/Mozambique border, Jan 2022",
+   "event_date": "2022-01-24",
+   "aoi_bbox": [
+    34.8217,
+    -16.1383,
+    34.9022,
+    -16.061
+   ],
+   "label": {
+    "type": "kurosiwo",
+    "window": "561_1",
+    "tile_grid_epsg3857_bbox": [
+     3876335.0,
+     -1820745.0,
+     3885295.0,
+     -1811785.0
+    ],
+    "post_s1_date": "2022-01-26"
+   }
+  },
+  {
+   "id": "australia_2022",
+   "kind": "flood",
+   "dataset": "kurosiwo_test",
+   "continent": "Australia",
+   "note": "Kuro Siwo test act 562 aoi 13, Gulf of Carpentaria, Feb 2022",
+   "event_date": "2022-01-29",
+   "aoi_bbox": [
+    139.5417,
+    -17.7291,
+    139.6222,
+    -17.6524
+   ],
+   "label": {
+    "type": "kurosiwo",
+    "window": "562_13",
+    "tile_grid_epsg3857_bbox": [
+     15533715.0,
+     -2005865.0,
+     15542675.0,
+     -1996905.0
+    ],
+    "post_s1_date": "2022-02-03"
+   }
+  }
+ ]
+}
