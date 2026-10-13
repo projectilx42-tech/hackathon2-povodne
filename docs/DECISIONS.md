@@ -1396,6 +1396,8 @@ spíš suchá půda (medián z_vv 3,1) než přehlédnutá voda (0,95). → nesl
 Optický model už běží na všech jasných pixelech (D-M9-11); navíc pravidlo MNDWI > 0 (literatura, neladěno) v `run_ai.py`. Austrálie beze změny:
 přehlédnutá jasná voda (2,3 km²) byla vodou i na snímku „před“ (pozdní pre ve vlhké sezóně) → trvalá, ne povodeň; Honduras a Malawi mají snímek „po“
 8 dní po povodni (voda opadla). Kontrola bez povodně +0,06 km² falešné plochy → pravidlo sloučení neprošlo.
+**Přeměřeno po opravě S2 (D-M14-09), tag `s2i_fix`, všech 11 událostí proti `s2fix`:** F1 0,859 → 0,856 (R 0,855, P 0,868); Čad −0,021 (P 0,78 → 0,73:
+na Čadu je jasná optika jen na ~11 % zaplavené plochy a index tam přidává hlavně falešné), Evros −0,005, kontrola +0,06 km² → dál nesloučeno.
 
 ## D-M14-03 | 2026-10-13 | zamítnuto (opt-in `POVODNE_SELFTRAIN_FUSE=1`) — Samoučení s pojistkou
 `flood/stfuse.py`: pixely samoučení (`flood/selftrain_mask.tif`) se přidají jen při HAND ≤ 10 m (`POVODNE_STFUSE_HAND`), sklonu ≤ 10° a napojení na jisté jádro
