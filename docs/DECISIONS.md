@@ -933,6 +933,9 @@ Implementace D-X-09: `src/povodne/flood/envelope.py`, nepovinný krok `envelope`
 - **Stupeň 2 — hysterezní růst (doplněk D-X-10):** po obálce se přidají souvislé komponenty slabého důkazu (8-okolí, bez limitu HAND / sklonu, radar |z_comb| ≥ tg nebo optické pravidlo),
   které se dotýkají dosavadních detekcí. tg ∈ {3; 2,5; 2} se volí zvlášť po výběru obálky: nejcitlivější s odhadem přesnosti celé detekované plochy ≥ 0,85 (placebo: stejný růst ze
   placebo semen + placebo obálky). Obálka a růst se tedy nevybírají zcela společně (rychlost), `run.json.envelope.growth` ukládá celou mřížku. Přidané pixely: tmavší = voda (2), jinak třída 3.
+- **Stupeň 3 — trvalá voda se silnou změnou (zadání master po fúzi):** pixel trvalé vody (třída 4) uvnitř obálky se silnou změnou proti normálu (|z_comb| ≥ tp, tp ∈ {4; 3; 2,5; 2})
+  se bere jako zasažený (tmavší = voda 2, světlejší = třída 3), protože bahnotok koryto přeplní a referenční mapy ho zahrnují. Placebo: podíl týchž pixelů, které placebo průlety označí
+  při stejném prahu; volí se nejcitlivější tp s odhadem přesnosti celé detekované plochy ≥ 0,85. `combine` pro tyto pixely přepíše třídu 4. Kontrakt `envelope_mask.tif` doplněn.
 - **Odchylky od zadání:** (1) záložní důkaz „|Δ dB| post−pre bez anomálie“ se neimplementoval — bez radarové anomálie není placebo, a bez placeba se parametry volit nesmí; krok se v tom případě přeskočí.
   (2) NDVI pravidlo je pevné a-priori (ne z placeba).
 - **Omezení do reportu:** placebo semena jsou jen aproximace falešných semen skutečného běhu (skutečná semena mají vlastní falešný podíl, ten tu není započten);

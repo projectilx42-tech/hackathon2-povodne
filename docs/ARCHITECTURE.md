@@ -96,7 +96,7 @@ runs/<run_id>/
     s1_anomaly_tracks.tif        # float32, hrubá mřížka normálu (40 m): z_vv_main, z_vh_main, z_vv_alt, z_vh_alt
     envelope_mask.tif            # uint8, mřížka runu: 0 nic, 2 přidáno jako voda, 3 přidáno jako suť/jiná změna. „Obálka hladiny“ (D-X-09, D-M13-01):
                                  #   slabý důkaz změny (radarová anomálie |z_comb| ≥ tz, pokles NDVI) uvnitř úseku údolí pod hladinou odvozenou z HAND
-                                 #   jistých detekcí; nikdy nepřepisuje detekce ani trvalou vodu. Píše `povodne.flood.envelope`, čte `combine`
+                                 #   jistých detekcí + hysterezní růst (souvislé slabé důkazy dotýkající se detekcí) + trvalá voda se silnou změnou (přepíše třídu 4, D-M13-01); nepřepisuje existující detekce. Píše `povodne.flood.envelope`, čte `combine`
                                  #   (voda → třída 2, pravděpodobnost 0,35; suť → třída 3, podtyp 9 neznámá, jistota nízká).
                                  #   `run.json.envelope`: zvolené q / block_px / tz, `est_precision` a `placebo_false_km2` z placeba, celá mřížka nastavení (`grid`).
     selftrain_prob.tif selftrain_mask.tif selftrain_type.tif   # nepovinné (D-M12-01, pokus): float32 P / uint8 maska / uint8 podtyp (7 svah, 9 neznámá); `povodne.flood.selftrain`, zatím je nic nečte; `run.json.selftrain`

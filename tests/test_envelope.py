@@ -91,12 +91,13 @@ def _run_dir(tmp_path, noisy_placebo: bool):
     hand = _valley(H, W)
     ai = np.ones((H, W), np.uint8)
     ai[:100, 85:115] = 2                                  # certain water, upstream half only (wide)
-    ai[100:, 98:102] = 4                                  # downstream: only the permanent river, no certain flood detection
+    ai[100:, 96:104] = 4                                  # downstream: only the permanent river, no certain flood detection
     _write(run / "flood" / "ai_mask.tif", ai, tr)
     _write(run / "masks" / "hand.tif", hand, tr, "float32")
     _write(run / "masks" / "slope.tif", np.zeros((H, W)), tr, "float32")
     z = np.zeros((4, H, W), np.float32)
     z[2, 100:150, 86:96] = -4.0                           # weak-but-clear darkening beside the river downstream of the seeds, HAND 0.8-2.8 m
+    z[2, 100:150, 96:104] = -6.0                          # strong darkening over the permanent river
     z[2, :, 0:20] = -4.0                                  # darkening far up the slope: outside the envelope
     z[3] = 1
     _write(run / "flood" / "s1_anomaly.tif", z, tr)
@@ -123,6 +124,8 @@ def test_step_adds_inside_envelope_and_combine_uses_it(tmp_path):
         env = ds.read(1)
     assert (env[105:145, 87:95] == 2).mean() > 0.8        # added as water beside the river where no seed was
     assert not env[:, :20].any()                          # far slope: outside the envelope
+    assert (env[105:145, 98:102] == 2).mean() > 0.8       # stage 3: permanent water with a strong change is affected
+    assert not env[160:, 96:104].any()                    # ... but not where nothing changed
     assert not env[:100, 85:115].any()                    # existing detections untouched
     rj = json.loads((run / "run.json").read_text())
     assert next(s for s in rj["progress"]["steps"] if s["name"] == "envelope")["state"] == "done"
@@ -134,7 +137,7 @@ def test_step_adds_inside_envelope_and_combine_uses_it(tmp_path):
     combine.run(run)
     with rasterio.open(run / "flood" / "flood_mask.tif") as ds:
         m = ds.read(1)
-    assert (m[105:145, 87:95] == 2).mean() > 0.8 and (m[:100, 85:115] == 2).all() and not (m[:, :20] == 2).any()
+    assert (m[105:145, 98:102] == 2).mean() > 0.8 and (m[105:145, 87:95] == 2).mean() > 0.8 and (m[:100, 85:115] == 2).all() and not (m[:, :20] == 2).any()
 
 
 def test_noisy_placebo_blocks_the_envelope(tmp_path):

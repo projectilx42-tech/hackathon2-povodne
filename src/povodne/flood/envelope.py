@@ -23,7 +23,8 @@ is again the most sensitive one whose estimated precision of the whole detected 
 
 Reads  flood/ai_mask.tif, flood/debris_mask.tif (optional), flood/s1_anomaly.tif, masks/hand.tif, masks/slope.tif,
        masks/s2_{pre,post}_valid.tif + aligned/s2_{pre,post}.tif (optional), run.json (s1anomaly), raw/s1*/ (placebo, via s1anomaly)
-Writes flood/envelope_mask.tif  uint8: 0 nothing added, 2 added as water, 3 added as debris / other change (read by `combine`)
+Writes flood/envelope_mask.tif  uint8: 0 nothing added, 2 added as water, 3 added as debris / other change (read by `combine`;
+                                pixels over permanent water, stage 3, are included and override class 4)
        run.json.envelope, progress step "envelope", notices with step = "envelope" (docs/NOTICES.md)
 Without a radar anomaly or its placebo nothing is added (no placebo = no allowed way to choose the parameters).
 
@@ -53,6 +54,7 @@ MIN_BLOCK_SEEDS = 20
 NDVI_DROP = 0.2                    # a-priori physical rule (D-X-10): NDVI falls by more than 0.2 and ends below NDVI_POST_MAX; no placebo pair, see `optical_false_rate`
 NDVI_POST_MAX = 0.3
 TG_GRID = (3.0, 2.5, 2.0)          # hysteresis growth threshold on |z_comb| (stage 2, D-X-10 addendum); lower = more sensitive
+TP_GRID = (4.0, 3.0, 2.5, 2.0)     # stage 3: strong change over PERMANENT water (the channel an overflowing debris flow fills) counts as affected
 R_GRID = (0, 3, 6)                 # closing radius in pixels that bridges small gaps / fills holes inside the envelope (0 = off)
 SEED_Z_PLACEBO = -3.0              # placebo seeds: the strict anomaly detections of the placebo passes (same for the real strict level)
 HAND_BIN_M, HAND_MAX_M = 0.5, 150.0
@@ -348,6 +350,30 @@ def run(run_dir: Path) -> dict:
         aw, ad = aw | gw, ad | gd
         grown_info["chosen"] = {k: v for k, v in gbest.items() if not k.startswith("_")}
     section["growth"] = grown_info
+
+    # Stage 3: permanent water (class 4) inside the envelope with a strong change against its normal is affected (a debris flow
+    # overfills the channel; reference mappers include it). Darker = water (2), brighter = debris / other change (3).
+    # The placebo false rate is the share of the same pixels that the placebo passes call "changed" at the same threshold.
+    base2_fp = (gbest["placebo_false_km2"] if gbest is not None else best["placebo_false_km2"]) / px_km2
+    env_perm = env & perm
+    perm_rows = []
+    for tp in TP_GRID:
+        evp, dkp = radar_evidence(z, tp)
+        pp, _ = radar_evidence(zp, tp)
+        new_p = env_perm & evp
+        pfp = int((env_perm & pp).sum())
+        tot = int((aw | ad).sum() + new_p.sum())
+        perm_rows.append({"tp": tp, "perm_px": int(new_p.sum()), "perm_km2": round(int(new_p.sum()) * px_km2, 4),
+                          "placebo_false_km2": round((base2_fp + pfp) * px_km2, 4),
+                          "est_precision": round(max(0.0, 1.0 - (base2_fp + pfp) / (n_exist + tot)), 3), "_new": new_p, "_dark": dkp})
+    ok_p = [g for g in perm_rows if g["perm_px"] > 0 and g["est_precision"] >= MIN_PRECISION]
+    pbest = max(ok_p, key=lambda g: g["perm_px"]) if ok_p else None
+    section["permanent_water"] = {"envelope_km2": round(int(env_perm.sum()) * px_km2, 4), "chosen": None,
+                                  "grid": [{k: v for k, v in g.items() if not k.startswith("_")} for g in perm_rows]}
+    if pbest is not None:
+        aw, ad = aw | (pbest["_new"] & pbest["_dark"]), ad | (pbest["_new"] & ~pbest["_dark"])
+        section["permanent_water"]["chosen"] = {k: v for k, v in pbest.items() if not k.startswith("_")}
+    final_fp = (pbest or gbest or best)["placebo_false_km2"]
     out = np.zeros(shape, np.uint8)
     out[ad], out[aw] = DEBRIS, WATER
     p = {**prof, "count": 1, "dtype": "uint8", "nodata": 0, "compress": "deflate"}
@@ -359,8 +385,9 @@ def run(run_dir: Path) -> dict:
                    added_km2={"water": round(int(aw.sum()) * px_km2, 4), "debris": round(int(ad.sum()) * px_km2, 4),
                               "total": round(int(aw.sum() + ad.sum()) * px_km2, 4)})
     best = {**best, "added_km2": section["added_km2"]["total"],
-            "est_precision": gbest["est_precision"] if gbest is not None else best["est_precision"]}
+            "est_precision": (pbest or gbest or best)["est_precision"]}
     section["final_est_precision"] = best["est_precision"]
+    section["final_placebo_false_km2"] = final_fp
     msg = (f"The water-level envelope added {best['added_km2']:.2f} km² (estimated precision of the detected area {best['est_precision']:.0%}, "
            "from a placebo test); shown with low confidence.")
     notices.append(_notice("envelope_applied", msg, **section["chosen"]))

@@ -194,9 +194,13 @@ def run(run_dir: Path) -> dict:
         conf_r = np.where(new, 1, conf_r if conf_r is not None else 0).astype(np.uint8)
     mask, prob = combine_arrays(ai_mask, ai_prob, debris_mask, conf_r)
     if env_water is not None and env_water.any():
-        add = env_water & np.isin(mask, (NODATA, DRY))
+        add = env_water & np.isin(mask, (NODATA, DRY, PERMANENT))  # permanent water with a strong change is affected (envelope stage 3)
         mask[add] = WATER
         prob[add] = np.fmax(np.nan_to_num(prob[add]), CONF_PROB[1])
+    if env_debris is not None and env_debris.any():
+        on_perm = env_debris & (mask == PERMANENT)  # combine_arrays keeps permanent water; the envelope may override it
+        mask[on_perm] = DEBRIS
+        prob[on_perm] = np.fmax(np.nan_to_num(prob[on_perm]), CONF_PROB[1])
     px_km2 = abs(transform.a * transform.e) / 1e6
     blind = int(((ai_mask == NODATA) & (mask == DEBRIS)).sum())
     if blind:
