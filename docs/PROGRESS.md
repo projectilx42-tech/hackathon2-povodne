@@ -169,6 +169,11 @@ Obtížnost a čas = odhad uživatele.
 4. Účty (CDSE, Kaggle…) zakládá uživatel až v příslušných sessions (D-011); údaje jen jako env proměnné prostředí, nikdy do repa.
 
 ## Log sessions
+### 2026-10-13 — M14: ověření na více událostech, etapa 1 — `feat/multievent`
+- Nezávislé ověření celé pipeline (běh ze surových dat) na událostech bez EMS: Kuro Siwo TEST (Malawi 2022, Honduras 2018) a vlastní optické labely vody (Teesta 2023, Chamoli 2021) + kontrola bez povodně (Marsyangdi 2024). Okna ≤ ~9 km, ~100 PU na událost.
+- Skript `validation/multievent_eval.py`, události `validation/multievent_events.json`, výsledky a tabulka `validation/results/multievent/README.md`. Kód pipeline neměněn; běhy v odděleném worktree s `feat/envelope` sloučenou jen lokálně.
+- Výsledky: Malawi semena R 0,91 / P 0,95; Honduras semena R 0,65 / P 0,90, obálka (v8580d73) R 0,68 — starší obálka měla R 0,83 / P 0,84; kontrola bez povodně: semena 2,1 km² „zasaženo“ (hlavně fúze sesuvů), obálka přidá 0,08 km².
+- Chyba v měření nalezena a opravena: zbylé `envelope_mask.tif` z předchozí varianty (ovladač je teď maže). Čeká na pokyn master session: etapa 2 (Bolívie, Austrálie, Bihar).
 ### 2026-10-12 — hlášení: stats.json, sitrep, obrázky vrstev — `feat/report`
 - Hotovo `src/povodne/report/` (D-M6-01): `stats.json` verze 2 (pole v1 beze změny, chybějící část = `null`), verdikt (nedostatek dat < 20 % pozorované plochy nebo bez mapy; povodeň ≥ 0,1 km²),
   sitrep `report/sitrep_en.md` + `.pdf` (fpdf2, 1 strana A4, tabulky se zkracují, mapa z matplotlibu), `overlays/*.png` + `index.json` přeprojektované do EPSG:4326, upozornění `step = report` v `docs/NOTICES.md`.
