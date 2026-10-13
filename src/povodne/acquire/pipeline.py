@@ -142,6 +142,20 @@ def _write_s1(path: Path, data: np.ndarray, grid: Grid, acq: catalog.Acquisition
     return j
 
 
+def _or_none(fn):
+    """fn wrapped so that a failing download (e.g. Sentinel Hub HTTP 500 after its retries) gives None instead of losing the
+    whole step; callers drop or report the missing item (D-M14-07)."""
+    def wrapped(*a, **k):
+        try:
+            return fn(*a, **k)
+        except MissingCredentials:
+            raise
+        except Exception as exc:
+            print(f"acquire: one download failed and is skipped: {exc}", flush=True)
+            return None
+    return wrapped
+
+
 def _s1(path: Path, grid: Grid, sh: SentinelHub, a: catalog.Acquisition, direction: str, speckle) -> dict:
     """Download one S1 pass unless the run already has it (re-runs do not spend processing units again)."""
     if path.exists():
@@ -417,9 +431,9 @@ def _run_with_pools(run_dir, rj, cfg, sh, warnings, aoi, event, epsg, acq, pool,
         cgrid = utm_grid(bounds, epsg, cfg.same_day_res_m)
         usable_c = _to_grid((floor & ~track_mask(t)).astype(np.uint8), dem, cgrid) > 0
         vv = lambda a: preselect.smooth_db(decode_db(fetch_s1(sh, cgrid, a.start, t.direction, cfg.speckle, bands=("VV",))[0]))
-        got = list(pool.map(vv, t.pre_candidates[-4:] + [t.same_day]))  # up to 4 earlier passes + the event-day pass
-        hist, same = got[:-1], got[-1]
-        change = preselect.change_fraction(same, hist, usable_c)
+        got = list(pool.map(_or_none(vv), t.pre_candidates[-4:] + [t.same_day]))  # up to 4 earlier passes + the event-day pass
+        hist, same = [g for g in got[:-1] if g is not None], got[-1]
+        change = preselect.change_fraction(same, hist, usable_c) if same is not None else None
         baseline = preselect.change_fraction(hist[-1], hist[:-1], usable_c) if len(hist) >= 3 else None
         dec = preselect.judge_same_day(change, baseline)
         t.same_day_info = {"datetime": t.same_day.to_json()["datetime"], "used_as_post": dec.use_as_post, "reason": dec.reason,
@@ -485,9 +499,9 @@ def _run_with_pools(run_dir, rj, cfg, sh, warnings, aoi, event, epsg, acq, pool,
     usable = _to_grid((floor & ~track_mask(main) & ~terrain.permanent_water(dem)).astype(np.uint8), dem, sgrid) > 0
     cands = main.pre_candidates
     _progress(run_dir, "running", f"checking {len(cands)} earlier passes for flooding before the event date")
-    fracs: list[float | None] = list(pool.map(
+    fracs: list[float | None] = list(pool.map(_or_none(
         lambda a: preselect.water_fraction(
-            decode_db(fetch_s1(sh, sgrid, a.start, main.direction, cfg.speckle, bands=("VV",))[0]), usable), cands))
+            decode_db(fetch_s1(sh, sgrid, a.start, main.direction, cfg.speckle, bands=("VV",))[0]), usable)), cands))
     user_window = _parse_window(rj.get("pre_window"))
     choice = preselect.choose_pre([a.start for a in cands], fracs, cfg.n_pre, user_window)
     warnings += choice.warnings
@@ -544,10 +558,16 @@ def _run_with_pools(run_dir, rj, cfg, sh, warnings, aoi, event, epsg, acq, pool,
         jobs = ([(out_dir / f"pre_{a.start:%Y%m%d}.tif", grid, a) for a in pres]
                 + [(out_dir / f"post_{t.post.start:%Y%m%d}.tif", grid, t.post)]
                 + [(out_dir / f"hist_{a.start:%Y%m%d}.tif", hgrid, a) for a in hist])
-        res = list(pool.map(lambda j: _s1(j[0], j[1], sh, j[2], t.direction, cfg.speckle), jobs))
-        blocks[key]["pre"], blocks[key]["post"] = res[:len(pres)], res[len(pres):len(pres) + 1]
+        res = list(pool.map(_or_none(lambda j: _s1(j[0], j[1], sh, j[2], t.direction, cfg.speckle)), jobs))
+        if res[len(pres)] is None:  # without the after-image the track is useless: fail as before
+            _s1(*jobs[len(pres)][:2], sh, jobs[len(pres)][2], t.direction, cfg.speckle)
+        if not any(r is not None for r in res[:len(pres)]):  # no before-image at all: fail as before
+            _s1(*jobs[0][:2], sh, jobs[0][2], t.direction, cfg.speckle)
+        # a failed second before-image or older pass is dropped (fewer images, same method)
+        blocks[key]["pre"] = [r for r in res[:len(pres)] if r is not None]
+        blocks[key]["post"] = res[len(pres):len(pres) + 1]
         blocks[key]["hist"] = [{k: v for k, v in r.items() if k in ("id", "datetime", "file", "valid_pct")}
-                               for r in res[len(pres) + 1:]]
+                               for r in res[len(pres) + 1:] if r is not None]
         blocks[key]["processing"] = {"backCoeff": "SIGMA0_ELLIPSOID", "orthorectify": True, "dem": "COPERNICUS_30",
                                      "speckle": (f"LEE {cfg.speckle}x{cfg.speckle} + 3x3 mean (linear)" if cfg.speckle else "none"),
                                      "encoding": "UINT16, dB = value*0.001-50, 0 = nodata"}

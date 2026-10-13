@@ -1423,3 +1423,11 @@ přitom vadný průlet už přeskakoval. Oprava: vadný průlet se přeskočí, 
 `perm_water.json.failed`. Test `tests/test_permwater.py::test_build_survives_one_failing_pass`.
 Sada 11 událostí (tag `permfix`): Bihár F1 0,85 → 0,93 (R 0,82 → 0,97, P 0,88 → 0,89), ostatní beze změny (měly referenci); průměr 9 událostí
 R 0,842 → 0,858, P 0,870 → 0,872, F1 0,850 → 0,859; kontrola bez povodně beze změny. Kontrakt beze změny.
+
+## D-M14-07 | 2026-10-13 | přijato (oprava robustnosti) — Jedno selhání stahování neshodí celý krok ani vrstvu
+Audit `src/povodne/acquire/` po D-M14-06: tytéž chyby serveru (HTTP 500 po opakováních) by jinde shodily celý krok stahování (`acquire_failed`,
+bez mapy) nebo vrstvu: (1) řada podílu vody pro výběr snímku „před“ (D-M1-01) — teď chybějící datum = neznámé, výběr pokračuje; (2) kontrola průletu
+v den povodně (D-M1-03) — vadný starší průlet se vynechá, vadný průlet v den povodně se nepoužije; (3) starší průlety pro historii pixelu a druhý snímek
+„před“ — vadný se vynechá (chybí-li snímek „po“ nebo všechny „před“, krok selže jako dřív); (4) řada snímků po povodni (`postseries`, D-M10-06) —
+vadný průlet se vynechá, ne celá řada. Chybějící přihlašovací údaje dál končí chybou. Testy `tests/test_acquire_partial_failure.py`.
+Na sadě 11 událostí bez vlivu na čísla (jediná selhání v Biháru už ošetřoval roční normál a D-M14-06).
