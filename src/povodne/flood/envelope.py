@@ -17,7 +17,9 @@ No parameter is tuned against any reference map (D-006). q, block size and tz ar
 procedure on passes from before the event (seeds = placebo anomaly detections on the valley floor, the same envelope, the same
 evidence test on the placebo z) must add little. Estimated precision of the detected area = 1 - placebo false area / (existing + added area)
 (the optical test has no placebo pair: its false rate is measured on control pixels far from any detection and is
-conservative). The working point is the most sensitive setting (largest added area) with estimated precision >= `MIN_PRECISION`; q, tz and r are chosen jointly.
+conservative). The working point is the most sensitive setting (largest added area) with estimated precision >= `MIN_PRECISION`; q, tz and r are chosen jointly. Stage 2 (hysteresis growth):
+connected weak-evidence components (8-neighbourhood, no HAND / slope limit) that touch the detections are added; the threshold tg
+is again the most sensitive one whose estimated precision of the whole detected area stays >= MIN_PRECISION (same placebo chain).
 
 Reads  flood/ai_mask.tif, flood/debris_mask.tif (optional), flood/s1_anomaly.tif, masks/hand.tif, masks/slope.tif,
        masks/s2_{pre,post}_valid.tif + aligned/s2_{pre,post}.tif (optional), run.json (s1anomaly), raw/s1*/ (placebo, via s1anomaly)
@@ -50,6 +52,7 @@ MIN_PRECISION = 0.85               # D-X-08
 MIN_BLOCK_SEEDS = 20
 NDVI_DROP = 0.2                    # a-priori physical rule (D-X-10): NDVI falls by more than 0.2 and ends below NDVI_POST_MAX; no placebo pair, see `optical_false_rate`
 NDVI_POST_MAX = 0.3
+TG_GRID = (3.0, 2.5, 2.0)          # hysteresis growth threshold on |z_comb| (stage 2, D-X-10 addendum); lower = more sensitive
 R_GRID = (0, 3, 6)                 # closing radius in pixels that bridges small gaps / fills holes inside the envelope (0 = off)
 SEED_Z_PLACEBO = -3.0              # placebo seeds: the strict anomaly detections of the placebo passes (same for the real strict level)
 HAND_BIN_M, HAND_MAX_M = 0.5, 150.0
@@ -174,6 +177,14 @@ def placebo_false(penv, pseeds, perm, pev, r) -> int:
     """False area of the placebo: envelope pixels with placebo evidence plus the closing, minus the placebo seeds."""
     det = pseeds | (penv & pev & ~perm)
     return int((close_gaps(det, penv, r) & ~pseeds & ~perm).sum())
+
+
+def grow_hysteresis(det: np.ndarray, evidence: np.ndarray, perm: np.ndarray) -> np.ndarray:
+    """Pixels of connected (8-neighbourhood) weak-evidence components that touch the detections `det`; no HAND or slope limit.
+    Returns the new pixels only (not in det, not permanent water)."""
+    lab, _ = ndimage.label(evidence | det, structure=np.ones((3, 3)))
+    keep = np.unique(lab[det])
+    return np.isin(lab, keep[keep > 0]) & evidence & ~det & ~perm
 
 
 def placebo_added(env: np.ndarray, seeds: np.ndarray, permanent: np.ndarray, evidence: np.ndarray) -> int:
@@ -310,6 +321,33 @@ def run(run_dir: Path) -> dict:
     env = cache[(best["q"], best["block_px"])]
     ev, dk = radar_evidence(z, best["tz"])
     aw, ad = add_pixels(env, seeds, perm, ev | (opt if opt is not None else False), dk, existing, labelled, best["r_px"])
+    # Stage 2: hysteresis growth of the weak evidence from everything detected so far; threshold from the placebo, same chain.
+    pev_best, _ = radar_evidence(zp, best["tz"])
+    penv_best, _ = envelope(hand, pseeds, perm, best["q"], best["block_px"])
+    pdet = pseeds | (penv_best & pev_best & ~perm)
+    pdet = close_gaps(pdet, penv_best, best["r_px"])
+    base_fp = best["placebo_false_km2"] / px_km2
+    det1 = existing | aw | ad
+    grow_rows = []
+    for tg in TG_GRID:
+        evg, dkg = radar_evidence(z, tg)
+        evg_all = evg | (opt if opt is not None else False)
+        gnew = grow_hysteresis(det1, evg_all, perm)
+        pg, _ = radar_evidence(zp, tg)
+        gfp = int(grow_hysteresis(pdet, pg, perm).sum()) + (optical_false_rate(opt, optq & ~det1) * float(gnew.sum()) if opt is not None else 0)
+        total_added = int(aw.sum() + ad.sum() + gnew.sum())
+        grow_rows.append({"tg": tg, "grown_px": int(gnew.sum()), "grown_km2": round(int(gnew.sum()) * px_km2, 4),
+                          "placebo_false_km2": round((base_fp + gfp) * px_km2, 4),
+                          "est_precision": round(max(0.0, 1.0 - (base_fp + gfp) / (n_exist + total_added)), 3),
+                          "added_px": total_added, "_new": gnew, "_dark": dkg})
+    ok_g = [g for g in grow_rows if g["grown_px"] > 0 and g["est_precision"] >= MIN_PRECISION]
+    gbest = max(ok_g, key=lambda g: g["grown_px"]) if ok_g else None
+    grown_info = {"grid": [{k: v for k, v in g.items() if not k.startswith("_")} for g in grow_rows], "chosen": None}
+    if gbest is not None:
+        gw, gd = gbest["_new"] & gbest["_dark"], gbest["_new"] & ~gbest["_dark"]
+        aw, ad = aw | gw, ad | gd
+        grown_info["chosen"] = {k: v for k, v in gbest.items() if not k.startswith("_")}
+    section["growth"] = grown_info
     out = np.zeros(shape, np.uint8)
     out[ad], out[aw] = DEBRIS, WATER
     p = {**prof, "count": 1, "dtype": "uint8", "nodata": 0, "compress": "deflate"}
@@ -319,7 +357,10 @@ def run(run_dir: Path) -> dict:
         ds.write(out, 1)
     section.update(used=True, chosen={k: best[k] for k in ("q", "block_px", "tz", "r_px", "est_precision", "est_precision_added", "placebo_false_km2", "median_level_m")},
                    added_km2={"water": round(int(aw.sum()) * px_km2, 4), "debris": round(int(ad.sum()) * px_km2, 4),
-                              "total": best["added_km2"]})
+                              "total": round(int(aw.sum() + ad.sum()) * px_km2, 4)})
+    best = {**best, "added_km2": section["added_km2"]["total"],
+            "est_precision": gbest["est_precision"] if gbest is not None else best["est_precision"]}
+    section["final_est_precision"] = best["est_precision"]
     msg = (f"The water-level envelope added {best['added_km2']:.2f} km² (estimated precision of the detected area {best['est_precision']:.0%}, "
            "from a placebo test); shown with low confidence.")
     notices.append(_notice("envelope_applied", msg, **section["chosen"]))

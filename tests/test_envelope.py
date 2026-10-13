@@ -190,3 +190,16 @@ def test_ndvi_rule_needs_drop_and_low_result():
     post2[3], post2[2] = 0.5, 0.1                         # NDVI 0.67: drop 0.15 < 0.2
     assert not envelope.ndvi_drop(pre, post2, ok).any()
     assert not envelope.ndvi_drop(pre, post, ~ok).any()   # not clean in both images
+
+
+def test_grow_hysteresis_only_components_touching_detections():
+    det = np.zeros((40, 40), bool)
+    det[5:10, 5:10] = True
+    ev = np.zeros_like(det)
+    ev[8:20, 8:12] = True                                 # touches the detection (8-connected overlap)
+    ev[30:35, 30:35] = True                               # isolated: stays out
+    out = envelope.grow_hysteresis(det, ev, np.zeros_like(det))
+    assert out[12:20, 8:12].all() and not out[30:35, 30:35].any() and not (out & det).any()
+    perm = np.zeros_like(det)
+    perm[12:20, 8:12] = True
+    assert not envelope.grow_hysteresis(det, ev, perm)[12:20, 8:12].any()
