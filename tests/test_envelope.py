@@ -119,7 +119,7 @@ def _run_dir(tmp_path, noisy_placebo: bool):
 def test_step_adds_inside_envelope_and_combine_uses_it(tmp_path):
     run = _run_dir(tmp_path, noisy_placebo=False)
     res = envelope.run(run)
-    assert res["used"] and res["chosen"]["est_precision"] >= envelope.MIN_PRECISION
+    assert res["used"] and res["final_est_precision"] >= envelope.MIN_PRECISION
     with rasterio.open(run / "flood" / "envelope_mask.tif") as ds:
         env = ds.read(1)
     assert (env[105:145, 87:95] == 2).mean() > 0.8        # added as water beside the river where no seed was
@@ -129,7 +129,7 @@ def test_step_adds_inside_envelope_and_combine_uses_it(tmp_path):
     assert not env[:100, 85:115].any()                    # existing detections untouched
     rj = json.loads((run / "run.json").read_text())
     assert next(s for s in rj["progress"]["steps"] if s["name"] == "envelope")["state"] == "done"
-    assert rj["envelope"]["chosen"]["tz"] in envelope.TZ_GRID
+    assert rj["envelope"]["chosen"]["tz"] in envelope.TZ_GRID_RUN
     # combine: ai_prob needed
     with rasterio.open(run / "flood" / "ai_mask.tif") as ds:
         prof, tr = ds.profile, ds.transform
@@ -206,3 +206,39 @@ def test_grow_hysteresis_only_components_touching_detections():
     perm = np.zeros_like(det)
     perm[12:20, 8:12] = True
     assert not envelope.grow_hysteresis(det, ev, perm)[12:20, 8:12].any()
+
+
+def test_windowed_stat_and_persistence_and_band():
+    z = np.zeros((40, 40), np.float32)
+    z[10:20, 10:20] = -3.0
+    rms, sgn = envelope.windowed(z, 9)
+    assert rms[15, 15] > 2.9 and sgn[15, 15] < -2.9 and rms[35, 35] == 0           # window mean of z^2 keeps the patch
+    ev, dk = envelope.evidence_w((rms, sgn), 2.0)
+    assert ev[15, 15] and dk[15, 15] and not ev[35, 35]
+    ev2, _ = envelope.evidence_w((rms, sgn), 2.0, persist=np.zeros_like(ev))        # not recurring: no evidence
+    assert not ev2.any()
+    det = np.zeros((40, 40), bool)
+    det[20, 20] = True
+    b = envelope.band_around(det, 5)
+    assert b[20, 25] and not b[20, 26] and b[20, 20]
+
+
+def test_search_runs_all_stages_on_synthetic_context():
+    shape = (200, 200)
+    hand = _valley(*shape)
+    ai = np.ones(shape, np.uint8)
+    ai[:100, 85:115] = 2
+    perm = np.zeros(shape, bool)
+    perm[100:, 96:104] = True
+    seeds = ai == 2
+    z = np.zeros(shape, np.float32)
+    z[100:150, 86:96] = -4.0
+    z[100:150, 96:104] = -6.0
+    z[100:150, 79:86] = -1.9                              # weak: only the edge band / growth can catch it
+    c = {"z": z, "zp": np.zeros(shape, np.float32), "hand": hand, "perm": perm, "existing": seeds | perm, "seeds": seeds,
+         "pseeds": np.zeros(shape, bool), "opt": None, "optq": None, "labelled": np.where(seeds, 2, 0).astype(np.uint8),
+         "n_exist": int((seeds | perm).sum()), "Pe": None, "Pp": None, "ctrl_rate": 0.0, "px_km2": 1e-4}
+    res = envelope.search(c, False)
+    assert res["final"] and res["final"]["est_precision"] >= envelope.MIN_PRECISION
+    assert set(res["stages"]) == {"envelope", "growth", "permanent_water", "edges"}
+    assert (res["added_water"][105:145, 87:95]).mean() > 0.8

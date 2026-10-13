@@ -1277,3 +1277,12 @@ budov označeno, 1972 našich zásahů) beze změny — mění se jen stupeň, n
   důkaz těsně pod prahem (1,5–2). Třetí stupeň = nižší práh t3 jen v pásu r px kolem detekcí; placebo vybralo t 2,5 / t3 1,75 / r 5
   (odhad P 0,864) → **R 0,867 / P 0,853**. Hranice R-P na tomto starém běhu: P ~0,83 při R ~0,89 → 90 % při P ≥ 0,85 vyžaduje
   kvalitnější důkaz (roční normál, trvalost přes post_series), ne další geometrii.
+
+## D-M13-02 | 2026-10-13 | přijato (úkol od master session, D-X-11) — Obálka: okno w, trvalost přes více snímků, okraje; vše z placeba
+Rozšíření D-M13-01 (`flood/envelope.py`), čtyři stupně, každý práh = nejcitlivější s odhadem přesnosti celé detekované plochy ≥ 0,85 z placeba:
+1. obálka (q ∈ {75, 95}, blok 50 px) + důkaz + uzavření děr r ∈ {0, 6}; důkaz = **průměr z² v okně w ∈ {1, 5, 9} px** (D-X-11: větší okna placebo neumí ověřit, tvrdý strop 9 px)
+   ≥ tz ∈ {3; 2,5; 2; 1,75}, většinový filtr 5 × 5, nebo optické pravidlo; posun scény je už odečten v `s1_anomaly` (i v placebu);
+2. hysterezní růst tg ∈ {3 … 1,5}; 3. trvalá voda se silnou změnou tp; 4. **okraje:** nižší práh t3 ∈ {1,75; 1,5; 1,25} jen v pásu r ∈ {3, 5, 10} px kolem dosavadních detekcí.
+**Trvalost změny:** variant s trvalostí (pixel je důkaz jen když |z| ≥ 1,5 (a-priori) ve stejném směru aspoň ve 2 snímcích po události — dráhy × průlety z `post_series`; placebo stejně z placebo průletů)
+a bez ní; `POVODNE_ENVELOPE_PERSIST=0|1|auto` (výchozí auto = obě, vyhraje větší plocha při odhadu P ≥ 0,85). Důvod: vlhkost po dešti je přechodná, suť a sesuvy trvalé.
+`run.json.envelope.variants[*].stages` ukládá všechny mřížky, `chosen` zvolené hodnoty. Omezení: průlety po události jsou jen 0–24 dnů, trvalost nad 1–2 týdny; placebo pre-pre dvojice neobsahuje déšť v den události.

@@ -238,7 +238,187 @@ def _placebo_z_comb(run_dir: Path, shape) -> tuple[np.ndarray | None, str]:
     return s1anomaly.combine_tracks(per_vv, per_vh)[2], "+".join(sorted(kinds))
 
 
+# ---------------------------------------------------------------- evidence with window, persistence (D-X-11)
+W_GRID = (1, 5, 9)                 # window (px) of the mean of z^2; <= 9 px: the placebo cannot verify larger windows (D-X-11)
+Q_GRID_RUN = (75, 95)
+TZ_GRID_RUN = (3.0, 2.5, 2.0, 1.75)
+R_GRID_RUN = (0, 6)
+TG_GRID_RUN = (3.0, 2.5, 2.0, 1.75, 1.5)
+EDGE_T3 = (1.75, 1.5, 1.25)        # stage 4: lower threshold, only in a band around the detections
+EDGE_R = (3, 5, 10)
+T_PASS = 1.5                       # per-pass threshold of the persistence test (a-priori; each pass is unaveraged and noisy)
+MIN_PASSES = 2
+
+
+def windowed(z: np.ndarray, w: int) -> tuple[np.ndarray, np.ndarray]:
+    """(rms, signed mean) of z in a w x w window (NaN = 0, like the placebo)."""
+    z0 = np.where(np.isfinite(z), z, 0.0).astype(np.float32)
+    if w <= 1:
+        return np.abs(z0), z0
+    return (np.sqrt(ndimage.uniform_filter(z0 * z0, size=w, mode="nearest")).astype(np.float32),
+            ndimage.uniform_filter(z0, size=w, mode="nearest").astype(np.float32))
+
+
+def evidence_w(stat: tuple[np.ndarray, np.ndarray], t: float, persist: np.ndarray | None = None,
+               opt: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray]:
+    """(evidence, darker): windowed rms >= t, 5 x 5 majority; with `persist` only where the change recurs in >= 2 passes."""
+    rms, sgn = stat
+    ev = smooth_bool(rms >= t)
+    if persist is not None:
+        ev &= persist
+    dk = smooth_bool(sgn < 0)
+    return (ev | opt) if opt is not None else ev, dk
+
+
+def persistence_mask(run_dir: Path, shape, which: str) -> tuple[np.ndarray | None, int]:
+    """True where the anomaly recurs: a pass-level combined z beyond +-T_PASS (same sign) in >= MIN_PASSES passes (tracks x passes).
+    Moisture after rain is transient, debris and landslides persist. (None, n) if fewer than MIN_PASSES passes exist."""
+    neg = np.zeros(shape, np.uint8)
+    pos = np.zeros(shape, np.uint8)
+    n_pass = 0
+    for prefix, _ in s1anomaly.TRACKS:
+        norm_p = run_dir / "raw" / prefix / "norm.tif"
+        if not norm_p.exists():
+            continue
+        with rasterio.open(norm_p) as ds:
+            norm, f = ds.read(), int(round(abs(ds.transform.a) / 10.0))
+        for zv, zh, *_ in s1anomaly._series(run_dir, prefix, norm, which):
+            zc = (zv + zh) / np.sqrt(2.0)
+            for cnt, m in ((neg, zc <= -T_PASS), (pos, zc >= T_PASS)):
+                up = np.repeat(np.repeat(m, f, 0), f, 1)[:shape[0], :shape[1]]
+                cnt[:up.shape[0], :up.shape[1]] += up.astype(np.uint8)
+            n_pass += 1
+    if n_pass < MIN_PASSES:
+        return None, n_pass
+    return (neg >= MIN_PASSES) | (pos >= MIN_PASSES), n_pass
+
+
+def band_around(det: np.ndarray, r: int) -> np.ndarray:
+    """Pixels within r px of the detections (dilation by a disk, on the bounding box)."""
+    if not det.any():
+        return det
+    ys, xs = np.nonzero(det)
+    y0, y1, x0, x1 = max(ys.min() - r - 1, 0), ys.max() + r + 2, max(xs.min() - r - 1, 0), xs.max() + r + 2
+    out = np.zeros_like(det)
+    out[y0:y1, x0:x1] = ndimage.distance_transform_edt(~det[y0:y1, x0:x1]) <= r
+    return out
+
+
+def _pick(rows: list[dict], key: str) -> dict | None:
+    ok = [r for r in rows if r[key] > 0 and r["est_precision"] >= MIN_PRECISION]
+    return max(ok, key=lambda r: r[key]) if ok else None
+
+
+def search(c: dict, persist: bool) -> dict:
+    """The four-stage search for one evidence variant; every threshold is picked by the placebo (est. precision >= MIN_PRECISION).
+    `c` = context (arrays + constants). Returns {"final": {...}, "added_water", "added_debris", "stages": {...}}."""
+    z, zp, hand, perm, existing, seeds, pseeds = c["z"], c["zp"], c["hand"], c["perm"], c["existing"], c["seeds"], c["pseeds"]
+    opt, labelled, n_exist = c["opt"], c["labelled"], c["n_exist"]
+    Pe, Pp = (c["Pe"], c["Pp"]) if persist else (None, None)
+    optq, ctrl = c["optq"], c["ctrl_rate"]
+    zero = np.zeros(z.shape, bool)
+    out = {"persistence": persist, "stages": {}}
+
+    def prec(fp, added):
+        return round(max(0.0, 1.0 - fp / (n_exist + added)), 3)
+
+    # stage 1: envelope + evidence + closing, jointly over q, w, tz, r
+    rows, keep = [], {}
+    for q in Q_GRID_RUN:
+        env, einfo = envelope(hand, seeds, perm, q, BLOCK_GRID[0])
+        penv, _ = envelope(hand, pseeds, perm, q, BLOCK_GRID[0])
+        env_px = int((env & ~existing).sum())
+        for w in W_GRID:
+            sE, sP = windowed(z, w), windowed(zp, w)
+            for tz in TZ_GRID_RUN:
+                ev, dk = evidence_w(sE, tz, Pe, opt)
+                pev, _ = evidence_w(sP, tz, Pp)
+                for r in R_GRID_RUN:
+                    aw, ad = add_pixels(env, seeds, perm, ev, dk, existing, labelled, r)
+                    added = int(aw.sum() + ad.sum())
+                    fp = placebo_false(penv, pseeds, perm, pev, r) + ctrl * env_px
+                    rows.append({"q": q, "w": w, "tz": tz, "r_px": r, "added_px": added, "added_km2": round(added * c["px_km2"], 4),
+                                 "placebo_false_km2": round(fp * c["px_km2"], 4), "est_precision": prec(fp, added),
+                                 "est_precision_added": round(max(0.0, 1.0 - fp / added), 3) if added else 1.0,
+                                 "median_level_m": einfo["median_level_m"]})
+                    keep[(q, w, tz, r)] = (aw, ad, env, penv)
+    best = _pick(rows, "added_px")
+    out["stages"]["envelope"] = {"grid": rows, "chosen": best}
+    if best is None:
+        out["final"] = None
+        return out
+    aw, ad, env, penv = keep[(best["q"], best["w"], best["tz"], best["r_px"])]
+    del keep
+    w = best["w"]
+    sE, sP = windowed(z, w), windowed(zp, w)
+    pev, _ = evidence_w(sP, best["tz"], Pp)
+    pdet = close_gaps(pseeds | (penv & pev & ~perm), penv, best["r_px"])
+    fp0 = best["placebo_false_km2"] / c["px_km2"]
+    cur_added = int(aw.sum() + ad.sum())
+
+    # stage 2: hysteresis growth from everything detected so far
+    det1, grows = existing | aw | ad, []
+    for tg in TG_GRID_RUN:
+        evg, dkg = evidence_w(sE, tg, Pe, opt)
+        gnew = grow_hysteresis(det1, evg, perm)
+        pg, _ = evidence_w(sP, tg, Pp)
+        gp = grow_hysteresis(pdet, pg, perm)
+        fp = fp0 + int(gp.sum()) + ctrl * int(gnew.sum())
+        grows.append({"tg": tg, "added_px": int(gnew.sum()), "est_precision": prec(fp, cur_added + int(gnew.sum())),
+                      "placebo_false_km2": round(fp * c["px_km2"], 4), "_new": gnew, "_dark": dkg, "_pnew": gp})
+    gb = _pick(grows, "added_px")
+    out["stages"]["growth"] = {"grid": [{k: v for k, v in g.items() if not k.startswith("_")} for g in grows],
+                               "chosen": {k: v for k, v in gb.items() if not k.startswith("_")} if gb else None}
+    if gb is not None:
+        aw, ad = aw | (gb["_new"] & gb["_dark"]), ad | (gb["_new"] & ~gb["_dark"])
+        pdet = pdet | gb["_pnew"]
+        fp0 = gb["placebo_false_km2"] / c["px_km2"]
+        cur_added = int(aw.sum() + ad.sum())
+
+    # stage 3: permanent water inside the envelope with a strong change
+    env_perm, perms = env & perm, []
+    for tp in TP_GRID:
+        evp, dkp = evidence_w(sE, tp, Pe)
+        pp, _ = evidence_w(sP, tp, Pp)
+        newp = env_perm & evp
+        fp = fp0 + int((env_perm & pp).sum())
+        perms.append({"tp": tp, "added_px": int(newp.sum()), "est_precision": prec(fp, cur_added + int(newp.sum())),
+                      "placebo_false_km2": round(fp * c["px_km2"], 4), "_new": newp, "_dark": dkp})
+    pb = _pick(perms, "added_px")
+    out["stages"]["permanent_water"] = {"grid": [{k: v for k, v in g.items() if not k.startswith("_")} for g in perms],
+                                        "chosen": {k: v for k, v in pb.items() if not k.startswith("_")} if pb else None}
+    if pb is not None:
+        aw, ad = aw | (pb["_new"] & pb["_dark"]), ad | (pb["_new"] & ~pb["_dark"])
+        fp0 = pb["placebo_false_km2"] / c["px_km2"]
+        cur_added = int(aw.sum() + ad.sum())
+
+    # stage 4: edges — a lower threshold t3 only in a band of r px around the detections
+    det3, edges = existing | aw | ad, []
+    pdet3 = pdet
+    for r in EDGE_R:
+        band, pband = band_around(det3, r), band_around(pdet3, r)
+        for t3 in EDGE_T3:
+            eve, dke = evidence_w(sE, t3, Pe, opt)
+            pe, _ = evidence_w(sP, t3, Pp)
+            enew = band & eve & ~det3 & ~perm
+            fp = fp0 + int((pband & pe & ~pdet3 & ~perm).sum()) + ctrl * int(enew.sum())
+            edges.append({"r": r, "t3": t3, "added_px": int(enew.sum()), "est_precision": prec(fp, cur_added + int(enew.sum())),
+                          "placebo_false_km2": round(fp * c["px_km2"], 4), "_new": enew, "_dark": dke})
+    eb = _pick(edges, "added_px")
+    out["stages"]["edges"] = {"grid": [{k: v for k, v in g.items() if not k.startswith("_")} for g in edges],
+                              "chosen": {k: v for k, v in eb.items() if not k.startswith("_")} if eb else None}
+    if eb is not None:
+        aw, ad = aw | (eb["_new"] & eb["_dark"]), ad | (eb["_new"] & ~eb["_dark"])
+        fp0 = eb["placebo_false_km2"] / c["px_km2"]
+    total = int(aw.sum() + ad.sum())
+    out.update(final={"added_px": total, "added_km2": round(total * c["px_km2"], 4),
+                      "est_precision": prec(fp0, total), "placebo_false_km2": round(fp0 * c["px_km2"], 4)},
+               added_water=aw, added_debris=ad)
+    return out
+
+
 def run(run_dir: Path) -> dict:
+    import os
     run_dir = Path(run_dir)
     set_step(run_dir, "envelope", "running", "water-level envelope")
     fdir = run_dir / "flood"
@@ -270,110 +450,42 @@ def run(run_dir: Path) -> dict:
     existing = seeds | perm
     slope = _read(run_dir / "masks" / "slope.tif", shape)
     floor = np.isfinite(hand) & (hand <= SEEDS_FLOOR["hand_m"]) & ((slope <= SEEDS_FLOOR["slope_deg"]) if slope is not None else True)
-    pseeds = floor & np.isfinite(zp) & (zp <= SEED_Z_PLACEBO) & ~perm   # placebo detections: what the strict radar test marks
-    pseeds = ndimage.binary_opening(pseeds, structure=np.ones((2, 2)))   # like the minimum area of real detections
-
-    # Sentinel-2 evidence (fixed threshold) and its false rate on control pixels
+    pseeds = floor & np.isfinite(zp) & (zp <= SEED_Z_PLACEBO) & ~perm
+    pseeds = ndimage.binary_opening(pseeds, structure=np.ones((2, 2)))
     opt = optq = None
     s2 = [_read(run_dir / "aligned" / f"s2_{k}.tif", shape, band=0) for k in ("pre", "post")]
     vm = [_read(run_dir / "masks" / f"s2_{k}_valid.tif", shape) for k in ("pre", "post")]
     if all(a is not None for a in s2 + vm):
-        opt = ndvi_drop(s2[0], s2[1], (vm[0] == 1) & (vm[1] == 1))
         optq = (vm[0] == 1) & (vm[1] == 1)
-    seeds_n = int(seeds.sum())
-    if seeds_n < MIN_BLOCK_SEEDS:
+        opt = ndvi_drop(s2[0], s2[1], optq)
+    if int(seeds.sum()) < MIN_BLOCK_SEEDS:
         msg = "Too few certain detections to estimate a water level: nothing was added."
         notices.append(_notice("envelope_no_working_point", msg))
         return finish({"used": False, "reason": msg}, "skipped", msg)
 
+    Pe, ne = persistence_mask(run_dir, shape, "post")
+    Pp, npl = persistence_mask(run_dir, shape, "placebo")
+    ctrl = optical_false_rate(opt, optq & ~existing) if opt is not None else 0.0
     labelled = np.where(ai == WATER, WATER, np.where(deb == 1, DEBRIS, 0)).astype(np.uint8) if deb is not None else np.where(ai == WATER, WATER, 0).astype(np.uint8)
-    n_exist = int(existing.sum())
-    rows, cache = [], {}
-    for q, block in itertools.product(Q_GRID, BLOCK_GRID):
-        env, einfo = envelope(hand, seeds, perm, q, block)
-        penv, _ = envelope(hand, pseeds, perm, q, block)
-        cache[(q, block)] = env
-        ctrl_rate = optical_false_rate(opt, optq & ~env & ~existing) if opt is not None else 0.0
-        opt_fp = ctrl_rate * float((env & ~existing).sum())
-        for tz in TZ_GRID:
-            ev, dk = radar_evidence(z, tz)
-            pev, _ = radar_evidence(zp, tz)
-            ev_all = ev | (opt if opt is not None else False)
-            for r in R_GRID:
-                aw, ad = add_pixels(env, seeds, perm, ev_all, dk, existing, labelled, r)
-                added = int(aw.sum() + ad.sum())
-                fp = placebo_false(penv, pseeds, perm, pev, r) + opt_fp
-                rows.append({"q": q, "block_px": block, "tz": tz, "r_px": r, "added_px": added, "added_km2": round(added * px_km2, 4),
-                             "placebo_false_km2": round(fp * px_km2, 4),
-                             "est_precision": round(max(0.0, 1.0 - fp / (n_exist + added)), 3),   # of the detected area (existing + added)
-                             "est_precision_added": round(max(0.0, 1.0 - fp / added), 3) if added else 1.0,
-                             "envelope_km2": round(int((env & ~existing).sum()) * px_km2, 4),
-                             "median_level_m": einfo["median_level_m"], "optical_false_rate": round(ctrl_rate, 5)})
-    best = choose(rows)
-    section = {"used": False, "min_precision": MIN_PRECISION, "placebo": placebo_kind, "seeds_km2": round(seeds_n * px_km2, 4),
-               "placebo_seeds_km2": round(int(pseeds.sum()) * px_km2, 4), "ndvi_drop": NDVI_DROP if opt is not None else None, "ndvi_post_max": NDVI_POST_MAX, "existing_km2": round(n_exist * px_km2, 4),
-               "optical_used": opt is not None, "grid": rows,
-               "method": "HAND envelope of certain detections + weak change evidence; parameters from placebo only (D-X-09)"}
-    if best is None:
-        msg = (f"No setting reached an estimated precision of {MIN_PRECISION:.0%} on the placebo, so nothing was added "
-               "(the weak evidence is too noisy here).")
+    c = {"z": z, "zp": zp, "hand": hand, "perm": perm, "existing": existing, "seeds": seeds, "pseeds": pseeds, "opt": opt, "optq": optq,
+         "labelled": labelled, "n_exist": int(existing.sum()), "Pe": Pe, "Pp": Pp, "ctrl_rate": ctrl, "px_km2": px_km2}
+    mode = os.environ.get("POVODNE_ENVELOPE_PERSIST", "auto")   # "0" off, "1" on, "auto" = both, the one with more area wins
+    variants = [v for v in ((False, True) if mode == "auto" else (mode == "1",)) if not v or (Pe is not None and Pp is not None)]
+    results = [search(c, v) for v in variants]
+    good = [r for r in results if r.get("final")]
+    section = {"used": False, "min_precision": MIN_PRECISION, "placebo": placebo_kind, "existing_km2": round(c["n_exist"] * px_km2, 4),
+               "placebo_seeds_km2": round(int(pseeds.sum()) * px_km2, 4), "ndvi_drop": NDVI_DROP, "ndvi_post_max": NDVI_POST_MAX,
+               "optical_used": opt is not None, "optical_false_rate": round(ctrl, 5), "post_passes": ne, "placebo_passes": npl,
+               "t_pass": T_PASS,
+               "variants": [{"persistence": r["persistence"], "final": r.get("final"),
+                             "stages": {k: v for k, v in r["stages"].items()}} for r in results],
+               "method": "HAND envelope + hysteresis growth + permanent water + edges; windowed z^2 evidence; all thresholds from placebo (D-X-09..11)"}
+    if not good:
+        msg = f"No setting reached an estimated precision of {MIN_PRECISION:.0%} on the placebo, so nothing was added (the weak evidence is too noisy here)."
         notices.append(_notice("envelope_no_working_point", msg))
         return finish(section, "done", msg)
-
-    env = cache[(best["q"], best["block_px"])]
-    ev, dk = radar_evidence(z, best["tz"])
-    aw, ad = add_pixels(env, seeds, perm, ev | (opt if opt is not None else False), dk, existing, labelled, best["r_px"])
-    # Stage 2: hysteresis growth of the weak evidence from everything detected so far; threshold from the placebo, same chain.
-    pev_best, _ = radar_evidence(zp, best["tz"])
-    penv_best, _ = envelope(hand, pseeds, perm, best["q"], best["block_px"])
-    pdet = pseeds | (penv_best & pev_best & ~perm)
-    pdet = close_gaps(pdet, penv_best, best["r_px"])
-    base_fp = best["placebo_false_km2"] / px_km2
-    det1 = existing | aw | ad
-    grow_rows = []
-    for tg in TG_GRID:
-        evg, dkg = radar_evidence(z, tg)
-        evg_all = evg | (opt if opt is not None else False)
-        gnew = grow_hysteresis(det1, evg_all, perm)
-        pg, _ = radar_evidence(zp, tg)
-        gfp = int(grow_hysteresis(pdet, pg, perm).sum()) + (optical_false_rate(opt, optq & ~det1) * float(gnew.sum()) if opt is not None else 0)
-        total_added = int(aw.sum() + ad.sum() + gnew.sum())
-        grow_rows.append({"tg": tg, "grown_px": int(gnew.sum()), "grown_km2": round(int(gnew.sum()) * px_km2, 4),
-                          "placebo_false_km2": round((base_fp + gfp) * px_km2, 4),
-                          "est_precision": round(max(0.0, 1.0 - (base_fp + gfp) / (n_exist + total_added)), 3),
-                          "added_px": total_added, "_new": gnew, "_dark": dkg})
-    ok_g = [g for g in grow_rows if g["grown_px"] > 0 and g["est_precision"] >= MIN_PRECISION]
-    gbest = max(ok_g, key=lambda g: g["grown_px"]) if ok_g else None
-    grown_info = {"grid": [{k: v for k, v in g.items() if not k.startswith("_")} for g in grow_rows], "chosen": None}
-    if gbest is not None:
-        gw, gd = gbest["_new"] & gbest["_dark"], gbest["_new"] & ~gbest["_dark"]
-        aw, ad = aw | gw, ad | gd
-        grown_info["chosen"] = {k: v for k, v in gbest.items() if not k.startswith("_")}
-    section["growth"] = grown_info
-
-    # Stage 3: permanent water (class 4) inside the envelope with a strong change against its normal is affected (a debris flow
-    # overfills the channel; reference mappers include it). Darker = water (2), brighter = debris / other change (3).
-    # The placebo false rate is the share of the same pixels that the placebo passes call "changed" at the same threshold.
-    base2_fp = (gbest["placebo_false_km2"] if gbest is not None else best["placebo_false_km2"]) / px_km2
-    env_perm = env & perm
-    perm_rows = []
-    for tp in TP_GRID:
-        evp, dkp = radar_evidence(z, tp)
-        pp, _ = radar_evidence(zp, tp)
-        new_p = env_perm & evp
-        pfp = int((env_perm & pp).sum())
-        tot = int((aw | ad).sum() + new_p.sum())
-        perm_rows.append({"tp": tp, "perm_px": int(new_p.sum()), "perm_km2": round(int(new_p.sum()) * px_km2, 4),
-                          "placebo_false_km2": round((base2_fp + pfp) * px_km2, 4),
-                          "est_precision": round(max(0.0, 1.0 - (base2_fp + pfp) / (n_exist + tot)), 3), "_new": new_p, "_dark": dkp})
-    ok_p = [g for g in perm_rows if g["perm_px"] > 0 and g["est_precision"] >= MIN_PRECISION]
-    pbest = max(ok_p, key=lambda g: g["perm_px"]) if ok_p else None
-    section["permanent_water"] = {"envelope_km2": round(int(env_perm.sum()) * px_km2, 4), "chosen": None,
-                                  "grid": [{k: v for k, v in g.items() if not k.startswith("_")} for g in perm_rows]}
-    if pbest is not None:
-        aw, ad = aw | (pbest["_new"] & pbest["_dark"]), ad | (pbest["_new"] & ~pbest["_dark"])
-        section["permanent_water"]["chosen"] = {k: v for k, v in pbest.items() if not k.startswith("_")}
-    final_fp = (pbest or gbest or best)["placebo_false_km2"]
+    win = max(good, key=lambda r: r["final"]["added_px"])
+    aw, ad = win["added_water"], win["added_debris"]
     out = np.zeros(shape, np.uint8)
     out[ad], out[aw] = DEBRIS, WATER
     p = {**prof, "count": 1, "dtype": "uint8", "nodata": 0, "compress": "deflate"}
@@ -381,17 +493,17 @@ def run(run_dir: Path) -> dict:
         p.pop(k, None)
     with rasterio.open(fdir / "envelope_mask.tif", "w", **p) as ds:
         ds.write(out, 1)
-    section.update(used=True, chosen={k: best[k] for k in ("q", "block_px", "tz", "r_px", "est_precision", "est_precision_added", "placebo_false_km2", "median_level_m")},
-                   added_km2={"water": round(int(aw.sum()) * px_km2, 4), "debris": round(int(ad.sum()) * px_km2, 4),
-                              "total": round(int(aw.sum() + ad.sum()) * px_km2, 4)})
-    best = {**best, "added_km2": section["added_km2"]["total"],
-            "est_precision": (pbest or gbest or best)["est_precision"]}
-    section["final_est_precision"] = best["est_precision"]
-    section["final_placebo_false_km2"] = final_fp
-    msg = (f"The water-level envelope added {best['added_km2']:.2f} km² (estimated precision of the detected area {best['est_precision']:.0%}, "
-           "from a placebo test); shown with low confidence.")
-    notices.append(_notice("envelope_applied", msg, **section["chosen"]))
-    return finish(section, "done", f"added {best['added_km2']:.2f} km² (q={best['q']}, tz={best['tz']}, r={best['r_px']}, est. precision {best['est_precision']:.2f})")
+    fin = win["final"]
+    chosen = {k: win["stages"][s]["chosen"][k] for s, ks in (("envelope", ("q", "w", "tz", "r_px")), ("growth", ("tg",)),
+              ("permanent_water", ("tp",)), ("edges", ("r", "t3"))) if win["stages"][s]["chosen"] for k in ks}
+    section.update(used=True, persistence=win["persistence"], chosen=chosen, final_est_precision=fin["est_precision"],
+                   final_placebo_false_km2=fin["placebo_false_km2"],
+                   added_km2={"water": round(int(aw.sum()) * px_km2, 4), "debris": round(int(ad.sum()) * px_km2, 4), "total": fin["added_km2"]})
+    msg = (f"The water-level envelope added {fin['added_km2']:.2f} km² (estimated precision of the detected area "
+           f"{fin['est_precision']:.0%}, from a placebo test); shown with low confidence.")
+    notices.append(_notice("envelope_applied", msg, **{k: v for k, v in chosen.items()}, est_precision=fin["est_precision"],
+                           placebo_false_km2=fin["placebo_false_km2"]))
+    return finish(section, "done", f"added {fin['added_km2']:.2f} km² (persistence {win['persistence']}, est. precision {fin['est_precision']:.2f})")
 
 
 def main() -> None:
@@ -404,7 +516,7 @@ def main() -> None:
         if get_step(load_run(a.run_dir), "envelope").get("state") != "failed":
             set_step(a.run_dir, "envelope", "failed", f"envelope failed: {exc}")
         sys.exit(f"envelope failed: {exc}")
-    s = {k: v for k, v in s.items() if k != "grid"}
+    s = {k: v for k, v in s.items() if k != "variants"}
     print(json.dumps(s, indent=2))
 
 
