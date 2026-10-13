@@ -1456,3 +1456,13 @@ událostech Kuro Siwo (`training/eval_edge_radar.py`, k ∈ {1,2,3}, frac ∈ {0
 Výsledek (2825 val dlaždic, model v0.4, základ = sensitive + okrajový krok k=1 t=0,12): základ P 0,569 / R 0,816 / F1 0,671; nejlepší varianta k=1 frac=0,3
 P 0,565 / R 0,818 / F1 0,669, větší k nebo frac jen víc snižují přesnost (k=3 f=0,7: F1 0,644) → žádná varianta pravidlem neprošla, na 11 událostech se neměřilo.
 Okrajový krok podle pravděpodobnosti modelu (D-M9-15) už okraje pokrývá; radarová hodnota pixelu na okraji je smíšená a nepřidá informaci. Metriky `training/results/edge_radar_val_v0.4.json`.
+
+## D-M14-11 | 2026-10-13 | zamítnuto (opt-in `POVODNE_NOTDARK=1`) — Rozbor falešných nálezů a filtr „netmavé vody“
+Falešné „ostatní“ (stav `s2fix`, > 2 px od popisku): Bihár 4,1 km², Evros 2,4, Čad 1,4 — z 70–86 % je na jasných pixelech S2 po povodni voda (MNDWI > 0),
+tj. spíš rozdíl popisku (z radaru, jiný den) než chyba; Missouri 2,7 km² (optika vodu nepotvrzuje, S2 11 dní po; radar ztmavl jen na ~−13 dB, malé plošky).
+Kontrola Marsyangdi: 2,1 km² zasaženo, z toho 1,85 km² „sesuv“ na svazích (HAND 89 m, sklon 36°) z kroku změn povrchu; v oblasti s popiskem 0,33 km².
+Pokus `flood/notdark.py`: vodní plošky (třída 2) s mediánem VV po povodni > −15 dB (pevná hodnota z literatury) a bez potvrzení optikou → nezasaženo.
+Sada 11 událostí proti `s2fix`: F1 0,859 → 0,848 (R 0,854 → 0,820, P 0,876 → 0,892); Missouri +0,015, Bolívie +0,008, ale Honduras −0,080 (mělká kalná voda
+jen mírně tmavá), Teesta −0,024 → nesloučeno.
+Chamoli (F1 0,11): popisek jen 0,047 km² vody v soutěsce (21 % v radarovém stínu), systém tam hlásí hlavně suť (0,9 km²), kterou vodní popisek nezná —
+chyba dat to není, číslo je málo vypovídající.
