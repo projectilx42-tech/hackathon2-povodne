@@ -25,9 +25,10 @@ from .inputs import Inputs, Track, building_density
 from .stats import fisher, history_test
 
 # Sub-class codes of flood/debris_type.tif (D-M3d-02)
-DEBRIS, MUD, EROSION, FLOODED_VEGETATION, FLOODED_BUILTUP, DAMAGED_BUILTUP, UNKNOWN = 1, 2, 3, 4, 5, 6, 9
+DEBRIS, MUD, EROSION, FLOODED_VEGETATION, FLOODED_BUILTUP, DAMAGED_BUILTUP, LANDSLIDE, UNKNOWN = 1, 2, 3, 4, 5, 6, 7, 9
 TYPE_NAMES = {DEBRIS: "debris", MUD: "mud", EROSION: "erosion", FLOODED_VEGETATION: "flooded_vegetation",
-              FLOODED_BUILTUP: "flooded_builtup", DAMAGED_BUILTUP: "damaged_builtup", UNKNOWN: "unknown"}
+              FLOODED_BUILTUP: "flooded_builtup", DAMAGED_BUILTUP: "damaged_builtup", LANDSLIDE: "landslide",
+              UNKNOWN: "unknown"}
 LOW, MEDIUM, HIGH = 1, 2, 3
 CONF_NAMES = {LOW: "low", MEDIUM: "medium", HIGH: "high"}
 # Observability codes of flood/debris_observability.tif
@@ -64,6 +65,9 @@ class Params:
     dense_built: float = 0.5
     weather_rate: float = 0.05  # >= 5 % of the control area changed alike -> weather, not flood
     min_background_px: int = 1000
+    # Landslides and debris flows on slopes outside the valley rules (D-M11-03)
+    slide_slope_min_deg: float = 15.0  # fused patches on slopes at least this steep are named landslides (a label, not a gate)
+    slide_mmu_px: int = 30  # 0.3 ha: smaller patches are noise or single trees
 
 
 @dataclass
@@ -79,6 +83,7 @@ class Result:
     n_valid: np.ndarray
     optical: np.ndarray  # optical evidence available for the pixel
     stats: dict = field(default_factory=dict)
+    source: np.ndarray | None = None  # fused evidence: bit 1 = radar z >= 2, bit 2 = optical z >= 2
 
 
 def _ndvi(r):
@@ -116,7 +121,7 @@ def drop_small(mask: np.ndarray, min_px: int) -> np.ndarray:
     return ok[lab]
 
 
-def detect(inp: Inputs, p: Params, tracks: list[Track] | None = None, use_optical: bool = True) -> Result:
+def detect(inp: Inputs, p: Params, tracks: list[Track] | None = None, use_optical: bool = True, fuse: bool = True) -> Result:
     tracks = inp.tracks if tracks is None else tracks
     shape = inp.grid.shape
     ai_water = np.isin(inp.ai_mask, (2, 4)) if inp.ai_mask is not None else np.zeros(shape, bool)
@@ -283,6 +288,42 @@ def detect(inp: Inputs, p: Params, tracks: list[Track] | None = None, use_optica
 
     typ = np.where(drop_small(typ > 0, p.mmu_px), typ, 0).astype(np.uint8)
 
+    # --- fusion of evidence (D-M11-05, replaces the slope-gated slide rules of D-M11-03) --------------------------------
+    # Optical z-score (composite before vs after) + radar z-score (history test) + terrain as learned context, by
+    # self-training on pseudo-labels from the data itself. No slope/HAND gate decides what may be flagged; the slope
+    # only names the subtype afterwards (slides on slopes, deposits on flat ground).
+    fm = np.zeros(shape, bool)
+    ls_source = np.zeros(shape, np.uint8)
+    fuse_prob = np.zeros(shape, np.float32)
+    fusion_stats: dict = {"enabled": bool(fuse)}
+    if fuse:
+        from . import fusion as F
+
+        have_opt = use_optical and inp.s2_pre is not None and inp.s2_post is not None
+        excl = ai_water | inp.perm_water | snow | (typ > 0)
+        fz = F.run(inp.s2_pre if have_opt else None, inp.s2_post if have_opt else None,
+                   (inp.s2_pre_clear & inp.s2_post_clear) if have_opt else None, score, n_valid, sign, slope, hand, inp.aoi, excl,
+                   dark_weather=bool(weather[-1]), p=F.FusionParams(mmu_px=p.slide_mmu_px))
+        fusion_stats.update(fz.stats)
+        fm = drop_small(fz.mask & (typ == 0), p.slide_mmu_px)  # old bare ground needs no mask: bare -> bare has no z-score
+        fuse_prob = fz.prob if fz.prob is not None else fuse_prob
+        zo_, zr_ = np.nan_to_num(fz.z_opt, nan=-9.0), np.nan_to_num(fz.z_rad, nan=-9.0)
+        ls_source = (((zr_ >= 2).astype(np.uint8)) | ((zo_ >= 2).astype(np.uint8) << 1)) * fm
+        steep = slope >= p.slide_slope_min_deg
+        typ = np.where(fm, np.where(steep, LANDSLIDE, DEBRIS), typ).astype(np.uint8)
+        both3 = (zo_ >= 3) & (zr_ >= 3) & (fuse_prob >= 0.9)
+        both2 = (zo_ >= 2) & (zr_ >= 2)
+        ls_conf = np.select([both3, both2], [HIGH, MEDIUM], LOW).astype(np.uint8)
+        fusion_stats.update(
+            flagged_km2=round(float(fm.sum()) * 1e-4, 3),
+            landslide_km2=round(float((fm & steep).sum()) * 1e-4, 3),
+            source_km2={"radar": round(float((fm & (ls_source == 1)).sum()) * 1e-4, 3),
+                        "optics": round(float((fm & (ls_source == 2)).sum()) * 1e-4, 3),
+                        "both": round(float((fm & (ls_source == 3)).sum()) * 1e-4, 3),
+                        "context_only": round(float((fm & (ls_source == 0)).sum()) * 1e-4, 3)})
+    else:
+        ls_conf = np.zeros(shape, np.uint8)
+
     # --- confidence --------------------------------------------------------------------------------------------
     pts = np.minimum(n_agree, 2).astype(np.int16)
     urban = np.isin(typ, (FLOODED_BUILTUP, DAMAGED_BUILTUP))
@@ -295,6 +336,7 @@ def detect(inp: Inputs, p: Params, tracks: list[Track] | None = None, use_optica
     conf = np.where(wet_cover & ~water_support, np.minimum(conf, MEDIUM), conf)
     conf = np.where(typ == UNKNOWN, LOW, conf)
     conf = np.where(opt_only & (typ == DEBRIS), np.where(corridor, MEDIUM, LOW), conf)
+    conf = np.where(fm, ls_conf, conf)
     conf = np.where(typ > 0, conf, 0).astype(np.uint8)
 
     # --- what could be seen ------------------------------------------------------------------------------------
@@ -305,8 +347,10 @@ def detect(inp: Inputs, p: Params, tracks: list[Track] | None = None, use_optica
         (pre_clear & (ndvi_pre >= p.dense_ndvi)) | (building_density(buildings) >= p.dense_built))
     obs[insensitive] = INSENSITIVE
 
-    return Result(typ, conf, candidate | opt_only, obs, dvv.astype(np.float32), dvh.astype(np.float32), score,
+    return Result(typ, conf, candidate | opt_only | fm, obs, dvv.astype(np.float32), dvh.astype(np.float32), score,
                   n_agree, n_valid, opt, {"background_change": bg_rates,
                                           "weather": {"rain_like": weather[1], "snow_or_frost_like": weather[-1]},
                                           "optical_only": {"background_rate": opt_bg,
-                                                           "px": int((opt_only & (typ == DEBRIS)).sum())}})
+                                                           "px": int((opt_only & (typ == DEBRIS)).sum())},
+                                          "fusion": fusion_stats},
+                  source=ls_source)
