@@ -309,7 +309,7 @@ def _pick(rows: list[dict], key: str) -> dict | None:
     return max(ok, key=lambda r: r[key]) if ok else None
 
 
-def search(c: dict, persist: bool) -> dict:
+def search(c: dict, persist: bool, reach_q: int | None = None) -> dict:
     """The four-stage search for one evidence variant; every threshold is picked by the placebo (est. precision >= MIN_PRECISION).
     `c` = context (arrays + constants). Returns {"final": {...}, "added_water", "added_debris", "stages": {...}}."""
     z, zp, hand, perm, existing, seeds, pseeds = c["z"], c["zp"], c["hand"], c["perm"], c["existing"], c["seeds"], c["pseeds"]
@@ -317,7 +317,8 @@ def search(c: dict, persist: bool) -> dict:
     Pe, Pp = (c["Pe"], c["Pp"]) if persist else (None, None)
     optq, ctrl = c["optq"], c["ctrl_rate"]
     zero = np.zeros(z.shape, bool)
-    out = {"persistence": persist, "stages": {}}
+    out = {"persistence": persist, "reach_q": reach_q, "stages": {}}
+    stage = np.zeros(z.shape, np.uint8)   # which stage added the pixel: 1 envelope, 2 growth, 3 permanent water, 4 edges
 
     def prec(fp, added):
         return round(max(0.0, 1.0 - fp / (n_exist + added)), 3)
@@ -349,8 +350,14 @@ def search(c: dict, persist: bool) -> dict:
         return out
     aw, ad, env, penv = keep[(best["q"], best["w"], best["tz"], best["r_px"])]
     del keep
+    stage[aw | ad] = 1
     w = best["w"]
     sE, sP = windowed(z, w), windowed(zp, w)
+    # Reach derived from the seeds (D-M13-03): growth and edges may not leave the envelope of a high HAND percentile of the seeds.
+    reach = preach = None
+    if reach_q:
+        reach = envelope(hand, seeds, perm, reach_q, BLOCK_GRID[0])[0] | seeds
+        preach = envelope(hand, pseeds, perm, reach_q, BLOCK_GRID[0])[0] | pseeds
     pev, _ = evidence_w(sP, best["tz"], Pp)
     pdet = close_gaps(pseeds | (penv & pev & ~perm), penv, best["r_px"])
     fp0 = best["placebo_false_km2"] / c["px_km2"]
@@ -360,9 +367,9 @@ def search(c: dict, persist: bool) -> dict:
     det1, grows = existing | aw | ad, []
     for tg in TG_GRID_RUN:
         evg, dkg = evidence_w(sE, tg, Pe, opt)
-        gnew = grow_hysteresis(det1, evg, perm)
+        gnew = grow_hysteresis(det1, evg if reach is None else evg & reach, perm)
         pg, _ = evidence_w(sP, tg, Pp)
-        gp = grow_hysteresis(pdet, pg, perm)
+        gp = grow_hysteresis(pdet, pg if preach is None else pg & preach, perm)
         fp = fp0 + int(gp.sum()) + ctrl * int(gnew.sum())
         grows.append({"tg": tg, "added_px": int(gnew.sum()), "est_precision": prec(fp, cur_added + int(gnew.sum())),
                       "placebo_false_km2": round(fp * c["px_km2"], 4), "_new": gnew, "_dark": dkg, "_pnew": gp})
@@ -370,6 +377,7 @@ def search(c: dict, persist: bool) -> dict:
     out["stages"]["growth"] = {"grid": [{k: v for k, v in g.items() if not k.startswith("_")} for g in grows],
                                "chosen": {k: v for k, v in gb.items() if not k.startswith("_")} if gb else None}
     if gb is not None:
+        stage[gb["_new"]] = 2
         aw, ad = aw | (gb["_new"] & gb["_dark"]), ad | (gb["_new"] & ~gb["_dark"])
         pdet = pdet | gb["_pnew"]
         fp0 = gb["placebo_false_km2"] / c["px_km2"]
@@ -388,6 +396,7 @@ def search(c: dict, persist: bool) -> dict:
     out["stages"]["permanent_water"] = {"grid": [{k: v for k, v in g.items() if not k.startswith("_")} for g in perms],
                                         "chosen": {k: v for k, v in pb.items() if not k.startswith("_")} if pb else None}
     if pb is not None:
+        stage[pb["_new"]] = 3
         aw, ad = aw | (pb["_new"] & pb["_dark"]), ad | (pb["_new"] & ~pb["_dark"])
         fp0 = pb["placebo_false_km2"] / c["px_km2"]
         cur_added = int(aw.sum() + ad.sum())
@@ -401,19 +410,24 @@ def search(c: dict, persist: bool) -> dict:
             eve, dke = evidence_w(sE, t3, Pe, opt)
             pe, _ = evidence_w(sP, t3, Pp)
             enew = band & eve & ~det3 & ~perm
-            fp = fp0 + int((pband & pe & ~pdet3 & ~perm).sum()) + ctrl * int(enew.sum())
+            pnew = pband & pe & ~pdet3 & ~perm
+            if reach is not None:
+                enew &= reach
+                pnew &= preach
+            fp = fp0 + int(pnew.sum()) + ctrl * int(enew.sum())
             edges.append({"r": r, "t3": t3, "added_px": int(enew.sum()), "est_precision": prec(fp, cur_added + int(enew.sum())),
                           "placebo_false_km2": round(fp * c["px_km2"], 4), "_new": enew, "_dark": dke})
     eb = _pick(edges, "added_px")
     out["stages"]["edges"] = {"grid": [{k: v for k, v in g.items() if not k.startswith("_")} for g in edges],
                               "chosen": {k: v for k, v in eb.items() if not k.startswith("_")} if eb else None}
     if eb is not None:
+        stage[eb["_new"]] = 4
         aw, ad = aw | (eb["_new"] & eb["_dark"]), ad | (eb["_new"] & ~eb["_dark"])
         fp0 = eb["placebo_false_km2"] / c["px_km2"]
     total = int(aw.sum() + ad.sum())
     out.update(final={"added_px": total, "added_km2": round(total * c["px_km2"], 4),
                       "est_precision": prec(fp0, total), "placebo_false_km2": round(fp0 * c["px_km2"], 4)},
-               added_water=aw, added_debris=ad)
+               added_water=aw, added_debris=ad, stage=stage)
     return out
 
 
@@ -471,13 +485,15 @@ def run(run_dir: Path) -> dict:
          "labelled": labelled, "n_exist": int(existing.sum()), "Pe": Pe, "Pp": Pp, "ctrl_rate": ctrl, "px_km2": px_km2}
     mode = os.environ.get("POVODNE_ENVELOPE_PERSIST", "auto")   # "0" off, "1" on, "auto" = both, the one with more area wins
     variants = [v for v in ((False, True) if mode == "auto" else (mode == "1",)) if not v or (Pe is not None and Pp is not None)]
-    results = [search(c, v) for v in variants]
+    reach_mode = os.environ.get("POVODNE_ENVELOPE_REACH", "off")   # "off" | "95" | "99" | "auto" (both, the larger area wins)
+    reaches = {"off": [None], "auto": [95, 99]}.get(reach_mode, [int(reach_mode)] if reach_mode.isdigit() else [None])
+    results = [search(c, v, rq) for v in variants for rq in reaches]
     good = [r for r in results if r.get("final")]
-    section = {"used": False, "min_precision": MIN_PRECISION, "placebo": placebo_kind, "existing_km2": round(c["n_exist"] * px_km2, 4),
+    section = {"used": False, "reach_mode": reach_mode, "min_precision": MIN_PRECISION, "placebo": placebo_kind, "existing_km2": round(c["n_exist"] * px_km2, 4),
                "placebo_seeds_km2": round(int(pseeds.sum()) * px_km2, 4), "ndvi_drop": NDVI_DROP, "ndvi_post_max": NDVI_POST_MAX,
                "optical_used": opt is not None, "optical_false_rate": round(ctrl, 5), "post_passes": ne, "placebo_passes": npl,
                "t_pass": T_PASS,
-               "variants": [{"persistence": r["persistence"], "final": r.get("final"),
+               "variants": [{"persistence": r["persistence"], "reach_q": r["reach_q"], "final": r.get("final"),
                              "stages": {k: v for k, v in r["stages"].items()}} for r in results],
                "method": "HAND envelope + hysteresis growth + permanent water + edges; windowed z^2 evidence; all thresholds from placebo (D-X-09..11)"}
     if not good:
@@ -493,10 +509,12 @@ def run(run_dir: Path) -> dict:
         p.pop(k, None)
     with rasterio.open(fdir / "envelope_mask.tif", "w", **p) as ds:
         ds.write(out, 1)
+    with rasterio.open(fdir / "envelope_stage.tif", "w", **p) as ds:   # 1 envelope, 2 growth, 3 permanent water, 4 edges (diagnostics)
+        ds.write(win["stage"], 1)
     fin = win["final"]
     chosen = {k: win["stages"][s]["chosen"][k] for s, ks in (("envelope", ("q", "w", "tz", "r_px")), ("growth", ("tg",)),
               ("permanent_water", ("tp",)), ("edges", ("r", "t3"))) if win["stages"][s]["chosen"] for k in ks}
-    section.update(used=True, persistence=win["persistence"], chosen=chosen, final_est_precision=fin["est_precision"],
+    section.update(used=True, persistence=win["persistence"], reach_q=win["reach_q"], chosen=chosen, final_est_precision=fin["est_precision"],
                    final_placebo_false_km2=fin["placebo_false_km2"],
                    added_km2={"water": round(int(aw.sum()) * px_km2, 4), "debris": round(int(ad.sum()) * px_km2, 4), "total": fin["added_km2"]})
     msg = (f"The water-level envelope added {fin['added_km2']:.2f} km² (estimated precision of the detected area "

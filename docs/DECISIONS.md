@@ -1286,3 +1286,8 @@ Rozšíření D-M13-01 (`flood/envelope.py`), čtyři stupně, každý práh = n
 **Trvalost změny:** variant s trvalostí (pixel je důkaz jen když |z| ≥ 1,5 (a-priori) ve stejném směru aspoň ve 2 snímcích po události — dráhy × průlety z `post_series`; placebo stejně z placebo průletů)
 a bez ní; `POVODNE_ENVELOPE_PERSIST=0|1|auto` (výchozí auto = obě, vyhraje větší plocha při odhadu P ≥ 0,85). Důvod: vlhkost po dešti je přechodná, suť a sesuvy trvalé.
 `run.json.envelope.variants[*].stages` ukládá všechny mřížky, `chosen` zvolené hodnoty. Omezení: průlety po události jsou jen 0–24 dnů, trvalost nad 1–2 týdny; placebo pre-pre dvojice neobsahuje déšť v den události.
+
+## D-M13-03 | 2026-10-13 | rozpracováno (návrh master session) — Dosah odvozený ze semínek pro růst a okraje obálky
+Kontext: přidané pixely mají nízkou přesnost ve větší výšce nad tokem (master: HAND 0–5 m P 0,96, 5–15 m 0,68, 15–30 m 0,29, > 30 m 0,08) — růst a okraje lezou do svahů (sklizeň teras, vlhkost po dešti,
+v pre-pre placebu chybí). Žádné pevné pravidlo (sklon / HAND), ale **dosah odvozený ze semínek**: růst a okraje (i v placebu) smí jen uvnitř `envelope(q = QQ) | semínka`, QQ ∈ {95, 99} (`POVODNE_ENVELOPE_REACH=off|95|99|auto`,
+výchozí `off` do rozhodnutí masteru). Krok navíc ukládá `flood/envelope_stage.tif` (1 obálka, 2 růst, 3 trvalá voda, 4 okraje) pro diagnostiku (`validation/envelope_stage_diag.py`, čte EMS jen k měření).

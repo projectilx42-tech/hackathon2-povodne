@@ -242,3 +242,21 @@ def test_search_runs_all_stages_on_synthetic_context():
     assert res["final"] and res["final"]["est_precision"] >= envelope.MIN_PRECISION
     assert set(res["stages"]) == {"envelope", "growth", "permanent_water", "edges"}
     assert (res["added_water"][105:145, 87:95]).mean() > 0.8
+
+
+def test_search_with_reach_limits_growth_and_edges():
+    shape = (200, 200)
+    hand = _valley(*shape)
+    ai = np.ones(shape, np.uint8)
+    ai[:100, 85:115] = 2
+    seeds = ai == 2
+    z = np.zeros(shape, np.float32)
+    z[100:150, 60:100] = -3.0                             # strong evidence reaching far up the slope (HAND up to 8 m)
+    c = {"z": z, "zp": np.zeros(shape, np.float32), "hand": hand, "perm": np.zeros(shape, bool), "existing": seeds, "seeds": seeds,
+         "pseeds": np.zeros(shape, bool), "opt": None, "optq": None, "labelled": np.where(seeds, 2, 0).astype(np.uint8),
+         "n_exist": int(seeds.sum()), "Pe": None, "Pp": None, "ctrl_rate": 0.0, "px_km2": 1e-4}
+    free = envelope.search(c, False)
+    capped = envelope.search(c, False, reach_q=50)
+    a_free = int((free["added_water"] | free["added_debris"]).sum())
+    a_cap = int((capped["added_water"] | capped["added_debris"]).sum())
+    assert a_cap <= a_free and capped["stage"].max() <= 4
