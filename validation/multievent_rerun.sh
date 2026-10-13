@@ -10,6 +10,7 @@
 #   --from STEP      first step to re-run: s1anomaly | flood_ai | debris | envelope (default) ; later steps always follow, up to combine
 #                    (flood_ai -> debris -> envelope -> combine). The envelope step is optional ...
 #   --no-envelope    ... skip it (and delete a stale envelope_mask/stage so that combine does not add old pixels)
+#   --sensitivity S  set run.json "sensitivity" (standard | sensitive) for the re-run; the original value is restored afterwards
 #   --only A,B       only these event ids
 #   VAR=value        extra environment variables (e.g. POVODNE_ENVELOPE_OPTICS=0 POVODNE_ENVELOPE_STAT=rms)
 # Environment: RUNS_DIR (default /home/user/run-wt/runs, runs are named me_<event_id>), REPO (checkout whose `povodne` package is
@@ -21,7 +22,7 @@ tag=$1; shift
 HERE=$(cd "$(dirname "$0")" && pwd)
 RUNS_DIR=${RUNS_DIR:-/home/user/run-wt/runs}
 REPO=${REPO:-/home/user/run-wt}
-FROM=envelope; REF=""; NOENV=0; ONLY=""
+FROM=envelope; REF=""; NOENV=0; ONLY=""; SENS=""
 export POVODNE_ENVELOPE_REACH=${POVODNE_ENVELOPE_REACH:-95}
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -29,6 +30,7 @@ while [ $# -gt 0 ]; do
     --from) FROM=$2; shift 2;;
     --no-envelope) NOENV=1; shift;;
     --only) ONLY=$2; shift 2;;
+    --sensitivity) SENS=$2; shift 2;;
     *=*) export "$1"; shift;;
     *) echo "unknown argument $1"; exit 2;;
   esac
@@ -64,9 +66,23 @@ for ev in $(python3 -c "import json;print(' '.join(e['id'] for e in json.load(op
   [ -f "$run/flood/ai_mask.tif" ] || { echo "skip $ev (no finished run)"; continue; }
   rm -f "$run/flood/envelope_mask.tif" "$run/flood/envelope_stage.tif"
   ok=1; : > "/tmp/rerun_${ev}_$tag.log"
+  if [ -n "$SENS" ]; then
+    orig=$(python3 - "$run/run.json" "$SENS" <<'PY'
+import json, sys
+p, v = sys.argv[1:]
+d = json.load(open(p)); o = d.get("sensitivity", "standard"); d["sensitivity"] = v; json.dump(d, open(p, "w"), indent=2); print(o)
+PY
+)
+  fi
   for st in $steps; do
     (cd "$CODE" && cmd $st "$run") >> "/tmp/rerun_${ev}_$tag.log" 2>&1 || { echo "step $st failed for $ev (see /tmp/rerun_${ev}_$tag.log)"; ok=0; [ $st = flood_ai ] || [ $st = combine ] && break; }
   done
   [ $ok = 1 ] || echo "WARNING: $ev may be inconsistent"
   (cd "$HERE/.." && python validation/multievent_eval.py score "$ev" "$run" --tag "$tag" > /dev/null 2>&1 && echo "scored $ev $tag")
+  if [ -n "$SENS" ]; then python3 - "$run/run.json" "$orig" <<'PY'
+import json, sys
+p, v = sys.argv[1:]
+d = json.load(open(p)); d["sensitivity"] = v; json.dump(d, open(p, "w"), indent=2)
+PY
+  fi
 done
