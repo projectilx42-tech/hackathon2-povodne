@@ -130,7 +130,7 @@ def _read_mask(path: Path, grid: Grid, resampling=Resampling.nearest) -> np.ndar
 def load(run_dir: Path) -> Inputs:
     rj = json.loads((run_dir / "run.json").read_text())
     acq = rj.get("acquire") or {}
-    posts = sorted((run_dir / "raw" / "s1").glob("post_*.tif"))
+    posts = sorted((run_dir / "raw" / "s1").glob("post_[0-9]*.tif"))
     if not posts:
         raise FileNotFoundError("no Sentinel-1 after-image in raw/s1 (acquire step)")
     grid = _grid_from(posts[-1])
@@ -166,7 +166,7 @@ def load(run_dir: Path) -> Inputs:
     tracks = []
     for key in ("s1", "s1_alt"):
         folder = run_dir / "raw" / key
-        post_files = sorted(folder.glob("post_*.tif"))
+        post_files = sorted(folder.glob("post_[0-9]*.tif"))
         if not post_files:
             continue
         direction = (acq.get(key) or {}).get("orbit_direction")
@@ -174,7 +174,7 @@ def load(run_dir: Path) -> Inputs:
             main_dir = (acq.get("s1") or {}).get("orbit_direction", "ASCENDING")
             direction = main_dir if key == "s1" else ("DESCENDING" if main_dir == "ASCENDING" else "ASCENDING")
         hist_files = {_date(p): p for p in folder.glob("hist_*.tif")}
-        hist_files.update({_date(p): p for p in folder.glob("pre_*.tif")})  # 10 m pre images win over 20 m copies
+        hist_files.update({_date(p): p for p in folder.glob("pre_[0-9]*.tif")})  # 10 m pre images win over 20 m copies
         dates = sorted(hist_files)
         blocked = _read_mask(run_dir / "masks" / f"{key}_layover_shadow.tif", grid)
         if blocked is None:

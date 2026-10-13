@@ -165,7 +165,7 @@ def mean_linear(images: list[np.ndarray]) -> np.ndarray:
 def s1_track(run_dir: Path, key: str, grid: Grid) -> dict | None:
     """Write aligned/<key>_{pre,post}_{vv,vh}.tif; None if the track has no complete before/after pair."""
     folder = run_dir / "raw" / key
-    pres, posts = sorted(folder.glob("pre_*.tif")), sorted(folder.glob("post_*.tif"))
+    pres, posts = sorted(folder.glob("pre_[0-9]*.tif")), sorted(folder.glob("post_[0-9]*.tif"))
     if not pres or not posts:
         return None
     post = read_s1_linear(posts[-1], grid)  # the acquire step stores one after-image; take the latest if several
