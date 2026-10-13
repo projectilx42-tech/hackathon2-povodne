@@ -126,7 +126,7 @@
    "network": 2.7,
    "report": 5.2
   },
-  "pu_spent": 32.2,
+  "pu_spent": 0.0,
   "pu_estimate": 36,
   "envelope": {
    "used": false,
@@ -155,8 +155,8 @@
    "extra": null
   },
   "warnings": [
-   "No usable Sentinel-1 pass from the opposite flight direction: areas hidden behind mountains for the main track stay unmapped.",
-   "No pre-event OpenStreetMap buildings in the area: damaged buildings cannot be counted (zero does not mean no damage)."
+   "No pre-event OpenStreetMap buildings in the area: damaged buildings cannot be counted (zero does not mean no damage).",
+   "No usable Sentinel-1 pass from the opposite flight direction: areas hidden behind mountains for the main track stay unmapped."
   ],
   "verdict": "flood_detected",
   "coverage": {

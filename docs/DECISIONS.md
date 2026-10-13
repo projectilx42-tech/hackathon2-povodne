@@ -1396,6 +1396,8 @@ spíš suchá půda (medián z_vv 3,1) než přehlédnutá voda (0,95). → nesl
 Optický model už běží na všech jasných pixelech (D-M9-11); navíc pravidlo MNDWI > 0 (literatura, neladěno) v `run_ai.py`. Austrálie beze změny:
 přehlédnutá jasná voda (2,3 km²) byla vodou i na snímku „před“ (pozdní pre ve vlhké sezóně) → trvalá, ne povodeň; Honduras a Malawi mají snímek „po“
 8 dní po povodni (voda opadla). Kontrola bez povodně +0,06 km² falešné plochy → pravidlo sloučení neprošlo.
+**Přeměřeno po opravě S2 (D-M14-09), tag `s2i_fix`, všech 11 událostí proti `s2fix`:** F1 0,859 → 0,856 (R 0,855, P 0,868); Čad −0,021 (P 0,78 → 0,73:
+na Čadu je jasná optika jen na ~11 % zaplavené plochy a index tam přidává hlavně falešné), Evros −0,005, kontrola +0,06 km² → dál nesloučeno.
 
 ## D-M14-03 | 2026-10-13 | zamítnuto (opt-in `POVODNE_SELFTRAIN_FUSE=1`) — Samoučení s pojistkou
 `flood/stfuse.py`: pixely samoučení (`flood/selftrain_mask.tif`) se přidají jen při HAND ≤ 10 m (`POVODNE_STFUSE_HAND`), sklonu ≤ 10° a napojení na jisté jádro
@@ -1449,7 +1451,7 @@ Sada 11 událostí (tag `s2fix` proti `permfix`): F1 0,859 → 0,858 (R 0,858 �
 Austrálie −0,009 (jiná volba snímku po deduplikaci), Evros −0,011. Nulové SWIR byly jen na opravdu tmavých (mokrých) pixelech, takže chyba výsledek
 skoro neměnila. Pravidlo (žádná událost −0,01) neprošlo o 0,001; jde ale o správnost vstupních dat → doporučeno sloučit jako opravu chyby.
 
-## D-M14-10 | 2026-10-13 | rozpracováno — Okraje povodně podle místního radarového prahu
+## D-M14-10 | 2026-10-13 | zamítnuto (na validaci nic nevybráno) — Okraje povodně podle místního radarového prahu
 Rozbor chyb: okraje jsou největší zbytek (přehlédnuté +0,034, falešné +0,025 F1). `floodseg.edge.grow_radar`: v okolí k px od povodně se přidá pixel,
 jehož VV po povodni ≤ mu_in + frac·(mu_out − mu_in) (místní průměry povodně a okolí v okně 15 px, obdoba místního Otsu). Kalibrace jen na validačních
 událostech Kuro Siwo (`training/eval_edge_radar.py`, k ∈ {1,2,3}, frac ∈ {0,3; 0,5; 0,7}); pravidlo výběru dané předem: max F1 při poklesu přesnosti ≤ 0,01.
@@ -1476,3 +1478,29 @@ Výsledek doplním.
 - **Finální srovnání (runs s opravou S2, tagy `s2_v04` / `s2_v05t25`):** F1 0,865 → 0,871, R 0,858 → 0,867, P 0,886 → 0,887, nejhorší událost −0,003,
   kontrola 0,1769 → 0,1764 km² → pravidlo splněno; s prahem 0,20 (`s2_v05`) taky (0,871, P 0,884). Kuro Siwo test 0,792 ≥ 0,780 → **sloučeno, výchozí v0.5**.
 - Váhy: Kaggle dataset `krataihalfmaster/floodseg-model-v05`; `fetch_model.py` → `models/floodseg_v0.5/`, `run_ai.py` výchozí v0.5.
+Výsledek (2825 val dlaždic, model v0.4, základ = sensitive + okrajový krok k=1 t=0,12): základ P 0,569 / R 0,816 / F1 0,671; nejlepší varianta k=1 frac=0,3
+P 0,565 / R 0,818 / F1 0,669, větší k nebo frac jen víc snižují přesnost (k=3 f=0,7: F1 0,644) → žádná varianta pravidlem neprošla, na 11 událostech se neměřilo.
+Okrajový krok podle pravděpodobnosti modelu (D-M9-15) už okraje pokrývá; radarová hodnota pixelu na okraji je smíšená a nepřidá informaci. Metriky `training/results/edge_radar_val_v0.4.json`.
+
+## D-M14-11 | 2026-10-13 | zamítnuto (opt-in `POVODNE_NOTDARK=1`) — Rozbor falešných nálezů a filtr „netmavé vody“
+Falešné „ostatní“ (stav `s2fix`, > 2 px od popisku): Bihár 4,1 km², Evros 2,4, Čad 1,4 — z 70–86 % je na jasných pixelech S2 po povodni voda (MNDWI > 0),
+tj. spíš rozdíl popisku (z radaru, jiný den) než chyba; Missouri 2,7 km² (optika vodu nepotvrzuje, S2 11 dní po; radar ztmavl jen na ~−13 dB, malé plošky).
+Kontrola Marsyangdi: 2,1 km² zasaženo, z toho 1,85 km² „sesuv“ na svazích (HAND 89 m, sklon 36°) z kroku změn povrchu; v oblasti s popiskem 0,33 km².
+Pokus `flood/notdark.py`: vodní plošky (třída 2) s mediánem VV po povodni > −15 dB (pevná hodnota z literatury) a bez potvrzení optikou → nezasaženo.
+Sada 11 událostí proti `s2fix`: F1 0,859 → 0,848 (R 0,854 → 0,820, P 0,876 → 0,892); Missouri +0,015, Bolívie +0,008, ale Honduras −0,080 (mělká kalná voda
+jen mírně tmavá), Teesta −0,024 → nesloučeno.
+Chamoli (F1 0,11): popisek jen 0,047 km² vody v soutěsce (21 % v radarovém stínu), systém tam hlásí hlavně suť (0,9 km²), kterou vodní popisek nezná —
+chyba dat to není, číslo je málo vypovídající.
+
+## D-M14-12 | 2026-10-13 | opt-in `POVODNE_SLIDE_BOTH=1`, k rozhodnutí (master) — Sesuv na svahu jen se shodou radaru a optiky
+Kontrola bez povodně (Marsyangdi, leden): krok změn povrchu hlásí 1,85 km² „sesuvů“ na svazích (HAND 89 m, sklon 36°), z toho 1,57 km² jen z optiky
+(zimní snímky: sníh, stíny, úhel slunce), 0,11 jen z radaru, 0,20 z obou. Pravidlo (`flood/debris/classify.py`): pixel fúze na svahu ≥ 15° jen při
+z ≥ 2 v radaru i optice. Sada 11 událostí (tag `slideboth` proti `s2fix`): F1 9 povodní beze změny (popisky jsou jen voda, sesuvy v nich nejsou);
+kontrola: suť/sesuv celkem 1,98 → 0,29 km² (sesuvy 1,85 → 0,16); ale i skutečné horské události ztratí plochu: Chamoli sesuvy 1,83 → 0,28 km²,
+Teesta 0,29 → 0,08 km² (zda šlo o skutečné sesuvy, vodní popisky neřeknou). Formálně pravidlo neprošlo (průměrné F1 nestouplo) → zůstává opt-in.
+
+## D-M14-13 | 2026-10-13 | přijato (oprava chyby) — Nedostatek dat zastaví běh čistě
+Zkouška „živé poroty“ (Rio Grande do Sul, 3. 5. 2024): v katalogu není žádný starší průlet žádné dráhy → krok stahování správně hlásí „insufficient data“
+a verdikt je `insufficient_data` s důvodem, ale běh dál spustil přípravu dat, která spadla na technické chybě („no reference grid“), a ta se ukázala
+jako chyba běhu. Teď orchestrátor (`cli.py`) po stahování s „insufficient data“ přeskočí další kroky se zprávou „not enough satellite data“
+a `progress.error` je srozumitelná věta; sitrep a verdikt beze změny. Test `tests/test_orchestrator.py::test_insufficient_data_stops_cleanly`.

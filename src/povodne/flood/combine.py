@@ -28,7 +28,7 @@ from pathlib import Path
 import numpy as np
 import rasterio
 
-from . import brighten, channel, stfuse, vhagree
+from . import brighten, channel, notdark, stfuse, vhagree
 from ..io import get_step, load_run, set_notices, set_step, update_run, write_json_atomic
 
 NODATA, DRY, WATER, DEBRIS, PERMANENT = 0, 1, 2, 3, 4
@@ -219,6 +219,11 @@ def run(run_dir: Path) -> dict:
         debris_mask = env_debris.astype(np.uint8) if debris_mask is None else np.where(new, 1, debris_mask).astype(np.uint8)
         dtype_r = np.where(new, 9, dtype_r if dtype_r is not None else 0).astype(np.uint8)
         conf_r = np.where(new, 1, conf_r if conf_r is not None else 0).astype(np.uint8)
+    # Water patches neither dark on radar nor confirmed by optics (D-M14-11, opt-in).
+    nd, nd_info = notdark.run(run_dir, ai_mask == WATER)
+    if nd.any():
+        ai_mask = np.where(nd, DRY, ai_mask).astype(ai_mask.dtype)
+        ai_prob = np.where(nd, np.fmin(ai_prob, 0.5), ai_prob).astype(np.float32)
     mask, prob = combine_arrays(ai_mask, ai_prob, debris_mask, conf_r)
     if env_water is not None and env_water.any():
         add = env_water & np.isin(mask, (NODATA, DRY, PERMANENT))  # permanent water with a strong change is affected (envelope stage 3)
@@ -257,6 +262,7 @@ def run(run_dir: Path) -> dict:
         "brightening": bright_info,
         "selftrain_fusion": stf_info,
         "channel_fill": chan_info,
+        "not_dark_water": nd_info,
         "envelope_added_km2": round(float(((env_water if env_water is not None else 0) | (env_debris if env_debris is not None else 0)).sum())
                                     * px_km2, 4) if env_water is not None else 0.0,
         "debris_prob_by_confidence": {CONF_NAMES[k]: v for k, v in CONF_PROB.items()},

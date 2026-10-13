@@ -145,3 +145,17 @@ def test_parse_aoi_bbox_and_geojson_variants(tmp_path):
         parse_aoi("85,28,84,29")
     with pytest.raises(ValueError):
         parse_aoi("500000,3000000,510000,3010000")
+
+
+def test_insufficient_data_stops_cleanly(tmp_path):
+    """acquire finds no Sentinel-1 pair: the later steps are skipped with a plain reason, not failed with a technical error (D-M14-13)."""
+    fakes = _fakes(tmp_path)
+    (fakes / "acquire.py").write_text(FAKE.format(name="acquire", body=(
+        "sys.path.insert(0, %r)\nfrom povodne.io import set_step\n"
+        "set_step(run, 'acquire', 'done', 'insufficient data: no Sentinel-1 pre/post pair for this area and date')") % str(ROOT / "src")))
+    r = _run(tmp_path, fakes)
+    rj, states, order = _state(tmp_path)
+    assert order == ["acquire", "report"]
+    assert states["preprocess"] == "skipped" and states["report"] == "done"
+    assert "not enough satellite data" in next(s["message"] for s in rj["progress"]["steps"] if s["name"] == "combine")
+    assert rj["progress"]["error"].startswith("Not enough satellite data") and r.returncode == 1
