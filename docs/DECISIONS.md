@@ -1410,7 +1410,9 @@ Austrálie, Malawi, Missouri) — tam se nic nepřidalo; opravit, pokud se krok 
 ## D-M14-04 | 2026-10-13 | zatím nesloučeno (opt-in `POVODNE_AI_ENSEMBLE`) — Kombinace více radarových modelů
 `run_ai.py`: průměr kalibrovaných pravděpodobností hlavního modelu a modelů z `POVODNE_AI_ENSEMBLE` (čárkami oddělené cesty); prahy citlivosti a okraje
 z hlavního modelu. v0.4 + v0.2 (`ens_v02`; v0.2 viděl Bolívii, jen orientačně): F1 0,850 → 0,846, Austrálie +0,025, Teesta −0,058 → neprošlo.
-Modely r12 (doladění v0.4 bez Bolívie, session tréninku) se změří, až doběhnou.
+Modely r12 (doladění v0.4 bez Bolívie, session tréninku), členové vybraní jen podle val F1 povodně: `r12_ft_hard3_lr1e3_gain1` (0,690), `r12_ft_plain` (0,685).
+Proti `s2fix`: v0.4 + 1 (`ens_r12a`) F1 0,859 → 0,857, Teesta −0,034, Austrálie +0,020 → neprošlo; v0.4 + 2 (`ens_r12ab`) F1 0,85881 → 0,85882 (+0,00001 = šum),
+nejhorší Teesta −0,009, AI krok ~3× delší (Honduras 6 s → 21–33 s, limit byl 2×) → nesloučeno. Doladění z v0.4 jsou s ním silně korelovaná, kombinace nepřináší nezávislost.
 
 ## D-M14-05 | 2026-10-13 | zamítnuto (opt-in `POVODNE_ANOMALY_POST=min`) — Víc snímků po povodni: nejtmavší přelet
 Radarová anomálie bere u každého pixelu nejtmavší z přeletů po povodni (`post_series`, 24 dní, obě dráhy zvlášť) místo průměru; placebo stejnou statistikou.
