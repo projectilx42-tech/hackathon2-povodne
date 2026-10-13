@@ -118,3 +118,8 @@ def test_without_baseline_needs_a_larger_change():
 
 def test_unjudgeable_image_is_not_used():
     assert not judge_same_day(None, 0.02).use_as_post
+
+
+def test_gradual_rise_is_an_onset_but_small_drift_is_not():
+    assert detect_onset([0.02 + 0.01 * i for i in range(11)]).onset_index == 5  # steady rise: the median follows it, the dry baseline does not
+    assert detect_onset([0.05, 0.06, 0.07, 0.075, 0.08]).onset_index is None
