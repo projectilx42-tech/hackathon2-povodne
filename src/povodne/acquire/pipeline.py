@@ -255,6 +255,20 @@ def _s2_job(aoi, event, grid, dem, run_dir: Path, cfg: AcquireConfig):
         for name, d in (("pre", ch.pre), ("post", ch.post)):
             if d is not None:
                 s2[name] = _s2_download(d, grid, run_dir / "raw" / "s2" / f"{name}_{d.day:%Y%m%d}.tif")
+        # more clear dates for the per-pixel composites of the debris step (D-M11-04); files `prex_*` / `postx_*`
+        s2["extra"] = {"pre": [], "post": []}
+        for name, dates in (("pre", ch.pre_extra), ("post", ch.post_extra)):
+            if (ch.pre if name == "pre" else ch.post) is None:
+                continue
+            for d in dates:
+                try:
+                    s2["extra"][name].append(_s2_download(d, grid, run_dir / "raw" / "s2" / f"{name}x_{d.day:%Y%m%d}.tif"))
+                except Exception:  # an extra date is a bonus, never an error
+                    continue
+        days = [m["date"] for k in ("pre", "post") for m in ([s2[k]] if s2[k] else []) + s2["extra"][k]]
+        if len(days) > 2:
+            warnings.append(Notice("s2_composite", "Optical before/after views are per-pixel composites of several clear "
+                                   f"Sentinel-2 dates ({', '.join(sorted(days))}).", dates=sorted(days)))
         return s2, warnings
     except Exception as exc:  # optical data is optional
         warnings.append(Notice("s2_failed", f"Optical Sentinel-2 images could not be downloaded ({exc}); radar only.",

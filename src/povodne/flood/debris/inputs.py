@@ -194,25 +194,50 @@ def load(run_dir: Path) -> Inputs:
     return inp
 
 
+def _read_s2(path: Path) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """(reflectance 6xHxW with NaN for no data, clear mask, snow mask) of one S2 file."""
+    with rasterio.open(path) as ds:
+        dn = ds.read().astype(np.float32)
+        scales, offsets = ds.scales, ds.offsets
+    refl = np.stack([np.where(dn[i] > 0, dn[i] * scales[i] + offsets[i], np.nan) for i in range(6)]).astype(np.float32)
+    scl = dn[6].astype(np.uint8)
+    cloudy = binary_dilation(np.isin(scl, SCL_CLOUDY), iterations=2)
+    clear = np.isin(scl, SCL_CLEAR) & ~cloudy & np.all(np.isfinite(refl), axis=0)
+    b03, b11 = refl[1], refl[4]
+    with np.errstate(invalid="ignore", divide="ignore"):
+        snow = (scl == 11) | (((b03 - b11) / (b03 + b11) > 0.42) & (b03 > 0.15))
+    return refl, clear & ~snow, snow
+
+
 def _load_s2(run_dir: Path, inp: Inputs) -> None:
+    """Per-pixel composite (median of the clear dates) of `<when>_*.tif` and the extra dates `<when>x_*.tif` (D-M11-04)."""
     for when in ("pre", "post"):
-        files = sorted((run_dir / "raw" / "s2").glob(f"{when}_*.tif"))
-        if not files:
+        main = sorted((run_dir / "raw" / "s2").glob(f"{when}_*.tif"))
+        if not main:
             continue
-        with rasterio.open(files[-1]) as ds:
-            dn = ds.read().astype(np.float32)
-            scales, offsets = ds.scales, ds.offsets
-        refl = np.stack([np.where(dn[i] > 0, dn[i] * scales[i] + offsets[i], np.nan) for i in range(6)]).astype(np.float32)
-        scl = dn[6].astype(np.uint8)
-        cloudy = binary_dilation(np.isin(scl, SCL_CLOUDY), iterations=2)
-        clear = np.isin(scl, SCL_CLEAR) & ~cloudy & np.all(np.isfinite(refl), axis=0)
-        b03, b11 = refl[1], refl[4]
-        with np.errstate(invalid="ignore", divide="ignore"):
-            snow = (scl == 11) | (((b03 - b11) / (b03 + b11) > 0.42) & (b03 > 0.15))
+        files = main[-1:] + sorted((run_dir / "raw" / "s2").glob(f"{when}x_*.tif"))
+        refl = clear = snow = None
+        n_clear = None
+        stack = []
+        for f in files:
+            r, c, sn = _read_s2(f)
+            stack.append(np.where(c[None], r, np.nan).astype(np.float32))
+            clear = c if clear is None else (clear | c)
+            snow = sn if snow is None else (snow | sn)
+            n_clear = c.astype(np.uint8) if n_clear is None else n_clear + c
+        if len(stack) == 1:
+            refl = stack[0]
+        else:
+            import warnings as _w
+            with _w.catch_warnings():
+                _w.simplefilter("ignore", RuntimeWarning)
+                refl = np.stack([np.nanmedian(np.stack([s[b] for s in stack]), axis=0) for b in range(6)])
+        del stack
+        snow = snow & ~clear  # snow only where no date offers a clear pixel
         setattr(inp, f"s2_{when}", refl)
-        setattr(inp, f"s2_{when}_clear", clear & ~snow)
+        setattr(inp, f"s2_{when}_clear", clear)
         inp.snow = snow if inp.snow is None else (inp.snow | snow)
-        inp.sources[f"s2_{when}"] = files[-1].name
+        inp.sources[f"s2_{when}"] = [f.name for f in files] if len(files) > 1 else files[0].name
 
 
 def _load_osm(run_dir: Path, inp: Inputs) -> None:
