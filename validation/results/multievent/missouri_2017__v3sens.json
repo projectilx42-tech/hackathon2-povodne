@@ -1,0 +1,190 @@
+{
+ "event": "missouri_2017",
+ "tag": "v3sens",
+ "dataset": "kurosiwo_test",
+ "continent": "North America",
+ "kind": "flood",
+ "event_date": "2017-05-03",
+ "aoi_bbox": [
+  -90.003,
+  37.899,
+  -89.9225,
+  37.9625
+ ],
+ "label_valid_pct": 93.8,
+ "scores": {
+  "a_seeds_own_region": {
+   "recall": 0.9854,
+   "precision": 0.8633,
+   "f1": 0.9204,
+   "truth_km2": 26.6102,
+   "pred_km2": 30.3743,
+   "tp_km2": 26.223,
+   "fp_km2": 4.1513,
+   "region_km2": 47.708
+  },
+  "a_seeds_common_region": {
+   "recall": 0.9854,
+   "precision": 0.8633,
+   "f1": 0.9204,
+   "truth_km2": 26.6102,
+   "pred_km2": 30.3743,
+   "tp_km2": 26.223,
+   "fp_km2": 4.1513,
+   "region_km2": 47.708
+  },
+  "b_envelope": {
+   "recall": 0.9854,
+   "precision": 0.8633,
+   "f1": 0.9204,
+   "truth_km2": 26.6102,
+   "pred_km2": 30.3743,
+   "tp_km2": 26.223,
+   "fp_km2": 4.1513,
+   "region_km2": 47.708
+  },
+  "b_envelope_visible_label": {
+   "recall": 0.9675,
+   "precision": 0.8633,
+   "f1": 0.9124,
+   "truth_km2": 27.1049,
+   "pred_km2": 30.3743,
+   "tp_km2": 26.223,
+   "fp_km2": 4.1513,
+   "region_km2": 48.639
+  }
+ },
+ "scores_water_total": {
+  "seeds": {
+   "recall": 0.9808,
+   "precision": 0.8667,
+   "f1": 0.9202,
+   "truth_km2": 27.7991,
+   "pred_km2": 31.4608,
+   "tp_km2": 27.2666,
+   "fp_km2": 4.1942,
+   "region_km2": 48.897
+  },
+  "envelope": {
+   "recall": 0.9808,
+   "precision": 0.8667,
+   "f1": 0.9202,
+   "truth_km2": 27.7991,
+   "pred_km2": 31.4608,
+   "tp_km2": 27.2666,
+   "fp_km2": 4.1942,
+   "region_km2": 48.897
+  }
+ },
+ "seed_transitions_km2": {
+  "water": {
+   "water": 30.5359
+  },
+  "debris": {
+   "debris": 0.0772
+  },
+  "permanent": {
+   "permanent": 0.8477
+  }
+ },
+ "components": {
+  "seeds_ai_water(2)": {
+   "km2": 31.9421,
+   "km2_in_label_region": 30.5359,
+   "share_on_truth": 0.857
+  },
+  "seeds_debris_step:debris": {
+   "km2": 0.0754,
+   "km2_in_label_region": 0.0754,
+   "share_on_truth": 0.58
+  },
+  "seeds_debris_step:flooded_vegetation": {
+   "km2": 0.0018,
+   "km2_in_label_region": 0.0018,
+   "share_on_truth": 0.0
+  },
+  "seeds_permanent(4)": {
+   "km2": 1.0899,
+   "km2_in_label_region": 0.8477,
+   "share_on_truth": 0.067
+  }
+ },
+ "pred_total_km2": {
+  "seeds": 32.019,
+  "envelope": 32.019
+ },
+ "run": {
+  "timings_s": {
+   "acquire": 160.7,
+   "preprocess": 2.1,
+   "s1anomaly": 1.2,
+   "flood_ai": 13.8,
+   "debris": 8.0,
+   "envelope": 4.3,
+   "combine": 2.0,
+   "damage": 2.5,
+   "network": 3.0,
+   "report": 6.3
+  },
+  "pu_spent": 32.2,
+  "pu_estimate": 36,
+  "envelope": {
+   "used": true,
+   "reason": null,
+   "placebo_groups": 2,
+   "placebo_split": true,
+   "stat": "comb",
+   "persistence": true,
+   "reach_q": 95,
+   "final_est_precision": 0.863,
+   "final_placebo_false_km2": 5.1753,
+   "added_km2": {
+    "water": 0.0803,
+    "debris": 6.2836,
+    "total": 6.3639
+   },
+   "added_by_stage_km2": {
+    "envelope": 4.8189,
+    "growth": 1.3996,
+    "permanent_water": 0.0,
+    "edges": 0.1454
+   },
+   "optics": {
+    "used": true,
+    "placebo": {
+     "pre": "pre_20170315.tif",
+     "second_pre": "prex_20170424.tif",
+     "gap_days": 40,
+     "event_gap_days": 60,
+     "clear_pct": 96.3
+    },
+    "event_flagged_km2": 24.9262,
+    "placebo_flagged_km2": 3.0577,
+    "added_overlapping_optical_km2": 1.9872
+   },
+   "post_passes": 2,
+   "optical_used": true
+  },
+  "main_track": {
+   "relative_orbit": 92,
+   "orbit_direction": "ASCENDING"
+  },
+  "alt_track": false,
+  "s2": {
+   "pre": 98.7,
+   "post": 92.9,
+   "extra": null
+  },
+  "warnings": [
+   "No usable Sentinel-1 pass from the opposite flight direction: areas hidden behind mountains for the main track stay unmapped.",
+   "No pre-event OpenStreetMap buildings in the area: damaged buildings cannot be counted (zero does not mean no damage)."
+  ],
+  "verdict": "flood_detected",
+  "coverage": {
+   "s1_valid_pct": 88.7,
+   "s2_pre_clear_pct": 98.7,
+   "s2_post_clear_pct": 92.9,
+   "evaluated_pct": 98.5
+  }
+ }
+}
