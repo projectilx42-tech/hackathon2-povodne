@@ -1116,3 +1116,16 @@ Rozhodnutí: `damage/measure.py` `DESTRUCTIVE_TYPES` = (1, 3, 6, 7). Sesuv odnes
 - **Zjištění (runs/trishuli_full):** obě dráhy S1 dohromady vidí 98 % plochy EMS → viditelnost není hlavní příčina nezachycení.
   Chybí hlavně plochy, které senzory vidí, ale změnu na nich naše metody nenajdou (dříve: ~60 % nezachycené plochy bez radarové anomálie).
   Další páky: fúze důkazů (radar + optika + terén), rozhodování po celých segmentech/objektech, self-training.
+
+## D-X-09 | 2026-10-13 | přijato (master) — Obálka hladiny podle úseku údolí + slabé důkazy změny („průlom“)
+- **Myšlenka:** místo pevných pravidel (sklon > 15°, HAND > 30 m) program z jistých detekcí (třída 2/3) odhadne pro každý úsek
+  údolí (blok ~500 m + sousedé) **výšku hladiny nad tokem** (percentil HAND jistých detekcí) a vytvoří **obálku** = pixely pod touto
+  hladinou propojené s detekcemi. Uvnitř obálky stačí **slabý důkaz změny** (radar: anomálie vůči normálu / změna dB na kterékoli
+  dráze mimo stín; optika: pokles NDVI na čistých pixelech), vyhlazený (median 5×5). Analytici mapují stejně (rozliv do úrovně stop vody).
+- **Diagnostika (runs/trishuli_full, starý běh R 0,432 / P 0,966):** samotná obálka R 0,84–0,91 / P 0,57–0,64; obálka + slabý důkaz
+  např. R 0,83 / P 0,82–0,84 (F1 0,83, main dosud 0,82). Skript diagnostiky: master scratch (přepíše se do `validation/`).
+- **Šedá zóna, přiznat v reportu:** tato čísla jsme viděli proti EMS jen pro volbu směru. **Žádný parametr se z nich nepřebírá.**
+  Percentil, velikost bloku a prahy důkazů se volí **jen z placeba** (dvojice před událostí: semena z placebo detekcí → obálka →
+  důkaz → falešná plocha), pracovní bod = nejcitlivější nastavení s odhadnutou přesností ≥ 85 % (D-X-08).
+- Implementace: nový modul `src/povodne/flood/envelope.py`, nepovinný krok po `debris`, před `combine`; výstup přidané pixely jako
+  třída 2 (voda) / 3 (suť) podle převládajícího důkazu, s nízkou jistotou. Kontrakt doplní implementující session do ARCHITECTURE.
