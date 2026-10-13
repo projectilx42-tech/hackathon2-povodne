@@ -1,10 +1,10 @@
-# Where do we miss EMS-affected area? (validation only; run: python -I validation/miss_analysis.py from repo root)
+# Where do we miss EMS-affected area? (validation only; run from repo root: python -I validation/miss_analysis.py runs/<run_id>)
 import sys; sys.path.insert(0,'.')
 import numpy as np, rasterio
 from pathlib import Path
 from scipy import ndimage
 from validation.compare import *
-d=Path('runs/trishuli_full'); mask,T,crs=read_mask(d); sh=mask.shape
+d=Path(sys.argv[1] if len(sys.argv)>1 else 'runs/trishuli_full'); mask,T,crs=read_mask(d); sh=mask.shape
 ems=load_ems(list_products(Path('validation/data/EMSR927')),crs)
 from shapely.geometry import box
 aoi=ems['aoi'].geometry.union_all(); na=ems['not_analysed']
@@ -33,3 +33,8 @@ for c in col:
 print('--- recall restricted to terrain where flood/debris deposits are expected ---')
 for nm,c in [('slope<=15',sl<=15),('slope<=15 & HAND<=15',(sl<=15)&(h<=15)),('slope<=10 & HAND<=10',(sl<=10)&(h<=10)),('above + radar visible',(sl<=15)&(h<=15)&(ls==0))]:
   e=E_&c; print(f"{nm:28s} EMS {e.sum()*1e-4:6.2f} km2 ({100*e.sum()/E_.sum():3.0f}% of EMS)  recall {100*(e&O).sum()/e.sum():4.1f}%")
+print('--- recall by terrain (precision overall) ---')
+P=(O&region&E_).sum()/max((O&region).sum(),1)
+print(f"overall: recall {100*hit.sum()/E_.sum():.1f}%  precision {100*P:.1f}%")
+for nm,c in [('slope>15',sl>15),('slope<=15',sl<=15),('radar shadow main track',ls>0)]:
+  e=E_&c; print(f"{nm:24s} EMS share {100*e.sum()/E_.sum():3.0f}%  recall {100*(e&O).sum()/max(e.sum(),1):4.1f}%")
