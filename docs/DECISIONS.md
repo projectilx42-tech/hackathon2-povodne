@@ -1293,3 +1293,10 @@ v pre-pre placebu chybí). Žádné pevné pravidlo (sklon / HAND), ale **dosah 
 výchozí `off` do rozhodnutí masteru). Krok navíc ukládá `flood/envelope_stage.tif` (1 obálka, 2 růst, 3 trvalá voda, 4 okraje) pro diagnostiku (`validation/envelope_stage_diag.py`, čte EMS jen k měření).
 - **Doplnění D-M13-03 (master):** dosah se počítá jen ze semínek vody (třída 2), ne suti (ze všech semínek vyšel dosah 1351 km²); okrajový stupeň přidává jen okrajové pixely souvislé s detekcí;
   mřížka tg doplněna o 2,25; volba `POVODNE_ENVELOPE_EDGE_SCALE=1` přepočte falešné okrajové pixely placeba na plochu okrajového pásu události; trvalost je výchozí (`POVODNE_ENVELOPE_PERSIST=1`, bez dostatku průletů se vypne).
+
+## D-M13-04 | 2026-10-13 | přijato (návrh master session) — Dvě placebo skupiny (leave-one-out) v obálce
+Odhad přesnosti z jediné placebo skupiny vycházel optimisticky (změřené P výrazně pod odhadem). `flood/envelope.py` nově tvoří **dvě placebo skupiny** z placebo průletů před událostí
+(`raw/s1*/post_series`, sekce placebo): A = všechny průlety kromě posledního, B = všechny kromě prvního (při < 3 průletech na dráhu jedna skupina). Každá skupina projde
+stejným řetězcem jako událost (obálka → růst omezený dosahem → souvislé okraje, trvalost přes průlety skupiny) a **falešná plocha = průměr přes skupiny**.
+Odhad P = 1 − falešná plocha ÷ (stávající + přidaná plocha); volba = největší plocha s odhadem ≥ 0,85. Mřížky: q 95; w {1, 5, 9}; tz {3; 2,5; 2; 1,75}; r {0, 6}; růst tg {2,5; 2,25; 2}; okraje t3 {1,75; 1,5; 1,25}, r {3, 5, 10};
+optika (NDVI) jen v události. Přepočet falešných okrajových pixelů na plochu okrajového pásu (D-M13-03) zrušen (master: odhad ještě optimističtější).

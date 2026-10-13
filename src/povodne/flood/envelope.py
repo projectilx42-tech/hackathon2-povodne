@@ -240,15 +240,14 @@ def _placebo_z_comb(run_dir: Path, shape) -> tuple[np.ndarray | None, str]:
 
 # ---------------------------------------------------------------- evidence with window, persistence (D-X-11)
 W_GRID = (1, 5, 9)                 # window (px) of the mean of z^2; <= 9 px: the placebo cannot verify larger windows (D-X-11)
-Q_GRID_RUN = (75, 95)
+Q_GRID_RUN = (95,)
 TZ_GRID_RUN = (3.0, 2.5, 2.0, 1.75)
 R_GRID_RUN = (0, 6)
-TG_GRID_RUN = (3.0, 2.5, 2.25, 2.0, 1.75, 1.5)
+TG_GRID_RUN = (2.5, 2.25, 2.0)
 EDGE_T3 = (1.75, 1.5, 1.25)        # stage 4: lower threshold, only in a band around the detections
 EDGE_R = (3, 5, 10)
 T_PASS = 1.5                       # per-pass threshold of the persistence test (a-priori; each pass is unaveraged and noisy)
 MIN_PASSES = 2
-EDGE_SCALE = False                 # option (env POVODNE_ENVELOPE_EDGE_SCALE=1): scale the placebo's false edge pixels to the event's band area
 
 
 def windowed(z: np.ndarray, w: int) -> tuple[np.ndarray, np.ndarray]:
@@ -271,19 +270,15 @@ def evidence_w(stat: tuple[np.ndarray, np.ndarray], t: float, persist: np.ndarra
     return (ev | opt) if opt is not None else ev, dk
 
 
-def persistence_mask(run_dir: Path, shape, which: str) -> tuple[np.ndarray | None, int]:
+def persistence_from_pairs(groups: list[tuple[list, int]], shape) -> tuple[np.ndarray | None, int]:
     """True where the anomaly recurs: a pass-level combined z beyond +-T_PASS (same sign) in >= MIN_PASSES passes (tracks x passes).
-    Moisture after rain is transient, debris and landslides persist. (None, n) if fewer than MIN_PASSES passes exist."""
+    Moisture after rain is transient, debris and landslides persist. `groups` = [(pairs of one track, coarse factor)].
+    (None, n) if fewer than MIN_PASSES passes exist."""
     neg = np.zeros(shape, np.uint8)
     pos = np.zeros(shape, np.uint8)
     n_pass = 0
-    for prefix, _ in s1anomaly.TRACKS:
-        norm_p = run_dir / "raw" / prefix / "norm.tif"
-        if not norm_p.exists():
-            continue
-        with rasterio.open(norm_p) as ds:
-            norm, f = ds.read(), int(round(abs(ds.transform.a) / 10.0))
-        for zv, zh, *_ in s1anomaly._series(run_dir, prefix, norm, which):
+    for pairs, f in groups:
+        for zv, zh, *_ in pairs:
             zc = (zv + zh) / np.sqrt(2.0)
             for cnt, m in ((neg, zc <= -T_PASS), (pos, zc >= T_PASS)):
                 up = np.repeat(np.repeat(m, f, 0), f, 1)[:shape[0], :shape[1]]
@@ -292,6 +287,53 @@ def persistence_mask(run_dir: Path, shape, which: str) -> tuple[np.ndarray | Non
     if n_pass < MIN_PASSES:
         return None, n_pass
     return (neg >= MIN_PASSES) | (pos >= MIN_PASSES), n_pass
+
+
+def _track_pairs(run_dir: Path, which: str) -> dict:
+    """{prefix: (pairs of z maps per pass, coarse factor)} for "post" or "placebo" passes."""
+    out = {}
+    for prefix, _ in s1anomaly.TRACKS:
+        norm_p = run_dir / "raw" / prefix / "norm.tif"
+        if not norm_p.exists():
+            continue
+        with rasterio.open(norm_p) as ds:
+            norm, f = ds.read(), int(round(abs(ds.transform.a) / 10.0))
+        out[prefix] = (s1anomaly._series(run_dir, prefix, norm, which), f)
+    return out
+
+
+def persistence_mask(run_dir: Path, shape, which: str) -> tuple[np.ndarray | None, int]:
+    return persistence_from_pairs([(p, f) for p, f in _track_pairs(run_dir, which).values()], shape)
+
+
+def placebo_groups(run_dir: Path, shape) -> list[dict]:
+    """Two placebo "pairs" (leave-one-out over the placebo passes, D-M13-04): group A = all passes but the last, group B = all
+    but the first (with fewer than 3 passes per track: one group of all passes). Each group = a z_comb map on the run grid plus
+    its persistence mask, produced exactly like the event's. [] if there are no placebo passes."""
+    tp = _track_pairs(run_dir, "placebo")
+    n = max((len(p) for p, _ in tp.values()), default=0)
+    if n == 0:
+        z, _kind = _placebo_z_comb(run_dir, shape)      # older fallback: the single before-image
+        return [{"z": z, "P": None}] if z is not None else []
+    cuts = [(slice(None, -1)), (slice(1, None))] if n >= 3 else [slice(None)]
+    groups = []
+    for cut in cuts:
+        per_vv, per_vh, sel = [], [], []
+        for prefix, (pairs, f) in tp.items():
+            pr = pairs[cut]
+            if not pr:
+                continue
+            zv, zh = s1anomaly._mean_z(pr)
+            ls = _read(run_dir / "masks" / f"{prefix}_layover_shadow.tif", shape)
+            v, h = s1anomaly.upsample(zv, f, shape), s1anomaly.upsample(zh, f, shape)
+            if ls is not None:
+                v[ls > 0], h[ls > 0] = np.nan, np.nan
+            per_vv.append(v)
+            per_vh.append(h)
+            sel.append((pr, f))
+        if per_vv:
+            groups.append({"z": s1anomaly.combine_tracks(per_vv, per_vh)[2], "P": persistence_from_pairs(sel, shape)[0]})
+    return groups
 
 
 def band_around(det: np.ndarray, r: int) -> np.ndarray:
@@ -312,13 +354,15 @@ def _pick(rows: list[dict], key: str) -> dict | None:
 
 def search(c: dict, persist: bool, reach_q: int | None = None) -> dict:
     """The four-stage search for one evidence variant; every threshold is picked by the placebo (est. precision >= MIN_PRECISION).
-    `c` = context (arrays + constants). Returns {"final": {...}, "added_water", "added_debris", "stages": {...}}."""
-    z, zp, hand, perm, existing, seeds, pseeds = c["z"], c["zp"], c["hand"], c["perm"], c["existing"], c["seeds"], c["pseeds"]
-    opt, labelled, n_exist = c["opt"], c["labelled"], c["n_exist"]
-    Pe, Pp = (c["Pe"], c["Pp"]) if persist else (None, None)
-    optq, ctrl = c["optq"], c["ctrl_rate"]
+    `c` = context (arrays + constants); c["pl"] = the placebo groups [{"z", "P", "seeds"}]: the false area is the mean over them
+    (leave-one-out placebo pairs, D-M13-04). Returns {"final": {...}, "added_water", "added_debris", "stage", "stages": {...}}."""
+    z, hand, perm, existing, seeds = c["z"], c["hand"], c["perm"], c["existing"], c["seeds"]
+    opt, labelled, n_exist, pl = c["opt"], c["labelled"], c["n_exist"], c["pl"]
+    Pe = c["Pe"] if persist else None
+    ctrl, npl = c["ctrl_rate"], len(pl)
+    Pp = [g["P"] if persist else None for g in pl]
     zero = np.zeros(z.shape, bool)
-    out = {"persistence": persist, "reach_q": reach_q, "stages": {}}
+    out = {"persistence": persist, "reach_q": reach_q, "n_placebo_groups": npl, "stages": {}}
     stage = np.zeros(z.shape, np.uint8)   # which stage added the pixel: 1 envelope, 2 growth, 3 permanent water, 4 edges
 
     def prec(fp, added):
@@ -328,40 +372,45 @@ def search(c: dict, persist: bool, reach_q: int | None = None) -> dict:
     rows, keep = [], {}
     for q in Q_GRID_RUN:
         env, einfo = envelope(hand, seeds, perm, q, BLOCK_GRID[0])
-        penv, _ = envelope(hand, pseeds, perm, q, BLOCK_GRID[0])
+        penvs = [envelope(hand, g["seeds"], perm, q, BLOCK_GRID[0])[0] for g in pl]
         env_px = int((env & ~existing).sum())
         for w in W_GRID:
-            sE, sP = windowed(z, w), windowed(zp, w)
+            sE = windowed(z, w)
+            sPs = [windowed(g["z"], w) for g in pl]
             for tz in TZ_GRID_RUN:
                 ev, dk = evidence_w(sE, tz, Pe, opt)
-                pev, _ = evidence_w(sP, tz, Pp)
+                pevs = [evidence_w(sP, tz, Pp[k])[0] for k, sP in enumerate(sPs)]
                 for r in R_GRID_RUN:
                     aw, ad = add_pixels(env, seeds, perm, ev, dk, existing, labelled, r)
                     added = int(aw.sum() + ad.sum())
-                    fp = placebo_false(penv, pseeds, perm, pev, r) + ctrl * env_px
+                    fp = float(np.mean([placebo_false(penvs[k], pl[k]["seeds"], perm, pevs[k], r) for k in range(npl)])) + ctrl * env_px
                     rows.append({"q": q, "w": w, "tz": tz, "r_px": r, "added_px": added, "added_km2": round(added * c["px_km2"], 4),
                                  "placebo_false_km2": round(fp * c["px_km2"], 4), "est_precision": prec(fp, added),
                                  "est_precision_added": round(max(0.0, 1.0 - fp / added), 3) if added else 1.0,
                                  "median_level_m": einfo["median_level_m"]})
-                    keep[(q, w, tz, r)] = (aw, ad, env, penv)
+                    keep[(q, w, tz, r)] = (aw, ad, env, penvs)
     best = _pick(rows, "added_px")
     out["stages"]["envelope"] = {"grid": rows, "chosen": best}
     if best is None:
         out["final"] = None
         return out
-    aw, ad, env, penv = keep[(best["q"], best["w"], best["tz"], best["r_px"])]
+    aw, ad, env, penvs = keep[(best["q"], best["w"], best["tz"], best["r_px"])]
     del keep
     stage[aw | ad] = 1
     w = best["w"]
-    sE, sP = windowed(z, w), windowed(zp, w)
-    # Reach derived from the seeds (D-M13-03): growth and edges may not leave the envelope of a high HAND percentile of the seeds.
+    sE = windowed(z, w)
+    sPs = [windowed(g["z"], w) for g in pl]
+    pdets = []
+    for k, g in enumerate(pl):
+        pev, _ = evidence_w(sPs[k], best["tz"], Pp[k])
+        pdets.append(close_gaps(g["seeds"] | (penvs[k] & pev & ~perm), penvs[k], best["r_px"]))
+    # Reach derived from the WATER seeds (D-M13-03): growth and edges may not leave the envelope of a high HAND percentile of
+    # the water seeds (debris seeds climb slopes and would make the reach useless); same for the placebo with its own seeds.
     reach = preach = None
     if reach_q:
-        wseeds = c["seeds_w"]   # water seeds only: debris seeds climb slopes and would make the reach useless (D-M13-03)
+        wseeds = c["seeds_w"]
         reach = (envelope(hand, wseeds, perm, reach_q, BLOCK_GRID[0])[0] if wseeds.any() else zero) | seeds
-        preach = envelope(hand, pseeds, perm, reach_q, BLOCK_GRID[0])[0] | pseeds
-    pev, _ = evidence_w(sP, best["tz"], Pp)
-    pdet = close_gaps(pseeds | (penv & pev & ~perm), penv, best["r_px"])
+        preach = [envelope(hand, g["seeds"], perm, reach_q, BLOCK_GRID[0])[0] | g["seeds"] for g in pl]
     fp0 = best["placebo_false_km2"] / c["px_km2"]
     cur_added = int(aw.sum() + ad.sum())
 
@@ -370,18 +419,20 @@ def search(c: dict, persist: bool, reach_q: int | None = None) -> dict:
     for tg in TG_GRID_RUN:
         evg, dkg = evidence_w(sE, tg, Pe, opt)
         gnew = grow_hysteresis(det1, evg if reach is None else evg & reach, perm)
-        pg, _ = evidence_w(sP, tg, Pp)
-        gp = grow_hysteresis(pdet, pg if preach is None else pg & preach, perm)
-        fp = fp0 + int(gp.sum()) + ctrl * int(gnew.sum())
+        gps = []
+        for k in range(npl):
+            pg, _ = evidence_w(sPs[k], tg, Pp[k])
+            gps.append(grow_hysteresis(pdets[k], pg if preach is None else pg & preach[k], perm))
+        fp = fp0 + float(np.mean([int(gp.sum()) for gp in gps]))
         grows.append({"tg": tg, "added_px": int(gnew.sum()), "est_precision": prec(fp, cur_added + int(gnew.sum())),
-                      "placebo_false_km2": round(fp * c["px_km2"], 4), "_new": gnew, "_dark": dkg, "_pnew": gp})
+                      "placebo_false_km2": round(fp * c["px_km2"], 4), "_new": gnew, "_dark": dkg, "_pnew": gps})
     gb = _pick(grows, "added_px")
     out["stages"]["growth"] = {"grid": [{k: v for k, v in g.items() if not k.startswith("_")} for g in grows],
                                "chosen": {k: v for k, v in gb.items() if not k.startswith("_")} if gb else None}
     if gb is not None:
         stage[gb["_new"]] = 2
         aw, ad = aw | (gb["_new"] & gb["_dark"]), ad | (gb["_new"] & ~gb["_dark"])
-        pdet = pdet | gb["_pnew"]
+        pdets = [pdets[k] | gb["_pnew"][k] for k in range(npl)]
         fp0 = gb["placebo_false_km2"] / c["px_km2"]
         cur_added = int(aw.sum() + ad.sum())
 
@@ -389,9 +440,9 @@ def search(c: dict, persist: bool, reach_q: int | None = None) -> dict:
     env_perm, perms = env & perm, []
     for tp in TP_GRID:
         evp, dkp = evidence_w(sE, tp, Pe)
-        pp, _ = evidence_w(sP, tp, Pp)
         newp = env_perm & evp
-        fp = fp0 + int((env_perm & pp).sum())
+        pfs = [int((env_perm & evidence_w(sPs[k], tp, Pp[k])[0]).sum()) for k in range(npl)]
+        fp = fp0 + float(np.mean(pfs))
         perms.append({"tp": tp, "added_px": int(newp.sum()), "est_precision": prec(fp, cur_added + int(newp.sum())),
                       "placebo_false_km2": round(fp * c["px_km2"], 4), "_new": newp, "_dark": dkp})
     pb = _pick(perms, "added_px")
@@ -403,28 +454,25 @@ def search(c: dict, persist: bool, reach_q: int | None = None) -> dict:
         fp0 = pb["placebo_false_km2"] / c["px_km2"]
         cur_added = int(aw.sum() + ad.sum())
 
-    # stage 4: edges — a lower threshold t3 only in a band of r px around the detections
+    # stage 4: edges — a lower threshold t3 only in a band of r px around the detections, only pixels connected to them
     det3, edges = existing | aw | ad, []
-    pdet3 = pdet
     for r in EDGE_R:
-        band, pband = band_around(det3, r), band_around(pdet3, r)
+        band = band_around(det3, r)
+        pbands = [band_around(pdets[k], r) for k in range(npl)]
         for t3 in EDGE_T3:
             eve, dke = evidence_w(sE, t3, Pe, opt)
-            pe, _ = evidence_w(sP, t3, Pp)
             enew = band & eve & ~det3 & ~perm
-            pnew = pband & pe & ~pdet3 & ~perm
             if reach is not None:
                 enew &= reach
-                pnew &= preach
-            enew = grow_hysteresis(det3, enew, perm)       # only edge pixels connected to the detections (small detached bits are mostly false)
-            pnew = grow_hysteresis(pdet3, pnew, perm)
-            if EDGE_SCALE:                                  # placebo false rate per band pixel, scaled to the event's band area
-                bE = int((band & ~det3 & ~perm & (reach if reach is not None else True)).sum())
-                bP = int((pband & ~pdet3 & ~perm & (preach if preach is not None else True)).sum())
-                pn = int(pnew.sum()) / max(bP, 1) * bE
-            else:
-                pn = int(pnew.sum())
-            fp = fp0 + pn + ctrl * int(enew.sum())
+            enew = grow_hysteresis(det3, enew, perm)
+            pns = []
+            for k in range(npl):
+                pe, _ = evidence_w(sPs[k], t3, Pp[k])
+                pnew = pbands[k] & pe & ~pdets[k] & ~perm
+                if preach is not None:
+                    pnew &= preach[k]
+                pns.append(int(grow_hysteresis(pdets[k], pnew, perm).sum()))
+            fp = fp0 + float(np.mean(pns))
             edges.append({"r": r, "t3": t3, "added_px": int(enew.sum()), "est_precision": prec(fp, cur_added + int(enew.sum())),
                           "placebo_false_km2": round(fp * c["px_km2"], 4), "_new": enew, "_dark": dke})
     eb = _pick(edges, "added_px")
@@ -462,9 +510,9 @@ def run(run_dir: Path) -> dict:
         msg = "No HAND mask or radar anomaly map: the water-level envelope was not made."
         notices.append(_notice("envelope_no_reference", msg))
         return finish({"used": False, "reason": msg}, "skipped", msg)
-    zp, placebo_kind = _placebo_z_comb(run_dir, shape)
-    if zp is None:
-        msg = f"No placebo passes ({placebo_kind}): the envelope parameters cannot be chosen without a placebo, so nothing was added."
+    pl = placebo_groups(run_dir, shape)
+    if not pl:
+        msg = "No placebo passes (no year-long normal): the envelope parameters cannot be chosen without a placebo, so nothing was added."
         notices.append(_notice("envelope_no_reference", msg))
         return finish({"used": False, "reason": msg}, "skipped", msg)
 
@@ -474,8 +522,9 @@ def run(run_dir: Path) -> dict:
     existing = seeds | perm
     slope = _read(run_dir / "masks" / "slope.tif", shape)
     floor = np.isfinite(hand) & (hand <= SEEDS_FLOOR["hand_m"]) & ((slope <= SEEDS_FLOOR["slope_deg"]) if slope is not None else True)
-    pseeds = floor & np.isfinite(zp) & (zp <= SEED_Z_PLACEBO) & ~perm
-    pseeds = ndimage.binary_opening(pseeds, structure=np.ones((2, 2)))
+    for g in pl:   # placebo seeds: the strict anomaly detections of that placebo group on the valley floor
+        ps = floor & np.isfinite(g["z"]) & (g["z"] <= SEED_Z_PLACEBO) & ~perm
+        g["seeds"] = ndimage.binary_opening(ps, structure=np.ones((2, 2)))
     opt = optq = None
     s2 = [_read(run_dir / "aligned" / f"s2_{k}.tif", shape, band=0) for k in ("pre", "post")]
     vm = [_read(run_dir / "masks" / f"s2_{k}_valid.tif", shape) for k in ("pre", "post")]
@@ -488,13 +537,12 @@ def run(run_dir: Path) -> dict:
         return finish({"used": False, "reason": msg}, "skipped", msg)
 
     Pe, ne = persistence_mask(run_dir, shape, "post")
-    Pp, npl = persistence_mask(run_dir, shape, "placebo")
+    npl = len(pl)
+    Pp = True if all(g["P"] is not None for g in pl) else None   # persistence is available for the placebo
     ctrl = optical_false_rate(opt, optq & ~existing) if opt is not None else 0.0
     labelled = np.where(ai == WATER, WATER, np.where(deb == 1, DEBRIS, 0)).astype(np.uint8) if deb is not None else np.where(ai == WATER, WATER, 0).astype(np.uint8)
-    c = {"z": z, "zp": zp, "hand": hand, "perm": perm, "existing": existing, "seeds": seeds, "pseeds": pseeds, "opt": opt, "optq": optq,
-         "labelled": labelled, "seeds_w": ai == WATER, "n_exist": int(existing.sum()), "Pe": Pe, "Pp": Pp, "ctrl_rate": ctrl, "px_km2": px_km2}
-    global EDGE_SCALE
-    EDGE_SCALE = os.environ.get("POVODNE_ENVELOPE_EDGE_SCALE", "0") == "1"
+    c = {"z": z, "hand": hand, "perm": perm, "existing": existing, "seeds": seeds, "pl": pl, "opt": opt, "optq": optq,
+         "labelled": labelled, "seeds_w": ai == WATER, "n_exist": int(existing.sum()), "Pe": Pe, "ctrl_rate": ctrl, "px_km2": px_km2}
     mode = os.environ.get("POVODNE_ENVELOPE_PERSIST", "1")   # "1" on (default; falls back to off without enough passes), "0" off, "auto" = both
     have_persist = Pe is not None and Pp is not None
     variants = [False, True] if mode == "auto" and have_persist else [mode == "1" and have_persist]
@@ -502,8 +550,8 @@ def run(run_dir: Path) -> dict:
     reaches = {"off": [None], "auto": [95, 99]}.get(reach_mode, [int(reach_mode)] if reach_mode.isdigit() else [None])
     results = [search(c, v, rq) for v in variants for rq in reaches]
     good = [r for r in results if r.get("final")]
-    section = {"used": False, "reach_mode": reach_mode, "min_precision": MIN_PRECISION, "placebo": placebo_kind, "existing_km2": round(c["n_exist"] * px_km2, 4),
-               "placebo_seeds_km2": round(int(pseeds.sum()) * px_km2, 4), "ndvi_drop": NDVI_DROP, "ndvi_post_max": NDVI_POST_MAX,
+    section = {"used": False, "reach_mode": reach_mode, "min_precision": MIN_PRECISION, "placebo": "series", "existing_km2": round(c["n_exist"] * px_km2, 4),
+               "placebo_seeds_km2": [round(int(g["seeds"].sum()) * px_km2, 4) for g in pl], "placebo_groups": npl, "ndvi_drop": NDVI_DROP, "ndvi_post_max": NDVI_POST_MAX,
                "optical_used": opt is not None, "optical_false_rate": round(ctrl, 5), "post_passes": ne, "placebo_passes": npl,
                "t_pass": T_PASS,
                "variants": [{"persistence": r["persistence"], "reach_q": r["reach_q"], "final": r.get("final"),

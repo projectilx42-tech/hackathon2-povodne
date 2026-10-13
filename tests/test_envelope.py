@@ -235,9 +235,9 @@ def test_search_runs_all_stages_on_synthetic_context():
     z[100:150, 86:96] = -4.0
     z[100:150, 96:104] = -6.0
     z[100:150, 79:86] = -1.9                              # weak: only the edge band / growth can catch it
-    c = {"z": z, "zp": np.zeros(shape, np.float32), "hand": hand, "perm": perm, "existing": seeds | perm, "seeds": seeds,
-         "pseeds": np.zeros(shape, bool), "seeds_w": seeds, "opt": None, "optq": None, "labelled": np.where(seeds, 2, 0).astype(np.uint8),
-         "n_exist": int((seeds | perm).sum()), "Pe": None, "Pp": None, "ctrl_rate": 0.0, "px_km2": 1e-4}
+    c = {"z": z, "hand": hand, "perm": perm, "existing": seeds | perm, "seeds": seeds,
+         "pl": [{"z": np.zeros(shape, np.float32), "P": None, "seeds": np.zeros(shape, bool)}], "seeds_w": seeds, "opt": None, "optq": None, "labelled": np.where(seeds, 2, 0).astype(np.uint8),
+         "n_exist": int((seeds | perm).sum()), "Pe": None, "ctrl_rate": 0.0, "px_km2": 1e-4}
     res = envelope.search(c, False)
     assert res["final"] and res["final"]["est_precision"] >= envelope.MIN_PRECISION
     assert set(res["stages"]) == {"envelope", "growth", "permanent_water", "edges"}
@@ -252,11 +252,23 @@ def test_search_with_reach_limits_growth_and_edges():
     seeds = ai == 2
     z = np.zeros(shape, np.float32)
     z[100:150, 60:100] = -3.0                             # strong evidence reaching far up the slope (HAND up to 8 m)
-    c = {"z": z, "zp": np.zeros(shape, np.float32), "hand": hand, "perm": np.zeros(shape, bool), "existing": seeds, "seeds": seeds,
-         "pseeds": np.zeros(shape, bool), "seeds_w": seeds, "opt": None, "optq": None, "labelled": np.where(seeds, 2, 0).astype(np.uint8),
-         "n_exist": int(seeds.sum()), "Pe": None, "Pp": None, "ctrl_rate": 0.0, "px_km2": 1e-4}
+    c = {"z": z, "hand": hand, "perm": np.zeros(shape, bool), "existing": seeds, "seeds": seeds,
+         "pl": [{"z": np.zeros(shape, np.float32), "P": None, "seeds": np.zeros(shape, bool)}], "seeds_w": seeds, "opt": None, "optq": None, "labelled": np.where(seeds, 2, 0).astype(np.uint8),
+         "n_exist": int(seeds.sum()), "Pe": None, "ctrl_rate": 0.0, "px_km2": 1e-4}
     free = envelope.search(c, False)
     capped = envelope.search(c, False, reach_q=50)
     a_free = int((free["added_water"] | free["added_debris"]).sum())
     a_cap = int((capped["added_water"] | capped["added_debris"]).sum())
     assert a_cap <= a_free and capped["stage"].max() <= 4
+
+
+def test_persistence_from_pairs_needs_two_passes_same_sign():
+    f = 4
+    a = np.zeros((10, 10), np.float32)
+    a[2:5, 2:5] = -3.0                                    # dark in both passes
+    b = a.copy()
+    b[7:9, 7:9] = -3.0                                    # dark in one pass only
+    pairs = [(a, a, "d1", None), (b, b, "d2", None)]
+    P, n = envelope.persistence_from_pairs([(pairs, f)], (40, 40))
+    assert n == 2 and P[8:20, 8:20].all() and not P[28:36, 28:36].any()
+    assert envelope.persistence_from_pairs([(pairs[:1], f)], (40, 40))[0] is None
