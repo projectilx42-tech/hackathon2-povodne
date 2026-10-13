@@ -1185,3 +1185,9 @@ Změna kontraktu: žádná v souborech; `debris_type` 7 = fúzí nalezená ploch
   54 % uvnitř obálky bez důkazu, 46 % mimo obálku (34 % na svazích > 15°). Hysterezní růst (spojité slabé důkazy od detekcí, bez limitu
   HAND/sklonu, 8-sousedství), práh jen z placeba (z 2,5, odhad P 0,863) → **R 0,774 / P 0,927 / F1 0,843**. Při z 1,5 by R byl 0,89,
   ale P 0,74 → kvalita slabého důkazu (roční normál, víc snímků po události) je teď hlavní páka.
+
+## D-M10-08 | 2026-10-13 | přijato — Radarová anomálie jako přímá podpora v AI kroku + prahy podle verze modelu
+- **Prahy:** `training/thresholds.json` (klíč = složka modelu, v0.4: citlivý 0,20, zdroj ověřovací události Kuro Siwo) má v `run_ai.py` přednost před kartou modelu (ta se stahuje z Kaggle); karta je jen záloha.
+- **Násobení šance je slabé:** na Trishuli (plocha vs EMS, jen měření) při síle 0 / 1 / 2,5 / 4 R 0,619 / 0,620 / 0,624 / 0,629 (citlivý), standardní 0,617–0,623; model dává zmeškaným pixelům P ≈ 0, takže žádný násobič je nepřevrátí.
+- **Přímá podpora:** pixely tmavší než normál místa pod placebo prahem (z_comb < `threshold_z_comb`, ≥ 99,5 % bezpovodňové scény je nad ním), s terénní vahou > 0,05, mimo trvalou vodu, se přidají jako povodeň tam, kde navazují na povodeň z modelu (`--no-anomaly-connect` vypne). Hodnota prahu je jen z placeba, ne z EMS. Trishuli: R 0,619 → 0,639, P 0,968, F1 0,770 (recall na viditelné ploše 63,9 %).
+- **Zbývá:** cíl 90 % je daleko; volnější práh (z ≤ −2) by přidal recall za cenu přesnosti — volba jen přes odhad přesnosti z placeba (D-X-08), zatím neprovedeno.
