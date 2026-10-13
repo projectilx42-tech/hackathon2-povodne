@@ -33,10 +33,11 @@ def rd(p):
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--runs", type=Path, default=Path("/home/user/run-wt/runs"))
-    ap.add_argument("--tag", default="v2default")
+    ap.add_argument("--tag", default="v2default", help="label of the masks currently on disk; output is boundary_diag_<tag>.json (default tag: boundary_diag.json)")
+    ap.add_argument("--out-tag", default=None, help="write boundary_diag_<out-tag>.json instead of boundary_diag.json")
     a = ap.parse_args()
     events = json.loads((HERE / "multievent_events.json").read_text())["events"]
-    out = {"note": __doc__.strip().split("\n")[0], "tag": a.tag, "events": {}}
+    out = {"note": __doc__.strip().split("\n")[0], "tag": a.out_tag or a.tag, "events": {}}
     for ev in events:
         if ev["kind"] != "flood" or ev["id"].startswith("chamoli"):
             continue
@@ -65,7 +66,7 @@ def main() -> None:
                                        "f1": round(2 * tp / (2 * tp + fp + fn), 4) if tp else None}
         out["events"][ev["id"]] = res
         print(ev["id"], "missed", res["missed_km2"], "km2; within 3 px:", res["share_within_3px"], "| dilation", {k: (v["recall"], v["precision"]) for k, v in res["dilation"].items()})
-    (HERE / "results" / "multievent" / "boundary_diag.json").write_text(json.dumps(out, indent=1))
+    (HERE / "results" / "multievent" / (f"boundary_diag_{a.out_tag}.json" if a.out_tag else "boundary_diag.json")).write_text(json.dumps(out, indent=1))
 
 
 if __name__ == "__main__":

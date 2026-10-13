@@ -74,6 +74,23 @@ Code: feat/envelope 99af64d (D-M13-10) merged with main 4987721 (year-normal ski
 | marsyangdi_2024_noflood_sub (water label, all classes) | 0.1873 | 0.89 / 0.17 / 0.29 | 0.91 / 0.16 / 0.28 | 0.0699 (yes) | 2 / 0.977 | 0.03 | 99.2 |
 | chamoli_2021_sub (water label, all classes) | 0.0402 | 0.09 / 0.01 / 0.02 | 0.09 / 0.01 / 0.02 | – (no) | 3 / None | – | 113.4 |
 
+## Sensitive mode (D-M9-08/11), no envelope (tag `v3sens`)
+All previous runs used `standard` (argmax). Here: `--sensitivity sensitive` (flood from P(flood) ≥ 0.20 in v0.4 where connected to confident flood), `--from flood_ai --no-envelope`
+(flood_ai → debris → combine, raw data cached, no PU), so numbers are the seeds only. Metrics on the label-valid area, affected = 2+3 (Bolivia: water 2+4; Teesta: all classes vs water label).
+| event | label km² | standard seeds R / P / F1 | **sensitive** R / P / F1 | sensitive + dilation 1 px R / P | 2 px R / P | share of missed ≤3 px |
+|---|---|---|---|---|---|---|
+| malawi_2022 | 13.2524 | 0.89 / 0.95 / 0.92 | **0.93 / 0.93 / 0.93** | 0.97 / 0.91 | 0.99 / 0.89 | 0.87 |
+| honduras_2018 | 19.2764 | 0.65 / 0.90 / 0.76 | **0.82 / 0.88 / 0.85** | 0.91 / 0.83 | 0.95 / 0.78 | 0.81 |
+| australia_2022 | 51.5291 | 0.69 / 0.99 / 0.81 | **0.79 / 0.99 / 0.88** | 0.84 / 0.98 | 0.88 / 0.98 | 0.50 |
+| bihar_2019 | 47.4116 | 0.82 / 0.89 / 0.85 | **0.82 / 0.88 / 0.85** | 0.85 / 0.88 | 0.88 / 0.87 | 0.81 |
+| missouri_2017 | 26.6102 | 0.98 / 0.90 / 0.94 | **0.99 / 0.86 / 0.92** | 0.99 / 0.83 | 1.00 / 0.81 | 0.81 |
+| chad_2020 | 9.4086 | 0.61 / 0.78 / 0.69 | **0.66 / 0.78 / 0.72** | 0.74 / 0.72 | 0.80 / 0.67 | 0.52 |
+| evros_2018 | 23.4867 | 0.92 / 0.85 / 0.89 | **0.94 / 0.84 / 0.89** | 0.97 / 0.81 | 0.99 / 0.78 | 0.78 |
+| bolivia_2018 | 14.8811 | 0.92 / 0.84 / 0.88 | **0.94 / 0.83 / 0.88** | 1.00 / 0.59 | 1.00 / 0.57 | 0.80 |
+| teesta_2023_sub | 1.1611 | 0.65 / 0.63 / 0.64 | **0.69 / 0.63 / 0.66** | 0.81 / 0.57 | 0.86 / 0.52 | 0.64 |
+No-flood control (Marsyangdi): standard seeds 2.112 km² → sensitive 2.115 km² affected; false-alarm share of dry-label area 0.0086 → 0.0087.
+Note: the run directories now hold the sensitive/no-envelope masks (re-run `validation/multievent_rerun.sh <tag> --from flood_ai` for another state).
+
 ## Boundary diagnostic (`multievent_boundary_diag.py`, v2default masks, no new PU)
 Question: is the recall gap boundary pixels or missed regions? Missed = label flood not predicted as 2/3/4; distance in 10 m px to the nearest predicted flood
 pixel; dilation of the predicted flood (2+3; for water labels 2+3+4) by 0–3 px, restricted to valid data and valid labels.
