@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -42,6 +43,7 @@ from floodseg.features import build_features, linear_to_db  # noqa: E402
 from floodseg.infer import load_model, predict_probs  # noqa: E402
 from floodseg.s2 import PIPELINE_BAND_INDEX, features_np as s2_features  # noqa: E402
 from floodseg import softpost  # noqa: E402
+from floodseg.edge import grow_edge  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MODEL = ROOT / "models" / "floodseg_v0.4" / "model.pt"
@@ -185,6 +187,18 @@ def sensitive_threshold(model_path: Path, cfg: dict) -> float:
         return cfg.get("flood_thresholds", {}).get("sensitive", SENSITIVE_DEFAULT)
 
 
+def edge_params(model_path: Path) -> dict | None:
+    """Edge step parameters {"k", "t", "mode"} for this model version from training/thresholds.json (D-M9-15);
+    None when absent or disabled with POVODNE_AI_EDGE=0."""
+    if os.environ.get("POVODNE_AI_EDGE", "1") == "0":
+        return None
+    try:
+        t = json.loads((Path(__file__).resolve().parent / "thresholds.json").read_text())
+        return t[Path(model_path).resolve().parent.name].get("edge")
+    except (OSError, KeyError, ValueError):
+        return None
+
+
 def load_anomaly(run: Path, profile: dict):
     """(z_comb on the run grid, placebo threshold) from flood/s1_anomaly.tif and run.json.s1anomaly; (None, None) if absent."""
     path = run / "flood" / "s1_anomaly.tif"
@@ -305,6 +319,15 @@ def main() -> None:
         grown = grow_from_seeds(cand | (cls == 2), (cls == 2) & radar_valid) & cand
         anomaly_info["connected_px"] = int((grown & (cls != 2)).sum())
         cls = np.where(grown, 2, cls)
+    edge = edge_params(args.model) if sensitivity == "sensitive" else None  # calibrated on top of sensitive (D-M9-15)
+    edge_px = 0
+    if edge:
+        # boundaries are under-segmented: grow flood a few pixels into pixels with P(flood) >= t; never into permanent water,
+        # nodata/shadow or terrain the soft prior rules out
+        before = cls == 2
+        grown = grow_edge(before, probs[2], radar_valid & (cls != 1) & (w > 0.05), int(edge["k"]), float(edge["t"]))
+        edge_px = int((grown & ~before).sum())
+        cls = np.where(grown, 2, cls)
     mask = np.zeros(slope.shape, np.uint8)
     mask[radar_valid] = 1
     mask[radar_valid & (cls == 2)] = 2
@@ -374,7 +397,7 @@ def main() -> None:
         w.write(mask, 1)
 
     meta["flood"] = {**meta.get("flood", {}), "method": "ai", "model": str(args.model),
-                     "params": {"tracks": used, "sensitivity": sensitivity, "flood_threshold": threshold,
+                     "params": {"tracks": used, "sensitivity": sensitivity, "flood_threshold": threshold, "edge": edge, "edge_added_px": edge_px,
                                 "cross_shadow_px": cross_shadow_px, "min_flood_px": args.min_flood_px,
                                 "small_patches_removed_px": int(small.sum()), "s2": s2_info,
                                 "max_water_slope_deg": args.max_water_slope_deg,

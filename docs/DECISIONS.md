@@ -1364,3 +1364,23 @@ Kontrola bez povodně (Marsyangdi, suché období): falešná plocha 2,112 → 2
 `"standard"` zůstává volitelný. Práh se NEMĚNÍ (pořád z Kuro Siwo val, `training/thresholds.json`).
 **Přiznání:** volba výchozího režimu (ne prahu) byla potvrzena na TESTOVACÍCH popiscích Kuro Siwo/Sen1Floods11 = použití testovací sady
 pro volbu metody; EMS ani jiné publikované mapy škod nebyly použity. Uvést v reportu.
+
+## D-M9-15 | 2026-10-13 | přijato (master zadal; pravidlo stanoveno PŘED výsledky) — Okrajový krok AI masky povodně (kalibrace na Kuro Siwo val)
+Kontext: master změřil na 7 nezávislých popiscích, že mapa povodně je na okrajích podsegmentovaná (67–80 % chybějící plochy leží do 3 px od už nalezené povodně; dilatace o 1 px zvedne recall o 3–12 b. za 1–4 b. precision). V kroku není žádná eroze ani otevření.
+**Kalibrace jen na Kuro Siwo val událostech** (stejný split jako `train.py`; ne test, ne EMS — D-006), skript `training/eval_edge.py`, model v0.4, základ = produkční následné zpracování (sensitive 0,20 + dvoustupňový růst ze semínek, po pravidle svahu).
+**Mřížka variant** (pevná předem): bezpodmínečná dilatace k = 1, 2, 3 px; podmíněný okraj „do k ≤ 3 px od povodně a P(flood) ≥ t_edge“ pro t_edge ∈ {0,02; 0,05; 0,08; 0,10; 0,12; 0,15}, neiterovaně i po vrstvách (`ring`); smíšený pixel (P + průměr P v 3×3)/2 ≥ t pro t ∈ {0,08; 0,12; 0,16; 0,20}, k = 1, 2. Povoleno jen mimo svah > 15° a mimo trvalou vodu. Okraj dlaždice 3 px se z hodnocení vyřazuje u všech variant.
+**Pravidlo výběru (pevné předem):** maximalizovat recall povodně na val za podmínky precision povodně ≥ precision základu − 0,03. Při shodě recallu rozhoduje F1.
+Provedení: `floodseg/edge.py` (`grow_edge`), parametry v `training/thresholds.json` (`edge` u verze modelu), vypnutí `POVODNE_AI_EDGE=0`. Výsledky doplním níže.
+**Výsledky** (Kuro Siwo val, model v0.4, `training/results/edge_val_v0.4.json`, Kaggle kernel `floodseg-edge`; okraj 3 px vyřazen; povodeň):
+| základ + varianta | precision | recall | F1 |
+|---|---|---|---|
+| sensitive 0,20 (základ) | 0,596 | 0,790 | 0,679 |
+| sensitive + **edge k=1, t=0,12** (vybráno) | 0,568 | 0,816 | 0,670 |
+| sensitive + dil 1 / dil 2 / dil 3 | 0,553 / 0,511 / 0,473 | 0,830 / 0,854 / 0,869 | 0,664 / 0,640 / 0,612 |
+| sensitive + smíšený k=1, t=0,12 | 0,565 | 0,820 | 0,669 |
+| standard (argmax, základ) | 0,700 | 0,707 | 0,703 |
+| standard + edge k=1, t=0,12 / dil 1 | 0,655 / 0,654 | 0,762 / 0,763 | 0,705 / 0,705 |
+| standard + dil 2 / dil 3 | 0,605 / 0,558 | 0,802 / 0,828 | 0,690 / 0,667 |
+Pravidlo: u sensitive projde precision ≥ 0,566 → nejvyšší recall dává `edge_k1_t0,12` (0,816; podmíněný okraj i po vrstvách dávají stejně, k = 2–3 už pod hranicí). U standard je hranice 0,670 a žádná varianta ji nesplní (nejlepší k=1 má 0,655) → **pro standard se nic nevybírá** (vzhledem k pravidlu; pro srovnání F1 vzroste jen o 0,002).
+Po událostech (sensitive → +edge, recall): 1111008 0,882→0,906; 279 0,790→0,820; 437 0,741→0,765; 520 0,715→0,733; 559 0,564→0,607; 1111003 0,152→0,173 — zlepšení recallu v každé oblasti, precision klesá o 0–4 b.
+Poznámky: (1) zisk na val je menší než změřil master na jiných popiscích (+3–12 b. recallu při −1–4 b. precision u dilatace o 1 px); na val sensitive dostává precision −3,2 b. za recall +4,2 b., F1 mírně dolů (0,679 → 0,670) — krok je volba ve prospěch recallu, ne zlepšení F1. (2) Precision základu sensitive 0,596 je nižší než dřívější 0,672 (D-M9-11, model v0.2, bez vyřazení okraje a s jiným prahem); jde o v0.4 s prahem 0,20. (3) Krok se používá jen v režimu sensitive; vypnutí `POVODNE_AI_EDGE=0`; parametry `training/thresholds.json` → `floodseg_v0.4.edge`. `run.json.flood.params` nově `edge`, `edge_added_px`.
