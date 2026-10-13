@@ -70,7 +70,7 @@ for ev in $(python3 -c "import json;print(' '.join(e['id'] for e in json.load(op
     orig=$(python3 - "$run/run.json" "$SENS" <<'PY'
 import json, sys
 p, v = sys.argv[1:]
-d = json.load(open(p)); o = d.get("sensitivity", "standard"); d["sensitivity"] = v; json.dump(d, open(p, "w"), indent=2); print(o)
+d = json.load(open(p)); o = d.get("sensitivity", "<absent>"); d["sensitivity"] = v; json.dump(d, open(p, "w"), indent=2); print(o)
 PY
 )
   fi
@@ -82,7 +82,12 @@ PY
   if [ -n "$SENS" ]; then python3 - "$run/run.json" "$orig" <<'PY'
 import json, sys
 p, v = sys.argv[1:]
-d = json.load(open(p)); d["sensitivity"] = v; json.dump(d, open(p, "w"), indent=2)
+d = json.load(open(p))
+if v == "<absent>":
+    d.pop("sensitivity", None)
+else:
+    d["sensitivity"] = v
+json.dump(d, open(p, "w"), indent=2)
 PY
   fi
 done
