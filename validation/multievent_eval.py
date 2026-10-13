@@ -219,7 +219,7 @@ def cmd_score(a) -> None:
         "timings_s": rj.get("timings_s"), "pu_spent": rj.get("acquire", {}).get("pu_spent"),
         "pu_estimate": (rj.get("acquire", {}).get("pu_estimate") or {}).get("total"),
         "envelope": {k: env_sec.get(k) for k in ("used", "reason", "placebo_groups", "placebo_split", "stat", "persistence", "reach_q",
-                                                 "final_est_precision", "final_placebo_false_km2", "added_km2", "post_passes", "optical_used")},
+                                                 "final_est_precision", "final_placebo_false_km2", "added_km2", "added_by_stage_km2", "optics", "post_passes", "optical_used")},
         "main_track": {k: (rj.get("acquire", {}).get("s1") or {}).get(k) for k in ("relative_orbit", "orbit_direction")},
         "alt_track": bool(rj.get("acquire", {}).get("s1_alt")), "s2": {k: (v or {}).get("clear_pct") for k, v in (rj.get("acquire", {}).get("s2") or {}).items() if isinstance(v, dict) or v is None},
         "warnings": rj.get("warnings", [])[:8], **st}
