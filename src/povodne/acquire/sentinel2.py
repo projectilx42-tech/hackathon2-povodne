@@ -48,6 +48,8 @@ class S2Choice:
     pre: S2Date | None
     post: S2Date | None
     candidates: list[S2Date] = field(default_factory=list)
+    pre_extra: list[S2Date] = field(default_factory=list)   # more clear dates for the per-pixel composite (D-M11-04)
+    post_extra: list[S2Date] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
 
@@ -111,9 +113,10 @@ def clear_fraction(d: S2Date, grid: Grid, aoi_mask: np.ndarray, decimate: int = 
 
 
 def choose(aoi: BaseGeometry, event: date, grid: Grid, aoi_mask: np.ndarray, pre_days: int = 60, post_days: int = 20,
-           min_clear: float = 0.3, min_usable: float = 0.05) -> S2Choice:
+           min_clear: float = 0.3, min_usable: float = 0.05, comp_post_days: int = 45, comp_max: int = 4,
+           comp_min_clear: float = 0.15) -> S2Choice:
     start = datetime.combine(event - timedelta(days=pre_days), datetime.min.time())
-    end = datetime.combine(event + timedelta(days=post_days + 1), datetime.min.time())
+    end = datetime.combine(event + timedelta(days=max(post_days, comp_post_days) + 1), datetime.min.time())
     dates = search(aoi, start, end)
 
     def score(d: S2Date) -> None:
@@ -126,12 +129,19 @@ def choose(aoi: BaseGeometry, event: date, grid: Grid, aoi_mask: np.ndarray, pre
     with ThreadPoolExecutor(max_workers=8) as pool:  # each date is a few small HTTP range reads
         list(pool.map(score, dates))
     pre = [d for d in dates if d.day < event and d.clear]
-    post = [d for d in dates if d.day > event and d.clear]
+    post_all = [d for d in dates if d.day > event and d.clear]
+    post = [d for d in post_all if d.day <= event + timedelta(days=post_days)]
+    if not post:  # nothing in the main window: the main image may still come from the longer composite window
+        post = post_all
     ch = S2Choice(None, None, dates)
     if pre:
         ch.pre = max(pre, key=lambda d: (d.clear, d.day))
     if post:
         ch.post = next((d for d in post if d.clear >= min_clear), max(post, key=lambda d: d.clear))
+    # Per-pixel composites (D-M11-04): more clear dates besides the main one; slides and deposits persist for weeks.
+    for key, pool, main in (("pre_extra", pre, ch.pre), ("post_extra", post_all, ch.post)):
+        extra = [d for d in pool if d is not main and d.clear >= comp_min_clear]
+        setattr(ch, key, sorted(sorted(extra, key=lambda d: -d.clear)[:comp_max], key=lambda d: d.day))
     for name, d in (("pre", ch.pre), ("post", ch.post)):
         if d is None or d.clear < min_usable:
             if name == "pre":

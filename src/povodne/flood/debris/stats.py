@@ -19,7 +19,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
-from scipy import stats
+from scipy import special
 
 PRIOR_SD_DB = 1.5  # temporal spread assumed when no pixel has 2+ earlier passes (speckle after filtering ~0.7 dB + natural change)
 MIN_SD_DB = 0.5  # never trust a smaller spread than this (residual speckle)
@@ -74,9 +74,28 @@ def history_test(post: np.ndarray, history: list[np.ndarray], usable: np.ndarray
     scale = np.sqrt(var_shrunk * (1.0 + 1.0 / np.maximum(n, 1)))
     t = np.where(ok, delta / scale, np.nan)
     df = nu0 + np.maximum(n - 1, 0)
-    p_up = np.where(ok, stats.t.sf(t, df), np.nan).astype(np.float32)
-    p_down = np.where(ok, stats.t.cdf(t, df), np.nan).astype(np.float32)
+    # Student-t tail probabilities from the special function scipy.stats.t uses, without its per-call overhead on whole
+    # rasters. One evaluation gives both tails (the far tail is the small one, the other is its complement), run on
+    # a few threads (the ufunc releases the GIL); values equal scipy's to float32 precision.
+    p_up = np.full(shape, np.nan, np.float32)
+    p_down = np.full(shape, np.nan, np.float32)
+    idx = np.flatnonzero(ok)
+    tt, dd = t.ravel()[idx], df.ravel()[idx]
+    tail = _parallel(lambda a, b: special.stdtr(b, -np.abs(a)), tt, dd)  # P(T <= -|t|)
+    up = np.where(tt > 0, tail, 1.0 - tail)
+    p_up.ravel()[idx] = up
+    p_down.ravel()[idx] = np.where(tt > 0, 1.0 - tail, tail)
     return PolTest(delta, p_up, p_down, mean.astype(np.float32), n)
+
+
+def _parallel(fn, a: np.ndarray, b: np.ndarray, parts: int = 4) -> np.ndarray:
+    """fn(a, b) on `parts` slices in threads (numpy ufuncs release the GIL)."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    bounds = np.linspace(0, a.size, parts + 1).astype(int)
+    with ThreadPoolExecutor(max_workers=parts) as pool:
+        out = list(pool.map(lambda i: fn(a[bounds[i]:bounds[i + 1]], b[bounds[i]:bounds[i + 1]]), range(parts)))
+    return np.concatenate(out) if out else np.empty(0)
 
 
 def _nanmean(hist: np.ndarray, n: np.ndarray) -> np.ndarray:
@@ -96,5 +115,5 @@ def fisher(p_values: list[np.ndarray]) -> np.ndarray:
     valid = np.isfinite(stack)
     k = valid.sum(axis=0)
     x = -2.0 * np.where(valid, np.log(np.clip(stack, 1e-300, 1.0)), 0.0).sum(axis=0)
-    out = np.where(k > 0, stats.chi2.sf(x, 2 * np.maximum(k, 1)), np.nan)
+    out = np.where(k > 0, special.chdtrc(2.0 * np.maximum(k, 1), x), np.nan)
     return out.astype(np.float32)

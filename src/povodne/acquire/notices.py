@@ -29,6 +29,7 @@ SEVERITY = {
     "valley_visibility_unavailable": "warning",
     "s2_none": "warning",
     "s2_cloudy": "warning",
+    "s2_composite": "info",
     "s2_failed": "warning",
     # info
     "post_image_date": "info",

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -181,8 +182,9 @@ def load(run_dir: Path) -> Inputs:
             lay, sh = terrain.layover_shadow(dem30, dem_res, LOOK_AZIMUTH.get(direction, 78.0), INCIDENCE_DEG)
             blocked = _to_grid((lay | sh).astype(np.uint8), dem_tr, dem_crs, grid, Resampling.nearest, 0)
             sources[f"{key}_layover_shadow"] = "approximate geometry from the orbit direction"
-        tracks.append(Track(key, direction, _read_s1(post_files[-1], grid), [_read_s1(hist_files[d], grid) for d in dates],
-                            _date(post_files[-1]), dates, blocked.astype(bool)))
+        with ThreadPoolExecutor(max_workers=4) as pool:  # file reads and filtering release the GIL; order is kept
+            post_db, *hist_db = pool.map(lambda f: _read_s1(f, grid), [post_files[-1]] + [hist_files[d] for d in dates])
+        tracks.append(Track(key, direction, post_db, hist_db, _date(post_files[-1]), dates, blocked.astype(bool)))
     sources["tracks"] = {t.name: {"direction": t.direction, "post": t.post_date, "history": t.history_dates} for t in tracks}
 
     inp = Inputs(grid, aoi, tracks, hand.astype(np.float32), slope.astype(np.float32), ground, perm_water, sources=sources)
@@ -194,25 +196,60 @@ def load(run_dir: Path) -> Inputs:
     return inp
 
 
+def _read_s2(path: Path) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """(reflectance 6xHxW with NaN for no data, clear mask, snow mask) of one S2 file."""
+    with rasterio.open(path) as ds:
+        dn = ds.read().astype(np.float32)
+        scales, offsets = ds.scales, ds.offsets
+    refl = np.stack([np.where(dn[i] > 0, dn[i] * scales[i] + offsets[i], np.nan) for i in range(6)]).astype(np.float32)
+    scl = dn[6].astype(np.uint8)
+    cloudy = binary_dilation(np.isin(scl, SCL_CLOUDY), iterations=2)
+    clear = np.isin(scl, SCL_CLEAR) & ~cloudy & np.all(np.isfinite(refl), axis=0)
+    b03, b11 = refl[1], refl[4]
+    with np.errstate(invalid="ignore", divide="ignore"):
+        snow = (scl == 11) | (((b03 - b11) / (b03 + b11) > 0.42) & (b03 > 0.15))
+    return refl, clear & ~snow, snow
+
+
+def _nanmedian0(stack: np.ndarray, rows: int = 256) -> np.ndarray:
+    """Median over axis 0 ignoring NaN, for a handful of dates (sort puts NaN last; ~30x faster than np.nanmedian)."""
+    n_dates, h, w = stack.shape
+    out = np.full((h, w), np.nan, np.float32)
+    for r in range(0, h, rows):
+        blk = np.sort(stack[:, r:r + rows], axis=0)
+        n = np.isfinite(blk).sum(axis=0)
+        lo = np.take_along_axis(blk, np.maximum((n - 1) // 2, 0)[None], 0)[0]
+        hi = np.take_along_axis(blk, np.maximum(n // 2, 0)[None], 0)[0]
+        out[r:r + rows] = np.where(n > 0, (lo + hi) / 2.0, np.nan)
+    return out
+
+
 def _load_s2(run_dir: Path, inp: Inputs) -> None:
+    """Per-pixel composite (median of the clear dates) of `<when>_*.tif` and the extra dates `<when>x_*.tif` (D-M11-04)."""
     for when in ("pre", "post"):
-        files = sorted((run_dir / "raw" / "s2").glob(f"{when}_*.tif"))
-        if not files:
+        main = sorted((run_dir / "raw" / "s2").glob(f"{when}_*.tif"))
+        if not main:
             continue
-        with rasterio.open(files[-1]) as ds:
-            dn = ds.read().astype(np.float32)
-            scales, offsets = ds.scales, ds.offsets
-        refl = np.stack([np.where(dn[i] > 0, dn[i] * scales[i] + offsets[i], np.nan) for i in range(6)]).astype(np.float32)
-        scl = dn[6].astype(np.uint8)
-        cloudy = binary_dilation(np.isin(scl, SCL_CLOUDY), iterations=2)
-        clear = np.isin(scl, SCL_CLEAR) & ~cloudy & np.all(np.isfinite(refl), axis=0)
-        b03, b11 = refl[1], refl[4]
-        with np.errstate(invalid="ignore", divide="ignore"):
-            snow = (scl == 11) | (((b03 - b11) / (b03 + b11) > 0.42) & (b03 > 0.15))
+        files = main[-1:] + sorted((run_dir / "raw" / "s2").glob(f"{when}x_*.tif"))
+        with ThreadPoolExecutor(max_workers=min(4, len(files))) as pool:
+            read = list(pool.map(_read_s2, files))
+        clear = snow = None
+        stack = []
+        for r, c, sn in read:
+            stack.append(np.where(c[None], r, np.nan).astype(np.float32))
+            clear = c if clear is None else (clear | c)
+            snow = sn if snow is None else (snow | sn)
+        del read
+        if len(stack) == 1:
+            refl = stack[0]
+        else:
+            refl = np.stack([_nanmedian0(np.stack([s[b] for s in stack])) for b in range(6)])
+        del stack
+        snow = snow & ~clear  # snow only where no date offers a clear pixel
         setattr(inp, f"s2_{when}", refl)
-        setattr(inp, f"s2_{when}_clear", clear & ~snow)
+        setattr(inp, f"s2_{when}_clear", clear)
         inp.snow = snow if inp.snow is None else (inp.snow | snow)
-        inp.sources[f"s2_{when}"] = files[-1].name
+        inp.sources[f"s2_{when}"] = [f.name for f in files] if len(files) > 1 else files[0].name
 
 
 def _load_osm(run_dir: Path, inp: Inputs) -> None:

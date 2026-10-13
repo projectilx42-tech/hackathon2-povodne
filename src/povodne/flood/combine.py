@@ -37,7 +37,7 @@ NODATA, DRY, WATER, DEBRIS, PERMANENT = 0, 1, 2, 3, 4
 CONF_PROB = {1: 0.35, 2: 0.65, 3: 0.85}
 DEFAULT_DEBRIS_PROB = CONF_PROB[2]  # no confidence raster: treat as medium (as the damage step does)
 TYPE_NAMES = {1: "debris", 2: "mud", 3: "erosion", 4: "flooded_vegetation", 5: "flooded_builtup",
-              6: "damaged_builtup", 9: "unknown"}  # same codes as flood/debris/classify.py
+              6: "damaged_builtup", 7: "landslide", 9: "unknown"}  # same codes as flood/debris/classify.py
 CONF_NAMES = {1: "low", 2: "medium", 3: "high"}
 
 SEVERITY = {

@@ -48,7 +48,7 @@ DEFAULT_MODEL = ROOT / "models" / "floodseg_v0.4" / "model.pt"
 DEFAULT_S2_MODEL = ROOT / "models" / "floodseg_s2_v0.1" / "model.pt"
 MIN_FLOOD_PX = 10  # 0.1 ha; no effect on Kuro Siwo val scores, removes specks from the map (D-M9-11)
 SHADOW_DARK_DB, SHADOW_BRIGHT_DB = -15.0, -10.0  # GFM shadow rule: dark in this track, bright in the opposite one
-SENSITIVE_DEFAULT = 0.25  # used when the model card has no flood_thresholds (chosen on Kuro Siwo val for v0.2, D-M9-08)
+SENSITIVE_DEFAULT = 0.2  # used when the model card has no flood_thresholds; v0.4 re-tuned on Kuro Siwo val (D-M10-07: best flood F1 0.807, P 0.82 R 0.79)
 
 
 def _read(path: Path) -> tuple[np.ndarray, dict] | tuple[None, None]:
@@ -176,6 +176,15 @@ def drop_small_patches_by_terrain(mask: np.ndarray, min_px) -> np.ndarray:
     return keep[lab]
 
 
+def sensitive_threshold(model_path: Path, cfg: dict) -> float:
+    """Repo file training/thresholds.json (keyed by the model folder name) wins over the downloaded model card (D-M10-07)."""
+    try:
+        t = json.loads((Path(__file__).resolve().parent / "thresholds.json").read_text())
+        return float(t[Path(model_path).resolve().parent.name]["sensitive"])
+    except (OSError, KeyError, ValueError, TypeError):
+        return cfg.get("flood_thresholds", {}).get("sensitive", SENSITIVE_DEFAULT)
+
+
 def load_anomaly(run: Path, profile: dict):
     """(z_comb on the run grid, placebo threshold) from flood/s1_anomaly.tif and run.json.s1anomaly; (None, None) if absent."""
     path = run / "flood" / "s1_anomaly.tif"
@@ -203,6 +212,8 @@ def main() -> None:
     ap.add_argument("--slope-width", type=float, default=softpost.SLOPE_WIDTH_DEG)
     ap.add_argument("--hand-mid", type=float, default=softpost.HAND_MID_M, help="soft prior: HAND (m) where the weight is 0.5")
     ap.add_argument("--hand-width", type=float, default=softpost.HAND_WIDTH_M)
+    ap.add_argument("--no-anomaly-connect", dest="anomaly_connect", action="store_false",
+                    help="do not add radar-anomaly pixels that touch model flood (D-M10-08)")
     ap.add_argument("--anomaly-gain", type=float, default=softpost.ANOMALY_GAIN,
                     help="odds multiplier exp(gain) of flood at the strongest radar anomaly (0 = ignore flood/s1_anomaly.tif)")
     ap.add_argument("--s2-water-thr", type=float, default=0.5, help="optical model: P(water) at or above this counts as water")
@@ -281,11 +292,19 @@ def main() -> None:
     threshold = None
     cls = probs.argmax(0)  # 0 no water, 1 permanent, 2 flood (model classes)
     if sensitivity == "sensitive":
-        threshold = cfg.get("flood_thresholds", {}).get("sensitive", SENSITIVE_DEFAULT)
+        threshold = sensitive_threshold(args.model, cfg)
         # two-stage threshold: likely flood (P >= threshold) counts only where it is connected to confident flood
         # (most likely class); on Kuro Siwo val better than a plain threshold in F1 and precision (D-M9-11)
         likely = grow_from_seeds((probs[2] >= threshold) & radar_valid, (cls == 2) & radar_valid)
         cls = np.where(likely, 2, probs[:2].argmax(0))
+    if anomaly_info["used"] and args.anomaly_connect:
+        # direct radar support (D-M10-08): pixels darker than the place's normal beyond the placebo threshold (>= 99.5 % of a
+        # flood-free scene stays above it) count as flood where they touch model flood; multiplying the odds cannot do this
+        # because the model gives these pixels P ~ 0
+        cand = (strength > 0) & radar_valid & (w > 0.05) & (cls != 1)
+        grown = grow_from_seeds(cand | (cls == 2), (cls == 2) & radar_valid) & cand
+        anomaly_info["connected_px"] = int((grown & (cls != 2)).sum())
+        cls = np.where(grown, 2, cls)
     mask = np.zeros(slope.shape, np.uint8)
     mask[radar_valid] = 1
     mask[radar_valid & (cls == 2)] = 2

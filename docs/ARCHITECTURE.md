@@ -62,7 +62,7 @@ runs/<run_id>/
                                  #   (mimo normál), VV+VH [dB] na mřížce 40 m; krok `s1anomaly` z nich průměruje z-skóre (D-M10-06); chybí-li, použije se jediný snímek „po“
     s1/hist_YYYYMMDD.tif, s1_alt/hist_*.tif  # až 4 starší průlety téže dráhy před snímky „před“, VV+VH, stejné kódování, mřížka 20 m
                                  # zarovnaná s 10m mřížkou — historie pixelu pro krok změn povrchu (D-M3d-02; dodá M1)
-    s2/pre_YYYYMMDD.tif, post_YYYYMMDD.tif   # S2 L2A, UINT16 DN: B02,B03,B04,B08,B11,B12 + SCL (7. pásmo); odrazivost = DN*scale+offset (tagy), 10m mřížka (D-M1-02)
+    s2/pre_YYYYMMDD.tif, post_YYYYMMDD.tif   # hlavní snímky; navíc prex_*.tif, postx_*.tif = další bezoblačné dny pro kompozit suti (D-M11-04); S2 L2A, UINT16 DN: B02,B03,B04,B08,B11,B12 + SCL (7. pásmo); odrazivost = DN*scale+offset (tagy), 10m mřížka (D-M1-02)
     dem/dem.tif                  # Copernicus DEM GLO-30, float32, UTM 30 m, oblast + 5 km okraj (D-M1-02)
     dem/water.tif                # maska vod z Copernicus DEM (WBM): uint8 0 souš, 1 moře, 2 jezero, 3 řeka; mřížka dem.tif (D-M1-04)
     osm/osm_raw.gpkg             # ohsome extrakt (vrstvy), snapshot < event_date; silnice/sídla/zařízení pro oblast + 15 km (D-M1-02)
@@ -84,7 +84,7 @@ runs/<run_id>/
     ai_mask.tif ai_prob.tif      # výstup M3 (voda)
     debris_mask.tif              # uint8 1 = suť/bahno/změna povrchu (třída 3), výstup M3d
     debris_type.tif              # uint8 podtyp: 1 suť, 2 bahno, 3 eroze, 4 zaplavená vegetace, 5 zaplavená zástavba,
-                                 #   6 poškozená zástavba, 9 neznámá změna, 0 nic (D-M3d-01, D-M3d-02)
+                                 #   6 poškozená zástavba, 7 sesuv / plocha změny na svahu nalezená fúzí důkazů (D-M11-05), 9 neznámá změna, 0 nic (D-M3d-01, D-M3d-02)
     debris_confidence.tif        # uint8 1 nízká, 2 střední, 3 vysoká, 0 nic
     debris_observability.tif     # uint8 0 mimo oblast, 1 viděno, 2 nedá se vidět (stín, mraky), 3 necitlivé (hustý les/zástavba)
     s1_anomaly.tif               # float32, mřížka runu, NaN = nic: radarová anomálie proti ročnímu „normálu místa“ (D-M10-05). Pásma:
@@ -99,6 +99,7 @@ runs/<run_id>/
                                  #   jistých detekcí; nikdy nepřepisuje detekce ani trvalou vodu. Píše `povodne.flood.envelope`, čte `combine`
                                  #   (voda → třída 2, pravděpodobnost 0,35; suť → třída 3, podtyp 9 neznámá, jistota nízká).
                                  #   `run.json.envelope`: zvolené q / block_px / tz, `est_precision` a `placebo_false_km2` z placeba, celá mřížka nastavení (`grid`).
+    selftrain_prob.tif selftrain_mask.tif selftrain_type.tif   # nepovinné (D-M12-01, pokus): float32 P / uint8 maska / uint8 podtyp (7 svah, 9 neznámá); `povodne.flood.selftrain`, zatím je nic nečte; `run.json.selftrain`
     debris_polygons.geojson      # EPSG:4326: class "debris", subtype, confidence, area_m2, mean_dvv_db, mean_dvh_db, evidence
     flood_polygons.geojson       # EPSG:4326, polygonizace flood_mask (třídy 2,3), atributy: class ("water" | "debris"), area_m2 (D-035);
                                  #   debris navíc subtype, confidence, evidence (D-M0-01). flood_prob.tif: nodata = NaN
@@ -156,7 +157,7 @@ runs/<run_id>/
     // acquire.s1.processing, acquire.grid (referenční mřížka), acquire.pu_spent, acquire.warnings (varování kroku), acquire.osm — D-M1-02
     // acquire.s1.geometry / acquire.s1_alt.geometry (D-X-06 bod 7): {"heading_deg", "look_azimuth_deg", "incidence_deg"} ve středu oblasti
     //   (= `catalog.track_geometry`, už se počítá); čte předzpracování pro masku layover/shadow. Chybí-li, předzpracování použije směr přeletu + 39° (jako krok suti).
-    "s2": {"pre": {"date": "...", "ids": [...], "clear_pct": 0, "scale": [...], "offset": [...]} | null, "post": {...} | null},
+    "s2": {"pre": {"date": "...", "ids": [...], "clear_pct": 0, "scale": [...], "offset": [...]} | null, "post": {...} | null, "extra": {"pre": [...], "post": [...]}},
     "dem": {"source": "...", "product": "COP-DEM GLO-30", "water_mask": true, "hand_stream_cells": 100}   // D-M1-04
   },
   "sensitivity": "standard",                                  // "standard" | "sensitive" (D-M9-08); píše UI/CLI, čte M3

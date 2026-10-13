@@ -938,6 +938,38 @@ Implementace D-X-09: `src/povodne/flood/envelope.py`, nepovinný krok `envelope`
 - **Omezení do reportu:** placebo semena jsou jen aproximace falešných semen skutečného běhu (skutečná semena mají vlastní falešný podíl, ten tu není započten);
   placebo průlety mají sezónu před událostí (jiné počasí než po povodni); obálka předpokládá, že hladina je jedna po úseku 500 m a že voda teče podle terénu (HAND).
   Výsledky měření na Trishuli viz PROGRESS.
+## D-M12-01 | 2026-10-13 | přijato (úkol od master session) — Self-training na scéně místo pevných pravidel (pokus, `flood/selftrain.py`)
+Cíl: zachytit ≥ 90 % zasažené plochy bez pevných pravidel typu „sklon > 15° = nezasaženo“. Postup: pseudo-popisky z jistého důkazu (AI voda P ≥ 0,9, silná radarová anomálie z obou drah, silný optický úbytek vegetace)
+a jistě nezasažené (stabilní, daleko od zasažených); lehký klasifikátor (LightGBM) na rysech scény; **co-training** (radarový model se učí z popisků z optiky a AI, optický z popisků z radaru a AI), terén jako rys s
+převážením tříd na stejné rozdělení sklon × HAND. Práh statisticky: 2 % out-of-fold jistě stabilních vzorků (prostorové bloky 2 km), hystereze (semínko 0,2 %), min. plocha 10 px. Žádná EMS jako vstup ani pro volbu prahů (D-006);
+EMS jen měření. Výstupy `flood/selftrain_{prob,mask,type}.tif` a `run.json.selftrain` jsou nepovinné, zatím je nic nečte (nová soubory zapsány do ARCHITECTURE).
+
+## D-M12-02 | 2026-10-13 | přijato (M12) — První výsledek self-trainingu na Trishuli (celé údolí, běh `st1`), jen měření vůči EMSR927
+Parametry byly dané předem (D-M12-01: FPR 2 %, semínko 0,2 %, 10 px), po výsledku se nic neladilo; EMS nebyla vstupem. Pseudo-popisky: 99 tis. jistě zasažených px, 18,3 mil. jistě stabilních;
+out-of-fold AUC radarový model 0,879, optický 0,958. Doba 5,7 min na CPU (celá scéna 42×46 km). Práh 0,40, semínko 0,91.
+| varianta (uvnitř oblasti mapované EMS, 40 km²; EMS 11,6 km²) | P | R | F1 | recall údolí (sklon ≤ 15°, HAND ≤ 15 m) | recall svahy > 15° | recall radarový stín |
+|---|---|---|---|---|---|---|
+| základ (`flood_mask` 2 ∪ 3) | 0,971 | 0,623 | 0,759 | 76,3 % | 21,4 % | 40,1 % |
+| základ ∪ self-training | 0,775 | **0,977** | 0,864 | 99,1 % | 93,5 % | 91,3 % |
+Cíl ≥ 90 % plochy splněn (R 0,977), cena = precision 0,97 → 0,78. Self-training označil celkem 29,2 km² (1,5 % scény; 9,7 km² na svazích > 15°), z toho 14,6 km² uvnitř oblasti EMS a 14,6 km² mimo ni, kde EMS nic nemapovala
+(1,86 tis. km² → 0,8 %; zda jde o neznámé sesuvy, nebo falešné poplachy, nelze změřit). Omezení: EMS oblast je tam, kde se škody očekávaly, takže precision mimo ni bude nejspíš nižší; práh odpovídá 2 % falešných u jistě stabilních pixelů.
+Další krok: samostatná kontrola proti placebu (před snímek jako „po“), citlivost na FPR (1 % / 5 %) jen jako měření, druhé kolo (rozšířené popisky).
+
+## D-M12-03 | 2026-10-13 | přijato (M12; zadání master D-X-08) — Pracovní bod self-trainingu z placeba, ne z EMS
+Radarový model používá jen rysy z-skóre (+ terén), aby šly stejné rysy spočítat i z průletů před událostí (placebo, `s1anomaly._track_z(..., "placebo")`).
+Odhad přesnosti(t) = 1 − falešná plocha na placebu ÷ detekovaná plocha (stejný model, stejné objektové vyhlazení, celá scéna 42×46 km). Pracovní bod = nejnižší práh t ze sady
+(0,5 … 0,995; předem daná) s odhadem přesnosti ≥ 0,85; semínka hystereze = 99,95. percentil pravděpodobnosti na placebu. Optika placebo nemá → odhad zahrnuje jen radarový model (pro fúzi radar + optika je to odhad bez optické části).
+Trishuli `st2` (po sloučení main; plocha detekce / falešná na placebu / odhad): t 0,9: 23,6 / 4,2 / 0,82; **t 0,95: 21,1 / 3,05 / 0,855 (zvoleno)**; t 0,99: 15,2 / 1,3 / 0,915.
+Měření proti EMSR927 (jen měření, nic se podle něj nevolilo; oblast mapovaná EMS, viditelná plocha = 100 % EMS):
+| varianta | P | R (= recall viditelné) | F1 | údolí | svahy > 15° | stín hlavní dráhy |
+|---|---|---|---|---|---|---|
+| základ | 0,972 | 0,621 | 0,758 | 76 % | 22 % | 40 % |
+| základ ∪ self-training, placebo-práh 0,95 | **0,921** | **0,859** | 0,889 | 92 % | 66 % | 68 % |
+| základ ∪ self-training, práh z out-of-fold (FPR 2 %, D-M12-02) | 0,815 | 0,972 | 0,887 | 99 % | 92 % | 91 % |
+Cíl D-X-08 (R viditelné ≥ 0,90 při P ≥ 0,85) se **s placebo-pracovním bodem nesplní** (R 0,86 při P 0,92); s volnějším bodem jde R 0,97, ale P 0,82. Mezi nimi leží bod, který by splnil oba cíle
+(t ≈ 0,8–0,9), jenže ten se volit nesmí podle EMS; placebo ho dává jako přesnost 0,79–0,82 < 0,85. Rozpor odhad vs. měření: placebo odhaduje přesnost pesimisticky (0,855 vs. změřených 0,92), protože část „falešné“ plochy
+na placebu jsou skutečné změny před událostí a nezmapované plochy mimo EMS.
+**Zjištěná chyba v `main` (mimo můj modul):** `post_*.tif` v `preprocess/pipeline.py` (řádky 113, 168) a `flood/debris/inputs.py` (133, 169) chytá i nový `post_series.tif` (D-M10-06) → radar „vidí 0 %“, krok suti padá (tvary 1180×1076 vs 4719×4301), `nodata` 64 %. Řešení: glob `post_[0-9]*.tif`. Ve svých během jsem `post_series.tif` dočasně odsouval.
 
 ---
 
@@ -1093,6 +1125,18 @@ Malá oblast (8×9 km): 113 s bez cache, 78 s s cache (0 PU).
   Hrubší roční reference (40 m) by ušetřila ~180 PU (~0,6 min) za cenu úzkých řek (D-M10-02) → ponecháno 20 m (netestováno proti 40 m).
 - **Co zbývá:** nejdelší je krok suti (9 min = 47 % běhu, kód mimo tuto změnu) a AI inference (4,3 min na 4 jádrech; ~210 s tvoří dlaždice dvou radarových drah a dvou optických snímků).
 
+## D-M11-03 | 2026-10-13 | přijato (uživatel: „pokracuj“ na zadání sesuvů od master session) — Sesuvy a bahnotoky na svazích mimo údolní pravidla
+Kontext: EMSR927 značí celou plochu jako sesuv/Mass Movement; část leží na svazích > 15°, které údolní pravidla suti (HAND ≤ 40 m, sklon ≤ 25°) vyřazují.
+Rozhodnutí: nový podtyp `debris_type` = **7 `landslide`** (třída masky zůstává 3), `flood/debris/classify.py`. Zóna: sklon 15–55°, mimo údolní zónu, mimo vodu a sníh.
+- **Radar (obě dráhy, mimo layover/shadow):** ztmavnutí VH ≥ 3 dB (semínko, p < 1e-4) / ≥ 1,5 dB (růst) a VV ≥ 1 dB — ztráta objemového rozptylu koruny
+  (Handwerger 2022, Mondini 2019); při celoplošném ztmavnutí (počasí) jen s potvrzením optikou.
+- **Optika:** NDVI před ≥ 0,3, pokles ≥ 0,3, po povodni holá půda (jako D-M11-02).
+- **Staré sesuvy** (holé už před událostí: NDVI před < 0,2 nebo nízké VH v historii) se nevyznačují. Min. plocha 30 px (0,3 ha).
+- **Jistota:** radar samotný / optika samotná nejvýš střední; radar + optika vysoká; napojení na nížinu (do 30 m od HAND ≤ 15 m) zvedá o stupeň (ne nad střední u jednoho senzoru).
+- **Self-test:** radarová část je v placebu (starší snímek jako „po“); optická část nemá starší pár S2 → `run.json.debris.landslide.optical_background_rate` = stejné pravidlo na rovině daleko od řek.
+- Změna kontraktu: kód 7 v `debris_type.tif` / `subtype = "landslide"`; doplněno do `flood/combine.py` (TYPE_NAMES) a `report/sitrep.py`. Prahy z literatury, neladěné podle EMS (D-006).
+Výsledek (celé údolí, vs EMS, jen měření): první verze zvedla plochu F1 z 0,759 na 0,776 (recall na svazích > 15° 21 → 32 %). **Pevná brána sklonu 15–55° byla nahrazena fúzí důkazů (D-M11-05)**; podtyp 7 zůstává, sklon ≥ 15° už jen pojmenovává nalezenou plochu.
+
 ## D-M10-05 | 2026-10-13 | přijato (úkol od master session; uživatel: záchyt plochy aspoň 90 %, místo pevných pravidel „něco inteligentního“) — Radarová anomálie proti normálu místa
 Kontext: pevná pravidla (sklon ≤ 15°, HAND ≤ 15–30 m, prahy v dB) nechávají mimo hlavně strmější svahy a okraje. Cíl: pro každý pixel změřit, **jak moc je po události jiný, než je u něj normální**
 (vlastní sezónní rozptyl a šum místa), a nechat fúzi suti a sesuvů (session `fix/s2-scaling`) použít tuto míru místo pevných pravidel.
@@ -1116,6 +1160,36 @@ Omezení: roční řada je jen z minulého roku (jeden cyklus, žádná vícelet
 ## D-X-07 | 2026-10-13 | přijato (master) — Sesuv (`debris_type` 7) ničí budovy a silnice
 Krok suti nově značí čerstvé sesuvy jako `debris_type` 7 (větev fix/s2-scaling). Modul škod bral jako ničivé jen typy 1, 3, 6, takže budova zasypaná sesuvem by se nepočítala jako zničená.
 Rozhodnutí: `damage/measure.py` `DESTRUCTIVE_TYPES` = (1, 3, 6, 7). Sesuv odnese nebo zasype stavbu stejně jako suť; kontrakt souborů beze změny.
+
+## D-M11-04 | 2026-10-13 | přijato (master: „per-pixel kompozit“) — Optika pro suť = kompozit z více dnů Sentinel-2
+Kontext: jeden snímek „po“ má v monzunu jasno na ~40 % oblasti; sesuvy a nánosy ale vydrží týdny.
+Rozhodnutí: `acquire` stáhne vedle hlavního snímku „před“/„po“ až 4 další dny s jasnem ≥ 15 % (okno „po“ do 45 dnů po události, „před“ dosavadních 60 dnů) jako `raw/s2/prex_*.tif` / `postx_*.tif`;
+`run.json.acquire.s2.extra = {pre: [...], post: [...]}`, upozornění `s2_composite` (info, seznam dnů). Krok suti (`flood/debris/inputs.py`) skládá po pixelech **medián čistých pixelů** ze všech dnů;
+platný pixel = čistý aspoň v jednom dni. Hlavní snímky a `aligned/s2_*` (AI voda, náhled) se nemění — voda je jev na jeden den, kompozit by ji smazal.
+Změna kontraktu: jen přidané soubory `prex_*`/`postx_*` v `raw/s2` a klíč `extra`; kdo je nezná, funguje jako dřív.
+Výsledek (celé údolí, vs EMSR927, jen měření): plocha F1 0,776 → **0,801** (P 0,965 → 0,967, R 0,649 → 0,684); recall na svazích > 15° 32 → 39 %, ve stínu radaru 45 → 53 %; sesuvy 0,93 → 1,44 km².
+(Základ 0,776 = suť se sesuvy po 1. kroku, bez kompozitu.)
+
+## D-M11-05 | 2026-10-13 | přijato (master: „fúze důkazů místo prahů“, cíl uživatele recall ≥ 90 %) — Fúze optiky, radaru a terénu samoučením
+Kontext: hlavní brány (sklon ≤ 15°, HAND, jedno pravidlo na jeden jev) nenajdou sesuvy ani plochy, které EMS kreslí celé. Nahrazeno obecnou otázkou „změnilo se tohle místo víc než běžný rozptyl krajiny?“ (`flood/debris/fusion.py`).
+Rozhodnutí:
+- **Optické z-skóre:** změna NDVI (ztráta), jasu a SWIR mezi kompozitem před a po (D-M11-04), každá standardizovaná robustně (medián/MAD přes celou oblast, zvlášť pro 6 tříd vegetace před událostí); Stouffer (korelace 0,5).
+  **Radarové z-skóre:** stávající test proti historii téhož pixelu (obě dráhy, Fisher) převedený na z. Samotný radar se počítá jen jako ztmavnutí; zesvětlení (déšť, vlhká půda) jen tam, kde ho potvrdí optika; při celoplošném ztmavnutí (počasí) radar bez optiky nestačí.
+- **Pseudo-štítky z dat, nikdy z EMS:** „změněno“ = obě čidla (z_opt ≥ 3 a z_rad ≥ 2) nebo jedno extrémně (z_opt ≥ 6, z_rad ≥ 5); „beze změny“ = obě < 1. Mezní z jsou běžné normální chvosty (z = 2 → p ≈ 0,02), neladěné.
+- **Klasifikátor (gradient boosting, scikit-learn → `requirements.txt`)** se učí, jak vypadá změněné místo v KONTEXTU: místní průměry obou z-skóre (okna 5 a 15 px), sklon, HAND, NDVI před a po. Vlastní z-hodnoty pixelu se z příznaků vynechávají (jinak by se jen znovu naučil prahy pseudo-štítků).
+  Terén tak vstupuje jako měkká naučená apriorní váha, ne brána. Označí se pixel s p ≥ 0,5 A přímým místním důkazem (průměr 5×5 z_opt nebo z_rad ≥ 2), mimo vodu, sníh a už klasifikované pixely, min. plocha 0,3 ha. Staré holé plochy se nevylučují maskou: holé → holé nemá z-skóre.
+- **Podtyp a jistota:** sklon ≥ 15° → `landslide` (7), jinak `debris` (1); jistota HIGH = obě čidla z ≥ 3 a p ≥ 0,9, MEDIUM = obě z ≥ 2, jinak LOW (jedno čidlo / jen okolí). `run.json.debris.fusion` = plochy podle zdroje (radar / optika / obě / jen kontext).
+- Objektový krok (superpixely SLIC z kompozitu + DEM, označení celého segmentu při podílu důkazů ≥ 0,2–0,5) **vyzkoušen a nepřijat**: F1 beze změny (0,856 → 0,856), „celý segment“ ho zhoršil (0,76–0,84) kvůli přesnosti.
+Výsledek (celé údolí, vs EMSR927, jen měření): plocha **F1 0,801 → 0,841** (P 0,967 → 0,916, R 0,684 → 0,777); recall na svazích > 15° 39 → 60 %, v radarovém stínu 53 → 66 %, ≤ 15° 78 → 84 %. Celkem od základu 0,772: **0,841**.
+Fúzí označeno 76 km² (sesuvy 70 km²: jen optika 65, obě čidla 5,3, jen radar 1,0, jen kontext 4,3) — mimo území EMS je to neověřené a většinou nízká jistota; placebo (radar, starší snímek jako „po“) 0,14 km² (0,06 % prohledané plochy).
+Cíl 90 % recall nedosažen: z 2,6 km² zmeškaných má 41 % silný důkaz (z ≥ 2), ale 57 % z toho leží na trvalé vodě / v korytě, které fúze vynechává (EMS řeku zahrnuje; řeší krok vody), a 54 % zmeškaného má slabý signál (max. z < 2). Provozní bod s přesností ≥ 0,93: `direct_z` = 3 → P 0,935, R 0,75 (měřeno mimo pipeline).
+Horní mez pro kontrolu: klasifikátor trénovaný přímo na EMS by dal F1 0,91–0,94 — NEPOUŽITO a nesmí se použít (datové pravidlo), slouží jen k odhadu, kolik informace v datech je.
+Změna kontraktu: žádná v souborech; `debris_type` 7 = fúzí nalezená plocha na svahu; `scikit-learn` v `requirements.txt`; `run.json.debris.fusion` nový blok.
+
+## D-M11-06 | 2026-10-13 | přijato (master + uživatel) — Přijetí poklesu AI vody po opravě Sentinel-2 a zrychlení kroku suti
+- **Pokles AI vody (D-M11-01):** po opravě reflektance klesla optická „voda“ z 11,3 na 8,6 km² a plošné F1 vůči EMS z 0,772 na 0,759. Přijato: model `floodseg_s2_v0.1` byl trénován na odrazivosti DN/10 000 bez ofsetu (Sen1Floods11); dřívější dvojí odečet ofsetu vytvářel uměle nulové (tmavé) pixely, které model brával jako vodu. Správná data = správný vstup modelu, tedy výsledek se nehladí zpět.
+- **Zrychlení kroku suti beze změny výsledků:** profil ukázal, že 372 s z ~540 s bylo načítání vstupů (maskovaný medián, filtr 3×3 po jednom souboru) a ~70 s t-rozdělení ze `scipy.stats`. Nově: čtení souborů v 4 vláknech (pořadí zachováno), rychlý medián kompozitu řazením, `scipy.special.stdtr` / `chdtrc` místo `stats.t` / `stats.chi2` (jedno vyhodnocení pro oba chvosty, 4 vlákna).
+  Kontrola: z-skóre, ΔVV/ΔVH, počty drah i typy (mimo odstraněné pravidlo sesuvů) **bit po bitu stejné** (0 odlišných pixelů). Načtení 380 → 110 s, detekce 116 → 87 s; krok suti celkem 424 → 342 s i s kompozitem a fúzí (bez nich ~250 s).
 
 ## D-M10-06 | 2026-10-13 | přijato — Radarová anomálie: průměr přes všechny snímky po události, práh z placeba
 **Kontext:** jeden snímek „po“ nese šum; úkol od master session: průměrovat anomálii přes všechny průlety 0–24 dní po události (obě dráhy, každá vůči svému normálu), práh volit jen podle placeba (cíl ≤ 0,5 % falešných pixelů), nikdy podle EMS.
@@ -1164,3 +1238,13 @@ Rozhodnutí: `damage/measure.py` `DESTRUCTIVE_TYPES` = (1, 3, 6, 7). Sesuv odnes
 - Vybráno q 75, z 2,0, r 0 (odhad P 0,857) → **změřeno vs EMS R 0,739 / P 0,939 / F1 0,827** (z 0,597). Placebo je pesimistické
   (skutečná P 0,94 > odhad 0,86) — monzunové změny mezi pre snímky nejsou „nová povodeň“.
 - Strop obálky: q75 zachytí max. 0,88, q90 0,91 plochy EMS → 90 % vyžaduje i sesuvy mimo obálku (svahy).
+- **Doplněk (růst, `validation/envelope_grow_diag.py`):** celá plocha EMSR927 je typ „Mass Movement“ (11,6 km²). Ze zbylého nezachyceného:
+  54 % uvnitř obálky bez důkazu, 46 % mimo obálku (34 % na svazích > 15°). Hysterezní růst (spojité slabé důkazy od detekcí, bez limitu
+  HAND/sklonu, 8-sousedství), práh jen z placeba (z 2,5, odhad P 0,863) → **R 0,774 / P 0,927 / F1 0,843**. Při z 1,5 by R byl 0,89,
+  ale P 0,74 → kvalita slabého důkazu (roční normál, víc snímků po události) je teď hlavní páka.
+
+## D-M10-08 | 2026-10-13 | přijato — Radarová anomálie jako přímá podpora v AI kroku + prahy podle verze modelu
+- **Prahy:** `training/thresholds.json` (klíč = složka modelu, v0.4: citlivý 0,20, zdroj ověřovací události Kuro Siwo) má v `run_ai.py` přednost před kartou modelu (ta se stahuje z Kaggle); karta je jen záloha.
+- **Násobení šance je slabé:** na Trishuli (plocha vs EMS, jen měření) při síle 0 / 1 / 2,5 / 4 R 0,619 / 0,620 / 0,624 / 0,629 (citlivý), standardní 0,617–0,623; model dává zmeškaným pixelům P ≈ 0, takže žádný násobič je nepřevrátí.
+- **Přímá podpora:** pixely tmavší než normál místa pod placebo prahem (z_comb < `threshold_z_comb`, ≥ 99,5 % bezpovodňové scény je nad ním), s terénní vahou > 0,05, mimo trvalou vodu, se přidají jako povodeň tam, kde navazují na povodeň z modelu (`--no-anomaly-connect` vypne). Hodnota prahu je jen z placeba, ne z EMS. Trishuli: R 0,619 → 0,639, P 0,968, F1 0,770 (recall na viditelné ploše 63,9 %).
+- **Zbývá:** cíl 90 % je daleko; volnější práh (z ≤ −2) by přidal recall za cenu přesnosti — volba jen přes odhad přesnosti z placeba (D-X-08), zatím neprovedeno.
