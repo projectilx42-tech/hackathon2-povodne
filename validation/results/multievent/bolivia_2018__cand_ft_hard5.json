@@ -1,0 +1,189 @@
+{
+ "event": "bolivia_2018",
+ "tag": "cand_ft_hard5",
+ "dataset": "sen1floods11_test",
+ "continent": "South America",
+ "kind": "flood",
+ "event_date": "2018-02-14",
+ "aoi_bbox": [
+  -65.1271,
+  -14.396,
+  -65.0352,
+  -14.304
+ ],
+ "label_valid_pct": 32.4,
+ "scores": {
+  "a_seeds_water_2_4": {
+   "recall": 0.9416,
+   "precision": 0.8197,
+   "f1": 0.8764,
+   "truth_km2": 14.8692,
+   "pred_km2": 17.0798,
+   "tp_km2": 14.0008,
+   "fp_km2": 3.079,
+   "region_km2": 32.909
+  },
+  "a_seeds_common_water_2_4": {
+   "recall": 0.9416,
+   "precision": 0.8197,
+   "f1": 0.8764,
+   "truth_km2": 14.8692,
+   "pred_km2": 17.0798,
+   "tp_km2": 14.0008,
+   "fp_km2": 3.079,
+   "region_km2": 32.909
+  },
+  "b_envelope_water_2_4": {
+   "recall": 0.9416,
+   "precision": 0.8197,
+   "f1": 0.8764,
+   "truth_km2": 14.8692,
+   "pred_km2": 17.0798,
+   "tp_km2": 14.0008,
+   "fp_km2": 3.079,
+   "region_km2": 32.909
+  },
+  "a_seeds_all_2_3_4": {
+   "recall": 0.9905,
+   "precision": 0.6154,
+   "f1": 0.7591,
+   "truth_km2": 14.8692,
+   "pred_km2": 23.9317,
+   "tp_km2": 14.7277,
+   "fp_km2": 9.204,
+   "region_km2": 32.909
+  },
+  "a_seeds_common_all_2_3_4": {
+   "recall": 0.9905,
+   "precision": 0.6154,
+   "f1": 0.7591,
+   "truth_km2": 14.8692,
+   "pred_km2": 23.9317,
+   "tp_km2": 14.7277,
+   "fp_km2": 9.204,
+   "region_km2": 32.909
+  },
+  "b_envelope_all_2_3_4": {
+   "recall": 0.9905,
+   "precision": 0.6154,
+   "f1": 0.7591,
+   "truth_km2": 14.8692,
+   "pred_km2": 23.9317,
+   "tp_km2": 14.7277,
+   "fp_km2": 9.204,
+   "region_km2": 32.909
+  }
+ },
+ "false_alarm_dry_label": {
+  "seeds": 0.50926,
+  "envelope": 0.50926
+ },
+ "seed_transitions_km2": {
+  "water": {
+   "water": 16.7174
+  },
+  "debris": {
+   "debris": 6.8519
+  },
+  "permanent": {
+   "permanent": 0.3624
+  }
+ },
+ "components": {
+  "seeds_ai_water(2)": {
+   "km2": 31.4878,
+   "km2_in_label_region": 16.7174,
+   "share_on_truth": 0.817
+  },
+  "seeds_debris_step:debris": {
+   "km2": 1.8355,
+   "km2_in_label_region": 0.5478,
+   "share_on_truth": 0.261
+  },
+  "seeds_debris_step:mud": {
+   "km2": 2.0842,
+   "km2_in_label_region": 0.5801,
+   "share_on_truth": 0.157
+  },
+  "seeds_debris_step:erosion": {
+   "km2": 4.0086,
+   "km2_in_label_region": 1.6825,
+   "share_on_truth": 0.162
+  },
+  "seeds_debris_step:flooded_vegetation": {
+   "km2": 3.6096,
+   "km2_in_label_region": 1.0476,
+   "share_on_truth": 0.012
+  },
+  "seeds_debris_step:landslide": {
+   "km2": 0.0044,
+   "km2_in_label_region": 0.0005,
+   "share_on_truth": 0.0
+  },
+  "seeds_debris_step:unknown": {
+   "km2": 7.8667,
+   "km2_in_label_region": 2.862,
+   "share_on_truth": 0.067
+  },
+  "seeds_class3_not_debris_step(vhagree etc.)": {
+   "km2": 0.5407,
+   "km2_in_label_region": 0.1314,
+   "share_on_truth": 0.116
+  },
+  "seeds_permanent(4)": {
+   "km2": 1.4265,
+   "km2_in_label_region": 0.3624,
+   "share_on_truth": 0.953
+  }
+ },
+ "pred_total_km2": {
+  "seeds": 51.438,
+  "envelope": 51.438
+ },
+ "run": {
+  "timings_s": {
+   "acquire": 90.2,
+   "preprocess": 3.8,
+   "s1anomaly": 1.6,
+   "flood_ai": 19.1,
+   "debris": 285.9,
+   "envelope": 0.8,
+   "combine": 3.4,
+   "damage": 1.4,
+   "network": 1.4,
+   "report": 7.4
+  },
+  "pu_spent": 100.9,
+  "pu_estimate": 121,
+  "envelope": {
+   "used": false,
+   "reason": "Water-level envelope is off (opt-in: set POVODNE_ENVELOPE=1 or pass --envelope); the flood map is unchanged.",
+   "placebo_groups": null,
+   "placebo_split": null,
+   "stat": null,
+   "persistence": null,
+   "reach_q": null,
+   "final_est_precision": null,
+   "final_placebo_false_km2": null,
+   "added_km2": null,
+   "added_by_stage_km2": null,
+   "optics": null,
+   "post_passes": null,
+   "optical_used": null
+  },
+  "main_track": {
+   "relative_orbit": 156,
+   "orbit_direction": "DESCENDING"
+  },
+  "alt_track": true,
+  "s2": {
+   "pre": 65.8,
+   "post": 45.9,
+   "extra": null
+  },
+  "warnings": [
+   "No pre-event OpenStreetMap buildings in the area: damaged buildings cannot be counted (zero does not mean no damage).",
+   "No hospital or town within reach of the downloaded road network; only the edge of the mapped area counts as a destination."
+  ]
+ }
+}
