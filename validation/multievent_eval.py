@@ -196,7 +196,7 @@ def cmd_score(a) -> None:
         "envelope": {k: env_sec.get(k) for k in ("used", "reason", "placebo_groups", "placebo_split", "stat", "persistence", "reach_q",
                                                  "final_est_precision", "final_placebo_false_km2", "added_km2", "post_passes", "optical_used")},
         "main_track": {k: (rj.get("acquire", {}).get("s1") or {}).get(k) for k in ("relative_orbit", "orbit_direction")},
-        "alt_track": bool(rj.get("acquire", {}).get("s1_alt")), "s2": {k: (v or {}).get("clear_pct") for k, v in (rj.get("acquire", {}).get("s2") or {}).items()},
+        "alt_track": bool(rj.get("acquire", {}).get("s1_alt")), "s2": {k: (v or {}).get("clear_pct") for k, v in (rj.get("acquire", {}).get("s2") or {}).items() if isinstance(v, dict) or v is None},
         "warnings": rj.get("warnings", [])[:8], **st}
     RESULTS.mkdir(parents=True, exist_ok=True)
     dst = RESULTS / f"{ev['id']}__{a.tag}.json"
@@ -216,7 +216,7 @@ def cmd_table(a) -> None:
             ka = "a_seeds_common_region" if "a_seeds_common_region" in s else "a_seeds_common_water_2_4"
             A, B = s[ka], s[kb]
             e = d["run"]["envelope"]
-            t = (d["run"].get("timings_s") or {}).get("total") if isinstance(d["run"].get("timings_s"), dict) else None
+            t = round(sum(d["run"]["timings_s"].values())) if isinstance(d["run"].get("timings_s"), dict) else None
             print(f"| {d['event']} | {tag} | {B['truth_km2']} | {f(A['recall'])} / {f(A['precision'])} / {f(A['f1'])} | "
                   f"{f(B['recall'])} / {f(B['precision'])} / {f(B['f1'])} | {e.get('placebo_groups')} | {e.get('final_est_precision')} | "
                   f"{d['run'].get('pu_spent')} | {t} |")
