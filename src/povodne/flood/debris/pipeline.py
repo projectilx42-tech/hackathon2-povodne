@@ -107,14 +107,18 @@ def calibrate(inp: Inputs, params: C.Params, target: float = TARGET_FALSE_RATE) 
 
 
 def _slide_evidence(dvv: float, dvh: float, agree: float, valid: float, radar: float, optical: float) -> str:
+    """Text for patches found by the fusion of optical, radar and terrain evidence (D-M11-05)."""
     parts = []
     if radar > 0.5 and np.isfinite(dvh):
-        parts.append(f"radar VV {dvv:+.1f} dB, VH {dvh:+.1f} dB (vegetation or surface removed); "
-                     f"{agree:.0f} of {valid:.0f} pass direction(s) agree")
+        parts.append(f"radar change vs. this place's own history (VV {dvv:+.1f} dB, VH {dvh:+.1f} dB)")
     if optical > 0.5:
-        parts.append("Sentinel-2 shows green vegetation turned to bare ground")
+        parts.append("Sentinel-2 before/after composites show vegetation lost or ground exposed")
     if radar <= 0.5 and optical > 0.5:
-        parts.append("optical-only (no radar change): lower confidence")
+        parts.append("optics only: lower confidence")
+    elif optical <= 0.5 and radar > 0.5:
+        parts.append("radar only: lower confidence")
+    elif radar <= 0.5 and optical <= 0.5:
+        parts.append("weak direct evidence, rests on the surroundings: low confidence")
     parts.append("not bare before the event (not an old slide)")
     return "; ".join(parts)
 
@@ -170,7 +174,7 @@ def polygons(inp: Inputs, res: C.Result) -> list[dict]:
                               "mean_dvh_db": None if np.isnan(h) else round(h, 2),
                               "evidence": (_slide_evidence(float(dvv[k]), float(dvh[k]), float(agree[k]), float(valid[k]),
                                                            float(s_rad[k]), float(s_opt[k]))
-                                           if int(t) == C.LANDSLIDE else
+                                           if int(t) == C.LANDSLIDE or s_rad[k] + s_opt[k] > 0.5 else
                                            _evidence(int(t), v, h, float(agree[k]), float(valid[k]), float(optical[k])))})
     return feats
 

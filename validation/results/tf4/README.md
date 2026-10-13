@@ -4,30 +4,30 @@ Reference: European Union, Copernicus Emergency Management Service data. Used **
 
 - Our post-event Sentinel-1 image: 2026-08-28; EMS VHR images: 2026-08-27, 2026-08-31
 - EMS products used: AOI01_GRA_PRODUCT_v1, AOI02_GRA_PRODUCT_v2, AOI03_GRA_PRODUCT_v1, AOI05_GRA_PRODUCT_v3
-- Compared area (EMS analysed area ∩ our valid pixels): 40.332 km²
+- Compared area (EMS analysed area ∩ our valid pixels): 40.382 km²
 
 ## Affected area (pixel level, 10 m)
 
 | | km² |
 |---|---|
-| ems affected | 11.6251 |
-| ours affected | 8.2164 |
-| both | 7.9468 |
-| only ours | 0.2696 |
-| only ems | 3.6783 |
+| ems affected | 11.6627 |
+| ours affected | 9.8928 |
+| both | 9.0672 |
+| only ours | 0.8256 |
+| only ems | 2.5955 |
 
-IoU 0.668, precision 0.967, recall 0.684, F1 0.801.
-EMS maps the whole event as one class (mass movement), so water and debris are not scored separately; inside the EMS footprint our affected pixels are water 2.9126 km², debris 5.0342 km².
+IoU 0.726, precision 0.916, recall 0.777, F1 0.841.
+EMS maps the whole event as one class (mass movement), so water and debris are not scored separately; inside the EMS footprint our affected pixels are water 2.9126 km², debris 6.1546 km².
 
 ## Buildings
 
 EMS damaged buildings in compared area: 3376 {'Destroyed': 2434, 'Possibly damaged': 621, 'Damaged': 321}.
-Share inside our affected area (±10 m): 69.0 % (destroyed/damaged only: 81.6 %).
+Share inside our affected area (±10 m): 79.2 % (destroyed/damaged only: 91.1 %).
 Matched to an OSM building: 2510; of those flagged by us: 68.3 %. Our hit buildings in the area: 1651, of which not listed by EMS: 276 (EMS lists only damaged buildings, so these are either our false alarms or EMS omissions).
 
 ## Roads
 
-EMS damaged roads 63.882 km, of which near our blocked roads 83.0 %; EMS 'no visible damage' roads 152.373 km, of which we flag 17.8 % (false alarms). Including our 'possibly blocked': 88.2 % / 29.2 %.
+EMS damaged roads 64.158 km, of which near our blocked roads 82.9 %; EMS 'no visible damage' roads 152.398 km, of which we flag 17.8 % (false alarms). Including our 'possibly blocked': 88.2 % / 29.2 %.
 
 ## Bridges
 

@@ -80,7 +80,7 @@ runs/<run_id>/
     ai_mask.tif ai_prob.tif      # výstup M3 (voda)
     debris_mask.tif              # uint8 1 = suť/bahno/změna povrchu (třída 3), výstup M3d
     debris_type.tif              # uint8 podtyp: 1 suť, 2 bahno, 3 eroze, 4 zaplavená vegetace, 5 zaplavená zástavba,
-                                 #   6 poškozená zástavba, 7 sesuv/bahnotok na svahu (D-M11-03), 9 neznámá změna, 0 nic (D-M3d-01, D-M3d-02)
+                                 #   6 poškozená zástavba, 7 sesuv / plocha změny na svahu nalezená fúzí důkazů (D-M11-05), 9 neznámá změna, 0 nic (D-M3d-01, D-M3d-02)
     debris_confidence.tif        # uint8 1 nízká, 2 střední, 3 vysoká, 0 nic
     debris_observability.tif     # uint8 0 mimo oblast, 1 viděno, 2 nedá se vidět (stín, mraky), 3 necitlivé (hustý les/zástavba)
     debris_polygons.geojson      # EPSG:4326: class "debris", subtype, confidence, area_m2, mean_dvv_db, mean_dvh_db, evidence
