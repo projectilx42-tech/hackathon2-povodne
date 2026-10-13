@@ -249,6 +249,8 @@ def cmd_run(a: argparse.Namespace) -> int:
             sys.exit("--out or --event-date is required")
         out = config.REPO_ROOT / "runs" / f"run_{a.event_date}_{datetime.now():%H%M%S}"
     try:
+        if getattr(a, "envelope", False):
+            os.environ["POVODNE_ENVELOPE"] = "1"   # inherited by the step subprocesses
         prepare_run(out, a.aoi, a.event_date, a.pre_window, a.post_window, a.event_time, a.sensitivity)
     except (ValueError, OSError, json.JSONDecodeError) as exc:
         sys.exit(f"error: {exc}")
@@ -278,6 +280,7 @@ def main(argv: list[str] | None = None) -> None:
     r.add_argument("--post-window", help="FROM,TO (YYYY-MM-DD) for the after-images; default: automatic")
     r.add_argument("--event-time", help="local time of the flood HH:MM in the area's time zone (optional)")
     r.add_argument("--sensitivity", choices=["standard", "sensitive"], help="flood detection mode (default standard)")
+    r.add_argument("--envelope", action="store_true", help="also run the experimental water-level envelope step (opt-in, D-M13-11)")
     r.set_defaults(func=cmd_run)
     s = sub.add_parser("serve", help="start the dashboard on http://127.0.0.1:<port>")
     s.add_argument("--port", type=int, default=8000)

@@ -373,7 +373,7 @@ Pipeline spouští jako podproces `python -m povodne run ...`; průběh čte z `
   | `s1anomaly` | `povodne.flood.s1anomaly` | ne | bez `flood/s1_anomaly.tif` (D-M10-05); běh pokračuje; běží před `flood_ai`, který anomálii používá (D-M10-07) |
   | `flood_ai` | `povodne.flood.ai` | ano | dtto |
   | `debris` | `povodne.flood.debris` | ne | combine jen s vodou |
-  | `envelope` | `povodne.flood.envelope` | ne | bez `flood/envelope_mask.tif`; combine nic nepřidá (D-M13-01) |
+  | `envelope` | `povodne.flood.envelope` | ne, **ve výchozím stavu vypnutý** (`POVODNE_ENVELOPE=1` / `povodne run --envelope`, D-M13-11) | bez `flood/envelope_mask.tif`; combine nic nepřidá (D-M13-01) |
   | `combine` | `povodne.flood.combine` | ano | další kroky `skipped`, report proběhne |
   | `damage` | `povodne.damage` | ne | network `skipped` |
   | `network` | `povodne.network` | ne | report bez odříznutých obcí |

@@ -595,6 +595,11 @@ def _event_rms(run_dir: Path, fdir: Path, shape) -> np.ndarray | None:
 def run(run_dir: Path) -> dict:
     import os
     run_dir = Path(run_dir)
+    if os.environ.get("POVODNE_ENVELOPE", "0") != "1":   # opt-in (D-M13-11): off unless POVODNE_ENVELOPE=1 or `povodne run --envelope`
+        msg = "Water-level envelope is off (opt-in: set POVODNE_ENVELOPE=1 or pass --envelope); the flood map is unchanged."
+        update_run(run_dir, lambda rj: rj.__setitem__("envelope", {"used": False, "enabled": False, "reason": msg}))
+        set_step(run_dir, "envelope", "skipped", msg)
+        return {"used": False, "enabled": False, "reason": msg}
     set_step(run_dir, "envelope", "running", "water-level envelope")
     fdir = run_dir / "flood"
     notices: list[dict] = []

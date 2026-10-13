@@ -12,6 +12,14 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from povodne.flood import combine, envelope  # noqa: E402
 
+import pytest  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _enabled(monkeypatch):
+    """The envelope step is opt-in (D-M13-11); the tests switch it on."""
+    monkeypatch.setenv("POVODNE_ENVELOPE", "1")
+
 
 def _valley(h=200, w=200):
     """HAND rises with the distance from a river along the middle column band."""
@@ -336,3 +344,20 @@ def test_optics_that_fail_their_placebo_are_dropped_not_the_whole_envelope(tmp_p
     res = envelope.run(run)
     assert res["used"] and res["optics"]["dropped"] and not res["optics"]["used"]    # radar-only envelope still produced
     assert "placebo" in res["optics"]["reason"]
+
+
+def test_envelope_is_off_by_default_and_combine_works_without_it(tmp_path, monkeypatch):
+    run = _run_dir(tmp_path, noisy_placebo=False)
+    monkeypatch.delenv("POVODNE_ENVELOPE", raising=False)
+    res = envelope.run(run)
+    rj = json.loads((run / "run.json").read_text())
+    assert not res["used"] and not res["enabled"] and rj["envelope"]["enabled"] is False
+    assert not (run / "flood" / "envelope_mask.tif").exists()
+    assert next(s for s in rj["progress"]["steps"] if s["name"] == "envelope")["state"] == "skipped"
+    with rasterio.open(run / "flood" / "ai_mask.tif") as ds:
+        tr = ds.transform
+    _write(run / "flood" / "ai_prob.tif", np.full((200, 200), 0.1, np.float32), tr, "float32")
+    combine.run(run)                                      # no envelope_mask.tif: the pipeline is unchanged
+    with rasterio.open(run / "flood" / "flood_mask.tif") as ds:
+        m = ds.read(1)
+    assert (m[:100, 85:115] == 2).all() and not (m[105:145, 87:95] == 2).any()
