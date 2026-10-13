@@ -235,8 +235,8 @@ def test_search_runs_all_stages_on_synthetic_context():
     z[100:150, 86:96] = -4.0
     z[100:150, 96:104] = -6.0
     z[100:150, 79:86] = -1.9                              # weak: only the edge band / growth can catch it
-    c = {"z": z, "hand": hand, "perm": perm, "existing": seeds | perm, "seeds": seeds,
-         "pl": [{"z": np.zeros(shape, np.float32), "P": None, "seeds": np.zeros(shape, bool)}], "seeds_w": seeds, "opt": None, "optq": None, "labelled": np.where(seeds, 2, 0).astype(np.uint8),
+    c = {"z": z, "zs": z, "hand": hand, "perm": perm, "existing": seeds | perm, "seeds": seeds,
+         "pl": [{"z": np.zeros(shape, np.float32), "zs": np.zeros(shape, np.float32), "P": None, "seeds": np.zeros(shape, bool)}], "seeds_w": seeds, "opt": None, "optq": None, "labelled": np.where(seeds, 2, 0).astype(np.uint8),
          "n_exist": int((seeds | perm).sum()), "Pe": None, "ctrl_rate": 0.0, "px_km2": 1e-4}
     res = envelope.search(c, False)
     assert res["final"] and res["final"]["est_precision"] >= envelope.MIN_PRECISION
@@ -252,8 +252,8 @@ def test_search_with_reach_limits_growth_and_edges():
     seeds = ai == 2
     z = np.zeros(shape, np.float32)
     z[100:150, 60:100] = -3.0                             # strong evidence reaching far up the slope (HAND up to 8 m)
-    c = {"z": z, "hand": hand, "perm": np.zeros(shape, bool), "existing": seeds, "seeds": seeds,
-         "pl": [{"z": np.zeros(shape, np.float32), "P": None, "seeds": np.zeros(shape, bool)}], "seeds_w": seeds, "opt": None, "optq": None, "labelled": np.where(seeds, 2, 0).astype(np.uint8),
+    c = {"z": z, "zs": z, "hand": hand, "perm": np.zeros(shape, bool), "existing": seeds, "seeds": seeds,
+         "pl": [{"z": np.zeros(shape, np.float32), "zs": np.zeros(shape, np.float32), "P": None, "seeds": np.zeros(shape, bool)}], "seeds_w": seeds, "opt": None, "optq": None, "labelled": np.where(seeds, 2, 0).astype(np.uint8),
          "n_exist": int(seeds.sum()), "Pe": None, "ctrl_rate": 0.0, "px_km2": 1e-4}
     free = envelope.search(c, False)
     capped = envelope.search(c, False, reach_q=50)
@@ -272,3 +272,15 @@ def test_persistence_from_pairs_needs_two_passes_same_sign():
     P, n = envelope.persistence_from_pairs([(pairs, f)], (40, 40))
     assert n == 2 and P[8:20, 8:20].all() and not P[28:36, 28:36].any()
     assert envelope.persistence_from_pairs([(pairs[:1], f)], (40, 40))[0] is None
+
+
+def test_rms_stat_does_not_cancel_opposite_polarisations():
+    a = np.full((5, 5), 3.0, np.float32)
+    b = np.full((5, 5), -3.0, np.float32)                 # VV brighter, VH darker (mud): Stouffer cancels, RMS does not
+    assert abs(float(((a + b) / np.sqrt(2.0))[0, 0])) < 1e-6
+    assert abs(float(envelope.rms_stat([a, b])[0, 0]) - 3.0) < 1e-5
+    c = a.copy()
+    c[0, 0] = np.nan
+    assert np.isfinite(envelope.rms_stat([c, b])[0, 0]) and envelope.rms_stat([]) is None
+    rms, sgn = envelope.windowed(np.full((9, 9), 2.5, np.float32), 1, zsign=np.full((9, 9), -1.0, np.float32))
+    assert rms[4, 4] == 2.5 and sgn[4, 4] == -1.0          # magnitude from the statistic, direction from the signed z

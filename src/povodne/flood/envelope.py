@@ -251,13 +251,31 @@ T_PASS = 1.5                       # per-pass threshold of the persistence test 
 MIN_PASSES = 2
 
 
-def windowed(z: np.ndarray, w: int) -> tuple[np.ndarray, np.ndarray]:
-    """(rms, signed mean) of z in a w x w window (NaN = 0, like the placebo)."""
+def windowed(z: np.ndarray, w: int, zsign: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray]:
+    """(rms of z, signed mean of zsign) in a w x w window (NaN = 0, like the placebo). zsign defaults to z (the "comb" statistic);
+    with the "rms" statistic z has no sign and the direction (darker / brighter) comes from the signed combined z."""
     z0 = np.where(np.isfinite(z), z, 0.0).astype(np.float32)
+    zs = z0 if zsign is None else np.where(np.isfinite(zsign), zsign, 0.0).astype(np.float32)
     if w <= 1:
-        return np.abs(z0), z0
+        return np.abs(z0), zs
     return (np.sqrt(np.maximum(ndimage.uniform_filter(z0 * z0, size=w, mode="nearest"), 0)).astype(np.float32),
-            ndimage.uniform_filter(z0, size=w, mode="nearest").astype(np.float32))
+            ndimage.uniform_filter(zs, size=w, mode="nearest").astype(np.float32))
+
+
+def rms_stat(layers: list[np.ndarray]) -> np.ndarray | None:
+    """sqrt(mean of z^2) over the per-track, per-polarisation z maps (NaN where a layer is NaN; NaN if none is valid)."""
+    if not layers:
+        return None
+    ss = np.zeros(layers[0].shape, np.float32)
+    n = np.zeros(layers[0].shape, np.float32)
+    for a in layers:
+        ok = np.isfinite(a)
+        ss += np.where(ok, a * a, 0.0)
+        n += ok
+    out = np.full(ss.shape, np.nan, np.float32)
+    np.divide(ss, n, out=ss, where=n > 0)
+    out[n > 0] = np.sqrt(ss[n > 0])
+    return out
 
 
 def evidence_w(stat: tuple[np.ndarray, np.ndarray], t: float, persist: np.ndarray | None = None,
@@ -307,7 +325,7 @@ def persistence_mask(run_dir: Path, shape, which: str) -> tuple[np.ndarray | Non
     return persistence_from_pairs([(p, f) for p, f in _track_pairs(run_dir, which).values()], shape)
 
 
-def placebo_groups(run_dir: Path, shape, split: bool = False) -> list[dict]:
+def placebo_groups(run_dir: Path, shape, split: bool = False, stat: str = "comb") -> list[dict]:
     """Two placebo "pairs" (leave-one-out over the placebo passes, D-M13-04): group A = all passes but the last, group B = all
     but the first (with fewer than 3 passes per track: one group of all passes). Each group = a z_comb map on the run grid plus
     its persistence mask, produced exactly like the event's. [] if there are no placebo passes."""
@@ -315,14 +333,14 @@ def placebo_groups(run_dir: Path, shape, split: bool = False) -> list[dict]:
     n = max((len(p) for p, _ in tp.values()), default=0)
     if n == 0:
         z, _kind = _placebo_z_comb(run_dir, shape)      # older fallback: the single before-image
-        return [{"z": z, "P": None}] if z is not None else []
+        return [{"z": z, "zs": z, "P": None}] if z is not None else []
     if split:   # one group per placebo pass (the passes of a track in the same order); no persistence for single passes
         cuts = [slice(i, i + 1) for i in range(n)]
     else:
         cuts = [(slice(None, -1)), (slice(1, None))] if n >= 3 else [slice(None)]
     groups = []
     for cut in cuts:
-        per_vv, per_vh, sel = [], [], []
+        per_vv, per_vh, sel, layers = [], [], [], []
         for prefix, (pairs, f) in tp.items():
             pr = pairs[cut]
             if not pr:
@@ -334,9 +352,11 @@ def placebo_groups(run_dir: Path, shape, split: bool = False) -> list[dict]:
                 v[ls > 0], h[ls > 0] = np.nan, np.nan
             per_vv.append(v)
             per_vh.append(h)
+            layers += [v, h]
             sel.append((pr, f))
         if per_vv:
-            groups.append({"z": s1anomaly.combine_tracks(per_vv, per_vh)[2],
+            zc = s1anomaly.combine_tracks(per_vv, per_vh)[2]
+            groups.append({"z": rms_stat(layers) if stat == "rms" else zc, "zs": zc,
                            "P": None if split else persistence_from_pairs(sel, shape)[0]})
     return groups
 
@@ -380,8 +400,8 @@ def search(c: dict, persist: bool, reach_q: int | None = None) -> dict:
         penvs = [envelope(hand, g["seeds"], perm, q, BLOCK_GRID[0])[0] for g in pl]
         env_px = int((env & ~existing).sum())
         for w in W_GRID:
-            sE = windowed(z, w)
-            sPs = [windowed(g["z"], w) for g in pl]
+            sE = windowed(z, w, c["zs"])
+            sPs = [windowed(g["z"], w, g["zs"]) for g in pl]
             for tz in TZ_GRID_RUN:
                 ev, dk = evidence_w(sE, tz, Pe, opt)
                 pevs = [evidence_w(sP, tz, Pp[k])[0] for k, sP in enumerate(sPs)]
@@ -403,8 +423,8 @@ def search(c: dict, persist: bool, reach_q: int | None = None) -> dict:
     del keep
     stage[aw | ad] = 1
     w = best["w"]
-    sE = windowed(z, w)
-    sPs = [windowed(g["z"], w) for g in pl]
+    sE = windowed(z, w, c["zs"])
+    sPs = [windowed(g["z"], w, g["zs"]) for g in pl]
     pdets = []
     for k, g in enumerate(pl):
         pev, _ = evidence_w(sPs[k], best["tz"], Pp[k])
@@ -425,7 +445,7 @@ def search(c: dict, persist: bool, reach_q: int | None = None) -> dict:
 
     def stats(w_):   # event and placebo windowed statistics, cached per window
         if w_ not in stat_cache:
-            stat_cache[w_] = (windowed(z, w_), [windowed(g["z"], w_) for g in pl])
+            stat_cache[w_] = (windowed(z, w_, c["zs"]), [windowed(g["z"], w_, g["zs"]) for g in pl])
         return stat_cache[w_]
 
     for w2 in W24_GRID:
@@ -506,6 +526,27 @@ def search(c: dict, persist: bool, reach_q: int | None = None) -> dict:
     return out
 
 
+def _event_rms(run_dir: Path, fdir: Path, shape) -> np.ndarray | None:
+    """Event RMS statistic: sqrt(mean z^2) over the per-track, per-polarisation z maps of the anomaly step
+    (flood/s1_anomaly_tracks.tif, 40 m, passes already averaged and corrected for the scene shift), layover / shadow removed."""
+    p = fdir / "s1_anomaly_tracks.tif"
+    if not p.exists():
+        return None
+    with rasterio.open(p) as ds:
+        arr, f = ds.read(), int(round(abs(ds.transform.a) / 10.0))
+    layers = []
+    for i, prefix in ((0, "s1"), (2, "s1_alt")):
+        if not np.isfinite(arr[i]).any():
+            continue
+        ls = _read(run_dir / "masks" / f"{prefix}_layover_shadow.tif", shape)
+        for b in (i, i + 1):
+            m = s1anomaly.upsample(arr[b], f, shape)
+            if ls is not None:
+                m[ls > 0] = np.nan
+            layers.append(m)
+    return rms_stat(layers)
+
+
 def run(run_dir: Path) -> dict:
     import os
     run_dir = Path(run_dir)
@@ -536,12 +577,18 @@ def run(run_dir: Path) -> dict:
     if os.environ.get("POVODNE_ENVELOPE_STAGE24_W"):
         W24_GRID = tuple(int(x) for x in os.environ["POVODNE_ENVELOPE_STAGE24_W"].split(","))
     split = os.environ.get("POVODNE_ENVELOPE_PLACEBO", "split") == "split"   # default: one placebo group per pass (D-M13-05)
-    pl = placebo_groups(run_dir, shape, split)
+    stat = os.environ.get("POVODNE_ENVELOPE_STAT", "comb")   # "comb" (Stouffer z_comb) or "rms" (sqrt of mean z^2 over tracks x VV/VH, D-M13-06)
+    pl = placebo_groups(run_dir, shape, split, stat)
     if not pl:
         msg = "No placebo passes (no year-long normal): the envelope parameters cannot be chosen without a placebo, so nothing was added."
         notices.append(_notice("envelope_no_reference", msg))
         return finish({"used": False, "reason": msg}, "skipped", msg)
 
+    zs = z                                              # signed combined z: direction (darker / brighter) and the placebo seeds
+    if stat == "rms":
+        z_rms = _event_rms(run_dir, fdir, shape)
+        if z_rms is not None:
+            z = z_rms
     deb = _read(fdir / "debris_mask.tif", shape)
     seeds = (ai == WATER) | ((deb == 1) if deb is not None else False)
     perm = ai == PERMANENT
@@ -549,7 +596,7 @@ def run(run_dir: Path) -> dict:
     slope = _read(run_dir / "masks" / "slope.tif", shape)
     floor = np.isfinite(hand) & (hand <= SEEDS_FLOOR["hand_m"]) & ((slope <= SEEDS_FLOOR["slope_deg"]) if slope is not None else True)
     for g in pl:   # placebo seeds: the strict anomaly detections of that placebo group on the valley floor
-        ps = floor & np.isfinite(g["z"]) & (g["z"] <= SEED_Z_PLACEBO) & ~perm
+        ps = floor & np.isfinite(g["zs"]) & (g["zs"] <= SEED_Z_PLACEBO) & ~perm
         g["seeds"] = ndimage.binary_opening(ps, structure=np.ones((2, 2)))
     opt = optq = None
     s2 = [_read(run_dir / "aligned" / f"s2_{k}.tif", shape, band=0) for k in ("pre", "post")]
@@ -566,7 +613,7 @@ def run(run_dir: Path) -> dict:
     npl = len(pl)
     ctrl = optical_false_rate(opt, optq & ~existing) if opt is not None else 0.0
     labelled = np.where(ai == WATER, WATER, np.where(deb == 1, DEBRIS, 0)).astype(np.uint8) if deb is not None else np.where(ai == WATER, WATER, 0).astype(np.uint8)
-    c = {"z": z, "hand": hand, "perm": perm, "existing": existing, "seeds": seeds, "pl": pl, "opt": opt, "optq": optq,
+    c = {"z": z, "zs": zs, "hand": hand, "perm": perm, "existing": existing, "seeds": seeds, "pl": pl, "opt": opt, "optq": optq,
          "labelled": labelled, "seeds_w": ai == WATER, "n_exist": int(existing.sum()), "Pe": Pe, "ctrl_rate": ctrl, "px_km2": px_km2}
     mode = os.environ.get("POVODNE_ENVELOPE_PERSIST", "1")   # "1" on (default; falls back to off without enough passes), "0" off, "auto" = both
     have_persist = Pe is not None   # the placebo may lack persistence (split mode): then it is stricter than the event
@@ -577,7 +624,7 @@ def run(run_dir: Path) -> dict:
     good = [r for r in results if r.get("final")]
     section = {"used": False, "reach_mode": reach_mode, "min_precision": MIN_PRECISION, "placebo": "series", "existing_km2": round(c["n_exist"] * px_km2, 4),
                "placebo_seeds_km2": [round(int(g["seeds"].sum()) * px_km2, 4) for g in pl], "placebo_groups": npl, "ndvi_drop": NDVI_DROP, "ndvi_post_max": NDVI_POST_MAX,
-               "optical_used": opt is not None, "optical_false_rate": round(ctrl, 5), "post_passes": ne, "placebo_split": split,
+               "optical_used": opt is not None, "optical_false_rate": round(ctrl, 5), "post_passes": ne, "placebo_split": split, "stat": stat,
                "t_pass": T_PASS,
                "variants": [{"persistence": r["persistence"], "reach_q": r["reach_q"], "final": r.get("final"),
                              "stages": {k: v for k, v in r["stages"].items()}} for r in results],

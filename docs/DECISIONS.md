@@ -1305,3 +1305,8 @@ optika (NDVI) jen v události. Přepočet falešných okrajových pixelů na plo
 Měřením (Trishuli, jen k posouzení) vyšlo: placebo **split** (každý placebo průlet zvlášť, falešná plocha = průměr; bez trvalosti v placebu, tedy přísnější) je dobře kalibrované (odhad 0,850 / skutečnost 0,866)
 → **výchozí** (`POVODNE_ENVELOPE_PLACEBO=split`). Kroky 2 (růst) a 4 (okraje) berou důkaz **okénkovaný** (w ∈ {5, 9} px, `POVODNE_ENVELOPE_STAGE24_W`), protože na w = 1 je šum a růst nic nepřidá; krok 1 zůstává na w z mřížky.
 Zvolené hodnoty v `run.json.envelope.chosen` (klíče `growth_w`, `growth_tg`, `permanent_water_tp`, `edges_r`, `edges_w`, `edges_t3`).
+
+## D-M13-06 | 2026-10-13 | rozpracováno (návrh master session) — Statistika důkazu RMS místo součtu z_comb
+Stoufferovo z_comb (součet z se znaménkem) se ruší, když VV zesvětlí a VH ztmavne (bahno, suť, mokrá zástavba). Volba `POVODNE_ENVELOPE_STAT=rms` (výchozí zatím `comb`): důkaz
+s = sqrt(průměr z² přes dráhy × VV/VH) (z jednotlivých drah a polarizací z `flood/s1_anomaly_tracks.tif`, resp. u placebo skupin z průměru placebo průletů; posun scény je v z odečten už v `s1anomaly`),
+směr (tmavší = voda, světlejší = suť) a placebo semínka dál z podepsaného z_comb. Prahy mají jinou škálu; mřížky se nemění, vybírá placebo.
