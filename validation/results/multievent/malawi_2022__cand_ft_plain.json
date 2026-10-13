@@ -14,89 +14,89 @@
  "label_valid_pct": 96.6,
  "scores": {
   "a_seeds_own_region": {
-   "recall": 0.9671,
-   "precision": 0.9247,
+   "recall": 0.9643,
+   "precision": 0.9275,
    "f1": 0.9455,
    "truth_km2": 12.8551,
-   "pred_km2": 13.4447,
-   "tp_km2": 12.4327,
-   "fp_km2": 1.012,
+   "pred_km2": 13.3648,
+   "tp_km2": 12.3961,
+   "fp_km2": 0.9687,
    "region_km2": 63.501
   },
   "a_seeds_common_region": {
-   "recall": 0.9671,
-   "precision": 0.9247,
+   "recall": 0.9643,
+   "precision": 0.9275,
    "f1": 0.9455,
    "truth_km2": 12.8551,
-   "pred_km2": 13.4447,
-   "tp_km2": 12.4327,
-   "fp_km2": 1.012,
+   "pred_km2": 13.3648,
+   "tp_km2": 12.3961,
+   "fp_km2": 0.9687,
    "region_km2": 63.501
   },
   "b_envelope": {
-   "recall": 0.9671,
-   "precision": 0.9247,
+   "recall": 0.9643,
+   "precision": 0.9275,
    "f1": 0.9455,
    "truth_km2": 12.8551,
-   "pred_km2": 13.4447,
-   "tp_km2": 12.4327,
-   "fp_km2": 1.012,
+   "pred_km2": 13.3648,
+   "tp_km2": 12.3961,
+   "fp_km2": 0.9687,
    "region_km2": 63.501
   },
   "b_envelope_visible_label": {
-   "recall": 0.8802,
-   "precision": 0.9247,
+   "recall": 0.8777,
+   "precision": 0.9275,
    "f1": 0.9019,
    "truth_km2": 14.1241,
-   "pred_km2": 13.4447,
-   "tp_km2": 12.4327,
-   "fp_km2": 1.012,
+   "pred_km2": 13.3648,
+   "tp_km2": 12.3961,
+   "fp_km2": 0.9687,
    "region_km2": 70.444
   }
  },
  "scores_water_total": {
   "seeds": {
-   "recall": 0.9797,
-   "precision": 0.9345,
-   "f1": 0.9566,
+   "recall": 0.9774,
+   "precision": 0.937,
+   "f1": 0.9567,
    "truth_km2": 14.8492,
-   "pred_km2": 15.568,
-   "tp_km2": 14.5483,
-   "fp_km2": 1.0197,
+   "pred_km2": 15.4901,
+   "tp_km2": 14.5135,
+   "fp_km2": 0.9766,
    "region_km2": 65.495
   },
   "envelope": {
-   "recall": 0.9797,
-   "precision": 0.9345,
-   "f1": 0.9566,
+   "recall": 0.9774,
+   "precision": 0.937,
+   "f1": 0.9567,
    "truth_km2": 14.8492,
-   "pred_km2": 15.568,
-   "tp_km2": 14.5483,
-   "fp_km2": 1.0197,
+   "pred_km2": 15.4901,
+   "tp_km2": 14.5135,
+   "fp_km2": 0.9766,
    "region_km2": 65.495
   }
  },
  "seed_transitions_km2": {
   "water": {
-   "water": 13.4492
+   "water": 13.3659
   },
   "debris": {
-   "debris": 0.1984
+   "debris": 0.1987
   },
   "permanent": {
-   "permanent": 1.9204
+   "permanent": 1.9255
   }
  },
  "components": {
   "seeds_ai_water(2)": {
-   "km2": 13.9746,
-   "km2_in_label_region": 13.4492,
-   "share_on_truth": 0.916
+   "km2": 13.8981,
+   "km2_in_label_region": 13.3659,
+   "share_on_truth": 0.919
   },
   "seeds_debris_step:debris": {
-   "km2": 0.1898,
-   "km2_in_label_region": 0.1809,
-   "share_on_truth": 0.64
+   "km2": 0.1901,
+   "km2_in_label_region": 0.1812,
+   "share_on_truth": 0.641
   },
   "seeds_debris_step:mud": {
    "km2": 0.0174,
@@ -109,14 +109,14 @@
    "share_on_truth": 0.0
   },
   "seeds_permanent(4)": {
-   "km2": 2.0357,
-   "km2_in_label_region": 1.9204,
+   "km2": 2.0411,
+   "km2_in_label_region": 1.9255,
    "share_on_truth": 0.068
   }
  },
  "pred_total_km2": {
-  "seeds": 14.182,
-  "envelope": 14.182
+  "seeds": 14.106,
+  "envelope": 14.106
  },
  "run": {
   "timings_s": {

@@ -14,131 +14,131 @@
  "label_valid_pct": 32.4,
  "scores": {
   "a_seeds_water_2_4": {
-   "recall": 0.9441,
-   "precision": 0.8226,
-   "f1": 0.8792,
-   "truth_km2": 14.8585,
-   "pred_km2": 17.0524,
-   "tp_km2": 14.0274,
-   "fp_km2": 3.025,
+   "recall": 0.9445,
+   "precision": 0.819,
+   "f1": 0.8773,
+   "truth_km2": 14.8577,
+   "pred_km2": 17.1343,
+   "tp_km2": 14.0332,
+   "fp_km2": 3.1011,
    "region_km2": 32.898
   },
   "a_seeds_common_water_2_4": {
-   "recall": 0.9441,
-   "precision": 0.8226,
-   "f1": 0.8792,
-   "truth_km2": 14.8585,
-   "pred_km2": 17.0524,
-   "tp_km2": 14.0274,
-   "fp_km2": 3.025,
+   "recall": 0.9445,
+   "precision": 0.819,
+   "f1": 0.8773,
+   "truth_km2": 14.8577,
+   "pred_km2": 17.1343,
+   "tp_km2": 14.0332,
+   "fp_km2": 3.1011,
    "region_km2": 32.898
   },
   "b_envelope_water_2_4": {
-   "recall": 0.9441,
-   "precision": 0.8226,
-   "f1": 0.8792,
-   "truth_km2": 14.8585,
-   "pred_km2": 17.0524,
-   "tp_km2": 14.0274,
-   "fp_km2": 3.025,
+   "recall": 0.9445,
+   "precision": 0.819,
+   "f1": 0.8773,
+   "truth_km2": 14.8577,
+   "pred_km2": 17.1343,
+   "tp_km2": 14.0332,
+   "fp_km2": 3.1011,
    "region_km2": 32.898
   },
   "a_seeds_all_2_3_4": {
-   "recall": 0.9908,
-   "precision": 0.6152,
-   "f1": 0.7591,
-   "truth_km2": 14.8585,
-   "pred_km2": 23.9311,
-   "tp_km2": 14.7223,
-   "fp_km2": 9.2088,
+   "recall": 0.9905,
+   "precision": 0.6155,
+   "f1": 0.7592,
+   "truth_km2": 14.8577,
+   "pred_km2": 23.9112,
+   "tp_km2": 14.7165,
+   "fp_km2": 9.1947,
    "region_km2": 32.898
   },
   "a_seeds_common_all_2_3_4": {
-   "recall": 0.9908,
-   "precision": 0.6152,
-   "f1": 0.7591,
-   "truth_km2": 14.8585,
-   "pred_km2": 23.9311,
-   "tp_km2": 14.7223,
-   "fp_km2": 9.2088,
+   "recall": 0.9905,
+   "precision": 0.6155,
+   "f1": 0.7592,
+   "truth_km2": 14.8577,
+   "pred_km2": 23.9112,
+   "tp_km2": 14.7165,
+   "fp_km2": 9.1947,
    "region_km2": 32.898
   },
   "b_envelope_all_2_3_4": {
-   "recall": 0.9908,
-   "precision": 0.6152,
-   "f1": 0.7591,
-   "truth_km2": 14.8585,
-   "pred_km2": 23.9311,
-   "tp_km2": 14.7223,
-   "fp_km2": 9.2088,
+   "recall": 0.9905,
+   "precision": 0.6155,
+   "f1": 0.7592,
+   "truth_km2": 14.8577,
+   "pred_km2": 23.9112,
+   "tp_km2": 14.7165,
+   "fp_km2": 9.1947,
    "region_km2": 32.898
   }
  },
  "false_alarm_dry_label": {
-  "seeds": 0.5095,
-  "envelope": 0.5095
+  "seeds": 0.50869,
+  "envelope": 0.50869
  },
  "seed_transitions_km2": {
   "water": {
-   "water": 16.698
+   "water": 16.7684
   },
   "debris": {
-   "debris": 6.8787
+   "debris": 6.7769
   },
   "permanent": {
-   "permanent": 0.3544
+   "permanent": 0.3659
   }
  },
  "components": {
   "seeds_ai_water(2)": {
-   "km2": 31.418,
-   "km2_in_label_region": 16.698,
-   "share_on_truth": 0.82
+   "km2": 31.6899,
+   "km2_in_label_region": 16.7684,
+   "share_on_truth": 0.816
   },
   "seeds_debris_step:debris": {
-   "km2": 1.8744,
-   "km2_in_label_region": 0.5523,
+   "km2": 1.8219,
+   "km2_in_label_region": 0.5319,
    "share_on_truth": 0.246
   },
   "seeds_debris_step:mud": {
-   "km2": 2.0337,
-   "km2_in_label_region": 0.5606,
-   "share_on_truth": 0.149
+   "km2": 2.0215,
+   "km2_in_label_region": 0.5706,
+   "share_on_truth": 0.154
   },
   "seeds_debris_step:erosion": {
-   "km2": 4.0703,
-   "km2_in_label_region": 1.7013,
-   "share_on_truth": 0.151
+   "km2": 3.9175,
+   "km2_in_label_region": 1.6439,
+   "share_on_truth": 0.15
   },
   "seeds_debris_step:flooded_vegetation": {
-   "km2": 3.6088,
-   "km2_in_label_region": 1.0476,
+   "km2": 3.5951,
+   "km2_in_label_region": 1.0477,
    "share_on_truth": 0.012
   },
   "seeds_debris_step:landslide": {
-   "km2": 0.0057,
+   "km2": 0.0046,
    "km2_in_label_region": 0.0005,
    "share_on_truth": 0.0
   },
   "seeds_debris_step:unknown": {
-   "km2": 7.9492,
-   "km2_in_label_region": 2.8858,
-   "share_on_truth": 0.067
+   "km2": 7.8231,
+   "km2_in_label_region": 2.8421,
+   "share_on_truth": 0.065
   },
   "seeds_class3_not_debris_step(vhagree etc.)": {
-   "km2": 0.5408,
-   "km2_in_label_region": 0.1306,
-   "share_on_truth": 0.097
+   "km2": 0.5544,
+   "km2_in_label_region": 0.1402,
+   "share_on_truth": 0.145
   },
   "seeds_permanent(4)": {
-   "km2": 1.4091,
-   "km2_in_label_region": 0.3544,
+   "km2": 1.4301,
+   "km2_in_label_region": 0.3659,
    "share_on_truth": 0.951
   }
  },
  "pred_total_km2": {
-  "seeds": 51.501,
-  "envelope": 51.501
+  "seeds": 51.428,
+  "envelope": 51.428
  },
  "run": {
   "timings_s": {

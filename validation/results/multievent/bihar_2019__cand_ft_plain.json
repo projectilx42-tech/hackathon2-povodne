@@ -14,104 +14,104 @@
  "label_valid_pct": 97.4,
  "scores": {
   "a_seeds_own_region": {
-   "recall": 0.9665,
-   "precision": 0.9052,
-   "f1": 0.9349,
+   "recall": 0.9801,
+   "precision": 0.9031,
+   "f1": 0.94,
    "truth_km2": 46.8446,
-   "pred_km2": 50.0175,
-   "tp_km2": 45.2765,
-   "fp_km2": 4.741,
+   "pred_km2": 50.8397,
+   "tp_km2": 45.9114,
+   "fp_km2": 4.9283,
    "region_km2": 54.279
   },
   "a_seeds_common_region": {
-   "recall": 0.9665,
-   "precision": 0.9052,
-   "f1": 0.9349,
+   "recall": 0.9801,
+   "precision": 0.9031,
+   "f1": 0.94,
    "truth_km2": 46.8446,
-   "pred_km2": 50.0175,
-   "tp_km2": 45.2765,
-   "fp_km2": 4.741,
+   "pred_km2": 50.8397,
+   "tp_km2": 45.9114,
+   "fp_km2": 4.9283,
    "region_km2": 54.279
   },
   "b_envelope": {
-   "recall": 0.9665,
-   "precision": 0.9052,
-   "f1": 0.9349,
+   "recall": 0.9801,
+   "precision": 0.9031,
+   "f1": 0.94,
    "truth_km2": 46.8446,
-   "pred_km2": 50.0175,
-   "tp_km2": 45.2765,
-   "fp_km2": 4.741,
+   "pred_km2": 50.8397,
+   "tp_km2": 45.9114,
+   "fp_km2": 4.9283,
    "region_km2": 54.279
   },
   "b_envelope_visible_label": {
-   "recall": 0.955,
-   "precision": 0.9052,
-   "f1": 0.9294,
+   "recall": 0.9683,
+   "precision": 0.9031,
+   "f1": 0.9346,
    "truth_km2": 47.4123,
-   "pred_km2": 50.0175,
-   "tp_km2": 45.2765,
-   "fp_km2": 4.741,
+   "pred_km2": 50.8397,
+   "tp_km2": 45.9114,
+   "fp_km2": 4.9283,
    "region_km2": 54.925
   }
  },
  "scores_water_total": {
   "seeds": {
-   "recall": 0.9852,
-   "precision": 0.9193,
-   "f1": 0.9511,
+   "recall": 0.985,
+   "precision": 0.9183,
+   "f1": 0.9505,
    "truth_km2": 56.8654,
-   "pred_km2": 60.9387,
-   "tp_km2": 56.0223,
-   "fp_km2": 4.9164,
+   "pred_km2": 61.0011,
+   "tp_km2": 56.0145,
+   "fp_km2": 4.9866,
    "region_km2": 64.3
   },
   "envelope": {
-   "recall": 0.9852,
-   "precision": 0.9193,
-   "f1": 0.9511,
+   "recall": 0.985,
+   "precision": 0.9183,
+   "f1": 0.9505,
    "truth_km2": 56.8654,
-   "pred_km2": 60.9387,
-   "tp_km2": 56.0223,
-   "fp_km2": 4.9164,
+   "pred_km2": 61.0011,
+   "tp_km2": 56.0145,
+   "fp_km2": 4.9866,
    "region_km2": 64.3
   }
  },
  "seed_transitions_km2": {
   "water": {
-   "water": 51.3834
+   "water": 54.0908
   },
   "debris": {
-   "debris": 0.1613
+   "debris": 0.1627
   },
   "permanent": {
-   "permanent": 9.394
+   "permanent": 6.7476
   }
  },
  "components": {
   "seeds_ai_water(2)": {
-   "km2": 52.4625,
-   "km2_in_label_region": 51.3834,
-   "share_on_truth": 0.88
+   "km2": 55.3387,
+   "km2_in_label_region": 54.0908,
+   "share_on_truth": 0.847
   },
   "seeds_debris_step:debris": {
-   "km2": 0.1286,
-   "km2_in_label_region": 0.1286,
-   "share_on_truth": 0.481
+   "km2": 0.1308,
+   "km2_in_label_region": 0.1308,
+   "share_on_truth": 0.487
   },
   "seeds_class3_not_debris_step(vhagree etc.)": {
-   "km2": 0.0331,
-   "km2_in_label_region": 0.0327,
-   "share_on_truth": 0.398
+   "km2": 0.0328,
+   "km2_in_label_region": 0.0319,
+   "share_on_truth": 0.417
   },
   "seeds_permanent(4)": {
-   "km2": 9.954,
-   "km2_in_label_region": 9.394,
-   "share_on_truth": 0.092
+   "km2": 7.1413,
+   "km2_in_label_region": 6.7476,
+   "share_on_truth": 0.033
   }
  },
  "pred_total_km2": {
-  "seeds": 52.624,
-  "envelope": 52.624
+  "seeds": 55.502,
+  "envelope": 55.502
  },
  "run": {
   "timings_s": {
@@ -155,7 +155,8 @@
    "extra": null
   },
   "warnings": [
-   "No pre-event OpenStreetMap buildings in the area: damaged buildings cannot be counted (zero does not mean no damage)."
+   "No pre-event OpenStreetMap buildings in the area: damaged buildings cannot be counted (zero does not mean no damage).",
+   "This area changes a lot even without a flood: 0.01 km\u00b2 changed between two earlier radar passes (fields, construction, rain). Similar changes unrelated to the flood may be among the surface changes found."
   ]
  }
 }
