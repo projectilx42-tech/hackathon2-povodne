@@ -1172,3 +1172,17 @@ Změna kontraktu: žádná v souborech; `debris_type` 7 = fúzí nalezená ploch
   důkaz → falešná plocha), pracovní bod = nejcitlivější nastavení s odhadnutou přesností ≥ 85 % (D-X-08).
 - Implementace: nový modul `src/povodne/flood/envelope.py`, nepovinný krok po `debris`, před `combine`; výstup přidané pixely jako
   třída 2 (voda) / 3 (suť) podle převládajícího důkazu, s nízkou jistotou. Kontrakt doplní implementující session do ARCHITECTURE.
+
+## D-X-10 | 2026-10-13 | přijato (master) — D-X-09 s pracovním bodem jen z placeba: první poctivé číslo
+- `validation/envelope_diag.py` (runs/trishuli_full, starý běh: R 0,432 / P 0,966). Důkaz změny radaru = z-skóre vůči vlastní
+  variabilitě pixelu ze snímků před událostí (3 hist + 2 pre na dráhu; sd vyhlazená 5×5, min 0,75 dB), kombinace přes obě
+  dráhy a VV/VH jako RMS(z) mimo stín; optika = **apriorní fyzikální pravidlo** (pokles NDVI > 0,2 a NDVI po < 0,3, oba čisté).
+- Placebo = stejný řetězec, cíl = poslední pre snímek vůči předchozím (leave-one-out, stejný 12denní rozestup), semena a obálka
+  z události. Výběr q ∈ {50,75,90}, práh z, uzavírání děr r **jen podle placeba**: max. plocha při odhadnuté přesnosti ≥ 0,85.
+- Vybráno q 75, z 2,0, r 0 (odhad P 0,857) → **změřeno vs EMS R 0,739 / P 0,939 / F1 0,827** (z 0,597). Placebo je pesimistické
+  (skutečná P 0,94 > odhad 0,86) — monzunové změny mezi pre snímky nejsou „nová povodeň“.
+- Strop obálky: q75 zachytí max. 0,88, q90 0,91 plochy EMS → 90 % vyžaduje i sesuvy mimo obálku (svahy).
+- **Doplněk (růst, `validation/envelope_grow_diag.py`):** celá plocha EMSR927 je typ „Mass Movement“ (11,6 km²). Ze zbylého nezachyceného:
+  54 % uvnitř obálky bez důkazu, 46 % mimo obálku (34 % na svazích > 15°). Hysterezní růst (spojité slabé důkazy od detekcí, bez limitu
+  HAND/sklonu, 8-sousedství), práh jen z placeba (z 2,5, odhad P 0,863) → **R 0,774 / P 0,927 / F1 0,843**. Při z 1,5 by R byl 0,89,
+  ale P 0,74 → kvalita slabého důkazu (roční normál, víc snímků po události) je teď hlavní páka.
