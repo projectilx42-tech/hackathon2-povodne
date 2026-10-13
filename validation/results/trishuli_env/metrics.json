@@ -35,30 +35,30 @@
  "coverage": {
   "ems_analysed_km2": 40.6501,
   "ems_analysed_outside_our_grid_km2": 2.9699,
-  "ems_analysed_our_nodata_km2": 0.2205
+  "ems_analysed_our_nodata_km2": 0.2612
  },
  "area": {
   "pixels": {
-   "tp": 106505,
-   "fp": 20458,
-   "fn": 10580,
-   "tn": 266762
+   "tp": 97576,
+   "fp": 11214,
+   "fn": 19121,
+   "tn": 275987
   },
   "km2": {
-   "region": 40.4305,
-   "ems_affected": 11.7085,
-   "ours_affected": 12.6963,
-   "both": 10.6505,
-   "only_ours": 2.0458,
-   "only_ems": 1.058
+   "region": 40.3898,
+   "ems_affected": 11.6697,
+   "ours_affected": 10.879,
+   "both": 9.7576,
+   "only_ours": 1.1214,
+   "only_ems": 1.9121
   },
-  "iou": 0.7743,
-  "precision": 0.8389,
-  "recall": 0.9096,
-  "f1": 0.8728,
+  "iou": 0.7628,
+  "precision": 0.8969,
+  "recall": 0.8361,
+  "f1": 0.8655,
   "ours_class_split_inside_ems_km2": {
-   "water": 6.2158,
-   "debris": 4.4347
+   "water": 5.6658,
+   "debris": 4.0918
   }
  },
  "buildings": {
@@ -68,8 +68,8 @@
    "Possibly damaged": 621,
    "Damaged": 321
   },
-  "recall_pixel": 0.8428,
-  "recall_pixel_sure": 0.9536,
+  "recall_pixel": 0.8129,
+  "recall_pixel_sure": 0.9282,
   "matched_to_osm": 2511,
   "recall_osm": 0.8905,
   "ours_hit_in_region": 3157,
@@ -78,14 +78,14 @@
  "roads": {
   "ours_blocked": {
    "ems_damaged": {
-    "km": 64.209,
-    "km_flagged_by_us": 56.611,
-    "share_flagged": 0.8817
+    "km": 64.165,
+    "km_flagged_by_us": 56.568,
+    "share_flagged": 0.8816
    },
    "ems_damaged_sure": {
-    "km": 53.571,
-    "km_flagged_by_us": 47.71,
-    "share_flagged": 0.8906
+    "km": 53.527,
+    "km_flagged_by_us": 47.666,
+    "share_flagged": 0.8905
    },
    "ems_no_damage": {
     "km": 152.398,
@@ -95,14 +95,14 @@
   },
   "ours_blocked_or_possibly": {
    "ems_damaged": {
-    "km": 64.209,
-    "km_flagged_by_us": 59.531,
+    "km": 64.165,
+    "km_flagged_by_us": 59.487,
     "share_flagged": 0.9271
    },
    "ems_damaged_sure": {
-    "km": 53.571,
-    "km_flagged_by_us": 49.541,
-    "share_flagged": 0.9248
+    "km": 53.527,
+    "km_flagged_by_us": 49.497,
+    "share_flagged": 0.9247
    },
    "ems_no_damage": {
     "km": 152.398,

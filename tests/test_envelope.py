@@ -284,3 +284,29 @@ def test_rms_stat_does_not_cancel_opposite_polarisations():
     assert np.isfinite(envelope.rms_stat([c, b])[0, 0]) and envelope.rms_stat([]) is None
     rms, sgn = envelope.windowed(np.full((9, 9), 2.5, np.float32), 1, zsign=np.full((9, 9), -1.0, np.float32))
     assert rms[4, 4] == 2.5 and sgn[4, 4] == -1.0          # magnitude from the statistic, direction from the signed z
+
+
+def _write_s2(path, ndvi_high: bool, shape=(60, 60)):
+    """Raw Sentinel-2 DN file (B02,B03,B04,B08,B11,B12 + SCL), clear everywhere; B08 / B04 decide the NDVI."""
+    dn = np.zeros((7, *shape), np.float32)
+    dn[:6] = 1000
+    dn[3] = 6000 if ndvi_high else 700         # B08
+    dn[2] = 500                                # B04
+    dn[6] = 4                                  # SCL vegetation: clear
+    with rasterio.open(path, "w", driver="GTiff", height=shape[0], width=shape[1], count=7, dtype="float32",
+                       crs="EPSG:32645", transform=from_origin(600000, 3100000, 10, 10)) as ds:
+        ds.write(dn)
+        ds.scales = [1e-4] * 7
+        ds.offsets = [0.0] * 7
+
+
+def test_optical_placebo_uses_second_before_image(tmp_path):
+    folder = tmp_path / "raw" / "s2"
+    folder.mkdir(parents=True)
+    _write_s2(folder / "pre_20260810.tif", ndvi_high=False)
+    _write_s2(folder / "post_20260827.tif", ndvi_high=False)
+    assert envelope.optical_placebo(tmp_path, (60, 60))[0] is None            # no second before-image: optics unusable
+    _write_s2(folder / "prex_20260725.tif", ndvi_high=True)                   # vegetated 16 days earlier, bare later: "change"
+    opt_p, info = envelope.optical_placebo(tmp_path, (60, 60))
+    assert opt_p is not None and opt_p.all() and info["second_pre"] == "prex_20260725.tif"
+    assert info["gap_days"] == 16 and info["event_gap_days"] == 17

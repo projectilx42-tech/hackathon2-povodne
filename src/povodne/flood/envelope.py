@@ -383,8 +383,9 @@ def search(c: dict, persist: bool, reach_q: int | None = None) -> dict:
     (leave-one-out placebo pairs, D-M13-04). Returns {"final": {...}, "added_water", "added_debris", "stage", "stages": {...}}."""
     z, hand, perm, existing, seeds = c["z"], c["hand"], c["perm"], c["existing"], c["seeds"]
     opt, labelled, n_exist, pl = c["opt"], c["labelled"], c["n_exist"], c["pl"]
+    optp = c.get("opt_p") if opt is not None else None   # the optical rule on two images before the event (placebo)
     Pe = c["Pe"] if persist else None
-    ctrl, npl = c["ctrl_rate"], len(pl)
+    ctrl, npl = 0.0, len(pl)   # the optical false rate now comes from the placebo pair of images (opt_p), not from control pixels
     Pp = [g["P"] if persist else None for g in pl]
     zero = np.zeros(z.shape, bool)
     out = {"persistence": persist, "reach_q": reach_q, "n_placebo_groups": npl, "stages": {}}
@@ -404,7 +405,7 @@ def search(c: dict, persist: bool, reach_q: int | None = None) -> dict:
             sPs = [windowed(g["z"], w, g["zs"]) for g in pl]
             for tz in TZ_GRID_RUN:
                 ev, dk = evidence_w(sE, tz, Pe, opt)
-                pevs = [evidence_w(sP, tz, Pp[k])[0] for k, sP in enumerate(sPs)]
+                pevs = [evidence_w(sP, tz, Pp[k], optp)[0] for k, sP in enumerate(sPs)]
                 for r in R_GRID_RUN:
                     aw, ad = add_pixels(env, seeds, perm, ev, dk, existing, labelled, r)
                     added = int(aw.sum() + ad.sum())
@@ -427,7 +428,7 @@ def search(c: dict, persist: bool, reach_q: int | None = None) -> dict:
     sPs = [windowed(g["z"], w, g["zs"]) for g in pl]
     pdets = []
     for k, g in enumerate(pl):
-        pev, _ = evidence_w(sPs[k], best["tz"], Pp[k])
+        pev, _ = evidence_w(sPs[k], best["tz"], Pp[k], optp)
         pdets.append(close_gaps(g["seeds"] | (penvs[k] & pev & ~perm), penvs[k], best["r_px"]))
     # Reach derived from the WATER seeds (D-M13-03): growth and edges may not leave the envelope of a high HAND percentile of
     # the water seeds (debris seeds climb slopes and would make the reach useless); same for the placebo with its own seeds.
@@ -455,7 +456,7 @@ def search(c: dict, persist: bool, reach_q: int | None = None) -> dict:
             gnew = grow_hysteresis(det1, evg if reach is None else evg & reach, perm)
             gps = []
             for k in range(npl):
-                pg, _ = evidence_w(sP2[k], tg, Pp[k])
+                pg, _ = evidence_w(sP2[k], tg, Pp[k], optp)
                 gps.append(grow_hysteresis(pdets[k], pg if preach is None else pg & preach[k], perm))
             fp = fp0 + float(np.mean([int(gp.sum()) for gp in gps]))
             grows.append({"w": w2, "tg": tg, "added_px": int(gnew.sum()), "est_precision": prec(fp, cur_added + int(gnew.sum())),
@@ -503,7 +504,7 @@ def search(c: dict, persist: bool, reach_q: int | None = None) -> dict:
                 enew = grow_hysteresis(det3, enew, perm)
                 pns = []
                 for k in range(npl):
-                    pe, _ = evidence_w(sP4[k], t3, Pp[k])
+                    pe, _ = evidence_w(sP4[k], t3, Pp[k], optp)
                     pnew = pbands[k] & pe & ~pdets[k] & ~perm
                     if preach is not None:
                         pnew &= preach[k]
@@ -524,6 +525,46 @@ def search(c: dict, persist: bool, reach_q: int | None = None) -> dict:
                       "est_precision": prec(fp0, total), "placebo_false_km2": round(fp0 * c["px_km2"], 4)},
                added_water=aw, added_debris=ad, stage=stage)
     return out
+
+
+def _read_s2_raw(path: Path):
+    """(reflectance [6, H, W] 0-1, clear mask) of a raw Sentinel-2 file (DN + SCL, tags scale/offset), or None."""
+    from ..preprocess.pipeline import clear_mask
+    with rasterio.open(path) as ds:
+        dn = ds.read().astype(np.float32)
+        scales, offsets = list(ds.scales), list(ds.offsets)
+    if dn.shape[0] < 7:
+        return None
+    if all(sc == 1.0 for sc in scales[:6]):
+        scales, offsets = [1e-4] * 6, [0.0] * 6
+    refl = np.stack([np.where(dn[i] > 0, dn[i] * scales[i] + offsets[i], np.nan) for i in range(6)]).astype(np.float32)
+    refl = np.clip(refl, 0.0, 1.0)
+    return refl, clear_mask(dn[6].astype(np.uint8), refl)
+
+
+def _stamp(path: Path):
+    from datetime import date
+    d = path.stem.split("_")[-1]
+    return date(int(d[:4]), int(d[4:6]), int(d[6:8]))
+
+
+def optical_placebo(run_dir: Path, shape) -> tuple[np.ndarray | None, dict]:
+    """The optical rule on TWO Sentinel-2 images from before the event (the main before-image and an extra clear date `prex_*`):
+    everything it marks is false. The extra date is the one whose gap to the before-image is closest to the event's own gap
+    (before-image -> after-image). (None, info) when no second before-image exists: the optics are then not used in the envelope."""
+    folder = run_dir / "raw" / "s2"
+    pre, post, extra = sorted(folder.glob("pre_[0-9]*.tif")), sorted(folder.glob("post_[0-9]*.tif")), sorted(folder.glob("prex_[0-9]*.tif"))
+    if not pre or not post or not extra:
+        return None, {"reason": "no second before-image (Sentinel-2)"}
+    gap = abs((_stamp(post[-1]) - _stamp(pre[-1])).days)
+    x = min(extra, key=lambda f: abs(abs((_stamp(f) - _stamp(pre[-1])).days) - gap))
+    a, b = _read_s2_raw(x), _read_s2_raw(pre[-1])
+    if a is None or b is None or a[0].shape[1:] != shape or b[0].shape[1:] != shape:
+        return None, {"reason": "second before-image not on the run grid"}
+    older, newer = (a, b) if _stamp(x) < _stamp(pre[-1]) else (b, a)
+    valid = older[1] & newer[1]
+    return ndvi_drop(older[0], newer[0], valid), {"pre": pre[-1].name, "second_pre": x.name, "gap_days": abs((_stamp(x) - _stamp(pre[-1])).days),
+                                                  "event_gap_days": gap, "clear_pct": round(100 * float(valid.mean()), 1)}
 
 
 def _event_rms(run_dir: Path, fdir: Path, shape) -> np.ndarray | None:
@@ -598,12 +639,24 @@ def run(run_dir: Path) -> dict:
     for g in pl:   # placebo seeds: the strict anomaly detections of that placebo group on the valley floor
         ps = floor & np.isfinite(g["zs"]) & (g["zs"] <= SEED_Z_PLACEBO) & ~perm
         g["seeds"] = ndimage.binary_opening(ps, structure=np.ones((2, 2)))
-    opt = optq = None
-    s2 = [_read(run_dir / "aligned" / f"s2_{k}.tif", shape, band=0) for k in ("pre", "post")]
-    vm = [_read(run_dir / "masks" / f"s2_{k}_valid.tif", shape) for k in ("pre", "post")]
-    if all(a is not None for a in s2 + vm):
-        optq = (vm[0] == 1) & (vm[1] == 1)
-        opt = ndvi_drop(s2[0], s2[1], optq)
+    opt = optq = opt_p = None
+    optics_info: dict = {"used": False}
+    if os.environ.get("POVODNE_ENVELOPE_OPTICS", "1") == "0":
+        optics_info["reason"] = "switched off (POVODNE_ENVELOPE_OPTICS=0)"
+    else:
+        s2 = [_read(run_dir / "aligned" / f"s2_{k}.tif", shape, band=0) for k in ("pre", "post")]
+        vm = [_read(run_dir / "masks" / f"s2_{k}_valid.tif", shape) for k in ("pre", "post")]
+        if all(a is not None for a in s2 + vm):
+            opt_p, pinfo = optical_placebo(run_dir, shape)
+            if opt_p is None:
+                optics_info["reason"] = pinfo.get("reason")
+            else:
+                optq = (vm[0] == 1) & (vm[1] == 1)
+                opt = ndvi_drop(s2[0], s2[1], optq)
+                optics_info = {"used": True, "placebo": pinfo, "event_flagged_km2": round(int(opt.sum()) * px_km2, 4),
+                               "placebo_flagged_km2": round(int(opt_p.sum()) * px_km2, 4)}
+        else:
+            optics_info["reason"] = "no Sentinel-2 before/after pair"
     if int(seeds.sum()) < MIN_BLOCK_SEEDS:
         msg = "Too few certain detections to estimate a water level: nothing was added."
         notices.append(_notice("envelope_no_working_point", msg))
@@ -611,10 +664,10 @@ def run(run_dir: Path) -> dict:
 
     Pe, ne = persistence_mask(run_dir, shape, "post")
     npl = len(pl)
-    ctrl = optical_false_rate(opt, optq & ~existing) if opt is not None else 0.0
+    ctrl = 0.0
     labelled = np.where(ai == WATER, WATER, np.where(deb == 1, DEBRIS, 0)).astype(np.uint8) if deb is not None else np.where(ai == WATER, WATER, 0).astype(np.uint8)
     c = {"z": z, "zs": zs, "hand": hand, "perm": perm, "existing": existing, "seeds": seeds, "pl": pl, "opt": opt, "optq": optq,
-         "labelled": labelled, "seeds_w": ai == WATER, "n_exist": int(existing.sum()), "Pe": Pe, "ctrl_rate": ctrl, "px_km2": px_km2}
+         "labelled": labelled, "seeds_w": ai == WATER, "opt_p": opt_p, "n_exist": int(existing.sum()), "Pe": Pe, "ctrl_rate": ctrl, "px_km2": px_km2}
     mode = os.environ.get("POVODNE_ENVELOPE_PERSIST", "1")   # "1" on (default; falls back to off without enough passes), "0" off, "auto" = both
     have_persist = Pe is not None   # the placebo may lack persistence (split mode): then it is stricter than the event
     variants = [False, True] if mode == "auto" and have_persist else [mode == "1" and have_persist]
@@ -624,7 +677,7 @@ def run(run_dir: Path) -> dict:
     good = [r for r in results if r.get("final")]
     section = {"used": False, "reach_mode": reach_mode, "min_precision": MIN_PRECISION, "placebo": "series", "existing_km2": round(c["n_exist"] * px_km2, 4),
                "placebo_seeds_km2": [round(int(g["seeds"].sum()) * px_km2, 4) for g in pl], "placebo_groups": npl, "ndvi_drop": NDVI_DROP, "ndvi_post_max": NDVI_POST_MAX,
-               "optical_used": opt is not None, "optical_false_rate": round(ctrl, 5), "post_passes": ne, "placebo_split": split, "stat": stat,
+               "optical_used": opt is not None, "optics": optics_info, "post_passes": ne, "placebo_split": split, "stat": stat,
                "t_pass": T_PASS,
                "variants": [{"persistence": r["persistence"], "reach_q": r["reach_q"], "final": r.get("final"),
                              "stages": {k: v for k, v in r["stages"].items()}} for r in results],
@@ -647,6 +700,11 @@ def run(run_dir: Path) -> dict:
     fin = win["final"]
     chosen = {(k if s == "envelope" else f"{s}_{k}"): win["stages"][s]["chosen"][k] for s, ks in (("envelope", ("q", "w", "tz", "r_px")), ("growth", ("w", "tg")),
               ("permanent_water", ("tp",)), ("edges", ("r", "w", "t3"))) if win["stages"][s]["chosen"] for k in ks}
+    st = win["stage"]
+    by_stage = {nm: round(int((st == k).sum()) * px_km2, 4) for k, nm in ((1, "envelope"), (2, "growth"), (3, "permanent_water"), (4, "edges"))}
+    added_all = aw | ad
+    optics_info["added_overlapping_optical_km2"] = round(int((added_all & opt).sum()) * px_km2, 4) if opt is not None else 0.0
+    section.update(added_by_stage_km2=by_stage, optics=optics_info)
     section.update(used=True, persistence=win["persistence"], reach_q=win["reach_q"], chosen=chosen, final_est_precision=fin["est_precision"],
                    final_placebo_false_km2=fin["placebo_false_km2"],
                    added_km2={"water": round(int(aw.sum()) * px_km2, 4), "debris": round(int(ad.sum()) * px_km2, 4), "total": fin["added_km2"]})

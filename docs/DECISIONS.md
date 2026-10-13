@@ -1315,3 +1315,10 @@ směr (tmavší = voda, světlejší = suť) a placebo semínka dál z podepsan�
 Výchozí chování `flood/envelope.py` = nejlepší dosavadní volba, bez ladění podle jedné události: krok 1 malá pevná mřížka (q 75, tz {2,0; 2,5}, uzavření 0, w 1), placebo **split**, kroky 2 a 4 okénkované w {5, 9},
 dosah (reach) 95 z vodních semínek, trvalost zapnutá. Dřívější větší mřížky jdou zapnout `POVODNE_ENVELOPE_STAGE1='{"q":[95],"tz":[3,2.5,2,1.75],"r":[0,6],"w":[1,5,9]}'`;
 nepovinné: `POVODNE_ENVELOPE_STAT=rms` (D-M13-06), `POVODNE_ENVELOPE_REACH=off|99|auto`, `POVODNE_ENVELOPE_PERSIST=0|auto`. O změně výchozích hodnot rozhoduje master podle více událostí, ne podle Trishuli vs EMS.
+
+## D-M13-08 | 2026-10-13 | přijato (master po ověření na více událostech) — Optické placebo v obálce, vypínač optiky, rozpis po stupních
+Kontrola bez povodně (Marsyangdi, leden 2024) ukázala falešné přidané plochy z optiky: pokles NDVI nemá placebo a v suchém období vegetace přirozeně mizí. Nově:
+- **Optické placebo** (`flood/envelope.py` `optical_placebo`): stejné pravidlo (pokles NDVI > 0,2 a NDVI po < 0,3) na dvojici DVOU snímků Sentinel-2 před událostí: hlavní snímek „před“ a nejbližší extra jasný den `raw/s2/prex_*.tif`
+  (ten, jehož odstup od snímku „před“ je nejblíž odstupu mezi „před“ a „po“; starší = „před“, novější = „po“). Co pravidlo na dvojici označí, je falešné a vstupuje do placebo skupin stejně jako radarový důkaz
+  (nahrazuje dřívější odhad z kontrolních pixelů daleko od detekcí). **Bez druhého snímku před událostí se optika v obálce nepoužije.** Žádné nové stahování (extra dny už stahuje krok stahování pro kompozity).
+- `POVODNE_ENVELOPE_OPTICS=0` optiku v obálce vypne. `run.json.envelope.optics` (použita?, snímky, plocha označená optikou v události / placebu, přidaná plocha překrytá optikou), `added_by_stage_km2` (obálka, růst, trvalá voda, okraje).
