@@ -94,6 +94,7 @@ runs/<run_id>/
                                  #   Pásma z_* jsou průměr přes všechny průlety po události (`run.json.s1anomaly.placebo[dráha].post_passes`); `run.json.s1anomaly.threshold_z_comb` = práh
                                  #   z_comb, který na placebo průletech označí 0,5 % scény (doporučený práh, nikdy podle EMS).
     s1_anomaly_tracks.tif        # float32, hrubá mřížka normálu (40 m): z_vv_main, z_vh_main, z_vv_alt, z_vh_alt
+    selftrain_prob.tif selftrain_mask.tif selftrain_type.tif   # nepovinné (D-M12-01, pokus): float32 P / uint8 maska / uint8 podtyp (7 svah, 9 neznámá); `povodne.flood.selftrain`, zatím je nic nečte; `run.json.selftrain`
     debris_polygons.geojson      # EPSG:4326: class "debris", subtype, confidence, area_m2, mean_dvv_db, mean_dvh_db, evidence
     flood_polygons.geojson       # EPSG:4326, polygonizace flood_mask (třídy 2,3), atributy: class ("water" | "debris"), area_m2 (D-035);
                                  #   debris navíc subtype, confidence, evidence (D-M0-01). flood_prob.tif: nodata = NaN
