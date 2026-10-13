@@ -61,11 +61,19 @@ def build(run_dir: Path, folder: str, sh: SentinelHub, aoi, event: date, key: tu
     plac = placebo_passes(aoi, event, key, local, min(len(posts), n_placebo), excl)
 
     def one(a):
-        raw = fetch_s1(sh, grid, a.start, key[1], speckle, bands=("VV", "VH"))
+        try:  # one failing pass is skipped, not the whole series (D-M14-07)
+            raw = fetch_s1(sh, grid, a.start, key[1], speckle, bands=("VV", "VH"))
+        except Exception as exc:
+            print(f"post series: pass {a.start:%Y-%m-%d} skipped: {exc}", flush=True)
+            return None
         return decode_db(raw[0]), decode_db(raw[1])
 
     items = posts + plac
     got = list(pool.map(one, items)) if pool is not None else [one(a) for a in items]
+    ok = [g is not None for g in got]
+    posts = [a for a, k in zip(posts, ok[:len(posts)]) if k]
+    plac = [a for a, k in zip(plac, ok[len(ok) - len(plac):] if plac else []) if k]
+    items, got = posts + plac, [g for g in got if g is not None]
     info = {"file": path.name if items else None, "horizon_days": horizon_days, "resolution_m": grid.res,
             "post": [{"date": f"{a.start:%Y-%m-%d}", "bands": [2 * i, 2 * i + 1]} for i, a in enumerate(posts)],
             "placebo": [{"date": f"{a.start:%Y-%m-%d}", "bands": [2 * (len(posts) + i), 2 * (len(posts) + i) + 1]}

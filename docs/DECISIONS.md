@@ -1414,3 +1414,43 @@ Modely r12 (doladění v0.4 bez Bolívie, session tréninku) se změří, až do
 Radarová anomálie bere u každého pixelu nejtmavší z přeletů po povodni (`post_series`, 24 dní, obě dráhy zvlášť) místo průměru; placebo stejnou statistikou.
 Sada 11 událostí (tag `multimin`): F1 0,850 → 0,849 (Bolívie −0,005, Honduras −0,003, ostatní ±0), kontrola beze změny → nesloučeno.
 Anomálie ovlivňuje jen malou část mapy (podpora a napojení slabé povodně); hlavní mapu dělá model z jednoho snímku „po“ na dráhu.
+
+## D-M14-06 | 2026-10-13 | přijato (oprava chyby, prošlo pravidlem sloučení) — Referenční rok trvalé vody přežije selhání jednoho průletu
+Rozbor chyb na 9 povodních (`validation/multievent_error_diag.py`, `error_diag.json`) ukázal největší jednotlivou ztrátu v Biháru: 8 km² povodně označeno jako
+trvalá voda (ΔF1 +0,093, kdyby se opravilo). Příčina: `acquire/permwater.build` (četnost vody za rok, D-M10-02) se celé vzdalo, když jeden z 10 průletů vrátil
+HTTP 500 (Sentinel Hub, opakovaně tentýž snímek 21. 1. 2019) → bez reference zůstala sezónně rozvodněná řeka „trvalou vodou“. Roční normál (s1anomaly)
+přitom vadný průlet už přeskakoval. Oprava: vadný průlet se přeskočí, reference vznikne z ostatních, pokud jich je ≥ `MIN_OBS` (4); seznam v
+`perm_water.json.failed`. Test `tests/test_permwater.py::test_build_survives_one_failing_pass`.
+Sada 11 událostí (tag `permfix`): Bihár F1 0,85 → 0,93 (R 0,82 → 0,97, P 0,88 → 0,89), ostatní beze změny (měly referenci); průměr 9 událostí
+R 0,842 → 0,858, P 0,870 → 0,872, F1 0,850 → 0,859; kontrola bez povodně beze změny. Kontrakt beze změny.
+
+## D-M14-07 | 2026-10-13 | přijato (oprava robustnosti) — Jedno selhání stahování neshodí celý krok ani vrstvu
+Audit `src/povodne/acquire/` po D-M14-06: tytéž chyby serveru (HTTP 500 po opakováních) by jinde shodily celý krok stahování (`acquire_failed`,
+bez mapy) nebo vrstvu: (1) řada podílu vody pro výběr snímku „před“ (D-M1-01) — teď chybějící datum = neznámé, výběr pokračuje; (2) kontrola průletu
+v den povodně (D-M1-03) — vadný starší průlet se vynechá, vadný průlet v den povodně se nepoužije; (3) starší průlety pro historii pixelu a druhý snímek
+„před“ — vadný se vynechá (chybí-li snímek „po“ nebo všechny „před“, krok selže jako dřív); (4) řada snímků po povodni (`postseries`, D-M10-06) —
+vadný průlet se vynechá, ne celá řada. Chybějící přihlašovací údaje dál končí chybou. Testy `tests/test_acquire_partial_failure.py`.
+Na sadě 11 událostí bez vlivu na čísla (jediná selhání v Biháru už ošetřoval roční normál a D-M14-06).
+
+## D-M14-08 | 2026-10-13 | zamítnuto (opt-in `POVODNE_CHANNEL=1`) — Dno koryta u nalezené povodně
+Rozbor chyb na stavu `permfix` (`error_diag_permfix.json`): Teesta přehlíží úzkou horskou řeku (~4–5 px široká); model tam dává P ≈ 0 i na správně
+nalezených pixelech (nález z kroku změn povrchu), jasno na S2 jen 3 % přehlédnutých pixelů → mez radaru (D-M9-03). Čad: tichý radar (P < 0,05) a okraje.
+Pokus `flood/channel.py`: pixely s HAND ≤ 1 m do 3 px od nalezené povodně a napojené na ni → třída 3. Sada 11 událostí (proti `permfix`):
+`chan1` R 0,858 → 0,895, P 0,872 → 0,826, F1 0,859 → 0,852 (Missouri −0,034, Čad −0,021, Teesta ±0); HAND ≤ 2 m 0,849 → nesloučeno.
+
+## D-M14-09 | 2026-10-13 | oprava dat, ke sloučení rozhodne master (pravidlo těsně neprošlo) — Sentinel-2: dvě verze téže dlaždice
+Rozbor falešných nálezů v Biháru (4,3 km², P ≈ 1 při VV −10 dB): optický model tam viděl vodu, protože pásma SWIR (B11, B12) byla 0 na 65 km² „jasné“
+plochy. Příčina: earth-search pro tentýž den a dlaždici vrací původní (`..._0_L2A`, baseline 02.13, offset 0) i přepracovanou verzi (`..._1_L2A`,
+baseline 05.00, offset už v DN); kód je smíchal a protože ne všechny měly `earthsearch:boa_offset_applied`, odečetl −0,1 i u přepracované → tmavé
+pixely pod nulu → 0. Postiženo 4 z 11 událostí (Bihár 65 km², Bolívie 36, Evros 34, Čad 10), všechny snímky před 2022.
+Oprava `acquire/sentinel2.py`: `latest_versions` (z verzí téže dlaždice a dne jen nejnovější); mozaika dlaždic s různým zpracováním se převede na offset 0
+po dlaždicích. Test `tests/test_acquire_partial_failure.py::test_s2_keeps_only_latest_item_version`. Mezipaměť se nemíchá (klíč obsahuje id snímků).
+Sada 11 událostí (tag `s2fix` proti `permfix`): F1 0,859 → 0,858 (R 0,858 → 0,855, P 0,872 → 0,873); Bihár +0,010, Bolívie +0,002, Čad −0,004,
+Austrálie −0,009 (jiná volba snímku po deduplikaci), Evros −0,011. Nulové SWIR byly jen na opravdu tmavých (mokrých) pixelech, takže chyba výsledek
+skoro neměnila. Pravidlo (žádná událost −0,01) neprošlo o 0,001; jde ale o správnost vstupních dat → doporučeno sloučit jako opravu chyby.
+
+## D-M14-10 | 2026-10-13 | rozpracováno — Okraje povodně podle místního radarového prahu
+Rozbor chyb: okraje jsou největší zbytek (přehlédnuté +0,034, falešné +0,025 F1). `floodseg.edge.grow_radar`: v okolí k px od povodně se přidá pixel,
+jehož VV po povodni ≤ mu_in + frac·(mu_out − mu_in) (místní průměry povodně a okolí v okně 15 px, obdoba místního Otsu). Kalibrace jen na validačních
+událostech Kuro Siwo (`training/eval_edge_radar.py`, k ∈ {1,2,3}, frac ∈ {0,3; 0,5; 0,7}); pravidlo výběru dané předem: max F1 při poklesu přesnosti ≤ 0,01.
+Výsledek doplním.

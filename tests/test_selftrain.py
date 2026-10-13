@@ -72,3 +72,18 @@ def test_threshold_from_oof():
     oof = {"y": np.r_[np.zeros(1000), np.ones(10)], "p": np.r_[np.linspace(0, 1, 1000), np.ones(10)], "w": np.ones(1010)}
     t = selftrain.threshold_from_oof(oof, 0.02)
     assert 0.96 < t < 0.99
+
+
+def test_predict_full_missing_feature_is_nan():
+    """A column the model was trained with but the scene lacks (one-track placebo) must not crash (D-M14-03)."""
+    import numpy as np
+    from povodne.flood.selftrain import predict_full
+
+    class M:
+        def predict(self, X):
+            assert np.isnan(X[:, 1]).all()
+            return np.nan_to_num(X[:, 0])
+
+    valid = np.ones((3, 4), bool)
+    out = predict_full(M(), ["a", "b"], {"a": np.ones((3, 4), np.float32)}, valid)
+    assert np.allclose(out, 1.0)

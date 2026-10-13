@@ -315,7 +315,8 @@ def predict_full(model, cols, F, valid, chunk=400):
         v = valid[sl]
         if not v.any():
             continue
-        X = np.stack([F[c][sl][v] for c in cols], 1).astype(np.float32)
+        # a feature the model knows but this scene lacks (e.g. the second track in the placebo of a one-track run) = missing value
+        X = np.stack([F[c][sl][v] if c in F else np.full(int(v.sum()), np.nan, np.float32) for c in cols], 1).astype(np.float32)
         o = out[sl]
         o[v] = model.predict(X)
         out[sl] = o

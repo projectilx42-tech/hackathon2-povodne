@@ -166,6 +166,15 @@ Why they did not help: brightening in these scenes is mostly wet ground / growin
 before-image (late wet-season pre image), so it is "permanent" by definition, not a missed detection; Honduras/Malawi optical post images are 8 days late.
 Self-training flags large areas (Bihar 66 of ~70 km²) and each added km² is less precise than the base map. Per-event numbers: `<event>__<tag>.json`.
 
+### Error analysis and the fix that passed (tag `permfix`, D-M14-06)
+`python validation/multievent_error_diag.py <runs_dir>` splits missed (FN) and false (FP) pixels into categories (first match wins) and gives the F1 an event would
+reach if a category were fixed (upper bound). Mean over the 9 events: FN edge (≤ 2 px from a detection) +0.034, FN predicted as permanent water +0.020
+(Bihar alone +0.093), FN low P(flood) +0.015 (Chad), FN already dark before +0.008 (Australia); FP edge +0.025, FP debris class +0.027 (mostly Bolivia/Teesta,
+whose labels are water-only, so this is expected), FP other +0.024 (Bihar, Missouri, Bolivia, Evros). Details: `error_diag.json`.
+Bihar's "permanent water" came from a missing year-long water reference: one of 10 passes failed (HTTP 500) and the whole reference was dropped.
+Fixed (skip the failing pass): **Bihar 0.82 / 0.88 / 0.85 → 0.97 / 0.89 / 0.93; mean over 9 events R 0.842 → 0.858, P 0.870 → 0.872, F1 0.850 → 0.859**;
+other events unchanged, control unchanged. Self-training (`st_strict2`, after fixing its one-track crash): 0.850 / 0.859 / 0.849 → still not merged.
+
 ## Cost and time
 Teesta 109 PU, Marsyangdi 99 PU, Chamoli 113 PU, Malawi 46 PU (cache), Honduras ~100 PU first fetch, Australia 39, Bolivia 101, Bihar 62 (+ failed retries); 2.5–5 min per event.
 

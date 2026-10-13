@@ -63,7 +63,23 @@ def search(aoi: BaseGeometry, start: datetime, end: datetime, max_tile_cloud: fl
     for f in r.json().get("features", []):
         d = datetime.fromisoformat(f["properties"]["datetime"].replace("Z", "+00:00")).date()
         by_day.setdefault(d, []).append(f)
-    return [S2Date(d, items) for d, items in sorted(by_day.items())]
+    return [S2Date(d, latest_versions(items)) for d, items in sorted(by_day.items())]
+
+
+def latest_versions(items: list[dict]) -> list[dict]:
+    """Keep one item per tile and day: earth-search lists both the original (`..._0_L2A`, old processing baseline, offset 0) and the
+    reprocessed version (`..._1_L2A`, baseline 05.00, offset already inside the DN). Mixing them made the BOA offset -0.1 be applied
+    to the reprocessed DN, pushing water and wet soil below zero (SWIR = 0 looked like water to the optical model; D-M14-09)."""
+    best: dict[str, tuple[int, dict]] = {}
+    for it in items:
+        stem, _, rest = it["id"].rpartition("_L2A")[0].rpartition("_")
+        try:
+            ver = int(rest)
+        except ValueError:
+            stem, ver = it["id"], 0
+        if stem not in best or ver > best[stem][0]:
+            best[stem] = (ver, it)
+    return [it for _, it in best.values()]
 
 
 def _read(href: str, grid: Grid, resampling: Resampling, decimate: int = 1, retries: int = 4) -> np.ndarray:
@@ -168,12 +184,23 @@ def download(d: S2Date, grid: Grid, path) -> dict:
     layers, scales, offsets = [], [], []
     applied = boa_offset_applied(d.items)
     for b, asset in BANDS.items():
-        layers.append(_mosaic(d.items, asset, grid, Resampling.bilinear))
-        rb = (d.items[0]["assets"][asset].get("raster:bands") or [{}])[0]
-        scales.append(float(rb.get("scale", 1e-4)))
+        rbs = [(it["assets"][asset].get("raster:bands") or [{}])[0] for it in d.items]
         # earth-search harmonises L2A (DN = reflectance * 1e4) but leaves offset -0.1 in raster:bands;
-        # applying it again pushes dark pixels (forest, water) below zero (D-M11-01).
-        offsets.append(0.0 if applied else float(rb.get("offset", 0.0)))
+        # applying it again pushes dark pixels (forest, water) below zero (D-M11-01). Effective offset per item:
+        eff = [0.0 if it.get("properties", {}).get("earthsearch:boa_offset_applied") else float(rb.get("offset", 0.0))
+               for it, rb in zip(d.items, rbs)]
+        scales.append(float(rbs[0].get("scale", 1e-4)))
+        if len(set(eff)) <= 1:
+            layers.append(_mosaic(d.items, asset, grid, Resampling.bilinear))
+            offsets.append(eff[0] if eff else 0.0)
+        else:  # tiles with different processing in one mosaic: bring every tile to offset 0 before mosaicking (D-M14-09)
+            out = None
+            for it, e, rb in zip(d.items, eff, rbs):
+                a = _read(it["assets"][asset]["href"], grid, Resampling.bilinear).astype(np.int32)
+                a = np.where(a > 0, np.clip(a + int(round(e / float(rb.get("scale", 1e-4)))), 1, 65535), 0).astype(np.uint16)
+                out = a if out is None else np.where(out == 0, a, out)
+            layers.append(out)
+            offsets.append(0.0)
     layers.append(_mosaic(d.items, "scl", grid, Resampling.nearest))
     scales.append(1.0); offsets.append(0.0)
     path.parent.mkdir(parents=True, exist_ok=True)
