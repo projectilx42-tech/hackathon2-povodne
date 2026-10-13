@@ -1291,3 +1291,5 @@ a bez ní; `POVODNE_ENVELOPE_PERSIST=0|1|auto` (výchozí auto = obě, vyhraje v
 Kontext: přidané pixely mají nízkou přesnost ve větší výšce nad tokem (master: HAND 0–5 m P 0,96, 5–15 m 0,68, 15–30 m 0,29, > 30 m 0,08) — růst a okraje lezou do svahů (sklizeň teras, vlhkost po dešti,
 v pre-pre placebu chybí). Žádné pevné pravidlo (sklon / HAND), ale **dosah odvozený ze semínek**: růst a okraje (i v placebu) smí jen uvnitř `envelope(q = QQ) | semínka`, QQ ∈ {95, 99} (`POVODNE_ENVELOPE_REACH=off|95|99|auto`,
 výchozí `off` do rozhodnutí masteru). Krok navíc ukládá `flood/envelope_stage.tif` (1 obálka, 2 růst, 3 trvalá voda, 4 okraje) pro diagnostiku (`validation/envelope_stage_diag.py`, čte EMS jen k měření).
+- **Doplnění D-M13-03 (master):** dosah se počítá jen ze semínek vody (třída 2), ne suti (ze všech semínek vyšel dosah 1351 km²); okrajový stupeň přidává jen okrajové pixely souvislé s detekcí;
+  mřížka tg doplněna o 2,25; volba `POVODNE_ENVELOPE_EDGE_SCALE=1` přepočte falešné okrajové pixely placeba na plochu okrajového pásu události; trvalost je výchozí (`POVODNE_ENVELOPE_PERSIST=1`, bez dostatku průletů se vypne).

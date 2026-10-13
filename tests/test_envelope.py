@@ -236,7 +236,7 @@ def test_search_runs_all_stages_on_synthetic_context():
     z[100:150, 96:104] = -6.0
     z[100:150, 79:86] = -1.9                              # weak: only the edge band / growth can catch it
     c = {"z": z, "zp": np.zeros(shape, np.float32), "hand": hand, "perm": perm, "existing": seeds | perm, "seeds": seeds,
-         "pseeds": np.zeros(shape, bool), "opt": None, "optq": None, "labelled": np.where(seeds, 2, 0).astype(np.uint8),
+         "pseeds": np.zeros(shape, bool), "seeds_w": seeds, "opt": None, "optq": None, "labelled": np.where(seeds, 2, 0).astype(np.uint8),
          "n_exist": int((seeds | perm).sum()), "Pe": None, "Pp": None, "ctrl_rate": 0.0, "px_km2": 1e-4}
     res = envelope.search(c, False)
     assert res["final"] and res["final"]["est_precision"] >= envelope.MIN_PRECISION
@@ -253,7 +253,7 @@ def test_search_with_reach_limits_growth_and_edges():
     z = np.zeros(shape, np.float32)
     z[100:150, 60:100] = -3.0                             # strong evidence reaching far up the slope (HAND up to 8 m)
     c = {"z": z, "zp": np.zeros(shape, np.float32), "hand": hand, "perm": np.zeros(shape, bool), "existing": seeds, "seeds": seeds,
-         "pseeds": np.zeros(shape, bool), "opt": None, "optq": None, "labelled": np.where(seeds, 2, 0).astype(np.uint8),
+         "pseeds": np.zeros(shape, bool), "seeds_w": seeds, "opt": None, "optq": None, "labelled": np.where(seeds, 2, 0).astype(np.uint8),
          "n_exist": int(seeds.sum()), "Pe": None, "Pp": None, "ctrl_rate": 0.0, "px_km2": 1e-4}
     free = envelope.search(c, False)
     capped = envelope.search(c, False, reach_q=50)

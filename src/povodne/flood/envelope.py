@@ -243,11 +243,12 @@ W_GRID = (1, 5, 9)                 # window (px) of the mean of z^2; <= 9 px: th
 Q_GRID_RUN = (75, 95)
 TZ_GRID_RUN = (3.0, 2.5, 2.0, 1.75)
 R_GRID_RUN = (0, 6)
-TG_GRID_RUN = (3.0, 2.5, 2.0, 1.75, 1.5)
+TG_GRID_RUN = (3.0, 2.5, 2.25, 2.0, 1.75, 1.5)
 EDGE_T3 = (1.75, 1.5, 1.25)        # stage 4: lower threshold, only in a band around the detections
 EDGE_R = (3, 5, 10)
 T_PASS = 1.5                       # per-pass threshold of the persistence test (a-priori; each pass is unaveraged and noisy)
 MIN_PASSES = 2
+EDGE_SCALE = False                 # option (env POVODNE_ENVELOPE_EDGE_SCALE=1): scale the placebo's false edge pixels to the event's band area
 
 
 def windowed(z: np.ndarray, w: int) -> tuple[np.ndarray, np.ndarray]:
@@ -356,7 +357,8 @@ def search(c: dict, persist: bool, reach_q: int | None = None) -> dict:
     # Reach derived from the seeds (D-M13-03): growth and edges may not leave the envelope of a high HAND percentile of the seeds.
     reach = preach = None
     if reach_q:
-        reach = envelope(hand, seeds, perm, reach_q, BLOCK_GRID[0])[0] | seeds
+        wseeds = c["seeds_w"]   # water seeds only: debris seeds climb slopes and would make the reach useless (D-M13-03)
+        reach = (envelope(hand, wseeds, perm, reach_q, BLOCK_GRID[0])[0] if wseeds.any() else zero) | seeds
         preach = envelope(hand, pseeds, perm, reach_q, BLOCK_GRID[0])[0] | pseeds
     pev, _ = evidence_w(sP, best["tz"], Pp)
     pdet = close_gaps(pseeds | (penv & pev & ~perm), penv, best["r_px"])
@@ -414,7 +416,15 @@ def search(c: dict, persist: bool, reach_q: int | None = None) -> dict:
             if reach is not None:
                 enew &= reach
                 pnew &= preach
-            fp = fp0 + int(pnew.sum()) + ctrl * int(enew.sum())
+            enew = grow_hysteresis(det3, enew, perm)       # only edge pixels connected to the detections (small detached bits are mostly false)
+            pnew = grow_hysteresis(pdet3, pnew, perm)
+            if EDGE_SCALE:                                  # placebo false rate per band pixel, scaled to the event's band area
+                bE = int((band & ~det3 & ~perm & (reach if reach is not None else True)).sum())
+                bP = int((pband & ~pdet3 & ~perm & (preach if preach is not None else True)).sum())
+                pn = int(pnew.sum()) / max(bP, 1) * bE
+            else:
+                pn = int(pnew.sum())
+            fp = fp0 + pn + ctrl * int(enew.sum())
             edges.append({"r": r, "t3": t3, "added_px": int(enew.sum()), "est_precision": prec(fp, cur_added + int(enew.sum())),
                           "placebo_false_km2": round(fp * c["px_km2"], 4), "_new": enew, "_dark": dke})
     eb = _pick(edges, "added_px")
@@ -482,9 +492,12 @@ def run(run_dir: Path) -> dict:
     ctrl = optical_false_rate(opt, optq & ~existing) if opt is not None else 0.0
     labelled = np.where(ai == WATER, WATER, np.where(deb == 1, DEBRIS, 0)).astype(np.uint8) if deb is not None else np.where(ai == WATER, WATER, 0).astype(np.uint8)
     c = {"z": z, "zp": zp, "hand": hand, "perm": perm, "existing": existing, "seeds": seeds, "pseeds": pseeds, "opt": opt, "optq": optq,
-         "labelled": labelled, "n_exist": int(existing.sum()), "Pe": Pe, "Pp": Pp, "ctrl_rate": ctrl, "px_km2": px_km2}
-    mode = os.environ.get("POVODNE_ENVELOPE_PERSIST", "auto")   # "0" off, "1" on, "auto" = both, the one with more area wins
-    variants = [v for v in ((False, True) if mode == "auto" else (mode == "1",)) if not v or (Pe is not None and Pp is not None)]
+         "labelled": labelled, "seeds_w": ai == WATER, "n_exist": int(existing.sum()), "Pe": Pe, "Pp": Pp, "ctrl_rate": ctrl, "px_km2": px_km2}
+    global EDGE_SCALE
+    EDGE_SCALE = os.environ.get("POVODNE_ENVELOPE_EDGE_SCALE", "0") == "1"
+    mode = os.environ.get("POVODNE_ENVELOPE_PERSIST", "1")   # "1" on (default; falls back to off without enough passes), "0" off, "auto" = both
+    have_persist = Pe is not None and Pp is not None
+    variants = [False, True] if mode == "auto" and have_persist else [mode == "1" and have_persist]
     reach_mode = os.environ.get("POVODNE_ENVELOPE_REACH", "off")   # "off" | "95" | "99" | "auto" (both, the larger area wins)
     reaches = {"off": [None], "auto": [95, 99]}.get(reach_mode, [int(reach_mode)] if reach_mode.isdigit() else [None])
     results = [search(c, v, rq) for v in variants for rq in reaches]
