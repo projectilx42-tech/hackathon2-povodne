@@ -1514,3 +1514,11 @@ Bihár 21. 1. 2019 tak selhává pokaždé). Teď `SentinelHub.process`: HTTP 50
 posledním pokusu. Test `tests/test_acquire_partial_failure.py::test_http500_gives_up_fast_but_rate_limits_keep_retrying`.
 Ověřeno: Buzi znovu (stažená data z mezipaměti) 551 s → 103 s (čekání 2 × 204 s → 2 × 20 s), `flood_mask`, `ai_prob`, `debris_mask` bit po bitu stejné;
 Bihár (z 11 událostí): znovu stažené `perm_water`, roční normály a řady po povodni obou drah bit po bitu stejné, stahování 47 s.
+
+## D-M14-15 | 2026-10-13 | přijato — Srozumitelná hláška při vyčerpané denní kvótě ohsome; okrajové případy oblastí
+Živý test okrajových případů (5 běhů souběžně, vše bez pádu): hranice zón UTM (Gorakhpur 83,95–84,05° E → EPSG:32645, 201 s), vysoká šířka
+(Gudbrandsdalen 61,8° N, 143 s), pobřeží s mořem (Volos: moře 8,2 km² správně jako trvalá voda, povodeň 5,6 km², 173 s), malá oblast 2×2 km
+(Lismore, 115 s, 2,7 PU) a velká 30×30 km (Sindh 895 km², 648 s, **933 PU** ≈ 1/10 měsíčního limitu Sentinel Hubu). Všude ale selhalo OpenStreetMap:
+denní kvóta klíče ohsome (~250 dotazů, 7 na běh) byla po dnešním testování vyčerpaná (HTTP 403 „Quota exceeded“) → škody a odříznutí nešly spočítat
+(systém to hlásí). Hláška teď říká srozumitelně, že je vyčerpaná denní kvóta a co dělat (zítra / jiný bezplatný klíč). Test
+`tests/test_acquire_partial_failure.py::test_ohsome_quota_message_is_plain`. Pro živou ukázku: den předem netestovat přes ohsome naplno.

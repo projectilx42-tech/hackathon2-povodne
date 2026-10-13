@@ -71,6 +71,10 @@ def _request(path: str, body: dict | None = None, retries: int = 3) -> requests.
             if r.status_code == 401:
                 raise MissingOhsomeKey("ohsome rejected the API key (OHSOME_API_KEY). " + KEY_HELP)
             if r.status_code < 500 and r.status_code != 429:
+                if r.status_code == 403 and "quota" in r.text.lower():  # plain words for the user (D-M14-15)
+                    raise RuntimeError("the daily request quota of the ohsome API key (OHSOME_API_KEY) is used up "
+                                       "(about 250 requests a day, 7 per run); try again tomorrow or use another free key "
+                                       "from account.heigit.org")
                 if r.status_code >= 400:
                     raise RuntimeError(f"ohsome HTTP {r.status_code}: {r.text[:300]}")
                 return r

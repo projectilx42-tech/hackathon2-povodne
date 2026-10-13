@@ -90,3 +90,17 @@ def test_http500_gives_up_fast_but_rate_limits_keep_retrying(monkeypatch):
     except shm.SentinelHubError:
         pass
     assert len(calls) == 6 and len(slept) == 5
+
+
+def test_ohsome_quota_message_is_plain(monkeypatch):
+    """ohsome 403 'Quota exceeded' becomes a plain sentence about the daily quota (D-M14-15)."""
+    from types import SimpleNamespace
+    from povodne.acquire import osm
+
+    monkeypatch.setenv("OHSOME_API_KEY", "x")
+    monkeypatch.setattr(osm.requests, "get", lambda *a, **k: SimpleNamespace(status_code=403, text='{"error": "Quota exceeded"}'))
+    try:
+        osm._request("/metadata")
+        assert False
+    except RuntimeError as exc:
+        assert "daily request quota" in str(exc)
