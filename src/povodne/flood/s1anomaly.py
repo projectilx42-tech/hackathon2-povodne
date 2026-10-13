@@ -195,6 +195,21 @@ def placebo_threshold(zs_vv: list, zs_vh: list, false_pct: float = PLACEBO_FALSE
     return float(np.percentile(zc, false_pct)) if zc.size > 1000 else None
 
 
+def placebo_bright_threshold(zs_vv: list, false_pct: float = PLACEBO_FALSE_PCT) -> float | None:
+    """Upper-tail twin of `placebo_threshold` for VV alone (Stouffer over the tracks, as band z_vv): the z_vv value that only
+    `false_pct` % of the flood-free placebo pixels exceed. Used to call a brightening (double bounce of flooded vegetation or
+    buildings) significant (D-M14-01)."""
+    n, s = 0, 0
+    for zv in zs_vv:
+        ok = np.isfinite(zv)
+        n = n + ok
+        s = s + np.where(ok, zv, 0)
+    if np.isscalar(n):
+        return None
+    zc = (s / np.sqrt(np.maximum(n, 1)))[n > 0]
+    return float(np.percentile(zc, 100 - false_pct)) if zc.size > 1000 else None
+
+
 def run(run_dir: Path) -> dict:
     run_dir = Path(run_dir)
     set_step(run_dir, "s1anomaly", "running", "comparing the after-image with the year-long normal")
@@ -262,7 +277,8 @@ def run(run_dir: Path) -> dict:
                "coarse_resolution_m": abs(cprof["transform"].a), "valid_pct": round(100 * float(valid.mean()), 1),
                "abs_z_comb_gt3_pct": round(100 * float((np.abs(out[2][valid]) > 3).mean()), 2) if valid.any() else None,
                "placebo": placebo, "placebo_false_pct": PLACEBO_FALSE_PCT,
-               "threshold_z_comb": placebo_threshold(plac_vv, plac_vh) if len(plac_vv) == len(used) else None}
+               "threshold_z_comb": placebo_threshold(plac_vv, plac_vh) if len(plac_vv) == len(used) else None,
+               "threshold_z_vv_bright": placebo_bright_threshold(plac_vv) if len(plac_vv) == len(used) else None}
     update_run(run_dir, lambda rj: (rj.__setitem__("s1anomaly", section), set_notices(rj, "s1anomaly", notices)))
     set_step(run_dir, "s1anomaly", "done", f"radar anomaly from {len(used)} track(s), {section['valid_pct']} % of the area covered")
     return section

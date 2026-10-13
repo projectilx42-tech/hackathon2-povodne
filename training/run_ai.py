@@ -133,6 +133,23 @@ def s2_water(model, cfg, run: Path, when: str, device: str):
     return p, clear
 
 
+MNDWI_WATER = 0.0  # modified normalised difference water index (green - SWIR1) / (green + SWIR1) > 0 = open water (Xu 2006; not tuned)
+
+
+def s2_index_enabled() -> bool:
+    return os.environ.get("POVODNE_S2_INDEX", "0") == "1"
+
+
+def s2_mndwi(run: Path, when: str):
+    """MNDWI of aligned/s2_<when>.tif (bands B02,B03,B04,B08,B11,B12 -> green = 1, SWIR1 = 4); None if missing."""
+    refl, _ = _read_bands(run / "aligned" / f"s2_{when}.tif")
+    if refl is None:
+        return None
+    g, sw = refl[1], refl[4]
+    with np.errstate(divide="ignore", invalid="ignore"):
+        return ((g - sw) / (g + sw)).astype(np.float32)
+
+
 def _read_bands(path: Path):
     if not path.exists():
         return None, None
@@ -352,6 +369,15 @@ def main() -> None:
                 wet_post = clear_post & (p_post * w >= args.s2_water_thr)  # soft prior (w = 1 with --hard-rules)
                 # was the pixel dry before? optical pre image if clear there, else the radar's view of the pre image
                 dry_before = np.where(clear_pre, p_pre < args.s2_water_thr, radar_valid & (cls != 1))
+                index_px = 0
+                if s2_index_enabled():
+                    # shallow / turbid water the optical model misses: modified water index above 0 (D-M14-02)
+                    mw_post, mw_pre = s2_mndwi(run, "post"), s2_mndwi(run, "pre")
+                    idx_wet = clear_post & np.isfinite(mw_post) & (mw_post > MNDWI_WATER) & (w >= 0.5)
+                    if mw_pre is not None:
+                        dry_before &= ~(clear_pre & (mw_pre > MNDWI_WATER))
+                    index_px = int((idx_wet & ~wet_post).sum())
+                    wet_post |= idx_wet
                 known_before = clear_pre | radar_valid
                 s2_flood = wet_post & dry_before
                 s2_perm = wet_post & ~s2_flood
@@ -366,7 +392,8 @@ def main() -> None:
                            "post_clear_pct": round(100 * float(clear_post.mean()), 1),
                            "pre_clear_pct": round(100 * float(clear_pre.mean()), 1),
                            "optical_flood_km2": round(float(s2_flood.sum()) * 1e-4, 3),
-                           "optical_water_unknown_before_km2": round(float((wet_post & ~known_before).sum()) * 1e-4, 3)}
+                           "optical_water_unknown_before_km2": round(float((wet_post & ~known_before).sum()) * 1e-4, 3),
+                           "index_rule": s2_index_enabled(), "index_added_km2": round(index_px * 1e-4, 3)}
     # Seasonal high water (D-M10-02): "permanent" by the model only because the before-image was already swollen.
     ref = load_on_grid(run / "raw" / "s1" / "perm_water.tif", profile)
     seasonal = seasonal_high_water(mask, ref, load_on_grid(run / "raw" / "dem" / "water.tif", profile), args.perm_min_freq)

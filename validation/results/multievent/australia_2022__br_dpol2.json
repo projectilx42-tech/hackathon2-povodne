@@ -1,0 +1,189 @@
+{
+ "event": "australia_2022",
+ "tag": "br_dpol2",
+ "dataset": "kurosiwo_test",
+ "continent": "Australia",
+ "kind": "flood",
+ "event_date": "2022-01-29",
+ "aoi_bbox": [
+  139.5417,
+  -17.7291,
+  139.6222,
+  -17.6524
+ ],
+ "label_valid_pct": 94.8,
+ "scores": {
+  "a_seeds_own_region": {
+   "recall": 0.8112,
+   "precision": 0.9761,
+   "f1": 0.886,
+   "truth_km2": 51.5291,
+   "pred_km2": 42.8215,
+   "tp_km2": 41.7996,
+   "fp_km2": 1.0219,
+   "region_km2": 65.327
+  },
+  "a_seeds_common_region": {
+   "recall": 0.8112,
+   "precision": 0.9761,
+   "f1": 0.886,
+   "truth_km2": 51.5291,
+   "pred_km2": 42.8215,
+   "tp_km2": 41.7996,
+   "fp_km2": 1.0219,
+   "region_km2": 65.327
+  },
+  "b_envelope": {
+   "recall": 0.8112,
+   "precision": 0.9761,
+   "f1": 0.886,
+   "truth_km2": 51.5291,
+   "pred_km2": 42.8215,
+   "tp_km2": 41.7996,
+   "fp_km2": 1.0219,
+   "region_km2": 65.327
+  },
+  "b_envelope_visible_label": {
+   "recall": 0.7512,
+   "precision": 0.9761,
+   "f1": 0.8491,
+   "truth_km2": 55.6403,
+   "pred_km2": 42.8215,
+   "tp_km2": 41.7996,
+   "fp_km2": 1.0219,
+   "region_km2": 69.856
+  }
+ },
+ "scores_water_total": {
+  "seeds": {
+   "recall": 0.8617,
+   "precision": 0.9773,
+   "f1": 0.9159,
+   "truth_km2": 51.5377,
+   "pred_km2": 45.4433,
+   "tp_km2": 44.4104,
+   "fp_km2": 1.0329,
+   "region_km2": 65.336
+  },
+  "envelope": {
+   "recall": 0.8617,
+   "precision": 0.9773,
+   "f1": 0.9159,
+   "truth_km2": 51.5377,
+   "pred_km2": 45.4433,
+   "tp_km2": 44.4104,
+   "fp_km2": 1.0329,
+   "region_km2": 65.336
+  }
+ },
+ "seed_transitions_km2": {
+  "water": {
+   "water": 41.8298
+  },
+  "debris": {
+   "debris": 0.995
+  },
+  "permanent": {
+   "permanent": 2.6185
+  }
+ },
+ "components": {
+  "seeds_ai_water(2)": {
+   "km2": 43.2798,
+   "km2_in_label_region": 41.8298,
+   "share_on_truth": 0.991
+  },
+  "seeds_debris_step:debris": {
+   "km2": 0.0177,
+   "km2_in_label_region": 0.0156,
+   "share_on_truth": 0.75
+  },
+  "seeds_debris_step:mud": {
+   "km2": 0.0533,
+   "km2_in_label_region": 0.045,
+   "share_on_truth": 0.862
+  },
+  "seeds_debris_step:erosion": {
+   "km2": 0.0004,
+   "km2_in_label_region": 0.0004,
+   "share_on_truth": 0.25
+  },
+  "seeds_debris_step:flooded_vegetation": {
+   "km2": 0.003,
+   "km2_in_label_region": 0.003,
+   "share_on_truth": 0.0
+  },
+  "seeds_debris_step:unknown": {
+   "km2": 0.0036,
+   "km2_in_label_region": 0.0036,
+   "share_on_truth": 0.361
+  },
+  "seeds_class3_not_debris_step(vhagree etc.)": {
+   "km2": 0.9743,
+   "km2_in_label_region": 0.9274,
+   "share_on_truth": 0.334
+  },
+  "seeds_permanent(4)": {
+   "km2": 2.8451,
+   "km2_in_label_region": 2.6185,
+   "share_on_truth": 0.996
+  }
+ },
+ "pred_total_km2": {
+  "seeds": 44.332,
+  "envelope": 44.332
+ },
+ "run": {
+  "timings_s": {
+   "acquire": 72.4,
+   "preprocess": 2.4,
+   "s1anomaly": 1.0,
+   "flood_ai": 11.4,
+   "debris": 5.2,
+   "envelope": 0.6,
+   "combine": 1.5,
+   "damage": 1.4,
+   "network": 1.7,
+   "report": 6.9
+  },
+  "pu_spent": 38.9,
+  "pu_estimate": 51,
+  "envelope": {
+   "used": false,
+   "reason": "Water-level envelope is off (opt-in: set POVODNE_ENVELOPE=1 or pass --envelope); the flood map is unchanged.",
+   "placebo_groups": null,
+   "placebo_split": null,
+   "stat": null,
+   "persistence": null,
+   "reach_q": null,
+   "final_est_precision": null,
+   "final_placebo_false_km2": null,
+   "added_km2": null,
+   "added_by_stage_km2": null,
+   "optics": null,
+   "post_passes": null,
+   "optical_used": null
+  },
+  "main_track": {
+   "relative_orbit": 133,
+   "orbit_direction": "DESCENDING"
+  },
+  "alt_track": false,
+  "s2": {
+   "pre": 96.7,
+   "post": 81.8,
+   "extra": null
+  },
+  "warnings": [
+   "No usable Sentinel-1 pass from the opposite flight direction: areas hidden behind mountains for the main track stay unmapped.",
+   "No pre-event OpenStreetMap buildings in the area: damaged buildings cannot be counted (zero does not mean no damage)."
+  ],
+  "verdict": "flood_detected",
+  "coverage": {
+   "s1_valid_pct": 89.8,
+   "s2_pre_clear_pct": 96.7,
+   "s2_post_clear_pct": 81.8,
+   "evaluated_pct": 93.7
+  }
+ }
+}

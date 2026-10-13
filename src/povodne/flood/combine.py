@@ -28,7 +28,7 @@ from pathlib import Path
 import numpy as np
 import rasterio
 
-from . import vhagree
+from . import brighten, vhagree
 from ..io import get_step, load_run, set_notices, set_step, update_run, write_json_atomic
 
 NODATA, DRY, WATER, DEBRIS, PERMANENT = 0, 1, 2, 3, 4
@@ -184,6 +184,15 @@ def run(run_dir: Path) -> dict:
         conf_r = np.where(grown, 1, conf_r if conf_r is not None else 0).astype(np.uint8)
     vh_info["grown_km2"] = round(float(grown.sum()) * abs(transform.a * transform.e) / 1e6, 4)
 
+    # Flooded vegetation / buildings: radar brightening (double bounce) connected to the flood found so far (D-M14-01).
+    seeds = (ai_mask == WATER) | (debris_mask == 1 if debris_mask is not None else False)
+    bright, bright_info = brighten.run(run_dir, seeds, np.isin(ai_mask, (WATER, PERMANENT)), transform, crs)
+    if bright.any():
+        debris_mask = bright.astype(np.uint8) if debris_mask is None else np.where(bright, 1, debris_mask).astype(np.uint8)
+        dtype_r = np.where(bright, 4, dtype_r if dtype_r is not None else 0).astype(np.uint8)
+        conf_r = np.where(bright, 1, conf_r if conf_r is not None else 0).astype(np.uint8)
+    bright_info["added_km2"] = round(float(bright.sum()) * abs(transform.a * transform.e) / 1e6, 4)
+
     # Water-level envelope: weak change inside the reach spanned by the certain detections (D-X-09). Never overrides a detection.
     env_water, env_info = envelope_layers(fdir / "envelope_mask.tif", ai_mask.shape)
     env_debris = env_info.pop("debris_px")
@@ -227,6 +236,7 @@ def run(run_dir: Path) -> dict:
         "method": "AI water (classes 2, 4) has priority; debris step class 3 elsewhere, also where the AI step was blind (D-M0-01)",
         "debris_used": debris_mask is not None,
         "vh_agreement": vh_info,
+        "brightening": bright_info,
         "envelope_added_km2": round(float(((env_water if env_water is not None else 0) | (env_debris if env_debris is not None else 0)).sum())
                                     * px_km2, 4) if env_water is not None else 0.0,
         "debris_prob_by_confidence": {CONF_NAMES[k]: v for k, v in CONF_PROB.items()},
