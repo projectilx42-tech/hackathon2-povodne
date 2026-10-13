@@ -91,6 +91,23 @@ All previous runs used `standard` (argmax). Here: `--sensitivity sensitive` (flo
 No-flood control (Marsyangdi): standard seeds 2.112 km² → sensitive 2.115 km² affected; false-alarm share of dry-label area 0.0086 → 0.0087.
 Note: the run directories now hold the sensitive/no-envelope masks (re-run `validation/multievent_rerun.sh <tag> --from flood_ai` for another state).
 
+## v4 = origin/main a84fea1 (sensitive default D-X-13, calibrated edge step k=1 t=0.12 in run_ai D-M9-15, envelope off), seeds only
+`validation/multievent_rerun.sh v4 --ref origin/main --from flood_ai --no-envelope --sensitivity sensitive` (flood_ai → debris → combine, 0 PU); v3sens = the same without the edge step.
+| event | label km² | v3sens (no edge) R / P / F1 | **v4** (edge + sensitive) R / P / F1 | ΔR | ΔP |
+|---|---|---|---|---|---|
+| malawi_2022 | 13.2524 | 0.93 / 0.93 / 0.93 | **0.94 / 0.92 / 0.93** | +0.01 | -0.01 |
+| honduras_2018 | 19.2725 | 0.82 / 0.88 / 0.85 | **0.84 / 0.87 / 0.86** | +0.02 | -0.01 |
+| australia_2022 | 51.5291 | 0.79 / 0.99 / 0.88 | **0.81 / 0.99 / 0.89** | +0.02 | -0.00 |
+| bihar_2019 | 47.4116 | 0.82 / 0.88 / 0.85 | **0.82 / 0.88 / 0.85** | +0.00 | -0.00 |
+| missouri_2017 | 26.6097 | 0.99 / 0.86 / 0.92 | **0.99 / 0.84 / 0.91** | +0.00 | -0.02 |
+| chad_2020 | 9.4086 | 0.66 / 0.78 / 0.72 | **0.67 / 0.78 / 0.72** | +0.01 | -0.00 |
+| evros_2018 | 23.4867 | 0.94 / 0.84 / 0.89 | **0.94 / 0.83 / 0.88** | +0.00 | -0.01 |
+| bolivia_2018 | 14.8783 | 0.94 / 0.83 / 0.88 | **0.94 / 0.82 / 0.88** | +0.01 | -0.01 |
+| teesta_2023_sub | 1.1611 | 0.69 / 0.63 / 0.66 | **0.69 / 0.63 / 0.66** | +0.00 | +0.00 |
+Mean change over the 9 labelled events: ΔR +0.008, ΔP -0.007.
+No-flood control (Marsyangdi): seeds affected 2.115 km² (v3sens) → 2.115 km² (v4); false-alarm share of dry-label area 0.0087 → 0.0087.
+Note: the run directories now hold the v4 masks.
+
 ## Boundary diagnostic (`multievent_boundary_diag.py`, v2default masks, no new PU)
 Question: is the recall gap boundary pixels or missed regions? Missed = label flood not predicted as 2/3/4; distance in 10 m px to the nearest predicted flood
 pixel; dilation of the predicted flood (2+3; for water labels 2+3+4) by 0–3 px, restricted to valid data and valid labels.
