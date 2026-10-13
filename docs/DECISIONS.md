@@ -926,8 +926,12 @@ Implementace D-X-09: `src/povodne/flood/envelope.py`, nepovinný krok `envelope`
   stejná obálka a stejný test důkazu → falešná plocha. Optika placebo dvojici nemá → falešná míra NDVI testu se měří na kontrolních pixelech mimo obálku a detekce
   (nadsazuje: skutečné změny jinde se počítají jako falešné) a přičte se úměrně ploše obálky. **Odhad přesnosti přidané plochy = 1 − falešná plocha ÷ přidaná plocha.**
   Pracovní bod = nejcitlivější nastavení (největší přidaná plocha) s odhadem ≥ 0,85 (D-X-08). Žádné nastavení nevyhovuje → nic se nepřidá (upozornění `envelope_no_working_point`).
+- **Doplnění po D-X-10 (master, prototyp `validation/envelope_diag.py`):** optické pravidlo = a-priori (pokles NDVI > 0,2 a NDVI po < 0,3, ne 0,3 jako dřív); společně s q a tz se z placeba volí
+  poloměr uzavření děr `r` ∈ {0, 3, 6} px (uzavření a vyplnění děr uvnitř obálky; doplněné pixely mají třídu nejbližší detekce); **odhad přesnosti = 1 − falešná plocha placeba ÷ (stávající + přidaná plocha)**
+  (celá detekovaná plocha, jako v D-X-08), přesnost jen přidané plochy se ukládá zvlášť (`est_precision_added`). Radarový důkaz: roční anomálie (`s1_anomaly.tif`) má přednost, jak master doporučil;
+  prototyp masteru (z-skóre vůči variabilitě pixelu z `hist_*`) jsem nepřevzal, protože anomálie má vlastní placebo průlety (D-M10-06).
 - **Odchylky od zadání:** (1) záložní důkaz „|Δ dB| post−pre bez anomálie“ se neimplementoval — bez radarové anomálie není placebo, a bez placeba se parametry volit nesmí; krok se v tom případě přeskočí.
-  (2) NDVI práh 0,3 je pevný obecný práh (ne z placeba). (3) Přesnost se počítá pro **přidanou** plochu (přísnější než pro celek).
+  (2) NDVI pravidlo je pevné a-priori (ne z placeba).
 - **Omezení do reportu:** placebo semena jsou jen aproximace falešných semen skutečného běhu (skutečná semena mají vlastní falešný podíl, ten tu není započten);
   placebo průlety mají sezónu před událostí (jiné počasí než po povodni); obálka předpokládá, že hladina je jedna po úseku 500 m a že voda teče podle terénu (HAND).
   Výsledky měření na Trishuli viz PROGRESS.

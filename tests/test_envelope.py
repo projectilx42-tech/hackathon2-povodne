@@ -150,3 +150,43 @@ def test_without_anomaly_step_is_skipped(tmp_path):
     res = envelope.run(run)
     rj = json.loads((run / "run.json").read_text())
     assert not res["used"] and any(n["code"] == "envelope_no_reference" for n in rj["notices"])
+
+
+def test_close_gaps_fills_holes_inside_envelope_only():
+    det = np.zeros((60, 60), bool)
+    det[10:50, 10:50] = True
+    det[28:32, 28:32] = False                             # a hole
+    det[20:22, 50:53] = False
+    env = np.ones_like(det)
+    out = envelope.close_gaps(det, env, 4)
+    assert out[28:32, 28:32].all() and (out | ~det).all()  # hole filled, nothing removed
+    assert not envelope.close_gaps(det, np.zeros_like(det), 4)[28:32, 28:32].any()   # outside the envelope: no filling
+    assert (envelope.close_gaps(det, env, 0) == det).all()
+
+
+def test_add_pixels_closing_takes_class_of_nearest_detection():
+    shape = (80, 80)
+    labelled = np.zeros(shape, np.uint8)
+    labelled[20:60, 20:40] = 2
+    labelled[20:60, 44:60] = 3
+    existing = labelled > 0
+    env = np.ones(shape, bool)
+    z = np.zeros(shape, np.float32)
+    ev, dk = envelope.radar_evidence(z, 2.0)
+    aw, ad = envelope.add_pixels(env, existing, np.zeros(shape, bool), ev, dk, existing, labelled, 4)
+    assert aw[30:50, 40:42].all() is not None
+    assert (aw | ad)[30:50, 40:44].all()                  # the 4 px gap between the two detections is bridged
+    assert aw[30:50, 40:41].all() and ad[30:50, 43:44].all()   # each side takes the nearest class
+
+
+def test_ndvi_rule_needs_drop_and_low_result():
+    pre = np.zeros((6, 20, 20), np.float32)
+    post = np.zeros((6, 20, 20), np.float32)
+    pre[3], pre[2] = 0.5, 0.05                            # NDVI 0.82
+    post[3], post[2] = 0.15, 0.10                         # NDVI 0.2: dropped by 0.62, ends < 0.3
+    ok = np.ones((20, 20), bool)
+    assert envelope.ndvi_drop(pre, post, ok).all()
+    post2 = post.copy()
+    post2[3], post2[2] = 0.5, 0.1                         # NDVI 0.67: drop 0.15 < 0.2
+    assert not envelope.ndvi_drop(pre, post2, ok).any()
+    assert not envelope.ndvi_drop(pre, post, ~ok).any()   # not clean in both images

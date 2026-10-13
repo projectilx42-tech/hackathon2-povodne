@@ -8,15 +8,16 @@ signal is weak. A flood mapper draws the whole inundated area down to the level 
              drainage) of the seeds in the block (at least 20 seeds; a block with fewer pools its 3 x 3 neighbours);
 3. envelope = pixels with HAND <= level of their block that are connected to the seeds (or to permanent water);
 4. evidence inside the envelope = radar anomaly |z_comb| >= tz (flood/s1_anomaly.tif, against the place's own year-long normal)
-             OR an NDVI drop >= NDVI_DROP on pixels clean in both Sentinel-2 images; smoothed with a 5 x 5 majority filter;
+             OR an NDVI drop > NDVI_DROP ending below NDVI_POST_MAX on pixels clean in both Sentinel-2 images (a-priori rule, D-X-10);
+             smoothed with a 5 x 5 majority filter; then a closing of radius r px bridges gaps and fills holes inside the envelope;
 5. added   = envelope pixels with evidence that are not already detected: class 2 (water) where the radar says darker,
              class 3 (debris, subtype unknown, low confidence) otherwise. Existing detections and permanent water are never changed.
 
 No parameter is tuned against any reference map (D-006). q, block size and tz are chosen from the **placebo**: the same
 procedure on passes from before the event (seeds = placebo anomaly detections on the valley floor, the same envelope, the same
-evidence test on the placebo z) must add little. Estimated precision of the added area = 1 - placebo added area / added area
+evidence test on the placebo z) must add little. Estimated precision of the detected area = 1 - placebo false area / (existing + added area)
 (the optical test has no placebo pair: its false rate is measured on control pixels far from any detection and is
-conservative). The working point is the most sensitive setting (largest added area) with estimated precision >= `MIN_PRECISION`.
+conservative). The working point is the most sensitive setting (largest added area) with estimated precision >= `MIN_PRECISION`; q, tz and r are chosen jointly.
 
 Reads  flood/ai_mask.tif, flood/debris_mask.tif (optional), flood/s1_anomaly.tif, masks/hand.tif, masks/slope.tif,
        masks/s2_{pre,post}_valid.tif + aligned/s2_{pre,post}.tif (optional), run.json (s1anomaly), raw/s1*/ (placebo, via s1anomaly)
@@ -47,7 +48,9 @@ BLOCK_GRID = (50,)                 # block size in pixels (50 px = 500 m at 10 m
 TZ_GRID = (3.0, 2.5, 2.0, 1.5)     # evidence threshold on |z_comb| (lower = more sensitive)
 MIN_PRECISION = 0.85               # D-X-08
 MIN_BLOCK_SEEDS = 20
-NDVI_DROP = 0.3                    # generic vegetation-loss threshold; no placebo pair exists, see `optical_false_rate`
+NDVI_DROP = 0.2                    # a-priori physical rule (D-X-10): NDVI falls by more than 0.2 and ends below NDVI_POST_MAX; no placebo pair, see `optical_false_rate`
+NDVI_POST_MAX = 0.3
+R_GRID = (0, 3, 6)                 # closing radius in pixels that bridges small gaps / fills holes inside the envelope (0 = off)
 SEED_Z_PLACEBO = -3.0              # placebo seeds: the strict anomaly detections of the placebo passes (same for the real strict level)
 HAND_BIN_M, HAND_MAX_M = 0.5, 150.0
 SMOOTH = 5
@@ -109,12 +112,15 @@ def radar_evidence(z_comb: np.ndarray, tz: float) -> tuple[np.ndarray, np.ndarra
     return neg | pos, neg & ~pos
 
 
-def ndvi_drop(pre: np.ndarray, post: np.ndarray, valid: np.ndarray, drop: float = NDVI_DROP) -> np.ndarray:
-    """Smoothed NDVI-drop evidence on pixels clean in both Sentinel-2 images. pre/post: [6, H, W] reflectance (B02..B12)."""
+def ndvi_drop(pre: np.ndarray, post: np.ndarray, valid: np.ndarray, drop: float = NDVI_DROP,
+              post_max: float = NDVI_POST_MAX) -> np.ndarray:
+    """Smoothed optical evidence on pixels clean in both Sentinel-2 images: NDVI fell by more than `drop` and ends below
+    `post_max` (vegetation replaced by water, mud or bare ground). pre/post: [6, H, W] reflectance (B02..B12)."""
     def ndvi(a):
         return (a[3] - a[2]) / np.maximum(a[3] + a[2], 1e-6)
-    d = ndvi(pre) - ndvi(post)
-    return smooth_bool(valid & np.isfinite(d) & (d >= drop))
+    n_post = ndvi(post)
+    d = ndvi(pre) - n_post
+    return smooth_bool(valid & np.isfinite(d) & (d > drop) & (n_post < post_max))
 
 
 def apply_evidence(env: np.ndarray, seeds: np.ndarray, permanent: np.ndarray, evidence: np.ndarray, darker: np.ndarray,
@@ -122,6 +128,52 @@ def apply_evidence(env: np.ndarray, seeds: np.ndarray, permanent: np.ndarray, ev
     """Added pixels = envelope & evidence, not already detected or permanent water. Returns (added water, added debris)."""
     add = env & evidence & ~seeds & ~permanent & ~existing
     return add & darker, add & ~darker
+
+
+def close_gaps(det: np.ndarray, env: np.ndarray, r: int) -> np.ndarray:
+    """Morphological closing of the detections with a disk of radius r (pixels) and hole filling, kept inside the envelope.
+    Works on the bounding box of the envelope only (speed). r = 0: unchanged."""
+    if r <= 0 or not det.any():
+        return det
+    ys, xs = np.nonzero(env | det)
+    y0, y1, x0, x1 = max(ys.min() - r - 1, 0), ys.max() + r + 2, max(xs.min() - r - 1, 0), xs.max() + r + 2
+    d, e = det[y0:y1, x0:x1], env[y0:y1, x0:x1]
+    dil = ndimage.distance_transform_edt(~d) <= r                  # dilation by a disk
+    clo = (ndimage.distance_transform_edt(dil) > r) | d              # erosion of the dilation = closing
+    closed = ndimage.binary_fill_holes(clo) & (e | d)
+    out = det.copy()
+    out[y0:y1, x0:x1] = closed | d
+    return out
+
+
+def nearest_class(labelled: np.ndarray, fill: np.ndarray) -> np.ndarray:
+    """Class (2 / 3) of the nearest labelled pixel for every `fill` pixel."""
+    idx = ndimage.distance_transform_edt(labelled == 0, return_distances=False, return_indices=True)
+    return labelled[idx[0], idx[1]]
+
+
+def add_pixels(env, seeds, perm, evidence, darker, existing, labelled, r):
+    """Added (water, debris) pixels: envelope & evidence, then closing of radius r over the detections (existing + added), the
+    pixels filled by the closing take the class of the nearest labelled pixel. `labelled`: 2 / 3 on the existing detections."""
+    aw, ad = apply_evidence(env, seeds, perm, evidence, darker, existing)
+    if r > 0:
+        det = existing | aw | ad
+        fill = close_gaps(det, env, r) & ~det & ~perm
+        if fill.any():
+            lab = np.where(aw, WATER, np.where(ad, DEBRIS, labelled)).astype(np.uint8)
+            ys, xs = np.nonzero(fill)
+            y0, y1, x0, x1 = max(ys.min() - r - 2, 0), ys.max() + r + 3, max(xs.min() - r - 2, 0), xs.max() + r + 3
+            cls = nearest_class(lab[y0:y1, x0:x1], fill[y0:y1, x0:x1])
+            f = fill[y0:y1, x0:x1]
+            aw[y0:y1, x0:x1] |= f & (cls == WATER)
+            ad[y0:y1, x0:x1] |= f & (cls != WATER)
+    return aw, ad
+
+
+def placebo_false(penv, pseeds, perm, pev, r) -> int:
+    """False area of the placebo: envelope pixels with placebo evidence plus the closing, minus the placebo seeds."""
+    det = pseeds | (penv & pev & ~perm)
+    return int((close_gaps(det, penv, r) & ~pseeds & ~perm).sum())
 
 
 def placebo_added(env: np.ndarray, seeds: np.ndarray, permanent: np.ndarray, evidence: np.ndarray) -> int:
@@ -221,26 +273,32 @@ def run(run_dir: Path) -> dict:
         notices.append(_notice("envelope_no_working_point", msg))
         return finish({"used": False, "reason": msg}, "skipped", msg)
 
+    labelled = np.where(ai == WATER, WATER, np.where(deb == 1, DEBRIS, 0)).astype(np.uint8) if deb is not None else np.where(ai == WATER, WATER, 0).astype(np.uint8)
+    n_exist = int(existing.sum())
     rows, cache = [], {}
     for q, block in itertools.product(Q_GRID, BLOCK_GRID):
         env, einfo = envelope(hand, seeds, perm, q, block)
         penv, _ = envelope(hand, pseeds, perm, q, block)
         cache[(q, block)] = env
         ctrl_rate = optical_false_rate(opt, optq & ~env & ~existing) if opt is not None else 0.0
+        opt_fp = ctrl_rate * float((env & ~existing).sum())
         for tz in TZ_GRID:
             ev, dk = radar_evidence(z, tz)
             pev, _ = radar_evidence(zp, tz)
-            aw, ad = apply_evidence(env, seeds, perm, ev | (opt if opt is not None else False), dk, existing)
-            added = int(aw.sum() + ad.sum())
-            fp = placebo_added(penv, pseeds, perm, pev) + ctrl_rate * float((env & ~existing).sum())
-            rows.append({"q": q, "block_px": block, "tz": tz, "added_px": added, "added_km2": round(added * px_km2, 4),
-                         "placebo_false_km2": round(fp * px_km2, 4),
-                         "est_precision": round(max(0.0, 1.0 - fp / added), 3) if added else 1.0,
-                         "envelope_km2": round(int((env & ~existing).sum()) * px_km2, 4),
-                         "median_level_m": einfo["median_level_m"], "optical_false_rate": round(ctrl_rate, 5)})
+            ev_all = ev | (opt if opt is not None else False)
+            for r in R_GRID:
+                aw, ad = add_pixels(env, seeds, perm, ev_all, dk, existing, labelled, r)
+                added = int(aw.sum() + ad.sum())
+                fp = placebo_false(penv, pseeds, perm, pev, r) + opt_fp
+                rows.append({"q": q, "block_px": block, "tz": tz, "r_px": r, "added_px": added, "added_km2": round(added * px_km2, 4),
+                             "placebo_false_km2": round(fp * px_km2, 4),
+                             "est_precision": round(max(0.0, 1.0 - fp / (n_exist + added)), 3),   # of the detected area (existing + added)
+                             "est_precision_added": round(max(0.0, 1.0 - fp / added), 3) if added else 1.0,
+                             "envelope_km2": round(int((env & ~existing).sum()) * px_km2, 4),
+                             "median_level_m": einfo["median_level_m"], "optical_false_rate": round(ctrl_rate, 5)})
     best = choose(rows)
     section = {"used": False, "min_precision": MIN_PRECISION, "placebo": placebo_kind, "seeds_km2": round(seeds_n * px_km2, 4),
-               "placebo_seeds_km2": round(int(pseeds.sum()) * px_km2, 4), "ndvi_drop": NDVI_DROP if opt is not None else None,
+               "placebo_seeds_km2": round(int(pseeds.sum()) * px_km2, 4), "ndvi_drop": NDVI_DROP if opt is not None else None, "ndvi_post_max": NDVI_POST_MAX, "existing_km2": round(n_exist * px_km2, 4),
                "optical_used": opt is not None, "grid": rows,
                "method": "HAND envelope of certain detections + weak change evidence; parameters from placebo only (D-X-09)"}
     if best is None:
@@ -251,7 +309,7 @@ def run(run_dir: Path) -> dict:
 
     env = cache[(best["q"], best["block_px"])]
     ev, dk = radar_evidence(z, best["tz"])
-    aw, ad = apply_evidence(env, seeds, perm, ev | (opt if opt is not None else False), dk, existing)
+    aw, ad = add_pixels(env, seeds, perm, ev | (opt if opt is not None else False), dk, existing, labelled, best["r_px"])
     out = np.zeros(shape, np.uint8)
     out[ad], out[aw] = DEBRIS, WATER
     p = {**prof, "count": 1, "dtype": "uint8", "nodata": 0, "compress": "deflate"}
@@ -259,13 +317,13 @@ def run(run_dir: Path) -> dict:
         p.pop(k, None)
     with rasterio.open(fdir / "envelope_mask.tif", "w", **p) as ds:
         ds.write(out, 1)
-    section.update(used=True, chosen={k: best[k] for k in ("q", "block_px", "tz", "est_precision", "placebo_false_km2", "median_level_m")},
+    section.update(used=True, chosen={k: best[k] for k in ("q", "block_px", "tz", "r_px", "est_precision", "est_precision_added", "placebo_false_km2", "median_level_m")},
                    added_km2={"water": round(int(aw.sum()) * px_km2, 4), "debris": round(int(ad.sum()) * px_km2, 4),
                               "total": best["added_km2"]})
-    msg = (f"The water-level envelope added {best['added_km2']:.2f} km² (estimated precision {best['est_precision']:.0%}, "
+    msg = (f"The water-level envelope added {best['added_km2']:.2f} km² (estimated precision of the detected area {best['est_precision']:.0%}, "
            "from a placebo test); shown with low confidence.")
     notices.append(_notice("envelope_applied", msg, **section["chosen"]))
-    return finish(section, "done", f"added {best['added_km2']:.2f} km² (q={best['q']}, tz={best['tz']}, est. precision {best['est_precision']:.2f})")
+    return finish(section, "done", f"added {best['added_km2']:.2f} km² (q={best['q']}, tz={best['tz']}, r={best['r_px']}, est. precision {best['est_precision']:.2f})")
 
 
 def main() -> None:
