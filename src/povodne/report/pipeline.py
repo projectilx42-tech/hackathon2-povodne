@@ -49,7 +49,7 @@ def run(run_dir: Path, cfg: ReportConfig | None = None) -> dict:
                           errors=ov_err))
 
     S.finish(st, rj, own, cfg)
-    (run_dir / "stats.json").write_text(json.dumps(st, indent=2, ensure_ascii=False, default=str))
+    (run_dir / "stats.json").write_text(json.dumps(st, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
 
     info = {}
     try:
@@ -60,11 +60,11 @@ def run(run_dir: Path, cfg: ReportConfig | None = None) -> dict:
                           "stats.json and the map are still available.", error=str(exc)))
         try:
             (run_dir / "report").mkdir(exist_ok=True)
-            (run_dir / "report" / "sitrep_en.md").write_text(sitrep.markdown(st))
+            (run_dir / "report" / "sitrep_en.md").write_text(sitrep.markdown(st), encoding="utf-8")
         except Exception:
             log.exception("markdown sitrep failed too")
         S.finish(st, rj, own, cfg)
-        (run_dir / "stats.json").write_text(json.dumps(st, indent=2, ensure_ascii=False, default=str))
+        (run_dir / "stats.json").write_text(json.dumps(st, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
 
     section = {"verdict": st["verdict"], "overlays": sorted(index), "sitrep": info, "params": cfg.__dict__,
                "runtime_s": round(time.time() - t0, 1)}

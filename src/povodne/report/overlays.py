@@ -185,5 +185,5 @@ def render_all(run_dir: Path, max_px: int = 2048) -> tuple[dict, dict]:
         _save(rgba, out / f"{name}.png")
         index[name] = {"bounds": bounds}
     out.mkdir(parents=True, exist_ok=True)
-    (out / "index.json").write_text(json.dumps(index, indent=2))
+    (out / "index.json").write_text(json.dumps(index, indent=2), encoding="utf-8")
     return index, errors

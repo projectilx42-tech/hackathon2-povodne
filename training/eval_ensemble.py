@@ -89,7 +89,7 @@ def main() -> None:
         rep["flood_threshold"][str(t)] = r
         print(f"  flood if P>={t:g}: score {r['score']:.4f} flood F1 {r['overall']['flood']['f1']:.4f} "
               f"prec {r['overall']['flood']['precision']:.3f} recall {r['overall']['flood']['recall']:.3f}", flush=True)
-    args.out.write_text(json.dumps(rep, indent=1))
+    args.out.write_text(json.dumps(rep, indent=1), encoding="utf-8")
     o = rep["overall"]
     mtn = rep.get("per_terrain", {}).get("mountainous (>200 m)", {}).get("flood", {})
     print(f"score {macro_score(rep):.4f} flood F1 {o['flood']['f1']:.4f} IoU {o['flood']['iou']:.4f} "

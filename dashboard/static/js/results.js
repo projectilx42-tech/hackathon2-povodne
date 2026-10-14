@@ -157,7 +157,15 @@ export function createResults(root, api) {
   async function renderResult(runId, run, stats) {
     const nb = noticeBuckets(run, stats);
     setAlert(alertBar(nb.errors));
-    if (!stats) { setView(sec('No results', el('p', { class: 'notice warn', text: 'This run has no statistics file (stats.json) yet.' }))); return; }
+    if (!stats) {
+      // the flood map exists but a later step (usually network or report) failed: say which one instead of a bare "no stats"
+      const failed = (run?.progress?.steps ?? []).filter(x => x.state === 'failed');
+      setView(sec('No results',
+        el('p', { class: 'notice warn', text: failed.length ? 'The map layers were produced, but the summary numbers and the situation report were not.' : 'This run has no statistics file (stats.json) yet.' }),
+        ...failed.map(x => el('p', { class: 'notice bad', style: 'margin-top:8px', text: `Step failed: ${STEP_LABEL[x.name] ?? x.name}${x.message ? ` (${x.message})` : ''}` })),
+        failed.length ? el('p', { class: 'muted', style: 'margin-top:12px', text: 'Details are in logs/pipeline.log in the run folder. Running the same area and date again re-uses the downloaded data.' }) : null));
+      return;
+    }
     const v = VERDICT[stats.verdict] ?? { cls: 'warn', icon: 'info', title: stats.verdict ?? 'Unknown' };
     const D = api.layers.data ?? {};
     const cov = stats.coverage ?? {}, fl = stats.flood ?? {}, ac = stats.access ?? {};

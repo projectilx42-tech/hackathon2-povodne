@@ -60,10 +60,10 @@ def _notice(code: str, message: str, **details) -> dict:
 
 def _update_run_json(run_dir: Path, fn) -> None:
     path = run_dir / "run.json"
-    rj = json.loads(path.read_text())
+    rj = json.loads(path.read_text(encoding="utf-8"))
     fn(rj)
     tmp = run_dir / "run.json.tmp"
-    tmp.write_text(json.dumps(rj, indent=2, default=str))
+    tmp.write_text(json.dumps(rj, indent=2, default=str), encoding="utf-8")
     tmp.replace(path)
 
 
@@ -290,12 +290,12 @@ def run(run_dir: Path) -> dict:
 
 
 def _run(run_dir: Path, notices: list[dict]) -> dict:
-    rj = json.loads((run_dir / "run.json").read_text())
+    rj = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
     acq = rj.get("acquire") or {}
     grid = reference_grid(run_dir, rj)
     (run_dir / "aligned").mkdir(parents=True, exist_ok=True)
     (run_dir / "masks").mkdir(parents=True, exist_ok=True)
-    (run_dir / "aligned" / "grid.json").write_text(json.dumps(grid.to_json(), indent=2))
+    (run_dir / "aligned" / "grid.json").write_text(json.dumps(grid.to_json(), indent=2), encoding="utf-8")
     aoi = rasterize([(transform_geom("EPSG:4326", grid.crs, mapping(catalog.aoi_to_geometry(rj["aoi"]))), 1)],
                     out_shape=grid.shape, transform=grid.transform, fill=0, dtype="uint8").astype(bool)
     n_aoi = max(int(aoi.sum()), 1)

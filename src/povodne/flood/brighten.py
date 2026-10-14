@@ -79,7 +79,7 @@ def run(run_dir: Path, seeds: np.ndarray, excluded: np.ndarray, transform, crs) 
         return off, {"used": False, "reason": "off (POVODNE_BRIGHTEN=1 turns it on)"}
     z_vv, _ = _read(run_dir / "flood" / "s1_anomaly.tif", 1)
     z_vh, _ = _read(run_dir / "flood" / "s1_anomaly.tif", 2)
-    rj = json.loads((run_dir / "run.json").read_text()) if (run_dir / "run.json").exists() else {}
+    rj = json.loads((run_dir / "run.json").read_text(encoding="utf-8")) if (run_dir / "run.json").exists() else {}
     thr = (rj.get("s1anomaly") or {}).get("threshold_z_vv_bright")
     hand, _ = _read(run_dir / "masks" / "hand.tif")
     slope, _ = _read(run_dir / "masks" / "slope.tif")

@@ -153,7 +153,7 @@ def _series(run_dir: Path, prefix: str, norm: np.ndarray, which: str) -> list:
     tif, js = run_dir / "raw" / prefix / "post_series.tif", run_dir / "raw" / prefix / "post_series.json"
     if not tif.exists() or not js.exists():
         return []
-    info = json.loads(js.read_text())
+    info = json.loads(js.read_text(encoding="utf-8"))
     stack, _ = _read(tif)
     if stack.shape[1:] != norm.shape[1:]:
         return []

@@ -129,7 +129,7 @@ def _read_mask(path: Path, grid: Grid, resampling=Resampling.nearest) -> np.ndar
 
 
 def load(run_dir: Path) -> Inputs:
-    rj = json.loads((run_dir / "run.json").read_text())
+    rj = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
     acq = rj.get("acquire") or {}
     posts = sorted((run_dir / "raw" / "s1").glob("post_[0-9]*.tif"))
     if not posts:

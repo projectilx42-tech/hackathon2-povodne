@@ -224,7 +224,7 @@ def drop_small_patches_by_terrain(mask: np.ndarray, min_px) -> np.ndarray:
 def sensitive_threshold(model_path: Path, cfg: dict) -> float:
     """Repo file training/thresholds.json (keyed by the model folder name) wins over the downloaded model card (D-M10-07)."""
     try:
-        t = json.loads((Path(__file__).resolve().parent / "thresholds.json").read_text())
+        t = json.loads((Path(__file__).resolve().parent / "thresholds.json").read_text(encoding="utf-8"))
         return float(t[Path(model_path).resolve().parent.name]["sensitive"])
     except (OSError, KeyError, ValueError, TypeError):
         return cfg.get("flood_thresholds", {}).get("sensitive", SENSITIVE_DEFAULT)
@@ -236,7 +236,7 @@ def edge_params(model_path: Path) -> dict | None:
     if os.environ.get("POVODNE_AI_EDGE", "1") == "0":
         return None
     try:
-        t = json.loads((Path(__file__).resolve().parent / "thresholds.json").read_text())
+        t = json.loads((Path(__file__).resolve().parent / "thresholds.json").read_text(encoding="utf-8"))
         return t[Path(model_path).resolve().parent.name].get("edge")
     except (OSError, KeyError, ValueError):
         return None
@@ -252,7 +252,7 @@ def load_anomaly(run: Path, profile: dict):
     rj = run / "run.json"
     thr = None
     if rj.exists():
-        sec = json.loads(rj.read_text()).get("s1anomaly") or {}
+        sec = json.loads(rj.read_text(encoding="utf-8")).get("s1anomaly") or {}
         thr = sec.get("threshold_z_comb") if sec.get("used") else None
     return (None, None) if z is None or thr is None else (z, thr)
 
@@ -346,7 +346,7 @@ def main() -> None:
                             "supported_px": int(((strength > 0) & (count > 0)).sum())}
 
     run_json = run / "run.json"
-    meta = json.loads(run_json.read_text()) if run_json.exists() else {}
+    meta = json.loads(run_json.read_text(encoding="utf-8")) if run_json.exists() else {}
     sensitivity = args.sensitivity or meta.get("sensitivity") or "sensitive"  # default since D-X-13
     threshold = None
     cls = probs.argmax(0)  # 0 no water, 1 permanent, 2 flood (model classes)
@@ -487,7 +487,7 @@ def main() -> None:
                                 "max_water_hand_m": args.max_water_hand_m,
                                 "perm_ref": {"used": ref is not None, "min_freq": args.perm_min_freq,
                                              "seasonal_high_water_km2": round(float(seasonal.sum()) * 1e-4, 3)}, "temperature": cfg.get("temperature", 1.0)}}
-    run_json.write_text(json.dumps(meta, indent=2))
+    run_json.write_text(json.dumps(meta, indent=2), encoding="utf-8")
     px = mask.size
     print(f"ai: tracks={used} flood={int((mask == 2).sum()) * 1e-4:.2f} km2 perm={int((mask == 4).sum()) * 1e-4:.2f} km2 "
           f"nodata={100 * (mask == 0).sum() / px:.1f}% in {time.time() - t0:.0f}s")

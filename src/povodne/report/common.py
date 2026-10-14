@@ -36,7 +36,7 @@ def notice(code: str, message: str, **details) -> dict:
 
 def read_json(path: Path):
     try:
-        return json.loads(path.read_text())
+        return json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
 
@@ -47,7 +47,7 @@ def update_run_json(run_dir: Path, fn) -> None:
     rj = read_json(path) or {}
     fn(rj)
     tmp = run_dir / "run.json.tmp"
-    tmp.write_text(json.dumps(rj, indent=2, default=str, ensure_ascii=False))
+    tmp.write_text(json.dumps(rj, indent=2, default=str, ensure_ascii=False), encoding="utf-8")
     tmp.replace(path)
 
 

@@ -47,7 +47,7 @@ def build(run_dir: Path, folder: str, sh: SentinelHub, aoi, event: date, key: tu
     path = run_dir / "raw" / folder / "norm.tif"
     info_path = run_dir / "raw" / folder / "norm.json"
     if path.exists() and info_path.exists():
-        return json.loads(info_path.read_text())
+        return json.loads(info_path.read_text(encoding="utf-8"))
     passes = permwater.reference_passes(aoi, event, key, local, lookback_days, n_max)
     info = {"file": path.name, "lookback_days": lookback_days, "resolution_m": grid.res, "n_passes": len(passes),
             "dates": [f"{a.start:%Y-%m-%d}" for a in passes], "min_obs": MIN_OBS, "bands": list(BANDS)}
@@ -79,5 +79,5 @@ def build(run_dir: Path, folder: str, sh: SentinelHub, aoi, event: date, key: tu
         ds.write(out)
         for i, name in enumerate(BANDS, start=1):
             ds.set_band_description(i, name)
-    info_path.write_text(json.dumps(info))
+    info_path.write_text(json.dumps(info), encoding="utf-8")
     return info

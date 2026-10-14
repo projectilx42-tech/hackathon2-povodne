@@ -202,7 +202,7 @@ def trace(run_dir: Path, lon: float, lat: float, max_km: float = 50, hand_max_m:
     access = {}
     acc_path = run_dir / "network" / "settlements_access.geojson"
     if acc_path.exists():
-        for f in json.loads(acc_path.read_text()).get("features", []):
+        for f in json.loads(acc_path.read_text(encoding="utf-8")).get("features", []):
             p = f.get("properties") or {}
             if p.get("osm_id") is not None:
                 access[str(p["osm_id"])] = p
@@ -271,7 +271,7 @@ def trace(run_dir: Path, lon: float, lat: float, max_km: float = 50, hand_max_m:
     (out_dir / "along_path.json").write_text(json.dumps(
         {"start_lon": lon, "start_lat": lat, "length_km": round(length_km, 3), "near_m": near_m,
          "hand_max_m": hand_max_m, "bridges": bridges, "places": places},
-        ensure_ascii=False, indent=2))
+        ensure_ascii=False, indent=2), encoding="utf-8")
 
     summary = {"start_lon": lon, "start_lat": lat, "snapped_lon": round(float(start_ll[0]), 6),
                "snapped_lat": round(float(start_ll[1]), 6), "length_km": round(length_km, 3), "stop_reason": stop,
@@ -288,13 +288,13 @@ def _write_geojson(gdf: gpd.GeoDataFrame, path: Path) -> None:
         props = {k: _clean(r[k]) for k in gdf.columns if k != "geometry"}
         props = {k: v for k, v in props.items() if not (k in ("area_km2",) and v is None)}
         feats.append({"type": "Feature", "properties": props, "geometry": mapping(r.geometry)})
-    path.write_text(json.dumps({"type": "FeatureCollection", "features": feats}, ensure_ascii=False))
+    path.write_text(json.dumps({"type": "FeatureCollection", "features": feats}, ensure_ascii=False), encoding="utf-8")
 
 
 def _update_run_json(run_dir: Path, summary: dict) -> None:
     p = run_dir / "run.json"
-    data = json.loads(p.read_text()) if p.exists() else {}
+    data = json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
     data["floodpath"] = summary
     tmp = p.with_suffix(".json.tmp")
-    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2))
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     tmp.replace(p)

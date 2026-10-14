@@ -79,10 +79,10 @@ def _notice(code: str, message: str, **details) -> dict:
 
 def _update_run_json(run_dir: Path, fn) -> None:
     path = run_dir / "run.json"
-    rj = json.loads(path.read_text()) if path.exists() else {}
+    rj = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
     fn(rj)
     tmp = run_dir / "run.json.tmp"
-    tmp.write_text(json.dumps(rj, indent=2, default=str))
+    tmp.write_text(json.dumps(rj, indent=2, default=str), encoding="utf-8")
     tmp.replace(path)
 
 
@@ -147,9 +147,9 @@ def _r(a, nd=3) -> list:
 def _write_geojson(gdf: gpd.GeoDataFrame, path: Path) -> None:
     out = gdf.to_crs("EPSG:4326") if gdf.crs is not None and len(gdf) else gdf
     if not len(out):
-        path.write_text(json.dumps({"type": "FeatureCollection", "features": []}))
+        path.write_text(json.dumps({"type": "FeatureCollection", "features": []}), encoding="utf-8")
         return
-    path.write_text(out.to_json(na="null", drop_id=True))
+    path.write_text(out.to_json(na="null", drop_id=True), encoding="utf-8")
 
 
 # ----------------------------------------------------------------------------------------------- features
@@ -574,7 +574,7 @@ def run(run_dir: Path, cfg: DamageConfig | None = None) -> dict:
             notices.append(_notice("damage_unobserved", f"{100 * share:.0f} % of the buildings lie mostly where the "
                                    "flood map has no data (radar shadow, outside the image): their damage is unknown, "
                                    "not zero.", share=round(share, 3)))
-        (out_dir / "damage_summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False))
+        (out_dir / "damage_summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
     except Exception as exc:
         if not any(n["severity"] == "error" for n in notices):
             notices.append(_notice("damage_failed", f"The damage step failed ({exc}).", error=str(exc)))

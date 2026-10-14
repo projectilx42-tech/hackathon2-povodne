@@ -36,7 +36,7 @@ def parse_aoi(value: str) -> dict:
 
     p = Path(value)
     if p.is_file():
-        gj = json.loads(p.read_text())
+        gj = json.loads(p.read_text(encoding="utf-8"))
         if gj.get("type") == "FeatureCollection":
             geoms = [shape(f["geometry"]) for f in gj.get("features", []) if f.get("geometry")]
             if not geoms:
@@ -160,6 +160,7 @@ class Orchestrator:
         env = dict(os.environ)
         env["PYTHONPATH"] = os.pathsep.join([str(config.SRC_DIR)] + ([env["PYTHONPATH"]] if env.get("PYTHONPATH") else []))
         env["PYTHONUNBUFFERED"] = "1"
+        env["PYTHONUTF8"] = "1"  # Windows: text files and logs in UTF-8, not the local code page (place names, km²)
         with open(self.log, "ab") as log:
             log.write(f"\n=== {datetime.now(timezone.utc):%Y-%m-%d %H:%M:%S}Z step {name}: {' '.join(cmd[1:])}\n".encode())
             log.flush()
@@ -213,7 +214,7 @@ class Orchestrator:
             cmd = _step_command(name, module, self.run_dir)
             if cmd is None:
                 ok, msg = False, f"this step is not available in this installation yet (module {module} not found)"
-                with open(self.log, "a") as log:
+                with open(self.log, "a", encoding="utf-8") as log:
                     log.write(f"\n=== step {name}: {msg}\n")
             else:
                 set_step(self.run_dir, name, "running")

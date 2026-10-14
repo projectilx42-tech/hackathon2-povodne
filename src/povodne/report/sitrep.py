@@ -219,7 +219,7 @@ def render_map(run_dir: Path, out_png: Path) -> bool:
 
     def load(p):
         try:
-            return json.loads(p.read_text()).get("features", [])
+            return json.loads(p.read_text(encoding="utf-8")).get("features", [])
         except (OSError, ValueError):
             return []
     for f in load(run_dir / "network" / "road_cuts.geojson"):
@@ -411,7 +411,7 @@ def write_all(run_dir: Path, st: dict) -> dict:
     """Write report/sitrep_en.md (always) and report/sitrep_en.pdf (+ map image). Returns info for run.json."""
     rep = run_dir / "report"
     rep.mkdir(parents=True, exist_ok=True)
-    (rep / "sitrep_en.md").write_text(markdown(st))
+    (rep / "sitrep_en.md").write_text(markdown(st), encoding="utf-8")
     map_png = rep / "sitrep_map.png"
     has_map = False
     try:

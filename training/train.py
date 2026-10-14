@@ -312,7 +312,7 @@ def main():
         if key > best:
             best = key
             torch.save({"state_dict": eval_model.state_dict(), "config": config, "epoch": epoch}, args.out / "model.pt")
-            (args.out / "val_metrics.json").write_text(json.dumps({"epoch": epoch, **val_report}, indent=1))
+            (args.out / "val_metrics.json").write_text(json.dumps({"epoch": epoch, **val_report}, indent=1), encoding="utf-8")
     # Temperature scaling on the validation events: makes softmax probabilities calibrated (used as flood_prob).
     ckpt = torch.load(args.out / "model.pt", map_location=device, weights_only=False)
     eval_model.load_state_dict(ckpt["state_dict"])
@@ -334,7 +334,7 @@ def main():
         "trained_on": ["KuroSiwo GRD (official train events)"]
         + (["Sen1Floods11 hand-labelled (without Sri Lanka = Kuro Siwo test event 205, and without Bolivia = Sen1Floods11 test)"] if args.sen1floods11 else []),
         "split_events": {k: v for k, v in SPLIT_ACTS.items()},
-        "val_metrics": json.loads((args.out / "val_metrics.json").read_text())["overall"],
+        "val_metrics": json.loads((args.out / "val_metrics.json").read_text(encoding="utf-8"))["overall"],
         "created_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "license_notes": "Kuro Siwo (Bountos et al., 2024, CC BY 4.0)"
         + ("; Sen1Floods11 (Bonafilia et al., 2020)" if args.sen1floods11 else "") + ". ImageNet-pretrained encoder.",
@@ -350,16 +350,16 @@ def main():
         test = name_terrain(evaluate(model, te_dl, device, norm, args.slope).report())
         if args.tta:
             test["tta"] = name_terrain(evaluate(model, te_dl, device, norm, args.slope, tta=True).report())
-        (args.out / "test_metrics.json").write_text(json.dumps(test, indent=1))
+        (args.out / "test_metrics.json").write_text(json.dumps(test, indent=1), encoding="utf-8")
         card["test_metrics"] = test["overall"]
         card["test_metrics_by_terrain"] = test.get("per_terrain")
         print("TEST flood IoU", test["overall"]["flood"]["iou"], "water IoU", test["overall"]["water (perm+flood)"]["iou"])
         bolivia = evaluate_holdout(model, config, full_index, device)
         if bolivia is not None:
-            (args.out / "test_sen1floods11.json").write_text(json.dumps(bolivia, indent=1))
+            (args.out / "test_sen1floods11.json").write_text(json.dumps(bolivia, indent=1), encoding="utf-8")
             card["test_metrics_sen1floods11"] = {k: v for k, v in bolivia.items() if k != "per_chip"}
             print("TEST Sen1Floods11 Bolivia water", bolivia["water"])
-    (args.out / "model_card.json").write_text(json.dumps(card, indent=1))
+    (args.out / "model_card.json").write_text(json.dumps(card, indent=1), encoding="utf-8")
     print("done:", args.out)
 
 

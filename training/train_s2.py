@@ -215,11 +215,11 @@ def main() -> None:
             "split_events": {"train": sorted({c['event'] for c in train}), "val": sorted(VAL_EVENTS),
                              "test": sorted(TEST_EVENTS), "excluded": sorted(EXCLUDED)},
             "val_metrics": ev, "license_notes": "Sen1Floods11: CC BY 4.0 (mirrors); ImageNet-pretrained encoder"}
-    (args.out / "history.json").write_text(json.dumps(history, indent=1))
+    (args.out / "history.json").write_text(json.dumps(history, indent=1), encoding="utf-8")
     if args.test:
         card["test_metrics"] = evaluate(model, test, norm, args.device, temperature)
         print("TEST", card["test_metrics"]["overall"], flush=True)
-    (args.out / "model_card.json").write_text(json.dumps(card, indent=1))
+    (args.out / "model_card.json").write_text(json.dumps(card, indent=1), encoding="utf-8")
     print(f"done in {time.time() - t0:.0f}s", flush=True)
 
 

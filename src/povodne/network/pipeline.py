@@ -53,10 +53,10 @@ def _notice(code: str, message: str, **details) -> dict:
 # ----------------------------------------------------------------------------------------------- run.json
 def _update_run_json(run_dir: Path, fn) -> None:
     path = run_dir / "run.json"
-    rj = json.loads(path.read_text()) if path.exists() else {}
+    rj = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
     fn(rj)
     tmp = run_dir / "run.json.tmp"
-    tmp.write_text(json.dumps(rj, indent=2, default=str, ensure_ascii=False))
+    tmp.write_text(json.dumps(rj, indent=2, default=str, ensure_ascii=False), encoding="utf-8")
     tmp.replace(path)
 
 
@@ -104,14 +104,14 @@ def write_geojson(path: Path, gdf: gpd.GeoDataFrame) -> None:
         feats.append({"type": "Feature", "properties": {k: _clean(v) for k, v in rec.items()},
                       "geometry": None if geom is None or geom.is_empty else mapping(geom)})
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({"type": "FeatureCollection", "features": feats}, ensure_ascii=False))
+    path.write_text(json.dumps({"type": "FeatureCollection", "features": feats}, ensure_ascii=False), encoding="utf-8")
 
 
 def read_geojson(path: Path) -> gpd.GeoDataFrame | None:
     """Read GeoJSON keeping list properties as Python lists. None if the file does not exist."""
     if not path.exists():
         return None
-    fc = json.loads(path.read_text())
+    fc = json.loads(path.read_text(encoding="utf-8"))
     feats = [f for f in fc.get("features", []) if f.get("geometry")]
     if not feats:
         return gpd.GeoDataFrame({"osm_id": []}, geometry=[], crs="EPSG:4326")
@@ -133,7 +133,7 @@ def _boundary(run_dir: Path, roads: gpd.GeoDataFrame, cfg: NetworkConfig):
     """Extent of the downloaded road data in the processing CRS: AOI bbox + OSM buffer (as in acquire/osm.py),
     falling back to the bounds of the roads themselves."""
     try:
-        rj = json.loads((run_dir / "run.json").read_text())
+        rj = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
         aoi = shape(rj["aoi"]) if rj.get("aoi") else None
     except Exception:
         rj, aoi = {}, None
@@ -425,7 +425,7 @@ def _run(run_dir: Path, cfg: NetworkConfig, notices: list, t0: float) -> dict:
     for c in ("repair_rank", "n_settlements_cut", "n_buildings_cut", "reconnects_settlements", "reconnects_buildings"):
         cuts_gdf[c] = pd.array(cuts_gdf[c].tolist(), dtype="Int64")
     write_geojson(out_dir / "road_cuts.geojson", cuts_gdf)
-    (out_dir / "repair_priority.json").write_text(json.dumps(priority, indent=2, ensure_ascii=False, default=_clean))
+    (out_dir / "repair_priority.json").write_text(json.dumps(priority, indent=2, ensure_ascii=False, default=_clean), encoding="utf-8")
 
     # --- facilities ---------------------------------------------------------------------------------------
     fa = fac_src.copy()
@@ -503,7 +503,7 @@ def _run(run_dir: Path, cfg: NetworkConfig, notices: list, t0: float) -> dict:
         "params": cfg.to_json(),
         "runtime_s": round(time.time() - t0, 1),
     }
-    (out_dir / "graph_stats.json").write_text(json.dumps(stats, indent=2, ensure_ascii=False))
+    (out_dir / "graph_stats.json").write_text(json.dumps(stats, indent=2, ensure_ascii=False), encoding="utf-8")
     log.info("network done in %.1f s: %s", stats["runtime_s"], stats["settlements_by_status"])
     return {k: stats[k] for k in ("settlements_total", "settlements_by_status", "settlements_by_impact", "road_cuts",
                                   "facilities_by_access", "landing_zones", "runtime_s", "nodes", "edges")} | {

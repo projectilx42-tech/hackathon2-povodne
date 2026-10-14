@@ -113,7 +113,7 @@ def put_dir(kind: str, k: str, src: Path) -> None:
     try:
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copytree(src, tmp)
-        (tmp / ".complete").write_text("ok")
+        (tmp / ".complete").write_text("ok", encoding="utf-8")
         if dest.exists():
             shutil.rmtree(dest, ignore_errors=True)
         os.replace(tmp, dest)

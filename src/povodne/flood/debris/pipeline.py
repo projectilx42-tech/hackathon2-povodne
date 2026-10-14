@@ -50,10 +50,10 @@ def _notice(code: str, message: str, **details) -> dict:
 
 def _update_run_json(run_dir: Path, fn) -> None:
     path = run_dir / "run.json"
-    rj = json.loads(path.read_text())
+    rj = json.loads(path.read_text(encoding="utf-8"))
     fn(rj)
     tmp = run_dir / "run.json.tmp"
-    tmp.write_text(json.dumps(rj, indent=2, default=str))
+    tmp.write_text(json.dumps(rj, indent=2, default=str), encoding="utf-8")
     tmp.replace(path)
 
 

@@ -55,7 +55,7 @@ class AcquireConfig:
 # ---------- run.json helpers (until the skeleton provides them) ----------
 
 def _load(run_dir: Path) -> dict:
-    return json.loads((run_dir / "run.json").read_text())
+    return json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
 
 
 def _save(run_dir: Path, rj: dict, keep_progress: bool = True) -> None:
@@ -66,9 +66,9 @@ def _save(run_dir: Path, rj: dict, keep_progress: bool = True) -> None:
 def _save_locked(run_dir: Path, rj: dict, keep_progress: bool) -> None:
     current = run_dir / "run.json"
     if keep_progress and current.exists():  # progress is written by _progress; never roll it back with an older copy
-        rj["progress"] = json.loads(current.read_text()).get("progress", rj.get("progress"))
+        rj["progress"] = json.loads(current.read_text(encoding="utf-8")).get("progress", rj.get("progress"))
     tmp = run_dir / "run.json.tmp"
-    tmp.write_text(json.dumps(rj, indent=2, default=str))
+    tmp.write_text(json.dumps(rj, indent=2, default=str), encoding="utf-8")
     tmp.replace(run_dir / "run.json")
 
 
@@ -253,7 +253,7 @@ def run(run_dir: Path, cfg: AcquireConfig | None = None) -> None:
         _run(run_dir, rj, cfg, sh, warnings)
     except Exception as exc:
         (run_dir / "logs").mkdir(exist_ok=True)
-        with open(run_dir / "logs" / "pipeline.log", "a") as f:
+        with open(run_dir / "logs" / "pipeline.log", "a", encoding="utf-8") as f:
             f.write(traceback.format_exc())
         code = "cdse_credentials" if isinstance(exc, MissingCredentials) else "acquire_failed"
         _store_warnings(rj, warnings + [Notice(code, f"Data download failed: {exc}", error=str(exc))])
@@ -305,13 +305,13 @@ def _s2_download(d, grid: Grid, path: Path) -> dict:
     if cache.get_file("s2", ck, path, ".tif"):
         tmp = path.with_suffix(".json.tmp")
         if cache.get_file("s2", ck, tmp, ".json"):
-            run_meta = json.loads(tmp.read_text())
+            run_meta = json.loads(tmp.read_text(encoding="utf-8"))
             tmp.unlink(missing_ok=True)
             return run_meta
         path.unlink(missing_ok=True)  # image without its record: download again
     meta = sentinel2.download(d, grid, path)
     tmp = path.with_suffix(".json.tmp")
-    tmp.write_text(json.dumps(meta))
+    tmp.write_text(json.dumps(meta), encoding="utf-8")
     cache.put_file("s2", ck, path, ".tif")
     cache.put_file("s2", ck, tmp, ".json")
     tmp.unlink(missing_ok=True)
@@ -324,7 +324,7 @@ def _osm_job(aoi, event, epsg, run_dir: Path, cfg: AcquireConfig):
         ck = cache.key("osm", aoi.wkb_hex, event.isoformat(), epsg, cfg.osm_buffer_m, "v1")
         stage = run_dir / ".osm_cache_tmp"
         if cache.get_dir("osm", ck, stage) and (stage / "info.json").exists():
-            info = json.loads((stage / "info.json").read_text())
+            info = json.loads((stage / "info.json").read_text(encoding="utf-8"))
             for part in ("raw/osm", "osm"):
                 if (stage / part).exists():
                     shutil.copytree(stage / part, run_dir / part, dirs_exist_ok=True)
@@ -338,7 +338,7 @@ def _osm_job(aoi, event, epsg, run_dir: Path, cfg: AcquireConfig):
             if (run_dir / part).exists():
                 shutil.copytree(run_dir / part, bundle / part)
         (bundle).mkdir(exist_ok=True)
-        (bundle / "info.json").write_text(json.dumps(info, default=str))
+        (bundle / "info.json").write_text(json.dumps(info, default=str), encoding="utf-8")
         cache.put_dir("osm", ck, bundle)
         shutil.rmtree(bundle, ignore_errors=True)
         return info, []
@@ -649,5 +649,5 @@ def new_run(out: Path, aoi, event: str, pre_window=None, post_window=None, event
           "pre_window": pre_window, "post_window": post_window,
           "created_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "warnings": [],
           "progress": {"state": "queued", "steps": []}}
-    (out / "run.json").write_text(json.dumps(rj, indent=2))
+    (out / "run.json").write_text(json.dumps(rj, indent=2), encoding="utf-8")
     return out

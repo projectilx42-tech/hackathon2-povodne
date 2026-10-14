@@ -43,20 +43,20 @@ def main() -> None:
     if args.tta:
         out["tta"] = name_terrain(evaluate(model, dl, args.device, norm, use_slope, tta=True).report())
         print("test flood (TTA):", out["tta"]["overall"]["flood"], flush=True)
-    (args.model.parent / "test_metrics.json").write_text(json.dumps(out, indent=1))
+    (args.model.parent / "test_metrics.json").write_text(json.dumps(out, indent=1), encoding="utf-8")
     bolivia = evaluate_holdout(model, cfg, load_index(args.data), args.device)  # Sen1Floods11 test flood (D-X-02)
     if bolivia is not None:
-        (args.model.parent / "test_sen1floods11.json").write_text(json.dumps(bolivia, indent=1))
+        (args.model.parent / "test_sen1floods11.json").write_text(json.dumps(bolivia, indent=1), encoding="utf-8")
         print("test Sen1Floods11 Bolivia water:", bolivia["water"], flush=True)
     card_path = args.model.parent / "model_card.json"
-    card = json.loads(card_path.read_text())
+    card = json.loads(card_path.read_text(encoding="utf-8"))
     card["test_metrics"] = out["overall"]
     card["test_metrics_by_terrain"] = out.get("per_terrain")
     if bolivia is not None:
         card["test_metrics_sen1floods11"] = {k: v for k, v in bolivia.items() if k != "per_chip"}
     if args.tta:
         card["test_metrics_tta"] = out["tta"]["overall"]
-    card_path.write_text(json.dumps(card, indent=1))
+    card_path.write_text(json.dumps(card, indent=1), encoding="utf-8")
     print("done", time.time() - t0, "s")
 
 

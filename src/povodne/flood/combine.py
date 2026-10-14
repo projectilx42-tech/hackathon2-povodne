@@ -120,6 +120,7 @@ def polygons(mask: np.ndarray, transform, crs, dtype_raster: np.ndarray | None, 
         try:
             src = gpd.read_file(debris_polys_path).to_crs(crs)
             if len(src) and "evidence" in src:
+                gdf["evidence"] = gdf["evidence"].astype(object)  # all-None column is float64; pandas 3 rejects strings
                 for i in gdf.index[gdf["class"] == "debris"]:
                     g = gdf.at[i, "geometry"]
                     cand = src[src.intersects(g)]

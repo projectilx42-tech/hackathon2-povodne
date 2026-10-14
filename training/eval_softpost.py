@@ -115,7 +115,7 @@ def main() -> None:
             print(f"{key:30s} score {r['score']:.4f} flood F1 {f['f1']:.4f} P {f['precision']:.3f} R {f['recall']:.3f}"
                   f" | mtn F1 {mt.get('f1', float('nan')):.3f} P {mt.get('precision', float('nan')):.3f} R {mt.get('recall', float('nan')):.3f}",
                   flush=True)
-    args.out.write_text(json.dumps(out, indent=1))
+    args.out.write_text(json.dumps(out, indent=1), encoding="utf-8")
     print(f"done in {time.time() - t0:.0f}s")
 
 

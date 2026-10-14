@@ -52,12 +52,12 @@ def build(run_dir: Path, folder: str, sh: SentinelHub, aoi, event: date, key: tu
     """Fetch the after passes (and the same number of placebo passes, at most `n_placebo`), write the file, return the info."""
     path, info_path = run_dir / "raw" / folder / "post_series.tif", run_dir / "raw" / folder / "post_series.json"
     if path.exists() and info_path.exists():
-        return json.loads(info_path.read_text())
+        return json.loads(info_path.read_text(encoding="utf-8"))
     posts = after_passes(aoi, event, key, local, horizon_days)
     have = {a.start for a in posts}
     posts = sorted(posts + [a for a in always if a is not None and a.start not in have], key=lambda a: a.start)
     norm_json = run_dir / "raw" / folder / "norm.json"
-    excl = set(json.loads(norm_json.read_text()).get("dates", [])) if norm_json.exists() else set()
+    excl = set(json.loads(norm_json.read_text(encoding="utf-8")).get("dates", [])) if norm_json.exists() else set()
     plac = placebo_passes(aoi, event, key, local, min(len(posts), n_placebo), excl)
 
     def one(a):
@@ -86,5 +86,5 @@ def build(run_dir: Path, folder: str, sh: SentinelHub, aoi, event: date, key: tu
                        crs=f"EPSG:{grid.epsg}", transform=rasterio.transform.from_origin(grid.x0, grid.y1, grid.res, grid.res),
                        nodata=float("nan"), compress="deflate") as ds:
         ds.write(stack)
-    info_path.write_text(json.dumps(info))
+    info_path.write_text(json.dumps(info), encoding="utf-8")
     return info

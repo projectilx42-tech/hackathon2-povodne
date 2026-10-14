@@ -110,7 +110,7 @@ def main() -> None:
             print(f"{v:22s} P {f['precision']:.3f} R {f['recall']:.3f} F1 {f['f1']:.3f}{'  <== chosen' if v == best else ''}", flush=True)
     out["_selection"] = {"rule": f"max flood recall s.t. precision >= base precision - {MAX_DROP}", "by_basis": sel,
                          "sensitive": args.sensitive, "border_excluded_px": BORDER}
-    args.out.write_text(json.dumps(out, indent=1, default=float))
+    args.out.write_text(json.dumps(out, indent=1, default=float), encoding="utf-8")
     print(f"chosen {sel}; done in {time.time() - t0:.0f}s")
 
 

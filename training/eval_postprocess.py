@@ -104,7 +104,7 @@ def main() -> None:
         m = r.get("per_terrain", {}).get("mountainous (>200 m)", {}).get("flood", {})
         print(f"{v:12s} score {r['score']:.4f} flood F1 {f['f1']:.4f} P {f['precision']:.3f} R {f['recall']:.3f} "
               f"| mtn P {m.get('precision', float('nan')):.3f} R {m.get('recall', float('nan')):.3f}", flush=True)
-    args.out.write_text(json.dumps(out, indent=1))
+    args.out.write_text(json.dumps(out, indent=1), encoding="utf-8")
     print(f"done in {time.time() - t0:.0f}s")
 
 

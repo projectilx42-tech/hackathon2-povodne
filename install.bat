@@ -1,4 +1,6 @@
 @echo off
+rem UTF-8 for all file I/O (place names, km2) instead of the Windows code page
+set PYTHONUTF8=1
 rem Windows installer: double-click, or run install.bat (finds Python >= 3.11 and runs install.py, see there)
 cd /d "%~dp0"
 for %%V in (3.14 3.13 3.12 3.11) do (

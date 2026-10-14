@@ -30,7 +30,7 @@ SAMPLE_RUN = HERE / "sample_run"
 RUN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,100}$")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 STALE_MINUTES = 15  # a "running" run with no file activity for this long is reported as interrupted
-STEPS = ["acquire", "preprocess", "flood_ai", "s1anomaly", "debris", "envelope", "combine", "damage", "network", "report"]  # = povodne.config.STEPS
+STEPS = ["acquire", "preprocess", "s1anomaly", "flood_ai", "debris", "envelope", "combine", "confidence", "damage", "network", "report"]  # = povodne.config.STEPS
 
 RESULT_DIRS = ("flood", "damage", "network", "floodpath", "report", "overlays")
 FLOODPATH_TIMEOUT_S = 120
@@ -59,6 +59,7 @@ def _subprocess_env() -> dict:
     env = dict(os.environ)
     src = str(REPO_ROOT / "src")
     env["PYTHONPATH"] = src + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
+    env["PYTHONUTF8"] = "1"  # Windows: UTF-8 file I/O in step subprocesses, not the local code page
     return env
 
 
@@ -239,7 +240,7 @@ def create_app() -> FastAPI:
                 cmd += ["--event-time", event_time]
             log = open(d / "logs" / "pipeline.log", "ab")
             # src/ on the path so the pipeline also runs without `pip install -e .` (D-X-06 point 5)
-            env = {**os.environ, "PYTHONPATH": os.pathsep.join(filter(None, [str(REPO_ROOT / "src"), os.environ.get("PYTHONPATH")]))}
+            env = {**os.environ, "PYTHONPATH": os.pathsep.join(filter(None, [str(REPO_ROOT / "src"), os.environ.get("PYTHONPATH")])), "PYTHONUTF8": "1"}
             _procs[run_id] = subprocess.Popen(cmd, cwd=REPO_ROOT, stdout=log, stderr=subprocess.STDOUT, env=env)
         return {"run_id": run_id, "already_running": False}
 

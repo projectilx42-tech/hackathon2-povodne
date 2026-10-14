@@ -67,7 +67,7 @@ def build(run_dir: Path, sh: SentinelHub, aoi, event: date, key: tuple[int, str]
     info_path = run_dir / "raw" / "s1" / "perm_water.json"
     if path.exists() and info_path.exists():
         import json
-        return json.loads(info_path.read_text())
+        return json.loads(info_path.read_text(encoding="utf-8"))
     passes = reference_passes(aoi, event, key, local, lookback_days, n_max)
     info = {"file": path.name, "lookback_days": lookback_days, "resolution_m": grid.res, "water_db": preselect.WATER_DB,
             "n_passes": len(passes), "dates": [f"{a.start:%Y-%m-%d}" for a in passes], "min_obs": MIN_OBS}
@@ -98,5 +98,5 @@ def build(run_dir: Path, sh: SentinelHub, aoi, event: date, key: tuple[int, str]
         ds.write(freq, 1)
         ds.set_band_description(1, "water frequency %, 255 = unknown")
     import json
-    info_path.write_text(json.dumps(info))
+    info_path.write_text(json.dumps(info), encoding="utf-8")
     return info

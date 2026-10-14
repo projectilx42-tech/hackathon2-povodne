@@ -86,7 +86,7 @@ def main() -> None:
         f = r["overall"]
         print(f"{v:18s} P {f['precision']:.3f} R {f['recall']:.3f} F1 {f['f1']:.3f}{'  <== chosen' if v == best else ''}")
     out["_selection"] = {"rule": "max F1, F1 > base and precision >= base - 0.01", "chosen": best, "edge": [args.edge_k, args.edge_t]}
-    args.out.write_text(json.dumps(out, indent=1, default=float))
+    args.out.write_text(json.dumps(out, indent=1, default=float), encoding="utf-8")
     print(f"chosen {best}; {time.time() - t0:.0f}s")
 
 
