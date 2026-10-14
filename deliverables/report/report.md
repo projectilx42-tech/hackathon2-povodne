@@ -35,7 +35,7 @@ image unless the opposite direction sees the valley floor clearly better. If no 
 **Model.** U-Net with ResNet34 encoder (ImageNet initialisation, allowed by the organisers), 7 input channels: before/after
 VV and VH backscatter (dB), their differences, and terrain slope; 3 classes (no water / permanent water / flood). Trained on
 Kuro Siwo (Bountos et al., 2024) plus Sen1Floods11 (Bonafilia et al., 2020) with Lovász loss; probabilities calibrated
-(temperature 0.92). Sentinel-1 is processed to match Kuro Siwo (sigma0, Lee 7×7 + 3×3 mean): measured bias 0.00 dB, speckle 0.96×
+(temperature 0.91). Sentinel-1 is processed to match Kuro Siwo (sigma0, Lee 7×7 + 3×3 mean): measured bias 0.00 dB, speckle 0.96×
 of Kuro Siwo on 28 tiles. Runs on a CPU (~30 s per 30×30 km per track). An optional optical U-Net (ResNet18, Sentinel-2) adds water
 where the sky is clear. Post-processing: no water on slopes > 15° or HAND > 30 m, radar shadow checked from both directions,
 patches < 0.1 ha removed; *Standard* and *Sensitive* modes (probability threshold 0.25).
@@ -68,7 +68,7 @@ accepted only if the mean improved, no event lost more than 0.01 F1 and the cont
 | events | recall | precision | F1 |
 |---|---|---|---|
 | 9 original floods (mean) | 0.86 | 0.88 | **0.87** |
-| 12 floods incl. 3 added mountain floods (mean) | 0.85 | 0.80 | **0.81** |
+| 12 floods incl. 3 added mountain floods (mean) | 0.85 | 0.81 | **0.81** |
 | lowland/large rivers: Australia, Bihar, Bolivia, Evros, Malawi, Missouri, Swat | 0.85–0.99 | 0.81–0.99 | 0.87–0.94 |
 | Honduras / Teesta / Chad | 0.83 / 0.64 / 0.67 | 0.89 / 0.90 / 0.79 | 0.86 / 0.75 / 0.72 |
 | Baghlan / Kathmandu (flash floods, water already drained) | 0.68 / 0.86 | 0.68 / 0.29 | 0.68 / 0.43 |
@@ -125,7 +125,7 @@ cancelled because of clouds. **EMS was used only for this comparison**, after th
 
 | check | result |
 |---|---|
-| Affected area (our new water + debris vs EMS observed event, 10 m pixels) | precision **0.92**, recall **0.79**, F1 **0.85**, IoU 0.73 (ours 9.97 km², EMS 11.66 km²) |
+| Affected area (our new water + debris vs EMS observed event, 10 m pixels) | precision **0.92**, recall **0.78**, F1 **0.85**, IoU 0.73 (ours 9.97 km², EMS 11.66 km²) |
 | EMS damaged buildings (3 376) inside our affected area (±10 m) | **79 %**; destroyed/damaged only: **90 %** |
 | EMS damaged roads (64 km) near roads we mark blocked | **85 %** (91 % incl. "possibly blocked"); false alarms: 23 % of EMS "no visible damage" roads |
 | EMS destroyed/damaged bridges matched to OSM (14 of 25) | **93 %** marked blocked or suspect |
@@ -152,7 +152,7 @@ valley were mapped by EMS.
 - **Clouds** (monsoon) limit optical use; then only radar is used.
 - **Debris vs wet soil.** Debris/mud detection is heuristic, with literature thresholds not measured on Himalayan debris flows;
   C-band does not penetrate dense forest; streets aligned with the radar look direction hide urban flooding.
-- **The model is a change detector** (see Bolivia result) and is weaker on mountain terrain than on plains (F1 0.48 vs 0.79).
+- **The model is a change detector** (see Bolivia result) and is weaker on mountain terrain than on plains (F1 0.52 vs 0.79).
   Differences between variants are within noise.
 - **OpenStreetMap is incomplete** in remote areas (roads, bridges, buildings missing) and its pre-event state is all we know.
   Footpaths and footbridges are not part of the road network, so a village reachable only by a path is "no road before the event".
@@ -160,7 +160,7 @@ valley were mapped by EMS.
 - **No population estimates**; landing-zone candidates are from the DEM only (trees, wires and obstacles are unknown).
 - **No ground truth** was used to tune thresholds; reference comparison only at the end (Section 8).
 - **"No significant flooding"** means nothing was found in the available data, not that nothing happened.
-- Needs free accounts (Copernicus, ohsome) and internet; the 30×30 km area limit is a time and quota choice.
+- Needs a free Copernicus account and internet (a shared ohsome key is built in; an own free key is optional); about 30×30 km is the recommended area size (a time and quota choice, the app only warns above it).
 
 # 10. Responsibility
 The disaster is recent and many families are still affected. We use no images of victims. Results are a first screening from

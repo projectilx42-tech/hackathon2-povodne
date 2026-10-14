@@ -339,7 +339,11 @@ def build(run_dir: Path, rj: dict, cfg: ReportConfig) -> tuple[dict, list[dict]]
     if fl is None:
         verdict = "insufficient_data"
         failed = [s for s in FLOOD_STEPS if steps.get(s) in ("failed", "skipped")]
-        why = (f"the step '{failed[0]}' did not finish" if failed else "the flood-mapping steps did not produce it")
+        acq_msg = next((s.get("message") or "" for s in (rj.get("progress") or {}).get("steps", []) if s.get("name") == "acquire"), "")
+        if acq_msg.startswith("insufficient data"):  # name the real cause (no usable Sentinel-1 pair), not the step that was skipped because of it
+            why = f"not enough satellite data for this area and date ({acq_msg[len('insufficient data: '):]})"
+        else:
+            why = (f"the step '{failed[0]}' did not finish" if failed else "the flood-mapping steps did not produce it")
         reasons.append(f"No flood map was produced: {why}.")
         reasons += [n["message"] for n in errors if n.get("step") in FLOOD_STEPS][:3]
         own.append(notice("report_no_flood_map", reasons[0], failed_steps=failed))

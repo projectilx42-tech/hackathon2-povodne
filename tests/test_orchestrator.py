@@ -147,6 +147,20 @@ def test_parse_aoi_bbox_and_geojson_variants(tmp_path):
         parse_aoi("500000,3000000,510000,3010000")
 
 
+def test_parse_aoi_rejects_antimeridian_and_empty_feature(tmp_path):
+    across = {"type": "Polygon", "coordinates": [[[179.9, 10], [-179.9, 10], [-179.9, 10.1], [179.9, 10.1], [179.9, 10]]]}
+    f = tmp_path / "across.geojson"
+    f.write_text(json.dumps(across))
+    with pytest.raises(ValueError, match="180"):
+        parse_aoi(str(f))
+    with pytest.raises(ValueError, match="180"):
+        parse_aoi("179.9,10,-179.9,10.1")
+    g = tmp_path / "nogeom.geojson"
+    g.write_text(json.dumps({"type": "Feature", "properties": {}}))
+    with pytest.raises(ValueError, match="no geometry"):
+        parse_aoi(str(g))
+
+
 def test_insufficient_data_stops_cleanly(tmp_path):
     """acquire finds no Sentinel-1 pair: the later steps are skipped with a plain reason, not failed with a technical error (D-M14-13)."""
     fakes = _fakes(tmp_path)

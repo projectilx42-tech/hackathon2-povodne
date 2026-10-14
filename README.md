@@ -17,8 +17,16 @@ path down the valley. Case study: the 26 August 2026 Trishuli flood (Nepal), com
 > **Educational prototype, not an operational tool.** Results are a first screening from satellite data and have not
 > been verified on the ground.
 
-- Report: [`deliverables/report/report.pdf`](deliverables/report/report.pdf)
-- Demo video (3 min): _link added at submission_
+- Report: [`deliverables/report/report.pdf`](deliverables/report/report.pdf) (Markdown source: [`report.md`](deliverables/report/report.md))
+- Demo video (3 min): linked on our Devpost submission page
+- Devpost text: [`deliverables/devpost.md`](deliverables/devpost.md)
+
+**For judges, the fastest way in:**
+- **No account, ~5 min:** install (`./install.sh`, press Enter at the key questions), start the app, open *History* → a finished
+  example analysis with every layer and the situation report ([details](#4-run-the-web-app)).
+- **Your own area and date:** create the free Copernicus key (step 3, ~10 min), then draw an area and press *Run*.
+- **Just the numbers:** [Results at a glance](#results-at-a-glance) below, details in the [report](deliverables/report/report.md).
+- **Where is what in the repo:** [Repository map](#repository-map).
 
 ---
 
@@ -26,6 +34,7 @@ path down the valley. Case study: the 26 August 2026 Trishuli flood (Nepal), com
 
 ### 1. Requirements
 Python 3.11 or newer, Git, about 5 GB free disk space and 8 GB RAM. **No GPU needed.** Windows, macOS and Linux work.
+(Debian/Ubuntu: also `sudo apt install python3-venv`.)
 
 ### 2. Install
 ```bash
@@ -47,8 +56,9 @@ pip install -r requirements.txt -r dashboard/requirements.txt -e .
 </details>
 
 ### 3. Free accounts and keys
-The judges do not need our accounts — every service is free. Keys are read only from environment variables or a local
-`.env` file; they are never stored in the repository.
+The judges do not need our accounts — every service is free. Your keys are read only from environment variables or a local
+`.env` file and are never stored in the repository. The only key in the code is the shared, quota-limited ohsome key from
+the table below.
 
 | What | Why | Needed? | Environment variables |
 |---|---|---|---|
@@ -73,11 +83,13 @@ export CDSE_CLIENT_ID=...  CDSE_CLIENT_SECRET=...           # Windows PowerShell
 ```bash
 ./start.sh              # Windows: double-click start.bat
 ```
-It opens http://127.0.0.1:8000 (stop with Ctrl+C).
+It opens http://127.0.0.1:8000 (stop with Ctrl+C). Port 8000 busy? Use `./start.sh --port 8001` (Windows: `start.bat --port 8001`).
 
-1. Draw the area (rectangle or free shape), at most about **30 × 30 km**.
+1. Draw the area (rectangle or free shape). **About 30 × 30 km (900 km²) is recommended**; the app warns above that. Larger
+   areas still run, only slower (the ~2,000 km² Trishuli case took 24 min).
 2. Enter the **flood date**. Optional under *Advanced*: your own *before* / *after* windows and **Sensitivity**
-   (*Sensitive* finds more flooded area, with more false alarms).
+   (default *Sensitive*, the setting all numbers below were measured with; *Standard* is more conservative: fewer false
+   alarms, but it misses more flood edges).
 3. Press **Run**. A step list shows progress; a 10 × 10 km area takes 2–7 minutes.
 4. Results: flood water and debris, damaged buildings, blocked roads and bridges, settlements coloured by access,
    a before/after slider, and the **situation report** to download. Click a settlement for details; click a point to
@@ -88,14 +100,15 @@ produced by this pipeline.
 
 ### 5. Or from the command line
 ```bash
-python -m povodne run --aoi 85.15,27.95,85.23,28.03 --event-date 2026-08-26 --out runs/trishuli_small
+.venv/bin/python -m povodne run --aoi 85.15,27.95,85.23,28.03 --event-date 2026-08-26 --out runs/trishuli_small
+# Windows: .venv\Scripts\python -m povodne run ...   (or activate .venv first and write just: python -m povodne run ...)
 ```
 `--aoi` is `minlon,minlat,maxlon,maxlat` or a GeoJSON polygon file. Optional: `--pre-window FROM,TO`,
 `--post-window FROM,TO`, `--sensitivity standard|sensitive`. The result folder `runs/<id>/` holds `stats.json` (all
 numbers), the situation report and the map layers; it also appears in the app's *History*.
 
 ### Time and free-tier cost per run
-| | ~10 × 10 km | ~42 × 47 km (Trishuli) |
+| | ~10 × 10 km | ~2,000 km² (Trishuli case study) |
 |---|---|---|
 | Run time (CPU only, no GPU) | 2–7 min | 24 min |
 | Copernicus processing units (free: 10,000 / month) | ~100 | ~2,200 |
@@ -105,9 +118,9 @@ Re-running the same area and date reuses the downloaded images.
 ### When something goes wrong
 | Message | What to do |
 |---|---|
-| *Copernicus credentials missing / invalid* | Run the installer again and paste the keys, then restart the app. |
-| *ohsome daily quota used up* (flood map shown, no damage results) | Create your own free ohsome key, set `OHSOME_API_KEY`, run again. |
-| *No same-track Sentinel-1 pair* / *Insufficient data* | No radar image of the same orbit exists before and after that date. Try a later date or a wider *after* window. |
+| *Sentinel Hub credentials are missing* / *CDSE rejected the credentials* | Put the two Copernicus keys into the file `.env` in the project folder (`CDSE_CLIENT_ID=...`, `CDSE_CLIENT_SECRET=...`; fix or delete wrong lines), or run the installer again if `.env` does not exist. Then restart the app. |
+| *the daily request quota of the ohsome API key … is used up* (flood map shown, no damage results) | Create your own free ohsome key, set `OHSOME_API_KEY`, run again. |
+| *Not enough satellite data for this area and date* / *insufficient data: no Sentinel-1 pre/post pair* | No radar image of the same orbit exists before and after that date. Try a later date or a wider *after* window. |
 | *No significant flooding detected* | Nothing found **in what the satellites could see** — check the data-quality panel (radar shadow, clouds). |
 | *Python 3.11 or newer not found* | Install Python from https://www.python.org (Windows: tick *Add python.exe to PATH*) and run the installer again. |
 
@@ -118,10 +131,18 @@ Full log of each run: `runs/<id>/logs/pipeline.log`.
 ## Results at a glance
 ![Benchmark on floods the system had never seen](deliverables/video_slides/benchmark.png)
 
-- **Flood model** on Kuro Siwo test floods it never saw: F1 0.79 (best model in the Kuro Siwo paper: 0.80).
-- **Whole system**, end to end from raw data: 12 independent floods worldwide, mean F1 0.81; 7 Himalayan floods chosen in
-  advance and run once, mean F1 0.72. Weakest on narrow mountain rivers and debris flows.
-- **Trishuli vs Copernicus EMS EMSR927** (check only, never an input): affected-area precision 0.92, recall 0.79.
+- **Flood model alone** on Kuro Siwo test floods it never saw in training: flood-class F1 0.79 (best model in the Kuro Siwo
+  paper: 0.80). It is a *change detector* (it needs a "before" image); the report shows the cases where it fails.
+- **Whole system**, end to end from raw data, on the 12 floods in the chart (same settings everywhere): mean F1 **0.79**.
+  5 lowland river floods (Kuro Siwo test events) 0.86–0.94; 7 Himalayan floods fixed **in advance** and run once, nothing
+  changed afterwards: 0.46–0.87, mean 0.72.
+  **Read the Himalayan scores with care:** the reference is our own Sentinel-2 water label and the system uses the same optical
+  image, so they are partly circular. Radar alone (independent of the label) scores mean F1 0.45: 0.72–0.81 on the large
+  Karnali and Mahakali rivers, 0.00–0.28 on narrow or braided channels. Weakest on narrow mountain rivers and debris flows.
+- **Development check** (the method was tuned on it, so optimistic): 12 floods on five continents, mean F1 0.81. The
+  pre-registered Himalayan test above exists for exactly that reason.
+- **Trishuli vs Copernicus EMS EMSR927** (check only, never an input): affected-area precision 0.92, recall 0.78, inside the
+  40 km² that EMS analysed (10 m pixels; EMS mapped only parts of the valley).
 
 Details: [report](deliverables/report/report.md), [`validation/results/multievent/README.md`](validation/results/multievent/README.md),
 model training: [`training/README.md`](training/README.md).
@@ -138,9 +159,28 @@ area + flood date
   → stats.json (single source of every number) → situation report + dashboard
 ```
 
+**How the satellite data arrives (in the open):** radar and optical images are requested cut to your area through the Sentinel
+Hub API on the Copernicus Data Space. That service does the radiometric calibration, the terrain correction with the Copernicus
+DEM and the speckle filter, so we never download whole raw scenes (cost and time). Everything after that is our code: choosing the
+image pairs and orbit tracks, shadow and terrain masks, flood model, debris test, damage, road network, cut-off analysis, report.
+Details: [report](deliverables/report/sections/data_acquisition.md).
+
 **Data rules we follow:** inputs are only Sentinel-1, Sentinel-2, Copernicus DEM, OpenStreetMap **before** the event and
 the training datasets Kuro Siwo and Sen1Floods11. Copernicus EMS, UNOSAT or any other damage map is **never an input** —
 not for training, thresholds or the pipeline; EMSR927 is used only in `validation/`. Nothing is hard-wired for Nepal.
+
+## Repository map
+| Folder | What is in it |
+|---|---|
+| `src/povodne/` | The pipeline: `acquire/` (download) → `preprocess/` → `flood/` (+ `debris/`) → `damage/` → `network/` (cut-off analysis) → `floodpath/` → `report/`; `cli.py` is the entry point |
+| `dashboard/` | Web app: `server.py` (FastAPI) + `static/` (MapLibre front end, vendored, works offline apart from base maps); `sample_run/` is the bundled example shown under *History* |
+| `models/` | The two trained flood models used by default (radar `floodseg_v0.5`, optical `floodseg_s2_v0.1`) with their model cards |
+| `training/` | How the flood model was trained and evaluated (Kuro Siwo, Sen1Floods11), see [`training/README.md`](training/README.md) |
+| `validation/` | Whole-system checks on independent floods and the Trishuli comparison with EMSR927 (check only), see [`validation/README.md`](validation/README.md) |
+| `deliverables/` | Report (PDF + Markdown source), Devpost text, benchmark slide |
+| `tools/` | Small one-off checks behind design decisions (Sentinel-1 calibration, terrain, event-day pass) |
+| `tests/` | Unit and integration tests, no keys needed |
+| `docs/` | Internal design notes (Czech): task, module contracts, decisions with reasons, UI notices |
 
 ## Limitations
 - Satellites pass only every few days: the system cannot warn ahead of a sudden event.

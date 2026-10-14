@@ -11,7 +11,7 @@ After a flood, rescuers need to know three things fast: where the water went, wh
 You draw an area on a map, enter the flood date and press Run. The system downloads the satellite images from before and after the flood, finds the flooded land and debris, marks damaged buildings, roads and bridges, and shows which villages lost their road to a town or hospital. The result is an interactive map and a one-page report for rescuers.
 
 ## How we built it
-I built it together with Claude Code. I trained my own flood-detection model, which matches the best published result on floods it had never seen, and built the rest of the system around it. I tested every change on a dozen floods worldwide, not just on Nepal, and only at the end compared my Trishuli map with the official Copernicus emergency maps: 92 % of what I marked was confirmed.
+I built it together with Claude Code. I trained my own flood-detection model, which nearly matches the best published result on floods it had never seen, and built the rest of the system around it. I tested every change on a dozen floods worldwide, not just on Nepal, and only at the end compared my Trishuli map with the official Copernicus emergency maps: 92 % of what I marked was confirmed.
 
 ## Challenges we ran into
 Mountains: radar shadows look like water, and fast narrow rivers and mud are hard to see from space.

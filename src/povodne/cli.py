@@ -43,6 +43,8 @@ def parse_aoi(value: str) -> dict:
                 raise ValueError(f"{value}: the FeatureCollection has no geometry")
             geom = unary_union(geoms)
         elif gj.get("type") == "Feature":
+            if not gj.get("geometry"):
+                raise ValueError(f"{value}: the Feature has no geometry")
             geom = shape(gj["geometry"])
         else:
             geom = shape(gj)
@@ -52,13 +54,16 @@ def parse_aoi(value: str) -> dict:
             raise ValueError(f"--aoi must be a GeoJSON file or 'minlon,minlat,maxlon,maxlat', got {value!r}")
         x0, y0, x1, y1 = map(float, parts)
         if not (x0 < x1 and y0 < y1):
-            raise ValueError("--aoi bbox must be minlon,minlat,maxlon,maxlat with min < max")
+            raise ValueError("--aoi bbox must be minlon,minlat,maxlon,maxlat with min < max "
+                             "(an area across the 180° meridian must be split into two runs)")
         geom = box(x0, y0, x1, y1)
     if geom.is_empty or geom.geom_type not in ("Polygon", "MultiPolygon"):
         raise ValueError("the area must be a Polygon or MultiPolygon")
     x0, y0, x1, y1 = geom.bounds
     if not (-180 <= x0 <= x1 <= 180 and -90 <= y0 <= y1 <= 90):
         raise ValueError("the area must be in longitude/latitude (EPSG:4326)")
+    if x1 - x0 > 180:  # a polygon with vertices on both sides of ±180 spans the whole globe and would never finish downloading
+        raise ValueError("the area spans more than 180° of longitude: an area across the 180° meridian must be split into two runs")
     return mapping(geom)
 
 

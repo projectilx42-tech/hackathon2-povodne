@@ -1,5 +1,8 @@
 # DECISIONS — proč jsme se rozhodli tak a ne jinak
 
+> Poznámka k veřejnému repozitáři: interní pracovní soubory, na které záznamy níže odkazují (`CLAUDE.md`, `PROGRESS.md`, `QUESTIONS.md`,
+> `docs/handoff/`, `docs/source/`, `tools/check_docs.py`, `.claude/hooks`), byly před odevzdáním odstraněny. Rozhodnutí samotná platí dál.
+
 Formát: `D-XXX | datum | stav (přijato / otevřené / nahrazeno D-YYY)` + kontext, rozhodnutí, důsledky.
 Slouží i jako podklad pro report (sekce metodika a limitace). Nové záznamy přidávej na konec, čísla nerecykluj.
 **Číslování od D-035 dál (D-035):** nová rozhodnutí a otázky mají **zkratku modulu**: `D-M1-NN`, `D-M8-NN`, `D-M9-NN`, `O-M3d-NN`… (NN = 01, 02, …);

@@ -199,6 +199,21 @@ def test_no_flood_map(tmp_path):
     assert st["notices_summary"]["top"][0]["severity"] == "error"
 
 
+def test_no_sentinel1_pair_names_the_real_reason(tmp_path):
+    """acquire found no usable pair: the first reason says so instead of blaming the skipped 'preprocess' step."""
+    d = make_run(tmp_path, flood=False)
+    rj = json.loads((d / "run.json").read_text(encoding="utf-8"))
+    steps = rj["progress"]["steps"]
+    steps[0]["message"] = "insufficient data: no Sentinel-1 pre/post pair for this area and date"
+    for s in steps[1:]:
+        s["state"] = "skipped"
+    (d / "run.json").write_text(json.dumps(rj), encoding="utf-8")
+    st = run(d)
+    assert st["verdict"] == "insufficient_data"
+    assert "not enough satellite data" in st["verdict_reasons"][0]
+    assert "no Sentinel-1 pre/post pair" in st["verdict_reasons"][0]
+
+
 def test_missing_damage_and_network(tmp_path):
     d = make_run(tmp_path, damage=False, network=False)
     (d / "network").mkdir()

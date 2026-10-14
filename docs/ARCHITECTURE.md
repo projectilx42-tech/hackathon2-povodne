@@ -1,7 +1,7 @@
 # ARCHITECTURE — rozhraní mezi moduly
 
 Tento soubor je **kontrakt**. Každý modul čte a zapisuje přesně soubory popsané níže. Změna formátu, názvu souboru,
-CRS, tříd nebo schématu = **zápis do `docs/DECISIONS.md` + úprava tohoto souboru ve stejném commitu**, a info do PROGRESS.
+CRS, tříd nebo schématu = **zápis do `docs/DECISIONS.md` + úprava tohoto souboru ve stejném commitu**.
 
 ## Přehled toku dat
 

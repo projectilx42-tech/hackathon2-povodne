@@ -1,7 +1,6 @@
 # TASK — zadání hackathonu
 
-Zdroje (originály v repu): `docs/source/Track_B.pdf` (oficiální zadání), `docs/source/Space_Track_brochure.pdf`
-(brožura se stejným obsahem + ilustrace), `docs/source/Problem_Statements.pdf` (přehled všech tracků).
+Zdroje: oficiální zadání Track B (PDF od organizátorů, v repu už není; přepis je níže), brožura Space Track a přehled všech tracků.
 Devpost: https://multimodal-ai-hackathon-2026-7.devpost.com/
 Online originál Track B: https://drive.google.com/file/d/1u1ayqUuG0W18uP_7GOptQtnV4BNNGqAB/view
 
@@ -139,7 +138,7 @@ in demos or reports. Systems built here are educational prototypes, not operatio
 - AI komponent (25 %): musíme ukázat **metriky na himálajských scénách, které model neviděl** (held-out test) — ne jen
   validaci na Kuro Siwo.
 - Cut-off analýza (20 %): settlement → nejbližší town/hospital přes silniční graf před a po (odstranění zasažených úseků a mostů).
-- Honesty about limitations (součást 15 %): průběžně si zapisovat omezení do `docs/DECISIONS.md` / PROGRESS, ať je report snadný.
+- Honesty about limitations (součást 15 %): průběžně si zapisovat omezení do `docs/DECISIONS.md`, ať je report snadný.
 
 ## Produktová vize (jak to popsal uživatel 2026-10-07)
 1. **Webová aplikace s mapou.** Uživatel na mapě vybere oblast (obdélník/polygon) a zadá **datum povodně**
@@ -152,4 +151,4 @@ in demos or reports. Systems built here are educational prototypes, not operatio
 5. **Když povodeň není nalezena**, systém to jasně řekne („no significant flooding detected“) — ale vždy s kontextem:
    jaká data byla k dispozici, jaké pokrytí (např. % plochy v radarovém stínu, oblačnost S2), aby „nic“ neznamenalo „nemáme data“.
    Pokud chybí scény (např. žádný S1 pár ze stejného tracku), musí to říct taky — ne tiše vrátit prázdnou mapu.
-6. Porota zkouší **live** na vlastní oblasti a datu → aplikace musí doběhnout v rozumném čase. Běží lokálně u poroty (D-016); porota nemá účty → video + návod v README, živě smíme s naším účtem (`docs/QUESTIONS.md`).
+6. Porota zkouší **live** na vlastní oblasti a datu → aplikace musí doběhnout v rozumném čase. Běží lokálně u poroty (D-016); porota nemá účty → video + návod v README, živě smíme s naším účtem (potvrzeno organizátory).

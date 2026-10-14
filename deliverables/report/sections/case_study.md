@@ -13,7 +13,7 @@ affected area (our new water ∪ debris vs EMS observed event: IoU, precision, r
 fall in our affected area / match an OSM building we flag; length of EMS damaged and undamaged roads near our blocked roads;
 EMS bridges vs our bridge status.
 
-**Results.** Affected area precision 0.92 / recall 0.79 / F1 0.85; 90 % of EMS destroyed/damaged buildings, 85 % of damaged roads, 93 % of matched damaged bridges flagged (report section 8).
+**Results.** Affected area precision 0.92 / recall 0.78 / F1 0.85; 90 % of EMS destroyed/damaged buildings, 85 % of damaged roads, 93 % of matched damaged bridges flagged (report section 8).
 
 **Limitations.** 10 m Sentinel vs sub-metre hand mapping (single houses and narrow roads below our resolution); different image
 dates (our first Sentinel-1 pass vs EMS images); EMS does not separate water and debris, so only their union is scored; EMS
