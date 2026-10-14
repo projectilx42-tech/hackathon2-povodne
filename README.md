@@ -72,10 +72,6 @@ The app opens in your browser at http://127.0.0.1:8000.
 
 Details: [report](deliverables/report/report.md).
 
-**Data rules:** inputs are only Sentinel-1, Sentinel-2, Copernicus DEM, OpenStreetMap **before** the event and the training
-datasets Kuro Siwo and Sen1Floods11. Copernicus EMS, UNOSAT or any other damage map is **never an input**; EMSR927 is used
-only in `validation/`. Nothing is hard-wired for Nepal.
-
 ## Limitations
 - Satellites pass only every few days: the system cannot warn ahead of a sudden event.
 - Steep valleys hide parts of the ground from radar (shadow); narrow, fast mountain rivers look like land to radar.
@@ -86,17 +82,9 @@ only in `validation/`. Nothing is hard-wired for Nepal.
 Full list: report, section *Limitations*.
 
 ## AI assistance
-This project was built with **Claude Code** (Anthropic) as a coding assistant. The team set the goals, the data rules and
-the test protocol and reviewed every result; Claude Code helped write and test the code and draft the documents:
-- **Data download and preprocessing** (`src/povodne/acquire/`, `src/povodne/preprocess/`)
-- **Flood segmentation model** (`training/`): data preparation, model design, training and evaluation
-- **Flood map** (`src/povodne/flood/`): debris change test, combining water and debris, confidence map
-- **Damage, road network, cut-off analysis and flood path** (`src/povodne/damage/`, `network/`, `floodpath/`)
-- **Situation report, dashboard and installer** (`src/povodne/report/`, `dashboard/`, `install.py`)
-- **Validation** against Copernicus EMS (`validation/`, check only)
-- **Submission materials** (this README, `deliverables/`)
-
-The team is responsible for all submitted code and can explain how it works.
+Built with **Claude Code** (Anthropic). AI-assisted parts: data download and preprocessing, flood segmentation model
+(training and evaluation), flood and debris map, damage and cut-off analysis, flood path, situation report, dashboard,
+installer, validation and the documentation.
 
 ## Data attributions and citations
 - Contains modified Copernicus Sentinel data 2026.
