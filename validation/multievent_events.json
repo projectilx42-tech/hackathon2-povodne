@@ -321,6 +321,174 @@
     "mgrs_tile": "42SVE",
     "label_max_elev_m": 2500
    }
+  },
+  {
+   "id": "kosi_ramnagar_2021",
+   "kind": "flood",
+   "dataset": "himalaya_s2",
+   "continent": "Asia (Himalayan foothills)",
+   "fresh_test": true,
+   "note": "FRESH TEST (pre-registered 2026-10-14 before any run): never used for training, thresholds or method choices; Kosi river at Ramnagar, Uttarakhand, India, extreme rain 17-19 Oct 2021",
+   "event_date": "2021-10-19",
+   "aoi_bbox": [
+    79.08,
+    29.36,
+    79.18,
+    29.45
+   ],
+   "label": {
+    "type": "s2",
+    "s2_date": "2021-10-23",
+    "mgrs_tile": "44RNU",
+    "label_max_elev_m": 2500
+   }
+  },
+  {
+   "id": "gaula_haldwani_2021",
+   "kind": "flood",
+   "dataset": "himalaya_s2",
+   "continent": "Asia (Himalayan foothills)",
+   "fresh_test": true,
+   "note": "FRESH TEST (pre-registered 2026-10-14 before any run): never used for training, thresholds or method choices; Gaula river at Haldwani, Uttarakhand, India, 17-19 Oct 2021 (bridge damaged)",
+   "event_date": "2021-10-19",
+   "aoi_bbox": [
+    79.47,
+    29.17,
+    79.57,
+    29.26
+   ],
+   "label": {
+    "type": "s2",
+    "s2_date": "2021-10-23",
+    "mgrs_tile": "44RNT",
+    "label_max_elev_m": 2500
+   }
+  },
+  {
+   "id": "kosi_khairna_2021",
+   "kind": "flood",
+   "dataset": "himalaya_s2",
+   "continent": "Asia (Himalaya)",
+   "fresh_test": true,
+   "note": "FRESH TEST (pre-registered 2026-10-14 before any run): never used for training, thresholds or method choices; Kosi river valley near Khairna, Nainital district (mountain), Oct 2021",
+   "event_date": "2021-10-19",
+   "aoi_bbox": [
+    79.38,
+    29.48,
+    79.48,
+    29.57
+   ],
+   "label": {
+    "type": "s2",
+    "s2_date": "2021-10-23",
+    "mgrs_tile": "44RNU",
+    "label_max_elev_m": 2500
+   }
+  },
+  {
+   "id": "mahakali_banbasa_2021",
+   "kind": "flood",
+   "dataset": "himalaya_s2",
+   "continent": "Asia (Himalayan foothills)",
+   "fresh_test": true,
+   "note": "FRESH TEST (pre-registered 2026-10-14 before any run): never used for training, thresholds or method choices; Mahakali river at Banbasa/Mahendranagar, Nepal-India border, Oct 2021",
+   "event_date": "2021-10-19",
+   "aoi_bbox": [
+    80.05,
+    28.95,
+    80.15,
+    29.04
+   ],
+   "label": {
+    "type": "s2",
+    "s2_date": "2021-10-23",
+    "mgrs_tile": "44RPT",
+    "label_max_elev_m": 2500
+   }
+  },
+  {
+   "id": "mohana_kailali_2021",
+   "kind": "flood",
+   "dataset": "himalaya_s2",
+   "continent": "Asia (Himalayan foothills)",
+   "fresh_test": true,
+   "note": "FRESH TEST (pre-registered 2026-10-14 before any run): never used for training, thresholds or method choices; Mohana river near Dhangadhi, Kailali, Nepal, Oct 2021",
+   "event_date": "2021-10-19",
+   "aoi_bbox": [
+    80.55,
+    28.65,
+    80.65,
+    28.74
+   ],
+   "label": {
+    "type": "s2",
+    "s2_date": "2021-10-23",
+    "mgrs_tile": "44RPS",
+    "label_max_elev_m": 2500
+   }
+  },
+  {
+   "id": "seti_doti_2021",
+   "kind": "flood",
+   "dataset": "himalaya_s2",
+   "continent": "Asia (Himalaya)",
+   "fresh_test": true,
+   "note": "FRESH TEST (pre-registered 2026-10-14 before any run): never used for training, thresholds or method choices; Seti river valley, Doti, far-west Nepal (mountain), Oct 2021",
+   "event_date": "2021-10-19",
+   "aoi_bbox": [
+    80.92,
+    29.2,
+    81.02,
+    29.29
+   ],
+   "label": {
+    "type": "s2",
+    "s2_date": "2021-10-23",
+    "mgrs_tile": "44RQT",
+    "label_max_elev_m": 2500
+   }
+  },
+  {
+   "id": "karnali_chisapani_2021",
+   "kind": "flood",
+   "dataset": "himalaya_s2",
+   "continent": "Asia (Himalaya)",
+   "fresh_test": true,
+   "note": "FRESH TEST (pre-registered 2026-10-14 before any run): never used for training, thresholds or method choices; Karnali river at Chisapani gorge exit, Nepal, Oct 2021",
+   "event_date": "2021-10-19",
+   "aoi_bbox": [
+    81.22,
+    28.6,
+    81.32,
+    28.69
+   ],
+   "label": {
+    "type": "s2",
+    "s2_date": "2021-10-25",
+    "mgrs_tile": "44RQS",
+    "label_max_elev_m": 2500
+   }
+  },
+  {
+   "id": "kaligandaki_2023_noflood",
+   "kind": "no_flood_control",
+   "dataset": "himalaya_s2",
+   "continent": "Asia (Himalaya)",
+   "fresh_test": true,
+   "note": "FRESH TEST (pre-registered 2026-10-14 before any run): never used for training, thresholds or method choices; dry-season control, Kali Gandaki valley, Nepal: every flood pixel is a false alarm",
+   "event_date": "2023-02-10",
+   "aoi_bbox": [
+    83.55,
+    28.05,
+    83.65,
+    28.14
+   ],
+   "label": {
+    "type": "s2",
+    "s2_date": "2023-02-14",
+    "mgrs_tile": "44RTS",
+    "label_max_elev_m": 2500
+   }
   }
  ]
 }

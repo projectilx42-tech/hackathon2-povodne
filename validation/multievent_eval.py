@@ -118,10 +118,14 @@ def s2_label(ev: dict, grid: dict) -> np.ndarray:
     spec.loader.exec_module(m)
     lab, bbox = ev["label"], ev["aoi_bbox"]
     cat = Client.open("https://planetarycomputer.microsoft.com/api/stac/v1", modifier=pc.sign_inplace)
-    item = m.find_item(cat, bbox, lab["s2_date"], lab["mgrs_tile"])
-    rb = lambda a, r: m.read_band(item.assets[a].href, grid, r).astype(np.float32)  # noqa: E731
-    b03, b11 = rb("B03", Resampling.bilinear), rb("B11", Resampling.bilinear)
-    scl = m.read_band(item.assets["SCL"].href, grid, Resampling.nearest)
+    try:
+        item = m.find_item(cat, bbox, lab["s2_date"], lab["mgrs_tile"])
+        rb = lambda a, r: m.read_band(item.assets[a].href, grid, r).astype(np.float32)  # noqa: E731
+        b03, b11 = rb("B03", Resampling.bilinear), rb("B11", Resampling.bilinear)
+        scl = m.read_band(item.assets["SCL"].href, grid, Resampling.nearest)
+        source = f"{item.id}, cloud {item.properties['eo:cloud_cover']:.0f} %"
+    except RuntimeError:  # Planetary Computer has gaps (e.g. Oct 2021 in W Nepal): same L2A from earth-search (pipeline source)
+        b03, b11, scl, source = _s2_earthsearch(bbox, lab["s2_date"], grid, m)
     dem_item = next(cat.search(collections=["cop-dem-glo-30"], bbox=bbox).items())
     dem = m.read_band(dem_item.assets["data"].href, grid, Resampling.bilinear).astype(np.float32)
     slope = m.slope_from_dem(dem)
@@ -131,8 +135,30 @@ def s2_label(ev: dict, grid: dict) -> np.ndarray:
     nb = sum(np.roll(np.roll(water, i, 0), j, 1) for i in (-1, 0, 1) for j in (-1, 0, 1)) - water
     water = (water & (nb >= 3)).astype(np.uint8)
     unusable = np.isin(scl, list(m.UNUSABLE_SCL)) | (b03 == 0) | ~np.isfinite(mndwi) | (dem > lab["label_max_elev_m"])
-    print(f"S2 label item {item.id}, cloud {item.properties['eo:cloud_cover']:.0f} %")
+    print(f"S2 label item {source}")
     return np.where(unusable, 255, water).astype(np.uint8)
+
+
+def _s2_earthsearch(bbox, day: str, grid: dict, m):
+    """B03, B11, SCL of all earth-search L2A tiles of `day` mosaicked on `grid` (DN = reflectance * 1e4, harmonised)."""
+    from datetime import datetime, timedelta
+
+    from shapely.geometry import box
+
+    from povodne.acquire.sentinel2 import search
+
+    t0 = datetime.fromisoformat(day)
+    found = [d for d in search(box(*bbox), t0, t0 + timedelta(days=1) - timedelta(seconds=1)) if d.day.isoformat() == day]
+    if not found:
+        raise RuntimeError(f"no Sentinel-2 item for {day} over {bbox} (Planetary Computer or earth-search)")
+    out = []
+    for asset, rs in (("green", Resampling.bilinear), ("swir16", Resampling.bilinear), ("scl", Resampling.nearest)):
+        acc = None
+        for it in found[0].items:
+            a = m.read_band(it["assets"][asset]["href"], grid, rs)
+            acc = a if acc is None else np.where(acc == 0, a, acc)
+        out.append(acc.astype(np.float32) if asset != "scl" else acc)
+    return (*out, "earth-search " + ", ".join(found[0].ids))
 
 
 def cmd_labels(a) -> None:
