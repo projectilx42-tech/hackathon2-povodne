@@ -5,6 +5,7 @@ odpoví: **1) kde udeřila povodeň, 2) co je poškozené, 3) kdo je odříznut�
 Sen1Floods11), ověřený na scénách, které neviděl. Case study: Trishuli 26. 8. 2026 vs. EMSR927. **Deadline: 14. 10. 2026 20:45 SELČ.**
 
 ## Co číst (nic se nenačítá automaticky — čti cíleně: `Grep`, pak `Read` s `offset`/`limit`)
+- **Nová session bez paměti (jiný účet): nejdřív `docs/handoff/README.md`** — kompletní předávka kontextu (stav, pravidla, mapa, příkazy, čísla).
 - `docs/PROGRESS.md` — **povinně sekci „📢 Oznámení“** (SessionStart ji zkráceně vypíše) + stav svého modulu; jak spustit, testy, kde jsou výsledky.
 - `docs/ARCHITECTURE.md` — kontrakt souborů; čti jen sekce modulů, které čteš/píšeš.
 - `docs/DECISIONS.md` (velký) — `Grep "^## D-"`, čti jen relevantní záznamy; nové přidávej na konec (`cat >>`).

@@ -6,6 +6,7 @@ Plán je orientační — rozhoduje, co uživatel zadá v dané session.
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Jeden řádek, ≤ ~250 znaků, odkaz na rozhodnutí. Vyřízené / starší než ~2 dny přesuň do archivu.)*
+- **2026-10-14 — předávka kontextu:** `docs/handoff/` (01 stav a odevzdání, 02 pravidla, 03 mapa, 04 příkazy, 05 výsledky) pro novou session bez paměti; PDF reportu teď `tools/report_pdf/build.sh`.
 - **2026-10-14 — instalace jedním příkazem (D-X-19):** `./install.sh` / `install.bat` (logika v `install.py`: `.venv`, CPU torch, kontrola modelů, volitelně klíče do git-ignorovaného `.env`), spuštění `./start.sh` / `start.bat` (`serve --open`). `python -m povodne` čte `.env` (proměnné prostředí mají přednost).
 - **2026-10-14 — váhy modelu v gitu (D-X-18):** `models/floodseg_v0.5/` a `models/floodseg_s2_v0.1/` (~150 MB) se stáhnou s `git clone`; `fetch_model.py` jen záloha. Jiné modely do `models/` dál negitovat.
 - **2026-10-14 — přibalená ukázka je skutečný run (D-X-17, změna kontraktu dashboardu):** `dashboard/sample_run/` = zmenšená Emilia-Romagna 2023 (`run.json.example`, štítek EXAMPLE, cesta vody předpočítaná); znovu `dashboard/tools/make_example_run.py`.
@@ -61,6 +62,9 @@ Pipeline běží end-to-end ze surových dat (`python -m povodne run`) i z webov
 
 ## Log sessions
 *(Nejnovější nahoře, ≤ 5 řádků na session. Starší: `docs/archive/PROGRESS_LOG.md`.)*
+### 2026-10-14 — master: předávka kontextu — `main`
+- `docs/handoff/` + `tools/report_pdf/`; repo veřejné, výchozí větev main; uživatelův test na Windows rozpracován (viz handoff 01).
+
 ### 2026-10-14 — master: předregistrovaný test na neviděných Himálajích (D-X-20) — `main`
 - 7 povodní 2021 + kontrola; plný systém F1 0,72, jen radar 0,45; výsledky `validation/results/multievent/*__fresh*.json`, sekce v multievent README, report §4 (PDF 4 str.), devpost.
 
