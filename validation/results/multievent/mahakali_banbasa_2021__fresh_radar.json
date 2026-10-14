@@ -1,0 +1,191 @@
+{
+ "event": "mahakali_banbasa_2021",
+ "tag": "fresh_radar",
+ "dataset": "himalaya_s2",
+ "continent": "Asia (Himalayan foothills)",
+ "kind": "flood",
+ "event_date": "2021-10-19",
+ "aoi_bbox": [
+  80.05,
+  28.95,
+  80.15,
+  29.04
+ ],
+ "label_valid_pct": 99.6,
+ "scores": {
+  "a_seeds_water_2_4": {
+   "recall": 0.6803,
+   "precision": 0.7677,
+   "f1": 0.7214,
+   "truth_km2": 9.9135,
+   "pred_km2": 8.7857,
+   "tp_km2": 6.7444,
+   "fp_km2": 2.0413,
+   "region_km2": 97.049
+  },
+  "a_seeds_common_water_2_4": {
+   "recall": 0.6803,
+   "precision": 0.7677,
+   "f1": 0.7214,
+   "truth_km2": 9.9135,
+   "pred_km2": 8.7857,
+   "tp_km2": 6.7444,
+   "fp_km2": 2.0413,
+   "region_km2": 97.049
+  },
+  "b_envelope_water_2_4": {
+   "recall": 0.6803,
+   "precision": 0.7677,
+   "f1": 0.7214,
+   "truth_km2": 9.9135,
+   "pred_km2": 8.7857,
+   "tp_km2": 6.7444,
+   "fp_km2": 2.0413,
+   "region_km2": 97.049
+  },
+  "a_seeds_all_2_3_4": {
+   "recall": 0.7347,
+   "precision": 0.5611,
+   "f1": 0.6363,
+   "truth_km2": 9.9135,
+   "pred_km2": 12.9797,
+   "tp_km2": 7.2834,
+   "fp_km2": 5.6963,
+   "region_km2": 97.049
+  },
+  "a_seeds_common_all_2_3_4": {
+   "recall": 0.7347,
+   "precision": 0.5611,
+   "f1": 0.6363,
+   "truth_km2": 9.9135,
+   "pred_km2": 12.9797,
+   "tp_km2": 7.2834,
+   "fp_km2": 5.6963,
+   "region_km2": 97.049
+  },
+  "b_envelope_all_2_3_4": {
+   "recall": 0.7347,
+   "precision": 0.5611,
+   "f1": 0.6363,
+   "truth_km2": 9.9135,
+   "pred_km2": 12.9797,
+   "tp_km2": 7.2834,
+   "fp_km2": 5.6963,
+   "region_km2": 97.049
+  }
+ },
+ "false_alarm_dry_label": {
+  "seeds": 0.06475,
+  "envelope": 0.06475
+ },
+ "seed_transitions_km2": {
+  "water": {
+   "water": 7.322
+  },
+  "debris": {
+   "debris": 4.194
+  },
+  "permanent": {
+   "permanent": 1.4637
+  }
+ },
+ "components": {
+  "seeds_ai_water(2)": {
+   "km2": 7.5321,
+   "km2_in_label_region": 7.322,
+   "share_on_truth": 0.729
+  },
+  "seeds_debris_step:debris": {
+   "km2": 3.6874,
+   "km2_in_label_region": 3.6513,
+   "share_on_truth": 0.099
+  },
+  "seeds_debris_step:mud": {
+   "km2": 0.045,
+   "km2_in_label_region": 0.045,
+   "share_on_truth": 0.264
+  },
+  "seeds_debris_step:erosion": {
+   "km2": 0.0244,
+   "km2_in_label_region": 0.0244,
+   "share_on_truth": 0.094
+  },
+  "seeds_debris_step:flooded_vegetation": {
+   "km2": 0.0022,
+   "km2_in_label_region": 0.0022,
+   "share_on_truth": 0.0
+  },
+  "seeds_debris_step:landslide": {
+   "km2": 0.0004,
+   "km2_in_label_region": 0.0004,
+   "share_on_truth": 0.0
+  },
+  "seeds_debris_step:unknown": {
+   "km2": 0.0012,
+   "km2_in_label_region": 0.0012,
+   "share_on_truth": 0.167
+  },
+  "seeds_class3_not_debris_step(vhagree etc.)": {
+   "km2": 0.4766,
+   "km2_in_label_region": 0.4695,
+   "share_on_truth": 0.351
+  },
+  "seeds_permanent(4)": {
+   "km2": 1.4641,
+   "km2_in_label_region": 1.4637,
+   "share_on_truth": 0.963
+  }
+ },
+ "pred_total_km2": {
+  "seeds": 11.769,
+  "envelope": 11.769
+ },
+ "run": {
+  "timings_s": {
+   "acquire": 115.9,
+   "preprocess": 6.5,
+   "s1anomaly": 2.2,
+   "flood_ai": 64.8,
+   "debris": 39.1,
+   "envelope": 0.5,
+   "combine": 2.0,
+   "confidence": 0.5,
+   "damage": 2.9,
+   "network": 3.5,
+   "report": 8.7
+  },
+  "pu_spent": 106.4,
+  "pu_estimate": 122,
+  "envelope": {
+   "used": false,
+   "reason": "Water-level envelope is off (opt-in: set POVODNE_ENVELOPE=1 or pass --envelope); the flood map is unchanged.",
+   "placebo_groups": null,
+   "placebo_split": null,
+   "stat": null,
+   "persistence": null,
+   "reach_q": null,
+   "final_est_precision": null,
+   "final_placebo_false_km2": null,
+   "added_km2": null,
+   "added_by_stage_km2": null,
+   "optics": null,
+   "post_passes": null,
+   "optical_used": null
+  },
+  "main_track": {
+   "relative_orbit": 56,
+   "orbit_direction": "ASCENDING"
+  },
+  "alt_track": true,
+  "s2": {
+   "pre": 99.9,
+   "post": 99.6,
+   "extra": null
+  },
+  "warnings": [
+   "The check for flooding before the given date sees almost no open water here (rivers narrower than the 60 m check pixels), so it cannot confirm that the before-image is flood-free.",
+   "This area changes a lot even without a flood: 0.17 km\u00b2 changed between two earlier radar passes (fields, construction, rain). Similar changes unrelated to the flood may be among the surface changes found.",
+   "No pre-event OpenStreetMap buildings: flooded or damaged built-up areas cannot be told apart from other changes."
+  ]
+ }
+}
