@@ -1563,3 +1563,17 @@ Uživatel výslovně: „dej to do repa, je mi to jedno“. `src/povodne/acquire
 `python -m povodne run` fungoval bez nastavování; `OHSOME_API_KEY` z prostředí má přednost. Výjimka z pravidla „žádné secrets v repu“
 jen pro tento klíč (bezplatný, omezený denní kvótou, žádná osobní data). Riziko: když bude repo veřejné (Devpost), může klíč kdokoli
 vyčerpat → před zveřejněním / po hackathonu klíč zneplatnit nebo vyměnit. Ostatní klíče (CDSE, Kaggle) dál jen v proměnných prostředí.
+
+## D-M14-17 | 2026-10-14 | navrženo k sloučení (prošlo pravidlem, rozhodne master) — Optický snímek ze stejného dne přebije radarovou vodu
+**Kontext:** úkol uživatele „zkus Himaláje a vymaxuj“. Tři nové horské povodně (Swat 2022, Káthmándú 2024, Baghlan 2024) ve validační sadě.
+Rozbor Baghlanu a Káthmándú: radar sám úzké horské řeky téměř nevidí (bez optiky záchyt 0,04 / 0,15), vodu tam najde optický model;
+radar naopak přidává 0,13–0,19 km² „vody“, kterou optika ze stejného dne vidí jako suchou zem.
+**Rozhodnutí:** v `training/run_ai.py`: když je čistý Sentinel-2 po události pořízen nejvýš 1,5 dne od prvního radarového snímku po události
+a optický model si je jistý, že pixel je suchý (P(voda) ≤ 0,1 — stejná hodnota „jistě sucho“ jako mapa jistoty, D-M16-01), radarová povodeň
+v tom pixelu se zruší (třída sucho). Při větším časovém odstupu se nic nemění (voda mezi snímky mohla opadnout nebo přitéct).
+Ve výchozím stavu zapnuto, vypnutí `POVODNE_S2_VETO=0`; run.json `flood.params.s2.optical_veto_km2` a `s1_s2_gap_days`.
+**Žádné ladění na testovacích událostech:** obě hodnoty (0,1 a 1,5 dne) jsou zvolené předem z fyzikální úvahy / mapy jistoty.
+**Ověření (14 událostí, `validation/results/multievent/README.md`):** dotkne se jen 5 událostí se stejnodenní optikou; Baghlan F1 0,58 → 0,68
+(P 0,51 → 0,68), Bolívie 0,88 → 0,89, Čad −0,001, Chamoli a Káthmándú beze změny (nic nezrušeno); kontrola bez povodně beze změny.
+**Pozor (pro porotu):** u Baghlanu je zlepšení zčásti kruhové — referenční značka je voda z TÉHOŽ optického snímku. Nezávislé značky
+(ruční Kuro Siwo / Sen1Floods11) má jen Bolívie (+0,01) a Čad (−0,001), takže skutečný přínos je malý, ale nikde neškodí.

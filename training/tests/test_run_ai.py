@@ -143,3 +143,16 @@ if __name__ == "__main__":
     test_run_ai_outputs()
     test_run_ai_two_tracks_shadow_and_s2()
     print("ok")
+
+
+def test_s1_s2_gap_days():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("run_ai", Path(__file__).resolve().parents[1] / "run_ai.py")
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    meta = {"acquire": {"s1": {"post": [{"datetime": "2024-05-14T13:22:23Z"}]}, "s2": {"post": {"date": "2024-05-15"}}}}
+    assert m.s1_s2_post_gap_days(meta) == 1
+    meta["acquire"]["s2"]["post"]["date"] = "2024-05-10"
+    assert m.s1_s2_post_gap_days(meta) == 4
+    assert m.s1_s2_post_gap_days({"acquire": {"s1": {"post": []}}}) is None
+    assert m.s1_s2_post_gap_days({}) is None
