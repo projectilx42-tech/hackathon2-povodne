@@ -266,10 +266,38 @@ def cmd_run(a: argparse.Namespace) -> int:
     return {"done": 0, "cancelled": 130}.get(state, 1)
 
 
+def load_env_file(path: Path | None = None) -> list[str]:
+    """Read ``KEY=value`` lines from the git-ignored ``.env`` written by install.py into the environment.
+
+    Variables already set in the environment win; the step processes inherit the result. Returns the names loaded.
+    """
+    path = path or config.REPO_ROOT / ".env"
+    loaded = []
+    if path.is_file():
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if "=" not in line or line.lstrip().startswith("#"):
+                continue
+            key, value = (x.strip() for x in line.split("=", 1))
+            if key and key not in os.environ:
+                os.environ[key] = value.strip('"').strip("'")
+                loaded.append(key)
+    return loaded
+
+
 def cmd_serve(a: argparse.Namespace) -> int:
     sys.path.insert(0, str(config.REPO_ROOT))
     from dashboard.server import main as serve_main
 
+    url = f"http://127.0.0.1:{a.port}"
+    if not (os.environ.get("CDSE_CLIENT_ID") and os.environ.get("CDSE_CLIENT_SECRET")):
+        print("note: Copernicus keys (CDSE_CLIENT_ID, CDSE_CLIENT_SECRET) are not set - new analyses will stop at the "
+              "download; the bundled example under History works. See README section 3.", flush=True)
+    print(f"dashboard: {url}  (stop with Ctrl+C)", flush=True)
+    if a.open:
+        import threading
+        import webbrowser
+
+        threading.Timer(2.0, webbrowser.open, [url]).start()
     sys.argv = ["povodne serve", "--port", str(a.port)]
     serve_main()
     return 0
@@ -290,6 +318,8 @@ def main(argv: list[str] | None = None) -> None:
     r.set_defaults(func=cmd_run)
     s = sub.add_parser("serve", help="start the dashboard on http://127.0.0.1:<port>")
     s.add_argument("--port", type=int, default=8000)
+    s.add_argument("--open", action="store_true", help="open the dashboard in the web browser")
     s.set_defaults(func=cmd_serve)
     a = p.parse_args(argv)
+    load_env_file()
     sys.exit(a.func(a))

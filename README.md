@@ -25,7 +25,7 @@ Case study: the 26 August 2026 Bhote Koshi–Trishuli flood (Nepal), compared wi
 
 ---
 
-## Quick start (about 15 minutes, most of it creating three free accounts)
+## Quick start (about 15 minutes, most of it creating a free Copernicus account)
 
 ### 1. Requirements
 - **Python 3.11 or newer** (`python --version`), Git, about 5 GB free disk space (the installation takes about 2.5 GB with the
@@ -37,14 +37,22 @@ Case study: the 26 August 2026 Bhote Koshi–Trishuli flood (Nepal), compared wi
 ```bash
 git clone https://github.com/projectilx42-tech/hackathon2-povodne.git
 cd hackathon2-povodne
+./install.sh            # Windows: double-click install.bat (or run it in a terminal)
+```
+The installer ([`install.py`](install.py), standard Python only) checks the Python version, creates a private environment
+`.venv/` in the project folder (nothing is installed system-wide), installs the CPU-only PyTorch build (on Linux and
+Windows the default build would pull several GB of NVIDIA libraries this project does not use), the pipeline and the
+dashboard, checks that the model files are present, and at the end **optionally asks for the Copernicus keys** (Enter
+skips; see step 3). It takes a few minutes and can be re-run safely.
+
+<details><summary>Manual installation (the same steps by hand)</summary>
+
+```bash
 python -m venv .venv && . .venv/bin/activate      # Windows: python -m venv .venv; .venv\Scripts\Activate.ps1
-# if PowerShell blocks the script: Set-ExecutionPolicy -Scope Process RemoteSigned
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu   # Linux / Windows: small CPU-only build
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu   # Linux / Windows only, skip on macOS
 pip install -r requirements.txt -r dashboard/requirements.txt -e .
 ```
-On **macOS** skip the first `pip install` line (the standard PyTorch wheel is already CPU-ready there). On Linux and Windows
-do **not** skip it: the default PyPI wheel bundles NVIDIA CUDA libraries (several GB) that this project does not use, and the
-installation can run out of disk space. Installation takes a few minutes.
+</details>
 
 ### 3. Free accounts and keys
 The judges do not need our accounts — every service below is free and takes a few minutes. Keys are read **only from
@@ -72,7 +80,10 @@ with a `model_card.json` (training data, thresholds, scores). They were trained 
 (credits below). `python training/fetch_model.py` re-downloads them from the team's private Kaggle backup (needs `KAGGLE_API_TOKEN` with access);
 normal use does not need it.
 
-**Set the keys** (in the same terminal you start the app from):
+**Set the keys:** the easiest way is to paste them when the installer asks (run `./install.sh` / `install.bat` again any
+time). They are saved to `.env` in the project folder — a local file that git ignores, so they never reach the
+repository — and loaded when the app starts. Or set them as environment variables in the terminal you start the app from
+(these take precedence over `.env`):
 ```bash
 export CDSE_CLIENT_ID=...  CDSE_CLIENT_SECRET=...
 # optional: OHSOME_API_KEY=...  CARTO_API_KEY=...
@@ -84,9 +95,11 @@ $env:CDSE_CLIENT_ID="..."; $env:CDSE_CLIENT_SECRET="..."
 
 ### 4. Run the web app
 ```bash
-python -m povodne serve            # then open http://127.0.0.1:8000
+./start.sh              # Windows: double-click start.bat
 ```
-(`python -m dashboard` starts the same app.) The server listens only on your own computer (`127.0.0.1`).
+It opens http://127.0.0.1:8000 in your browser (stop with Ctrl+C). The same by hand, in the activated environment:
+`python -m povodne serve --open` (`python -m dashboard` starts the same app without loading `.env`). The server listens
+only on your own computer (`127.0.0.1`).
 
 1. Draw the area: **rectangle** (default) or free shape. Keep it at or under about **30 × 30 km** (the app warns above 900 km²).
 2. Enter the **flood date**. Optional under *Advanced*: the local time of the flood, your own *before* / *after* date
@@ -133,12 +146,13 @@ A repeated run on the same area and date reuses downloaded images and costs almo
 ### When something goes wrong
 | Message / symptom | What to do |
 |---|---|
-| *Copernicus credentials missing / invalid* | Set `CDSE_CLIENT_ID` and `CDSE_CLIENT_SECRET` in the terminal that starts the app, then restart it. |
+| *Copernicus credentials missing / invalid* | Run the installer again and paste the keys (or set `CDSE_CLIENT_ID` and `CDSE_CLIENT_SECRET` in the terminal that starts the app), then restart the app. |
 | *ohsome key rejected* or *daily quota used up* (flood map shown, but no damage or cut-off results) | The built-in shared ohsome key is limited to about 250 requests a day. Create your own free key (see the table above), set `OHSOME_API_KEY` and run again. |
 | *No same-track Sentinel-1 pair* / *Insufficient data* | No radar image of the same orbit track exists before and after that date for this area (e.g. the flood was very recent). Try a later date, a larger *after* window, or check the preview command above. |
 | *No significant flooding detected* | Nothing was found **in the data that could be seen**. Check the data-quality panel: how much of the valley floor was hidden by radar shadow or clouds. |
 | HTTP 429 / quota messages | Free-tier limit reached (per minute or per month). Wait a minute, or use a smaller area. |
-| `No module named povodne` | Run `pip install -e .` inside the activated virtual environment. |
+| `No module named povodne` | Start the app with `./start.sh` / `start.bat`, or activate `.venv` first; if it persists, run the installer again. |
+| *Python 3.11 or newer not found* (installer) | Install Python from https://www.python.org (on Windows tick *Add python.exe to PATH*) and run the installer again. |
 | The run stops at *flood model* | The model files in `models/` are missing or incomplete (e.g. the repository was downloaded without them). Clone it again with `git clone`, or run `python training/fetch_model.py`. |
 Full log of each run: `runs/<id>/logs/pipeline.log`. All warnings are also listed in the app (data-quality panel).
 
@@ -188,6 +202,7 @@ documentation and implementation. Per-module notes on which parts were AI-assist
 - **AI flood step edge growth (`training/eval_edge.py`, `training/floodseg/edge.py`, edge step in `training/run_ai.py`)**: written with Claude Code; the 1 px edge growth was calibrated on Kuro Siwo validation events only, with a selection rule fixed in advance (D-M9-15).
 - **Radar model v0.5 (`training/train.py --init/--hard-boost`, `training/floodseg/data.py`, `validation/model_compare.sh`)**: fine-tuning with hard-tile sampling, threshold calibration and the whole-system comparison were done with Claude Code (D-M15-01).
 - **Confidence map (`src/povodne/flood/confidence.py`, confidence layer and panel in `dashboard/`, `tests/test_confidence.py`)**: the rule-based "where is the system unsure" layer and its explanation were written with Claude Code (D-M16-01).
+- **Installer (`install.py`, `install.sh`/`.bat`, `start.sh`/`.bat`, `.env` loading in `src/povodne/cli.py`)**: written with Claude Code (D-X-19).
 - **Dashboard (`dashboard/`)**: backend, frontend, synthetic sample-run generator, bundled real-example builder and UI design discussion were developed with Claude Code.
 
 - **Scene selection (`src/povodne/acquire/`)** — Sentinel-1 catalogue search and track planning, Copernicus DEM download,

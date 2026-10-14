@@ -1628,3 +1628,9 @@ jen tyto dvě složky; ostatní modely (v0.4, experimenty) dál mimo git. `fetch
 **Soulad:** modely trénované jen na Kuro Siwo (MIT / CC BY) a Sen1Floods11 (CC BY) + ImageNet enkodér (organizátoři potvrdili), citace
 v README a model cards. Žádná EMS data. Model cards neobsahují cesty ani klíče (ověřeno).
 **Důsledek:** historie gitu trvale +150 MB (odstranit jde jen přepsáním historie). Repo je soukromé — před odevzdáním zveřejnit.
+
+## D-X-19 | 2026-10-14 | přijato (zadání uživatele, master) — Instalace a spuštění jedním příkazem
+**Kontext:** Ruční instalace měla 5 příkazů s rozdíly podle OS (aktivace venv, CPU torch jen na Linux/Windows), klíče se musely nastavit v každém terminálu znovu. Uživatel chce „jednoduchý instalační proces“.
+**Rozhodnutí:** `install.py` (jen standardní knihovna, běží na čistém Pythonu): kontrola Python ≥ 3.11 → `.venv/` v projektu → CPU torch (kromě macOS) → `requirements.txt` + dashboard + `-e .` → kontrola importů a obou souborů modelu → volitelně (Enter = přeskočit) dotaz na klíče Copernicus a uložení do `.env`. Obaly `install.sh` / `install.bat` jen najdou vhodný Python; `start.sh` / `start.bat` spustí `.venv` python `-m povodne serve --open` (otevře prohlížeč). `python -m povodne` načte `.env` z kořene repa jen pro proměnné, které v prostředí nejsou; kroky pipeline je dědí. `serve` upozorní, když klíče chybí (ukázka funguje i bez nich).
+**Soulad s pravidly:** `.env` je v `.gitignore` od začátku → klíče se do repa nedostanou (pravidlo „žádné secrets v repu“); kód je dál čte jen z proměnných prostředí, `.env` je jen pohodlný způsob, jak je nastavit. Datových pravidel se to netýká. Ruční postup zůstává v README (rozbalovací blok).
+**Ověření:** čistý `git clone` + `./install.sh --no-keys` v novém prostředí, start dashboardu; testy `tests/test_install.py`.
