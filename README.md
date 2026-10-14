@@ -28,7 +28,8 @@ Case study: the 26 August 2026 Bhote Koshi–Trishuli flood (Nepal), compared wi
 ## Quick start (about 15 minutes, most of it creating three free accounts)
 
 ### 1. Requirements
-- **Python 3.11 or newer** (`python --version`), Git, about 3 GB free disk space and 8 GB RAM.
+- **Python 3.11 or newer** (`python --version`), Git, about 5 GB free disk space (the installation takes about 2.5 GB with the
+  CPU build of PyTorch; a run needs 0.5 GB and more) and 8 GB RAM.
 - **No GPU needed** — the model runs on the CPU.
 - Windows, macOS and Linux work. On Windows use PowerShell; commands are shown for both where they differ.
 
@@ -37,8 +38,13 @@ Case study: the 26 August 2026 Bhote Koshi–Trishuli flood (Nepal), compared wi
 git clone https://github.com/projectilx42-tech/hackathon2-povodne.git
 cd hackathon2-povodne
 python -m venv .venv && . .venv/bin/activate      # Windows: python -m venv .venv; .venv\Scripts\Activate.ps1
-pip install -r requirements.txt -r dashboard/requirements.txt && pip install -e .
+# if PowerShell blocks the script: Set-ExecutionPolicy -Scope Process RemoteSigned
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu   # Linux / Windows: small CPU-only build
+pip install -r requirements.txt -r dashboard/requirements.txt -e .
 ```
+On **macOS** skip the first `pip install` line (the standard PyTorch wheel is already CPU-ready there). On Linux and Windows
+do **not** skip it: the default PyPI wheel bundles NVIDIA CUDA libraries (several GB) that this project does not use, and the
+installation can run out of disk space. Installation takes a few minutes.
 
 ### 3. Free accounts and keys
 The judges do not need our accounts — every service below is free and takes a few minutes. Keys are read **only from
@@ -48,11 +54,11 @@ environment variables**; they are never typed into the app and never stored in t
 |---|---|---|---|
 | **Copernicus Data Space** (ESA) | Sentinel-1 and Sentinel-2 images | see *Copernicus key* below | `CDSE_CLIENT_ID`, `CDSE_CLIENT_SECRET` |
 | **ohsome API** (HeiGIT) | OpenStreetMap as it was **before** the flood | sign up at https://account.heigit.org/signup → *API keys* → create | `OHSOME_API_KEY` (optional: a shared project key is built in; set your own if its daily quota runs out) |
-| **Model weights** | the trained flood segmentation model | see *Model weights* below | _see below_ |
+| **Model weights** | the trained flood segmentation model | see *Model weights* below | `KAGGLE_API_TOKEN` (see below) |
 | CARTO (optional) | dark base map; without it an inverted OSM map is used | https://carto.com/basemaps/ | `CARTO_API_KEY` |
 
 The Copernicus DEM is downloaded from the public AWS Open Data bucket and needs no account.
-One run uses 8 ohsome requests; the free key allows 250 per day.
+One run uses 3 ohsome requests; the free key allows 250 per day.
 
 **Copernicus key (Sentinel Hub OAuth client):**
 1. Register at https://dataspace.copernicus.eu (top right → *Register*) and confirm the e-mail.
@@ -61,18 +67,23 @@ One run uses 8 ohsome requests; the free key allows 250 per day.
    browser window.
 
 **Model weights:**
-<!-- TODO (AI model session): final public download of the weights (O-011). Until then: -->
 ```bash
-python training/fetch_model.py      # -> models/floodseg_v0.5/ (radar model) and models/floodseg_s2_v0.1/ (optical model)
+python training/fetch_model.py      # -> models/floodseg_v0.5/ (radar model) and models/floodseg_s2_v0.1/ (optical model), about 150 MB
 ```
-_Final download instructions will be added before submission._
+The weights are not stored in the repository (too large). **Hosting note:** they currently live in two **private** Kaggle
+datasets (`krataihalfmaster/floodseg-model-v05` and `krataihalfmaster/floodseg-model-s2`), so the command above works only
+with the Kaggle API token (environment variable `KAGGLE_API_TOKEN`) of an account that has been given access. A public
+download is **not set up yet**; this section is updated when the team decides where to host the weights. Without the weights
+the app starts and the sample run opens, but a real run stops at the *flood model* step.
 
 **Set the keys** (in the same terminal you start the app from):
 ```bash
-export CDSE_CLIENT_ID=...  CDSE_CLIENT_SECRET=...  OHSOME_API_KEY=...
+export CDSE_CLIENT_ID=...  CDSE_CLIENT_SECRET=...
+# optional: OHSOME_API_KEY=...  CARTO_API_KEY=...  KAGGLE_API_TOKEN=... (the last one only to download the model weights)
 ```
 ```powershell
-$env:CDSE_CLIENT_ID="..."; $env:CDSE_CLIENT_SECRET="..."; $env:OHSOME_API_KEY="..."
+$env:CDSE_CLIENT_ID="..."; $env:CDSE_CLIENT_SECRET="..."
+# optional: $env:OHSOME_API_KEY="..."; $env:CARTO_API_KEY="..."; $env:KAGGLE_API_TOKEN="..."
 ```
 
 ### 4. Run the web app
@@ -117,7 +128,7 @@ Measured on a cloud CPU container (no GPU), whole pipeline from download to repo
 |---|---|---|
 | Run time | 2–7 min | 24 min (download 6, debris step 10) |
 | Copernicus processing units (free: 10,000 / month) | ~100–110 | ~2,200 (≈ 4 runs / month) |
-| ohsome requests (free: 250 / day) | 8 | 8 |
+| ohsome requests (free: 250 / day) | 3 | 3 |
 
 A repeated run on the same area and date reuses downloaded images and costs almost nothing.
 
@@ -125,7 +136,7 @@ A repeated run on the same area and date reuses downloaded images and costs almo
 | Message / symptom | What to do |
 |---|---|
 | *Copernicus credentials missing / invalid* | Set `CDSE_CLIENT_ID` and `CDSE_CLIENT_SECRET` in the terminal that starts the app, then restart it. |
-| *OSM key missing* (flood map shown, but no damage or cut-off results) | Set `OHSOME_API_KEY` and run again. |
+| *ohsome key rejected* or *daily quota used up* (flood map shown, but no damage or cut-off results) | The built-in shared ohsome key is limited to about 250 requests a day. Create your own free key (see the table above), set `OHSOME_API_KEY` and run again. |
 | *No same-track Sentinel-1 pair* / *Insufficient data* | No radar image of the same orbit track exists before and after that date for this area (e.g. the flood was very recent). Try a later date, a larger *after* window, or check the preview command above. |
 | *No significant flooding detected* | Nothing was found **in the data that could be seen**. Check the data-quality panel: how much of the valley floor was hidden by radar shadow or clouds. |
 | HTTP 429 / quota messages | Free-tier limit reached (per minute or per month). Wait a minute, or use a smaller area. |
@@ -166,7 +177,8 @@ design decisions with their reasons are in `docs/DECISIONS.md` (internal notes, 
 Full list: report, section *Limitations*.
 
 ## For developers
-- Tests: `python -m pytest -q tests training/tests` (synthetic data, no keys needed).
+- Tests (synthetic data, no keys or model weights needed): `pip install pytest pytest-xdist`, then
+  `python -m pytest -q -n auto tests training/tests` (about 30 s; the slow end-to-end tests are skipped, `--full` runs them too).
 - Model training and evaluation: [`training/README.md`](training/README.md). Run folder contract: `docs/ARCHITECTURE.md` (internal docs are in Czech).
 - Independent check on 10 floods + one no-flood control (no EMS data): [`validation/results/multievent/README.md`](validation/results/multievent/README.md);
   comparison with EMSR927 (check only): [`validation/README.md`](validation/README.md).
