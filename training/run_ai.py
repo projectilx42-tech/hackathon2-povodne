@@ -143,6 +143,21 @@ def s2_water(model, cfg, run: Path, when: str, device: str):
 MNDWI_WATER = 0.0  # modified normalised difference water index (green - SWIR1) / (green + SWIR1) > 0 = open water (Xu 2006; not tuned)
 
 
+S2_VETO_P = 0.1             # optical model "sure dry" (same value as the confidence map, D-M16-01)
+S2_VETO_MAX_GAP_DAYS = 1.5  # radar and optical post images from (about) the same day
+
+
+def s1_s2_post_gap_days(meta: dict) -> float | None:
+    """Days between the first Sentinel-1 post image and the Sentinel-2 post image (run.json acquire), None if unknown."""
+    from datetime import date
+    acq = meta.get("acquire") or {}
+    s1 = ((acq.get("s1") or {}).get("post") or [{}])[0].get("datetime")
+    s2 = ((acq.get("s2") or {}).get("post") or {}).get("date")
+    if not s1 or not s2:
+        return None
+    return abs((date.fromisoformat(s1[:10]) - date.fromisoformat(s2[:10])).days)
+
+
 def s2_index_enabled() -> bool:
     return os.environ.get("POVODNE_S2_INDEX", "0") == "1"
 
@@ -397,12 +412,22 @@ def main() -> None:
                 mask[opt_perm & (mask == 2)] = 4
                 mask[s2_flood] = 2
                 p_flood = np.where(clear_post, np.maximum(p_flood, p_post * dry_before * w), p_flood).astype(np.float32)
+                veto_px = 0
+                gap = s1_s2_post_gap_days(meta)
+                if os.environ.get("POVODNE_S2_VETO", "1") != "0" and gap is not None and gap <= S2_VETO_MAX_GAP_DAYS:
+                    # same-time evidence (D-M14-17): a clear optical image taken within a day of the radar image that is sure the
+                    # pixel is dry overrides radar-only flood (not tuned on any event: "sure" = the confidence map's 0.1)
+                    veto = clear_post & (p_post <= S2_VETO_P) & (mask == 2) & ~s2_flood
+                    mask[veto] = 1
+                    p_flood = np.where(veto, np.minimum(p_flood, p_post), p_flood).astype(np.float32)
+                    veto_px = int(veto.sum())
                 s2_info = {"used": True, "model": str(args.s2_model),
                            "post_clear_pct": round(100 * float(clear_post.mean()), 1),
                            "pre_clear_pct": round(100 * float(clear_pre.mean()), 1),
                            "optical_flood_km2": round(float(s2_flood.sum()) * 1e-4, 3),
                            "optical_water_unknown_before_km2": round(float((wet_post & ~known_before).sum()) * 1e-4, 3),
-                           "index_rule": s2_index_enabled(), "index_added_km2": round(index_px * 1e-4, 3)}
+                           "index_rule": s2_index_enabled(), "index_added_km2": round(index_px * 1e-4, 3),
+                           "s1_s2_gap_days": gap, "optical_veto_km2": round(veto_px * 1e-4, 3)}
     # Seasonal high water (D-M10-02): "permanent" by the model only because the before-image was already swollen.
     ref = load_on_grid(run / "raw" / "s1" / "perm_water.tif", profile)
     seasonal = seasonal_high_water(mask, ref, load_on_grid(run / "raw" / "dem" / "water.tif", profile), args.perm_min_freq)

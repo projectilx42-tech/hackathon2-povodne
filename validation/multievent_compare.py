@@ -22,6 +22,8 @@ def load(tag: str) -> dict:
     out = {}
     for p in RES.glob(f"*__{tag}.json"):
         d = json.loads(p.read_text())
+        if "scores" not in d:  # e.g. confidence__<tag>.json
+            continue
         s = d["scores"]
         k = "b_envelope" if "b_envelope" in s else "b_envelope_water_2_4"
         t = d["run"].get("timings_s")

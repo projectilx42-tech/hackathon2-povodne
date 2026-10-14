@@ -258,3 +258,10 @@ S2 6–9 days later and ≥ 27 % cloud in the window), Roshi 2024 (57 % clear), 
 Kathmandu and Baghlan have very little water left in the label (0.10 / 0.35 km², the flash floods had drained by the S2 date), so like Chamoli
 their precision is dominated by a fraction of a km²: AI water off the label 0.17 / 0.23 km²; the debris step marks 1.5 / 1.6 km² of
 "debris" that a water label cannot confirm (it may be real deposits). Swat, a large river flood, behaves like the lowland events.
+
+## Optical veto (D-M14-17): tag `veto1full` vs `final1`, all 14 events
+Clear Sentinel-2 post image within 1.5 days of the radar post image and optical model sure the pixel is dry (P(water) ≤ 0.1) → radar-only flood
+removed. Values fixed beforehand (not tuned on these events). Only 5 events have same-day optics; mean over 12 labelled floods
+R 0.853 / P 0.785 / F1 0.798 → **R 0.853 / P 0.802 / F1 0.807**; Baghlan +0.102 (P 0.51 → 0.68), Bolivia +0.010, Chad −0.001, rest 0.000;
+control 0.3278 km² unchanged → merge rule passes. Caveat: Baghlan's label is water from the same optical image (partly circular);
+independent hand labels exist only for Bolivia and Chad. Kathmandu unchanged: its extra radar water is not "sure dry" for the optical model.
