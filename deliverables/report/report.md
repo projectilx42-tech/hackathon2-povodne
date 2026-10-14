@@ -47,7 +47,7 @@ patches < 0.1 ha removed; *Standard* and *Sensitive* modes (probability threshol
 | Kuro Siwo test (10 events, 15 896 tiles) | flood | 0.865 | 0.731 | **0.792** | 0.656 |
 | Kuro Siwo test | permanent water | 0.816 | 0.754 | 0.784 | 0.644 |
 | Kuro Siwo test | water total | 0.893 | 0.779 | 0.832 | 0.713 |
-| Kuro Siwo test, mountain tiles (relief > 200 m), earlier model v0.4 | flood | – | – | 0.48 | – |
+| Kuro Siwo test, mountain tiles (relief > 200 m) | flood | – | – | 0.52 | – |
 | Sen1Floods11 Bolivia (held out), no "before" image | water total | 0.958 | 0.109 | **0.195** | 0.108 |
 | Sen1Floods11 Bolivia, "before" = "after" (no change) | water total | 0.889 | 0.495 | 0.636 | – |
 | Optical model, Sen1Floods11 Bolivia (held out) | water | 0.899 | 0.872 | **0.885** | 0.794 |
