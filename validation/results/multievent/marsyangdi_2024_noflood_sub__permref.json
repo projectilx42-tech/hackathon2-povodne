@@ -1,0 +1,195 @@
+{
+ "event": "marsyangdi_2024_noflood_sub",
+ "tag": "permref",
+ "dataset": "himalaya_s2",
+ "continent": "Asia (Himalaya)",
+ "kind": "no_flood_control",
+ "event_date": "2024-01-15",
+ "aoi_bbox": [
+  84.35,
+  28.17,
+  84.44,
+  28.26
+ ],
+ "label_valid_pct": 91.7,
+ "scores": {
+  "a_seeds_water_2_4": {
+   "recall": 0.8948,
+   "precision": 0.5122,
+   "f1": 0.6515,
+   "truth_km2": 0.1873,
+   "pred_km2": 0.3272,
+   "tp_km2": 0.1676,
+   "fp_km2": 0.1596,
+   "region_km2": 84.47
+  },
+  "a_seeds_common_water_2_4": {
+   "recall": 0.8948,
+   "precision": 0.5122,
+   "f1": 0.6515,
+   "truth_km2": 0.1873,
+   "pred_km2": 0.3272,
+   "tp_km2": 0.1676,
+   "fp_km2": 0.1596,
+   "region_km2": 84.47
+  },
+  "b_envelope_water_2_4": {
+   "recall": 0.8948,
+   "precision": 0.5122,
+   "f1": 0.6515,
+   "truth_km2": 0.1873,
+   "pred_km2": 0.3272,
+   "tp_km2": 0.1676,
+   "fp_km2": 0.1596,
+   "region_km2": 84.47
+  },
+  "a_seeds_all_2_3_4": {
+   "recall": 0.8948,
+   "precision": 0.1736,
+   "f1": 0.2907,
+   "truth_km2": 0.1873,
+   "pred_km2": 0.9656,
+   "tp_km2": 0.1676,
+   "fp_km2": 0.798,
+   "region_km2": 84.47
+  },
+  "a_seeds_common_all_2_3_4": {
+   "recall": 0.8948,
+   "precision": 0.1736,
+   "f1": 0.2907,
+   "truth_km2": 0.1873,
+   "pred_km2": 0.9656,
+   "tp_km2": 0.1676,
+   "fp_km2": 0.798,
+   "region_km2": 84.47
+  },
+  "b_envelope_all_2_3_4": {
+   "recall": 0.8948,
+   "precision": 0.1736,
+   "f1": 0.2907,
+   "truth_km2": 0.1873,
+   "pred_km2": 0.9656,
+   "tp_km2": 0.1676,
+   "fp_km2": 0.798,
+   "region_km2": 84.47
+  }
+ },
+ "false_alarm_dry_label": {
+  "seeds": 0.0087,
+  "envelope": 0.0087
+ },
+ "seed_transitions_km2": {
+  "water": {
+   "water": 0.1311
+  },
+  "debris": {
+   "debris": 0.6384
+  },
+  "permanent": {
+   "permanent": 0.1961
+  }
+ },
+ "components": {
+  "seeds_ai_water(2)": {
+   "km2": 0.1349,
+   "km2_in_label_region": 0.1311,
+   "share_on_truth": 0.275
+  },
+  "seeds_debris_step:debris": {
+   "km2": 0.1171,
+   "km2_in_label_region": 0.1005,
+   "share_on_truth": 0.0
+  },
+  "seeds_debris_step:mud": {
+   "km2": 0.004,
+   "km2_in_label_region": 0.0036,
+   "share_on_truth": 0.0
+  },
+  "seeds_debris_step:erosion": {
+   "km2": 0.007,
+   "km2_in_label_region": 0.0062,
+   "share_on_truth": 0.0
+  },
+  "seeds_debris_step:damaged_builtup": {
+   "km2": 0.0004,
+   "km2_in_label_region": 0.0004,
+   "share_on_truth": 0.0
+  },
+  "seeds_debris_step:landslide": {
+   "km2": 1.8076,
+   "km2_in_label_region": 0.5221,
+   "share_on_truth": 0.0
+  },
+  "seeds_debris_step:unknown": {
+   "km2": 0.0038,
+   "km2_in_label_region": 0.0038,
+   "share_on_truth": 0.0
+  },
+  "seeds_class3_not_debris_step(vhagree etc.)": {
+   "km2": 0.0026,
+   "km2_in_label_region": 0.0018,
+   "share_on_truth": 0.0
+  },
+  "seeds_permanent(4)": {
+   "km2": 0.2006,
+   "km2_in_label_region": 0.1961,
+   "share_on_truth": 0.671
+  }
+ },
+ "pred_total_km2": {
+  "seeds": 2.077,
+  "envelope": 2.077
+ },
+ "run": {
+  "timings_s": {
+   "acquire": 67.7,
+   "preprocess": 3.1,
+   "s1anomaly": 1.5,
+   "flood_ai": 32.4,
+   "debris": 232.7,
+   "envelope": 0.8,
+   "combine": 1.9,
+   "damage": 3.8,
+   "network": 3.7,
+   "report": 5.1
+  },
+  "pu_spent": 0.0,
+  "pu_estimate": 114,
+  "envelope": {
+   "used": false,
+   "reason": "Water-level envelope is off (opt-in: set POVODNE_ENVELOPE=1 or pass --envelope); the flood map is unchanged.",
+   "placebo_groups": null,
+   "placebo_split": null,
+   "stat": null,
+   "persistence": null,
+   "reach_q": null,
+   "final_est_precision": null,
+   "final_placebo_false_km2": null,
+   "added_km2": null,
+   "added_by_stage_km2": null,
+   "optics": null,
+   "post_passes": null,
+   "optical_used": null
+  },
+  "main_track": {
+   "relative_orbit": 85,
+   "orbit_direction": "ASCENDING"
+  },
+  "alt_track": true,
+  "s2": {
+   "pre": 98.9,
+   "post": 90.4,
+   "extra": null
+  },
+  "warnings": [
+   "The check for flooding before the given date sees almost no open water here (rivers narrower than the 60 m check pixels), so it cannot confirm that the before-image is flood-free."
+  ],
+  "verdict": "flood_detected",
+  "coverage": {
+   "s1_valid_pct": 97.0,
+   "s2_pre_clear_pct": 98.9,
+   "s2_post_clear_pct": 90.4,
+   "evaluated_pct": 98.2
+  }
+ }
+}
