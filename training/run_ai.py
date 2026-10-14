@@ -426,6 +426,10 @@ def main() -> None:
                     if dem_w is not None:
                         opt_dry &= ~np.isin(dem_w, (1, 2))  # sea, lake
                     perm_dry = (mask == 4) & opt_dry
+                    # leave to the year-long record what it would turn into seasonal flood (the before-image was already swollen,
+                    # both optical images may simply miss shallow water); a runway is dark in every pass, so the record keeps it
+                    ref_pre = load_on_grid(run / "raw" / "s1" / "perm_water.tif", profile)
+                    perm_dry &= ~seasonal_high_water(mask, ref_pre, dem_w, args.perm_min_freq)
                     mask[perm_dry] = 1
                     perm_dry_px = int(perm_dry.sum())
                 p_flood = np.where(clear_post, np.maximum(p_flood, p_post * dry_before * w), p_flood).astype(np.float32)
