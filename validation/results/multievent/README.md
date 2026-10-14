@@ -199,3 +199,47 @@ no-flood control 0.3287 → 0.3278 km². Table: `python validation/multievent_co
 Note: tags `v4b_v04`, `cand_*`, `s2_v04`, `s2_v05*` were run WITHOUT the optical model (radar only, it was not downloaded); they are valid only for
 comparing radar models with each other: of 8 fine-tuned variants only `cand_ft_hard5_eb1` (= v0.5) passed; weight averaging (`cand_soup3/5`) and
 flip TTA (`cand_eb1_tta`) gave no worthwhile gain.
+
+## Final benchmark of main 9633793 (radar model v0.5 + confidence map): tag `final1`
+`validation/multievent_rerun.sh final1 --from flood_ai --no-envelope --sensitivity sensitive`, then `python validation/multievent_confidence.py final1 --run-step`.
+Flood map identical to `v05main` on all 11 events (ΔF1 0.000 everywhere; control 0.3278 km²; the confidence step only reads the map).
+Mean over 9 labelled floods: **R 0.862 / P 0.876 / F1 0.864**. Times in seconds are from the original full run of each event
+(acquire includes the download; flood_ai on CPU), the confidence step was timed now. "checked km²" = area where label and map both have data.
+
+| event | R | P | F1 | checked km² | acquire | preprocess | s1anomaly | flood_ai | debris | combine | damage | network | report | confidence | total |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| australia_2022 | 0.85 | 0.99 | 0.91 | 65 | 72 | 2 | 1 | 11 | 5 | 2 | 1 | 2 | 7 | 1 | 105 |
+| bihar_2019 | 0.98 | 0.90 | 0.94 | 54 | 316 | 9 | 4 | 65 | 24 | 4 | 4 | 5 | 15 | 1 | 446 |
+| bolivia_2018 | 0.94 | 0.82 | 0.88 | 33 | 90 | 4 | 2 | 19 | 286 | 3 | 1 | 1 | 7 | 1 | 415 |
+| chad_2020 | 0.67 | 0.79 | 0.72 | 75 | 103 | 3 | 1 | 28 | 255 | 2 | 1 | 1 | 5 | 1 | 400 |
+| chamoli_2021_sub | 0.06 | 0.48 | 0.11 | 32 | 140 | 3 | 1 | 25 | 17 | 2 | 2 | 2 | 6 | 2 | 199 |
+| evros_2018 | 0.92 | 0.83 | 0.87 | 45 | 67 | 2 | 1 | 17 | 22 | 2 | 2 | 3 | 5 | 0 | 121 |
+| honduras_2018 | 0.83 | 0.89 | 0.86 | 69 | 84 | 3 | 1 | 28 | 52 | 2 | 2 | 2 | 7 | 1 | 181 |
+| malawi_2022 | 0.93 | 0.93 | 0.93 | 66 | 162 | 7 | 4 | 56 | 20 | 2 | 3 | 4 | 12 | 1 | 270 |
+| marsyangdi_2024_noflood_sub | 0.89 | 0.51 | 0.65 | 84 | 68 | 3 | 2 | 32 | 233 | 2 | 4 | 4 | 5 | 1 | 352 |
+| missouri_2017 | 0.99 | 0.84 | 0.91 | 48 | 138 | 2 | 1 | 26 | 7 | 1 | 2 | 3 | 5 | 1 | 187 |
+| teesta_2023_sub | 0.64 | 0.90 | 0.75 | 90 | 53 | 4 | 1 | 41 | 150 | 2 | 6 | 3 | 5 | 2 | 267 |
+
+### Accuracy per confidence level (measurement only — nothing was tuned from it)
+P = share of the map's affected pixels at this level that the reference confirms; R = share of reference flood pixels at this level that the map found;
+share = part of the map's affected area at this level. File: `confidence__final1.json`.
+
+| event | high P / R / share | medium P / R / share | low P / R / share | overall |
+|---|---|---|---|---|
+| teesta_2023_sub | 0.98 / 1.00 / 0.02 | 0.89 / 0.63 / 0.75 | 0.91 / 0.67 / 0.23 | low |
+| chamoli_2021_sub | 1.00 / 0.50 / 0.12 | 0.41 / 0.05 / 0.65 | 0.42 / 0.04 / 0.23 | low |
+| marsyangdi_2024_noflood_sub | 0.67 / 0.92 / 0.63 | 0.25 / 0.79 / 0.37 | 0.14 / 0.33 / 0.00 | low |
+| honduras_2018 | 0.95 / 0.56 / 0.13 | 0.89 / 0.90 / 0.85 | 0.60 / 1.00 / 0.02 | medium |
+| malawi_2022 | 0.98 / 0.87 / 0.25 | 0.94 / 0.96 / 0.67 | 0.70 / 1.00 / 0.07 | medium |
+| australia_2022 | 0.98 / 0.78 / 0.19 | 0.99 / 0.86 / 0.77 | 0.96 / 0.99 / 0.05 | medium |
+| bolivia_2018 | 0.91 / 0.99 / 0.69 | 0.64 / 0.84 / 0.30 | 0.44 / 0.55 / 0.02 | medium |
+| bihar_2019 | 0.93 / 0.99 / 0.77 | 0.78 / 0.97 / 0.23 | 0.77 / 1.00 / 0.01 | high |
+| missouri_2017 | 0.95 / 0.99 / 0.69 | 0.65 / 0.98 / 0.28 | 0.14 / 0.95 / 0.03 | high |
+| chad_2020 | 0.51 / 0.15 / 0.10 | 0.78 / 0.85 / 0.73 | 0.97 / 1.00 / 0.17 | medium |
+| evros_2018 | 0.86 / 0.95 / 0.79 | 0.73 / 0.80 / 0.21 | 0.60 / 0.99 / 0.01 | high |
+| **pooled (9 flood events)** | 0.92 / 0.92 / 0.52 | 0.87 / 0.89 / 0.45 | 0.75 / 0.95 / 0.03 |  |
+
+Pooled over the 9 labelled floods precision falls with the level as intended: **high 0.92 → medium 0.87 → low 0.75**. High beats low in 8 of 9 events;
+the exception is Chad (high 0.51, low 0.97: its "high" pixels are a small set the label calls dry). Australia is flat (0.98 / 0.99 / 0.96).
+"Low" covers only 3 % of the affected area, so it marks a small doubtful fringe rather than splitting the map evenly.
+Recall per level is not a quality ranking: a flooded pixel the model confidently called dry counts as a "high"-level miss.
