@@ -1,6 +1,7 @@
 # Pipeline dependencies (src/povodne), Python >= 3.11. Install: pip install -r requirements.txt
 # The skeleton will move this list into pyproject.toml. Modules add their own lines here.
-# torch: on a machine without GPU the default PyPI wheel is fine (inference runs on CPU).
+# torch: inference runs on the CPU. On Linux/Windows install the small CPU build FIRST (README, step 2), otherwise the default
+# PyPI wheel pulls several GB of CUDA libraries; torch and torchvision must come from the same index (else torchvision ops fail).
 
 # M1 acquire: catalogue search, DEM, terrain masks
 requests>=2.31
