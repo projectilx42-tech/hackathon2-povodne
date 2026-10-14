@@ -104,3 +104,26 @@ def test_ohsome_quota_message_is_plain(monkeypatch):
         assert False
     except RuntimeError as exc:
         assert "daily request quota" in str(exc)
+
+
+def test_osm_layers_one_request_per_bbox(monkeypatch):
+    """Buildings+land use and the five buffered layers come from ONE ohsome request each and are split locally (D-M14-16)."""
+    import geopandas as gpd
+    from shapely.geometry import LineString, Point, Polygon
+    from povodne.acquire import osm
+
+    sq = Polygon([(0, 0), (1, 0), (1, 1), (0, 1)])
+    feats = gpd.GeoDataFrame({"osm_id": ["way/1", "way/2", "way/3", "node/4", "node/5", "way/6"],
+                              "building": ["yes", None, None, None, None, None], "landuse": [None, "forest", None, None, None, None],
+                              "highway": [None, None, "primary", None, None, None], "place": [None, None, None, "village", None, None],
+                              "amenity": [None, None, None, None, "hospital", None], "man_made": [None, None, None, None, None, "bridge"]},
+                             geometry=[sq, sq, LineString([(0, 0), (1, 1)]), Point(0, 0), Point(1, 1), sq], crs="EPSG:4326")
+    calls = []
+    monkeypatch.setattr(osm, "fetch", lambda bbox, when, flt: calls.append(flt) or feats)
+    small = osm.fetch_layers([0, 0, 1, 1], date(2024, 1, 1), ("buildings", "landuse"))
+    big = osm.fetch_layers([0, 0, 1, 1], date(2024, 1, 1), ("roads", "bridge_polygons", "places", "health", "pois"))
+    assert len(calls) == 2 and calls[0] == f"({osm.FILTERS['buildings']}) or ({osm.FILTERS['landuse']})"
+    assert list(small["buildings"].osm_id) == ["way/1"] and list(small["landuse"].osm_id) == ["way/2"]
+    assert list(big["roads"].osm_id) == ["way/3"] and list(big["places"].osm_id) == ["node/4"]
+    assert list(big["health"].osm_id) == ["node/5"] and list(big["pois"].osm_id) == ["node/5"]
+    assert list(big["bridge_polygons"].osm_id) == ["way/6"]

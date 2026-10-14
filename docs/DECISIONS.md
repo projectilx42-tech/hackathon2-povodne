@@ -1546,3 +1546,14 @@ Nová vrstva `flood/confidence.tif` (uint8 0 nevyhodnoceno / 1 nízká / 2 stře
 - **Celkově:** nad zasaženou plochou (když žádná není, nad vyhodnocenou): ≥ 60 % vysoká → „high“, ≥ 40 % nízká → „low“, jinak „medium“. `reasons` = až 5 faktorů s podílem zasažené plochy ≥ 5 % (např. „32 % of the affected area lies in steep or high terrain…“).
 - **Kontrakt:** nové soubory v `flood/`, klíč `stats.confidence` (= `confidence.json`), `run.json.confidence`, překryv `overlays/confidence.png` (hotové barvy zelená/žlutá/červená, šedá = nevyhodnoceno, slabě červená mimo povodeň = nejistě suché); renderer v `report/overlays.py`. UI: vrstva „Confidence map“ + panel „How sure is the system“; sitrep má větu „How sure is the system“ (čísla jen ze stats.json). Ukázkový run doplněn `dashboard/tools/add_sample_confidence.py` (syntetická data).
 - **Omezení (do reportu):** jistota je heuristika, ne statisticky kalibrovaná pravděpodobnost; neříká, že „vysoká“ pixely jsou správně, jen že na nich souhlasí víc nezávislých důkazů.
+
+## D-M14-16 | 2026-10-13 | přijato — OpenStreetMap: 3 dotazy na ohsome místo 8
+Denní kvóta klíče ohsome počítá dotazy (D-M14-15). Dosud: metadata + 2 dotazy na oblast (budovy, využití půdy) + 5 na oblast s okrajem 15 km
+(silnice, mostní polygony, sídla, zdravotnictví, důležitá místa) = 8 na běh. Teď `osm.fetch_layers`: jeden dotaz na každý výřez se sloučeným filtrem
+„(f1) or (f2) …“ a rozdělení odpovědi lokálně pravidly `LAYER_RULES` (stejný výběr jako `FILTERS`) → **3 dotazy na běh** (~80 běhů denně místo ~30).
+Pravidla dat beze změny (jen ohsome, snapshot před událostí). Ověřeno offline na uložených odpovědích starého způsobu z 21 běhů (11 událostí + 10
+živých oblastí, do 82 tis. budov a 49 tis. silnic): složené a znovu rozdělené vrstvy mají totožné prvky ve všech vrstvách (degenerované budovy, které
+ohsome vrací jako bod, se zachovají). Mezipaměť OpenStreetMap podle (oblast, datum, souřadnicový systém, okraj): opakovaný běh Valencie bez klíče =
+0 dotazů, `osm/*.gpkg` bajt po bajtu stejné. Starý způsob: `POVODNE_OSM_SPLIT_REQUESTS=1`. Test `test_osm_layers_one_request_per_bbox`.
+Naostro (živý dotaz) neověřeno — kvóta je dnes vyčerpaná.
+- **Živé ověření (master, 2026-10-14):** Lismore 2022-02-28 s novým klíčem — výchozí (3 dotazy) vs `POVODNE_OSM_SPLIT_REQUESTS=1` (8 dotazů): všech 7 vrstev shodné počty i množiny `osm_id`. Sloučeno do `main`.
