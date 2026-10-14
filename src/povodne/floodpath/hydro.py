@@ -39,8 +39,9 @@ def read_dem(path: Path) -> tuple[np.ndarray, rasterio.Affine, rasterio.crs.CRS]
 
 def condition(dem: np.ndarray, transform: rasterio.Affine, crs) -> Hydro:
     """Condition the DEM and compute D8 flow direction + accumulation with pysheds."""
-    if not hasattr(np, "in1d"):  # pysheds 0.5 still calls np.in1d, removed in NumPy 2.4; np.isin is equivalent here
-        np.in1d = np.isin
+    from povodne.pysheds_compat import patch
+
+    patch()  # pysheds 0.5 vs current NumPy (np.in1d) and Numba (generators in fill_depressions)
     from pysheds.grid import Grid
 
     if not np.isfinite(dem).any():

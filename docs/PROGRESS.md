@@ -66,7 +66,8 @@ Pipeline běží end-to-end ze surových dat (`python -m povodne run`) i z webov
 ### 2026-10-14 — master: oprava běhu na Windows — `main`
 - Uživatelův běh na Windows končil bez `stats.json`: `UnicodeEncodeError` (cp1250) v `network`/`report` → UTF-8 všude + `PYTHONUTF8=1`, test simulace.
 - `combine`: vysvětlivky suti se s pandas 3 tiše ztrácely (sloupec float64) → opraveno. Seznam kroků v `dashboard/server.py` sjednocen s configem; panel ukáže selhaný krok.
-- V cloudu: čerstvá instalace (numpy 2.5 / numba 0.67–0.68 / pysheds 0.5) → 11 testů HAND/debris padá i na starém main (prostředí, ne oprava).
+- HAND / trasa povodně: pysheds 0.5 padal `KeyError: int64 generator(count)` při částečně naplněné mezipaměti numba (nezávisle na verzi) → `src/povodne/pysheds_compat.py`
+  nahrazuje `_priority_flood` stejným algoritmem bez generátorů (výstup ověřen jako totožný, +1,4 s kompilace na krok). Plná sada testů pak zelená.
 
 ### 2026-10-14 — master: předávka kontextu — `main`
 - `docs/handoff/` + `tools/report_pdf/`; repo veřejné, výchozí větev main; uživatelův test na Windows rozpracován (viz handoff 01).

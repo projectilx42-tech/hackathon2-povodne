@@ -168,8 +168,9 @@ def hand(dem: Dem, stream_cells: int = HAND_STREAM_CELLS) -> np.ndarray:
 
 
 def _hand(dem: Dem, stream_cells: int) -> np.ndarray:
-    if not hasattr(np, "in1d"):  # pysheds 0.5 still calls np.in1d, removed in NumPy 2.4; np.isin is equivalent here
-        np.in1d = np.isin
+    from povodne.pysheds_compat import patch
+
+    patch()  # pysheds 0.5 vs current NumPy (np.in1d) and Numba (generators in fill_depressions)
     from pysheds.grid import Grid
 
     with tempfile.TemporaryDirectory() as tmp:
