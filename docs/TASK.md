@@ -14,7 +14,7 @@ Online originál Track B: https://drive.google.com/file/d/1u1ayqUuG0W18uP_7GOptQ
 | Hodnocení | **live, na oblastech a datech, které porotci zvolí v den hodnocení** |
 | Organizátor | KamandPrompt (programovací klub IIT Mandi) + Augli.ai, PurpleRain Tech, LDV Labs |
 | Termíny | registrace od 22. 9.; zadání 30. 9.; **vývoj 30. 9. – 14. 10. 2026 EOD**; judging 15.–20. 10.; finále a vyhlášení 21. 10. 2026 |
-| **DEADLINE** | **15. 10. 2026 00:15 IST = 14. 10. 2026 20:45 SELČ (18:45 UTC)** — ověřeno z Devpostu 2026-10-07 |
+| **DEADLINE** | **15. 10. 2026 12:15 IST = 15. 10. 2026 08:45 SELČ (06:45 UTC)** — ověřeno z Devpostu 2026-10-14 (dříve zapsáno chybně 00:15 IST) |
 | Ceny | ₹100 000 celkem; Track B: 1. místo ₹15 000, 2. místo ₹10 000 |
 | Účast | 14+, primárně studenti VŠ; tým 1–4 lidi; jeden tým = jen jeden track; člověk jen v jednom týmu |
 | Komunikace | další info na oficiálním Discordu (https://discord.gg/UD8EVcdcq) po registraci |
