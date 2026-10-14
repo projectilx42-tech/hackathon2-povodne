@@ -270,3 +270,9 @@ Baghlan (15 May), Chamoli (10 Feb), Marsyangdi (20 Jan) — are **not verifiable
 (pipeline 11 Oct, label 16 Oct) is independent. The veto acts only on Baghlan among them (Kathmandu / Chamoli 0 px; Swat, Marsyangdi gap > 1.5 d).
 Merge rule on the non-circular events only (8 Kuro Siwo / Sen1Floods11 floods + Teesta, control unchanged): Bolivia +0.010, Chad −0.001,
 the others 0.000 → mean F1 up by 0.001, precision up, worst −0.001 → still passes, but the real gain is small (one event).
+
+## Optical check of permanent water (master, `origin/fix/perm-optical` cb5e932 = main with veto + the check): tag `permopt` vs `veto1full`
+All 12 floods: F1 0.807 → 0.819 (Kathmandu 0.34 → 0.49, Chad −0.009, Honduras +0.001, Malawi −0.001, Marsyangdi +0.001), control 0.3278 → 0.3269 km²;
+formal rule passes. **Non-circular events only** (8 Kuro Siwo / Sen1Floods11 floods + Teesta; Kathmandu's label is the pipeline's own S2 post image):
+mean R 0.861 → 0.859, P 0.879 → 0.879, F1 0.865 → 0.864 (Chad R 0.668 → 0.654: 0.13 km² of real flood turned dry) → **mean F1 down, rule fails**
+on the independent labels. The Kathmandu gain cannot be confirmed without circularity.
