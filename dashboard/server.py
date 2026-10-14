@@ -14,7 +14,7 @@ import subprocess
 import sys
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -72,6 +72,9 @@ def run_dir_of(run_id: str) -> Path:
     if not d.is_dir():
         raise HTTPException(404, "Run not found")
     return d
+
+
+MAX_AOI_KM2 = 5000  # ~5,500 of the 10,000 free monthly Copernicus processing units; the Trishuli case study (~2,000 km²) fits
 
 
 def polygon_area_km2(coords: list) -> float:
@@ -201,6 +204,12 @@ def create_app() -> FastAPI:
             datetime.strptime(date, "%Y-%m-%d")
         except ValueError:
             raise HTTPException(422, "event_date is not a valid date") from None
+        if date > (datetime.now(timezone.utc) + timedelta(days=1)).strftime("%Y-%m-%d"):  # +1 day: the browser's local date may be ahead of UTC
+            raise HTTPException(422, "event_date is in the future: no satellite images exist yet")
+        area = polygon_area_km2(aoi["coordinates"])
+        if area > MAX_AOI_KM2:
+            raise HTTPException(422, f"the area is {area:,.0f} km², above the limit of {MAX_AOI_KM2:,} km² "
+                                     "(about 70 × 70 km, the free Copernicus quota); please draw a smaller area")
         sensitivity = body.get("sensitivity", "sensitive")  # default since D-X-13
         if sensitivity not in ("standard", "sensitive"):
             raise HTTPException(422, "sensitivity must be 'standard' or 'sensitive'")

@@ -86,7 +86,7 @@ export CDSE_CLIENT_ID=...  CDSE_CLIENT_SECRET=...           # Windows PowerShell
 It opens http://127.0.0.1:8000 (stop with Ctrl+C). Port 8000 busy? Use `./start.sh --port 8001` (Windows: `start.bat --port 8001`).
 
 1. Draw the area (rectangle or free shape). **About 30 × 30 km (900 km²) is recommended**; the app warns above that. Larger
-   areas still run, only slower (the ~2,000 km² Trishuli case took 24 min).
+   areas still run, only slower (the ~2,000 km² Trishuli case took 24 min); the app refuses more than 5,000 km².
 2. Enter the **flood date**. Optional under *Advanced*: your own *before* / *after* windows and **Sensitivity**
    (default *Sensitive*, the setting all numbers below were measured with; *Standard* is more conservative: fewer false
    alarms, but it misses more flood edges).

@@ -43,3 +43,15 @@ def test_example_listed_and_floodpath_read_only(monkeypatch, tmp_path):
     route = next(r for r in server.create_app().routes if getattr(r, "path", "") == "/api/runs/{run_id}/floodpath")
     out = route.endpoint(meta["run_id"], {"lon": 0.0, "lat": 0.0})
     assert out["example"] and not out["mock"] and out["path"]["features"]
+
+
+def test_create_run_rejects_huge_area_and_future_date(monkeypatch, tmp_path):
+    pytest.importorskip("httpx")
+    from fastapi.testclient import TestClient
+
+    monkeypatch.setattr(server, "RUNS_DIR", tmp_path)
+    c = TestClient(server.create_app())
+    big = c.post("/api/runs", json={"aoi": [0, 0, 5, 5], "event_date": "2024-01-01"})
+    assert big.status_code == 422 and "smaller area" in big.json()["detail"]
+    future = c.post("/api/runs", json={"aoi": [85.15, 27.95, 85.23, 28.03], "event_date": "2099-01-01"})
+    assert future.status_code == 422 and "future" in future.json()["detail"]
