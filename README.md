@@ -158,6 +158,16 @@ Full log of each run: `runs/<id>/logs/pipeline.log`. All warnings are also liste
 
 ---
 
+## Results at a glance
+![Benchmark on floods the system had never seen](deliverables/video_slides/benchmark.png)
+
+- **Flood model** on Kuro Siwo test floods it never saw: F1 0.79 (best model in the Kuro Siwo paper: 0.80).
+- **Whole system**, end to end from raw data: 12 independent floods worldwide, mean F1 0.81; 7 Himalayan floods chosen in
+  advance and run once, mean F1 0.72. Weakest on narrow mountain rivers and debris flows.
+- **Trishuli vs Copernicus EMS EMSR927** (check only, never an input): affected-area precision 0.92, recall 0.79.
+
+Details: [report](deliverables/report/report.md), [`validation/results/multievent/README.md`](validation/results/multievent/README.md).
+
 ## How it works (short)
 ```
 area + flood date
@@ -192,49 +202,22 @@ Full list: report, section *Limitations*.
 - Tests (synthetic data, no keys or model weights needed): `pip install pytest pytest-xdist`, then
   `python -m pytest -q -n auto tests training/tests` (about 30 s; the slow end-to-end tests are skipped, `--full` runs them too).
 - Model training and evaluation: [`training/README.md`](training/README.md). Run folder contract: `docs/ARCHITECTURE.md` (internal docs are in Czech).
-- Independent check on 10 floods + one no-flood control (no EMS data): [`validation/results/multievent/README.md`](validation/results/multievent/README.md);
+- Independent check on 12 floods, 7 pre-registered Himalayan floods and no-flood controls (no EMS data): [`validation/results/multievent/README.md`](validation/results/multievent/README.md);
   comparison with EMSR927 (check only): [`validation/README.md`](validation/README.md).
 
 ## AI assistance
-This project was developed with the help of **Claude Code** (Anthropic), used as a coding assistant for project scaffolding,
-documentation and implementation. Per-module notes on which parts were AI-assisted:
-- **Pipeline orchestrator and final flood map (`src/povodne/{cli,io,config}.py`, `src/povodne/flood/combine.py`, `pyproject.toml`)**: written with Claude Code (step runner, failure rules, combining the water and debris maps, tests).
-- **AI flood step edge growth (`training/eval_edge.py`, `training/floodseg/edge.py`, edge step in `training/run_ai.py`)**: written with Claude Code; the 1 px edge growth was calibrated on Kuro Siwo validation events only, with a selection rule fixed in advance (D-M9-15).
-- **Radar model v0.5 (`training/train.py --init/--hard-boost`, `training/floodseg/data.py`, `validation/model_compare.sh`)**: fine-tuning with hard-tile sampling, threshold calibration and the whole-system comparison were done with Claude Code (D-M15-01).
-- **Confidence map (`src/povodne/flood/confidence.py`, confidence layer and panel in `dashboard/`, `tests/test_confidence.py`)**: the rule-based "where is the system unsure" layer and its explanation were written with Claude Code (D-M16-01).
-- **Installer (`install.py`, `install.sh`/`.bat`, `start.sh`/`.bat`, `.env` loading in `src/povodne/cli.py`)**: written with Claude Code (D-X-19).
-- **Dashboard (`dashboard/`)**: backend, frontend, synthetic sample-run generator, bundled real-example builder and UI design discussion were developed with Claude Code.
+This project was built with **Claude Code** (Anthropic) as a coding assistant. The team decided what to build, set the data
+rules and the test protocol, and reviewed every result; Claude Code helped write and test the code and the documents:
+- **Data download and preprocessing** (`src/povodne/acquire/`, `src/povodne/preprocess/`): satellite scene search, DEM, radar shadow masks, common 10 m grid.
+- **Flood segmentation model** (`training/`): data preparation, model design, training, inference and evaluation.
+- **Flood map** (`src/povodne/flood/`): debris / mud change test, combining the water and debris maps, confidence map.
+- **Damage, road network and cut-off analysis, flood path** (`src/povodne/damage/`, `network/`, `floodpath/`).
+- **Report, dashboard and installer** (`src/povodne/report/`, `dashboard/`, `install.py`, `start.*`).
+- **Validation** (`validation/`): comparison with Copernicus EMS, used only to check results.
+- **Submission materials** (`README.md`, `deliverables/`): drafted from the project's decision log and measured results.
 
-- **Scene selection (`src/povodne/acquire/`)** — Sentinel-1 catalogue search and track planning, Copernicus DEM download,
-  HAND, radar layover/shadow geometry and the main-track rule were written with Claude Code; tests in `tests/test_acquire_*.py`.
-
-- **Flood segmentation model (`training/`)** — dataset analysis, model design, data preparation, training, inference and
-  evaluation code were written with Claude Code; design choices are documented in `docs/DECISIONS.md` (D-020 – D-025, D-032 – D-034).
-
-- **Surface changes: debris, mud, erosion, flooded vegetation and built-up areas (`src/povodne/flood/debris/`)** — literature
-  and operational-system research, the statistical change test, decision rules, the flood-free self-test and the synthetic tests
-  (`tests/test_debris*.py`) were written with Claude Code; the method and its sources are in `docs/DECISIONS.md` (D-M3d-01, D-M3d-02).
-
-- **Damage, road network and cut-off analysis, settlement impact, repair priority, landing-zone candidates and flood path
-  (`src/povodne/damage/`, `src/povodne/network/`, `src/povodne/floodpath/`)** — research of damage scales and cut-off methods, the
-  code and the tests (`tests/test_damage.py`, `test_network.py`, `test_impact.py`, `test_landing.py`, `test_floodpath.py`) were written
-  with Claude Code; rules and sources are in `docs/DECISIONS.md` (D-M4-01, D-M5-01 – D-M5-04, D-M7-01).
-
-- **Preprocessing (`src/povodne/preprocess/`)** — conversion of the downloaded radar and optical images to model inputs on one
-  10 m grid, slope, HAND and radar layover/shadow masks, and the synthetic tests (`tests/test_preprocess.py`) were written with
-  Claude Code; choices are in `docs/DECISIONS.md` (D-M2-01).
-
-- **Summary numbers, situation report and map images (`src/povodne/report/`)** — `stats.json`, the verdict rules, the one-page
-  PDF/Markdown sitrep, the map overlays and the synthetic tests (`tests/test_report.py`) were written with Claude Code; choices are in
-  `docs/DECISIONS.md` (D-M6-01).
-
-- **Validation against Copernicus EMS (`validation/`)** — EMS product download, the comparison script (area, buildings, roads,
-  bridges) and synthetic tests (`tests/test_validation.py`) were written with Claude Code; EMS data are used only to check results.
-
-- **Submission materials (`README.md`, `deliverables/`)** — this README, the report, the video script and the Devpost text were
-  drafted with Claude Code from the project's decision log and measured results, and reviewed by the team.
-
-The team is responsible for all submitted code and can explain how it works.
+Every non-trivial choice is recorded with its reason in `docs/DECISIONS.md`. The team is responsible for all submitted code
+and can explain how it works.
 
 ## Data attributions and citations
 - Contains modified Copernicus Sentinel data 2026.
