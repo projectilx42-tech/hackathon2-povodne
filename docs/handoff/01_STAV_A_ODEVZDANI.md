@@ -27,11 +27,11 @@ Hodnocení 15.–20. 10. **živě na oblastech a datech, které zvolí porota**;
   Klon nejdřív stáhl starou výchozí větev (chyběl `install.bat`) → `git checkout main` → `install.bat` proběhl, `start.bat`
   běží, aplikace na http://127.0.0.1:8000. Klíče Copernicus zadal do instalátoru (uloženy v jeho lokálním `.env`).
 - Spuštěno: Trishuli, malá oblast 5,6 km² (27,968–27,990 °N, 85,175–85,198 °E), datum 26. 08. 2026.
-- **Výsledek / otevřený problém:** mapa ukazuje vrstvy (voda, suť, silnice, budovy, mosty, klíčová místa), ale pravý panel
-  píše „No results — This run has no statistics file (stats.json) yet.“ a vlevo „Settlements: No settlement data“.
-  `stats.json` píše až poslední krok `report` (před ním `network`). Hypotézy: (a) běh ještě nedoběhl, (b) spadl krok
-  `network` nebo `report` (možná problém specifický pro Windows). **Nevyřešeno** — uživatel měl poslat konec výpisu z okna
-  `start.bat` nebo `runs\<nejnovější>\run.json` (pole stavu kroků a chyb). Na to navázat jako první.
+- **Problém „No results … stats.json“ + „No settlement data“ — VYŘEŠENO 14. 10. ~17:45:** na českých Windows Python
+  zapisoval soubory v kódové stránce cp1250, která neumí nepálské názvy obcí z OSM ani „km²“ → kroky `network` a `report`
+  spadly s `UnicodeEncodeError`. Oprava: `encoding="utf-8"` u všech čtení/zápisů textu, `PYTHONUTF8=1` pro podprocesy
+  kroků a ve `start.bat`/`install.bat`; test `tests/test_windows_encoding.py` (simuluje ne-UTF-8 kódování). Pravý panel
+  teď při chybějícím `stats.json` vypíše, který krok selhal. Uživatel musí `git pull` a běh pustit znovu (starý run neopravovat).
 - Uživatel hlásil 2 „chyby“ v UI, vysvětleno, že to nejspíš chyby nejsou:
   1. **Datum:** psaní čísel na numerické klávesnici ubíralo den po jedné → téměř jistě vypnutý **NumLock** (numpad 2/8 =
      šipka dolů/nahoru v nativním `<input type="date">`). Řešení pro uživatele: NumLock / horní řada / kalendář.

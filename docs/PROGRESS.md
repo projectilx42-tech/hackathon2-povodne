@@ -6,6 +6,7 @@ Plán je orientační — rozhoduje, co uživatel zadá v dané session.
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Jeden řádek, ≤ ~250 znaků, odkaz na rozhodnutí. Vyřízené / starší než ~2 dny přesuň do archivu.)*
+- **2026-10-14 — Windows: vše UTF-8:** každé `read_text`/`write_text` musí mít `encoding="utf-8"` (hlídá `tests/test_windows_encoding.py`); kroky běží s `PYTHONUTF8=1`. Na cp1250 padaly `network`/`report` (nepálské názvy, km²).
 - **2026-10-14 — předávka kontextu:** `docs/handoff/` (01 stav a odevzdání, 02 pravidla, 03 mapa, 04 příkazy, 05 výsledky) pro novou session bez paměti; PDF reportu teď `tools/report_pdf/build.sh`.
 - **2026-10-14 — instalace jedním příkazem (D-X-19):** `./install.sh` / `install.bat` (logika v `install.py`: `.venv`, CPU torch, kontrola modelů, volitelně klíče do git-ignorovaného `.env`), spuštění `./start.sh` / `start.bat` (`serve --open`). `python -m povodne` čte `.env` (proměnné prostředí mají přednost).
 - **2026-10-14 — váhy modelu v gitu (D-X-18):** `models/floodseg_v0.5/` a `models/floodseg_s2_v0.1/` (~150 MB) se stáhnou s `git clone`; `fetch_model.py` jen záloha. Jiné modely do `models/` dál negitovat.
@@ -62,6 +63,11 @@ Pipeline běží end-to-end ze surových dat (`python -m povodne run`) i z webov
 
 ## Log sessions
 *(Nejnovější nahoře, ≤ 5 řádků na session. Starší: `docs/archive/PROGRESS_LOG.md`.)*
+### 2026-10-14 — master: oprava běhu na Windows — `main`
+- Uživatelův běh na Windows končil bez `stats.json`: `UnicodeEncodeError` (cp1250) v `network`/`report` → UTF-8 všude + `PYTHONUTF8=1`, test simulace.
+- `combine`: vysvětlivky suti se s pandas 3 tiše ztrácely (sloupec float64) → opraveno. Seznam kroků v `dashboard/server.py` sjednocen s configem; panel ukáže selhaný krok.
+- V cloudu: čerstvá instalace (numpy 2.5 / numba 0.67–0.68 / pysheds 0.5) → 11 testů HAND/debris padá i na starém main (prostředí, ne oprava).
+
 ### 2026-10-14 — master: předávka kontextu — `main`
 - `docs/handoff/` + `tools/report_pdf/`; repo veřejné, výchozí větev main; uživatelův test na Windows rozpracován (viz handoff 01).
 
