@@ -31,6 +31,7 @@ Report: [`deliverables/report/report.pdf`](deliverables/report/report.pdf)
 3. Copy the **client ID** and the **client secret** (the secret is shown only once).
 
 ### 2. Install and paste the key
+Run these commands **one at a time, in this order**, in a terminal. Wait for each one to finish before typing the next.
 ```bash
 git clone https://github.com/projectilx42-tech/hackathon2-povodne.git
 cd hackathon2-povodne
