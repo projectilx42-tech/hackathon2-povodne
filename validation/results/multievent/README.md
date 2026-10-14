@@ -265,3 +265,8 @@ removed. Values fixed beforehand (not tuned on these events). Only 5 events have
 R 0.853 / P 0.785 / F1 0.798 → **R 0.853 / P 0.802 / F1 0.807**; Baghlan +0.102 (P 0.51 → 0.68), Bolivia +0.010, Chad −0.001, rest 0.000;
 control 0.3278 km² unchanged → merge rule passes. Caveat: Baghlan's label is water from the same optical image (partly circular);
 independent hand labels exist only for Bolivia and Chad. Kathmandu unchanged: its extra radar water is not "sure dry" for the optical model.
+Circularity check (master): S2-label events where the pipeline's S2 post image IS the label image — Swat (28 Aug), Kathmandu (1 Oct),
+Baghlan (15 May), Chamoli (10 Feb), Marsyangdi (20 Jan) — are **not verifiable without circularity** for any optics-based change; Teesta
+(pipeline 11 Oct, label 16 Oct) is independent. The veto acts only on Baghlan among them (Kathmandu / Chamoli 0 px; Swat, Marsyangdi gap > 1.5 d).
+Merge rule on the non-circular events only (8 Kuro Siwo / Sen1Floods11 floods + Teesta, control unchanged): Bolivia +0.010, Chad −0.001,
+the others 0.000 → mean F1 up by 0.001, precision up, worst −0.001 → still passes, but the real gain is small (one event).
