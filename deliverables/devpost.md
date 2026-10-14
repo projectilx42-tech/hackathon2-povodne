@@ -5,25 +5,33 @@
 **Tagline:** Pick any valley and a flood date; get a flood map, damaged buildings, roads and bridges, and the villages cut off — from free satellite data.
 
 ## Inspiration
-After a flood, rescuers need three answers fast: where did the water go, what is destroyed, and who is cut off. Sentinel satellites image every valley for free every few days, so I wanted to turn that raw data into those answers for any place and date, not just Nepal.
+When a flood tears through a mountain valley, the people coming to help don't need a beautiful map. They need to know where the water went, what it destroyed, and which villages can no longer be reached by road. The satellites that could answer this already fly over every valley on Earth every few days, and their data is free. What's missing is something that turns those raw images into clear answers quickly, for any place, not only the one that happens to be in the news. That's what we set out to build, with the August 2026 Trishuli flood in Nepal as our real-world test.
 
 ## What it does
-Draw an area on a map, enter the flood date, press Run. The system downloads Sentinel-1 radar (before/after, same orbit), clear Sentinel-2 images, the Copernicus DEM and pre-flood OpenStreetMap, then maps flood water (a neural network) and debris (a separate step), checks buildings, roads and bridges, and finds villages that lost their road to a town or hospital, ranked by urgency, with the road section to repair first. Output: a map dashboard and a one-page situation report.
+You open a map, draw a rectangle around the area you care about, type the date of the flood and press Run. From there the system works on its own. It looks up the satellite passes from just before and just after the flood, downloads the radar and optical images, the terrain, and the map of roads and buildings exactly as it was before the disaster.
+
+It then compares the before and after images to find where water appeared, and separately looks for mud and debris, which radar doesn't see as water. With the flooded area known, it goes through every building, road and bridge and marks what was hit. Finally it rebuilds the road network as it was before the flood and as it is after, and finds the villages that have lost their only way to a town or a hospital. Those villages are ranked by how urgent they are, and the system points out which damaged road section would reconnect the most people if repaired first.
+
+Everything ends up on an interactive map and in a one-page situation report that a rescue coordinator could print. When the system finds no flood, it says so plainly, and also explains what the satellites were actually able to see, so an empty map never hides missing data.
 
 ## How we built it
-Python pipeline (PyTorch, rasterio, geopandas, networkx) with a FastAPI + MapLibre dashboard that runs on a laptop CPU. The U-Net flood model is trained on Kuro Siwo and Sen1Floods11 (F1 0.79 on unseen test floods, the paper's best is 0.80). Tested end to end on 12 floods worldwide (mean F1 0.81) and on 7 pre-registered Himalayan floods (0.72). Trishuli vs Copernicus EMS, used only to check: precision 0.92, recall 0.79. Built with Claude Code as my coding partner.
+We built the whole project together with Claude Code. We decided what the system should do and how to judge whether it works, and Claude Code helped us write the code, run the experiments and keep a written record of every important decision, so that we can explain each step.
+
+We started with the core question: can a computer reliably tell flood water from dry land in a satellite image? We trained our own neural network on two public flood datasets and tested it on floods it had never seen. It reached the same accuracy as the best published model on that benchmark. Then we built everything around it: downloading the right images automatically, finding debris, checking damage to buildings and roads, and the road-network analysis that tells you who is cut off.
+
+The most important part of the process was testing. Instead of polishing the result for Nepal, we ran every change on a dozen floods across the world and on an area where there was no flood at all, to make sure it didn't invent water. We also chose seven Himalayan floods in advance, ran them once and didn't touch anything afterwards. Only at the very end did we compare our Trishuli results with the official Copernicus emergency maps, which we used purely as a check and never as input. Our map matched them well: 92 % of what we marked as affected was confirmed, and we found 79 % of what they found.
 
 ## Challenges we ran into
-Radar shadows in steep valleys, narrow mountain rivers that radar can't see, mud that doesn't look like water, and never using published damage maps as input.
+Mountains were the hardest part. In deep valleys the radar casts shadows that look just like water, and narrow, fast rivers are so rough that radar doesn't recognise them as water at all. Mud from a debris flow looks more like a freshly ploughed field than a flood. We also had to be very careful never to let published damage maps sneak into our system, because that would break the rules. And a day before the deadline we found that the app crashed on Windows because of Nepali place names, which taught us to test on other people's computers, not only our own.
 
 ## Accomplishments that we're proud of
-Runs end to end from raw satellite data for any area and date, answers "who is cut off", and shows its weak spots openly.
+We're proud that it actually works from raw satellite data for any place and date, without anything prepared for Nepal in advance. We're proud of the answer to "who is cut off", because that's the question rescuers really ask. And we're proud that we tested it honestly, on floods it had never seen, and that we show its weak spots openly instead of hiding them.
 
 ## What we learned
-A flood model is a change detector: the "before" image matters as much as the model. One good case study proves little; testing on many places does.
+We learned that detecting a flood is really about detecting change, so a good "before" image matters as much as a good model. We learned that a great result in one place means very little until it holds up in many others. And we learned that being clear about what a system can't do, for example that satellites pass only every few days and can't warn about a sudden glacier collapse, makes everything else it says more trustworthy.
 
 ## What's next for Flood Damage mapper
-Better results in mountains, a Nepali situation report, and testing with real disaster responders.
+We want it to get better in the mountains, where it is weakest today, especially at finding narrow rivers and debris. We'd like the situation report to be available in Nepali, and the map to update with every new satellite pass while the flood is still going on. Most of all, we'd like to put it in front of people who do disaster response for a living, because today it is an educational prototype, and only their feedback can turn it into something truly useful.
 
 ## Built With
 Claude Code, Python, PyTorch, segmentation-models-pytorch, rasterio, geopandas, networkx, FastAPI, MapLibre GL JS, Sentinel Hub (Copernicus Data Space), Sentinel-1, Sentinel-2, Copernicus DEM, OpenStreetMap (ohsome API), Kuro Siwo, Sen1Floods11, Kaggle
