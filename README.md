@@ -80,7 +80,7 @@ Details: [report](deliverables/report/report.md).
 - OpenStreetMap is incomplete in remote areas; footpaths are not in the road network; no population estimates.
 - Helicopter landing-zone candidates come from the elevation model only and are **not verified**.
 
-Full list: report, section *Limitations*.
+Full list: [report, section *Limitations*](deliverables/report/report.md#9-limitations-what-the-system-cannot-do).
 
 ## AI assistance
 Built with **Claude Code** (Anthropic). AI-assisted parts: data download and preprocessing, flood segmentation model
