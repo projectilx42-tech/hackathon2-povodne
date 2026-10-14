@@ -1,0 +1,20 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Trishuli vs EMS</title><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#121212;color:#f0efec;font-family:Inter,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;width:1920px;height:1080px;overflow:hidden}
+.slide{width:1920px;height:1080px;padding:70px 110px 0;position:relative}
+.kicker{color:#3987e5;font-size:26px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+h1{font-size:60px;font-weight:700;margin:10px 0 8px;letter-spacing:-.01em}
+.sub{color:#c3c2b7;font-size:29px;margin-bottom:34px;max-width:1650px;line-height:1.35}
+.card{background:#1a1a19;border-radius:16px;padding:34px 40px}
+.legend{display:flex;gap:40px;font-size:25px;color:#c3c2b7;margin:0 0 14px 4px}
+.legend i{display:inline-block;width:22px;height:22px;border-radius:4px;margin-right:12px;vertical-align:-3px}
+.foot{position:absolute;left:110px;right:110px;bottom:38px;color:#8d8c84;font-size:20px;line-height:1.4}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
+.tile{background:#1a1a19;border-radius:16px;padding:30px 32px}
+.tile .v{font-size:76px;font-weight:700;letter-spacing:-.02em}
+.tile .l{font-size:26px;color:#f0efec;margin-top:6px;line-height:1.3}
+.tile .s{font-size:21px;color:#8d8c84;margin-top:8px;line-height:1.35}
+.note{display:flex;gap:24px;margin-top:24px}
+.note .card{flex:1;font-size:25px;color:#c3c2b7;line-height:1.4;padding:24px 32px}
+.note b{color:#f0efec}
+</style></head><body><div class="slide"><div class="kicker">Case study · Trishuli flood, 26 Aug 2026</div><h1>Compared with the official Copernicus EMS maps</h1><div class="sub">EMSR927 was used only to check the finished result — never as input or for tuning. Scored inside the areas EMS analysed (40 km²).</div><div class="tiles"><div class="tile"><div class="v">0.92</div><div class="l">precision of the affected area</div><div class="s">what we mark is really affected</div></div><div class="tile"><div class="v">0.79</div><div class="l">recall of the affected area</div><div class="s">share of EMS affected area we found</div></div><div class="tile"><div class="v">90 %</div><div class="l">EMS destroyed / damaged buildings</div><div class="s">inside our affected area</div></div><div class="tile"><div class="v">93 %</div><div class="l">EMS damaged bridges</div><div class="s">we mark blocked or suspect</div></div></div><div class="tiles" style="margin-top:24px"><div class="tile"><div class="v">0.85</div><div class="l">F1 of the affected area</div><div class="s">IoU 0.73</div></div><div class="tile"><div class="v">85 %</div><div class="l">EMS damaged roads</div><div class="s">near roads we mark blocked</div></div><div class="tile"><div class="v">45</div><div class="l">settlements cut off</div><div class="s">+ 73 possibly cut off (whole area)</div></div><div class="tile"><div class="v">24 min</div><div class="l">for ~2 000 km² on a laptop</div><div class="s">free Sentinel Hub tier</div></div></div><div class="foot">Overall confidence reported as LOW: steep valley, radar shadow, debris thresholds from literature. European Union, Copernicus Emergency Management Service data. Contains modified Copernicus Sentinel data 2026.</div></div></body></html>
