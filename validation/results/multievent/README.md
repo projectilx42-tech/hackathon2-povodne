@@ -282,3 +282,4 @@ Same as `permopt`, but pixels the year-long radar record would turn into seasona
 Chad back to 0.000 (was −0.009); Kathmandu 0.34 → 0.43 (circular, label = same S2 image); Bolivia −0.0003; Marsyangdi +0.001; rest 0.000;
 control 0.3278 → 0.3272 km². All 12 floods F1 0.807 → 0.814 (rule passes). **Non-circular only:** R 0.8606 → 0.8605, P 0.8791 → 0.8791,
 F1 0.8649 → 0.8648 — neutral (−0.0001 from Bolivia), i.e. harmless on independent labels, gain only where it cannot be checked independently.
+

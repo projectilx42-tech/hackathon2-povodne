@@ -152,17 +152,17 @@
  },
  "run": {
   "timings_s": {
-   "acquire": 180.7,
-   "preprocess": 6.5,
-   "s1anomaly": 3.8,
-   "flood_ai": 53.1,
-   "debris": 37.7,
-   "envelope": 0.7,
-   "combine": 2.6,
-   "confidence": 0.8,
-   "damage": 50.1,
-   "network": 60.2,
-   "report": 6.7
+   "acquire": 121.4,
+   "preprocess": 3.5,
+   "s1anomaly": 1.6,
+   "flood_ai": 50.5,
+   "debris": 94.5,
+   "envelope": 0.6,
+   "combine": 1.9,
+   "confidence": 0.5,
+   "damage": 41.7,
+   "network": 39.5,
+   "report": 5.2
   },
   "pu_spent": 108.9,
   "pu_estimate": 125,
