@@ -283,3 +283,35 @@ Chad back to 0.000 (was −0.009); Kathmandu 0.34 → 0.43 (circular, label = sa
 control 0.3278 → 0.3272 km². All 12 floods F1 0.807 → 0.814 (rule passes). **Non-circular only:** R 0.8606 → 0.8605, P 0.8791 → 0.8791,
 F1 0.8649 → 0.8648 — neutral (−0.0001 from Bolivia), i.e. harmless on independent labels, gain only where it cannot be checked independently.
 
+
+## Fresh test on never-seen Himalayan scenes (2026-10-14, main, tags `fresh` and `fresh_radar`)
+Pre-registered before any run (events, windows, dates and label rule committed in 4294aa3, `"fresh_test": true` in
+`multievent_events.json`): 7 floods from the 17–19 Oct 2021 extreme rain in Uttarakhand and West Nepal + 1 dry-season no-flood
+control (Kali Gandaki, Feb 2023). No scene of this region/date was used for training, threshold choice or any earlier check, and
+nothing was changed after seeing the results. Labels: our own clear-sky Sentinel-2 water (MNDWI > 0.1 or SCL water, slope ≤ 20°,
+< 2500 m); Planetary Computer has no Oct 2021 S2 there, so the label falls back to earth-search (the pipeline's own S2 source).
+Scored on water only (classes 2+4).
+
+Two variants:
+- `fresh` = full system (default settings). **Partly circular**: its Sentinel-2 "after" image is the same image as the label (23/25 Oct).
+- `fresh_radar` = radar model only (`run_ai.py --no-s2`, then debris + combine). **Independent** of the label, but the radar
+  "after" pass (20/21 Oct) is 2–5 days before the label image, so some water had already receded → recall is underestimated.
+
+| event | label water km² | full R / P / F1 | radar-only R / P / F1 |
+|---|---|---|---|
+| Karnali, Chisapani | 6.23 | 0.90 / 0.85 / 0.87 | 0.77 / 0.85 / 0.81 |
+| Mahakali, Banbasa | 9.97 | 0.80 / 0.77 / 0.79 | 0.68 / 0.77 / 0.72 |
+| Kosi, Khairna | 1.27 | 0.71 / 0.71 / 0.71 | 0.40 / 0.69 / 0.51 |
+| Kosi, Ramnagar | 1.53 | 0.73 / 0.69 / 0.71 | 0.33 / 0.59 / 0.42 |
+| Seti, Doti | 1.37 | 0.48 / 0.91 / 0.63 | 0.17 / 0.90 / 0.28 |
+| Mohana, Kailali | 1.31 | 0.88 / 0.31 / 0.46 | 0.69 / 0.28 / 0.40 |
+| Gaula, Haldwani (wide gravel bed, braided) | 0.83 | 0.95 / 0.77 / 0.85 | 0.00 / – / 0.00 |
+| **mean of 7** | | 0.78 / 0.72 / **0.72** | 0.43 / 0.68 / **0.45** |
+| **pooled pixels** | 22.5 | 0.81 / 0.72 / **0.76** | 0.61 / 0.70 / **0.65** |
+
+No-flood control (label valid 85 %, 0.08 km² label water): false alarm 0.28 % of the dry label area (full), 0.18 % (radar-only).
+
+Reading: radar alone holds up on large rivers (Karnali 0.81, Mahakali 0.72) and its precision is stable (~0.7–0.9 except Mohana,
+where wet fields/ponds outside the label count as false), but it misses narrow and braided mountain channels (Gaula 0, Seti 0.28) —
+the known weak point (Kuro Siwo mountain tiles F1 0.52). Sentinel-2, when a clear image exists, fills most of that gap, but how much
+exactly cannot be measured here without circularity. Results consistent with the earlier set (mountain flash floods weakest).

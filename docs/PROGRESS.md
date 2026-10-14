@@ -61,6 +61,9 @@ Pipeline běží end-to-end ze surových dat (`python -m povodne run`) i z webov
 
 ## Log sessions
 *(Nejnovější nahoře, ≤ 5 řádků na session. Starší: `docs/archive/PROGRESS_LOG.md`.)*
+### 2026-10-14 — master: předregistrovaný test na neviděných Himálajích (D-X-20) — `main`
+- 7 povodní 2021 + kontrola; plný systém F1 0,72, jen radar 0,45; výsledky `validation/results/multievent/*__fresh*.json`, sekce v multievent README, report §4 (PDF 4 str.), devpost.
+
 ### 2026-10-14 — master: příprava na odevzdání (ship) — `main`
 - Živý běh Emilia-Romagna 2023 (`runs/ship_emilia`) prošel celý; nalezena chyba celkových počtů s pufrem 15 km → D-X-16.
 - `ship/install`: čistá instalace (CPU torch napřed, disk 5 GB, pytest do README, ohsome 3 dotazy/běh). `ship/ui`: HEAD u souborů (prázdný sitrep), slider před/po, reset citlivosti, klikání při měření, mobil 390 px, `files` v `/api/runs/{id}`.

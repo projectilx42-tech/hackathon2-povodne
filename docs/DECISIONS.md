@@ -1634,3 +1634,12 @@ v README a model cards. Žádná EMS data. Model cards neobsahují cesty ani kl�
 **Rozhodnutí:** `install.py` (jen standardní knihovna, běží na čistém Pythonu): kontrola Python ≥ 3.11 → `.venv/` v projektu → CPU torch (kromě macOS) → `requirements.txt` + dashboard + `-e .` → kontrola importů a obou souborů modelu → volitelně (Enter = přeskočit) dotaz na klíče Copernicus a uložení do `.env`. Obaly `install.sh` / `install.bat` jen najdou vhodný Python; `start.sh` / `start.bat` spustí `.venv` python `-m povodne serve --open` (otevře prohlížeč). `python -m povodne` načte `.env` z kořene repa jen pro proměnné, které v prostředí nejsou; kroky pipeline je dědí. `serve` upozorní, když klíče chybí (ukázka funguje i bez nich).
 **Soulad s pravidly:** `.env` je v `.gitignore` od začátku → klíče se do repa nedostanou (pravidlo „žádné secrets v repu“); kód je dál čte jen z proměnných prostředí, `.env` je jen pohodlný způsob, jak je nastavit. Datových pravidel se to netýká. Ruční postup zůstává v README (rozbalovací blok).
 **Ověření:** čistý `git clone` + `./install.sh --no-keys` v novém prostředí, start dashboardu; testy `tests/test_install.py`.
+
+## D-X-20 | 2026-10-14 | přijato (zadání uživatele, master) — Předregistrovaný test na neviděných himálajských scénách
+Uživatel: „otestuj na obrázcích, co modely ještě neviděly“. Sada D-M14 byla použita k výběru metody, takže není nezávislá.
+Proto 8 nových událostí (7 povodní Uttarákhand / západní Nepál 17.–19. 10. 2021 + kontrola bez povodně Kali Gandaki 2/2023)
+zapsáno do `validation/multievent_events.json` (`fresh_test: true`) a commitnuto (4294aa3) **před** prvním během; po výsledcích
+se nic neměnilo. Štítky = vlastní S2 voda (stejné pravidlo jako dřív); PC nemá S2 10/2021 → záloha earth-search v `s2_label`.
+Dvě varianty: plný systém (`fresh`, částečně kruhový — S2 „po“ = obraz štítku) a jen radar (`fresh_radar`, nezávislý, ale radar
+o 2–5 dní dřív). Výsledek: průměr F1 0,72 / 0,45 (souhrnně pixely 0,76 / 0,65), kontrola 0,28 % plané plochy. Velké řeky drží
+(radar 0,72–0,81), úzká/divočící koryta radar nevidí (Gaula 0, Seti 0,28). Zapsáno do report (§4), devpost, multievent README.

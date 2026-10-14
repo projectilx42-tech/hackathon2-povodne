@@ -81,6 +81,14 @@ in every radar pass) was called permanent water; it is now made dry where both c
 radar record agrees. A full run takes 2–7 min for a ~9 km window on a laptop CPU. Caveats: Sentinel-2 labels can share
 the image the pipeline uses (Baghlan), and the method changes were chosen on this same set.
 
+**Fresh test, pre-registered, never-seen scenes.** Because the method was tuned on the set above, we then fixed 7 new floods
+(Uttarakhand / West Nepal, Oct 2021) and a dry-season control *before* running anything and changed nothing afterwards
+(Sentinel-2 water labels, water only). The full system reaches mean F1 **0.72** (pooled 0.76), but it is partly circular here: its
+optical "after" image is the label image. Radar alone, which is independent of the label, reaches mean F1 **0.45** (pooled 0.65):
+0.81 / 0.72 on the large Karnali and Mahakali rivers, but 0.00–0.28 on narrow or braided channels (its pass was also 2–5 days before
+the label, when water was higher). False alarm on the control: 0.28 % of dry land. Conclusion: reliable on large rivers anywhere;
+in narrow mountain valleys a clear Sentinel-2 image is needed.
+
 # 5. Debris, mud and other surface change
 Mud, rock and flooded vegetation/buildings do not look like open water in radar: debris and wet mud often darken only slightly,
 flooded vegetation and towns **brighten** (double bounce). A separate statistical step compares each pixel with its own history
