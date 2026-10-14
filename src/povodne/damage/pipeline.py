@@ -541,6 +541,13 @@ def run(run_dir: Path, cfg: DamageConfig | None = None) -> dict:
 
         g = bd_gdf["grade"] if len(bd_gdf) else pd.Series([], dtype=object)
         rlen = rd_gdf["length_m"].astype(float) if len(rd_gdf) else pd.Series([], dtype=float)
+        # Roads, bridges and places are downloaded with a routing buffer around the area; the "of N" totals count only
+        # what lies on the analysed grid, otherwise "74 km blocked of 5 559 km" mixes in roads nobody looked at.
+        t, (h, w) = L.transform, L.shape
+        grid = shapely.box(min(t.c, t.c + w * t.a), min(t.f, t.f + h * t.e), max(t.c, t.c + w * t.a), max(t.f, t.f + h * t.e))
+        roads_in_km = float(shapely.length(shapely.intersection(np.asarray(rd_gdf.geometry.values), grid)).sum()) / 1000 \
+            if len(rd_gdf) else 0.0
+        n_in = lambda gdf: int(shapely.intersects(np.asarray(gdf.geometry.values), grid).sum()) if len(gdf) else 0
         rstat = rd_gdf["status"] if len(rd_gdf) else pd.Series([], dtype=object)
         bstat = br_gdf["status"] if len(br_gdf) else pd.Series([], dtype=object)
         summary = {
@@ -548,14 +555,14 @@ def run(run_dir: Path, cfg: DamageConfig | None = None) -> dict:
             "buildings_hit_low": int(g.isin(["affected", "likely_destroyed"]).sum()),
             "buildings_hit_high": int((g != "none").sum()),
             "buildings_likely_destroyed": int((g == "likely_destroyed").sum()),
-            "roads_total_km": round(float(rlen.sum()) / 1000, 2),
+            "roads_total_km": round(roads_in_km, 2),
             "roads_blocked_km": round(float(rlen[rstat == "blocked"].sum()) / 1000, 2),
             "roads_possibly_blocked_km": round(float(rlen[rstat == "possibly_blocked"].sum()) / 1000, 2),
             "roads_hit_km": round(float(rd_gdf["hit_length_m"].astype(float).sum()) / 1000, 2) if len(rd_gdf) else 0.0,
-            "bridges_total": int(len(br_gdf)),
+            "bridges_total": n_in(br_gdf),
             "bridges_blocked": int((bstat == "blocked").sum()),
             "bridges_suspect": int((bstat == "suspect").sum()),
-            "facilities_total": int(len(fac_gdf)),
+            "facilities_total": n_in(fac_gdf),
             "facilities_hit": {str(k): int(v) for k, v in
                                (fac_gdf[fac_gdf["hit"]]["kind"].value_counts().items() if len(fac_gdf) else [])},
             "settlements_total": int(ns),

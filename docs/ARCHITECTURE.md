@@ -224,6 +224,7 @@ Všechny prahy jsou v configu (`DamageConfig`), výchozí hodnoty níže; **nela
   `buildings_hit_pct` (affected + likely_destroyed, %), `flooded_area_pct` (% území v zasažené ploše), `facilities_hit` (seznam `kind` zasažených míst v území).
 - **`damage_summary.json`:** `buildings_total`, `buildings_hit_low`/`_high` (jen jisté / všechny vč. `possibly_affected`), `buildings_likely_destroyed`,
   `roads_total_km`, `roads_blocked_km`, `roads_possibly_blocked_km`, `bridges_total`, `bridges_blocked`, `bridges_suspect`, `facilities_hit` (počty podle `kind`).
+  Celkové počty (`roads_total_km` = délka silnic oříznutá na mřížku oblasti, `bridges_total`, `facilities_total`) jen v analyzované oblasti, ne v pufru 15 km (D-X-16).
 - Bez `flood_mask.tif` krok skončí chybou; bez `debris_type.tif`/`debris_confidence.tif` bere třídu 3 jako „suť“ se střední jistotou.
 
 ## Výstupy M5 network (D-M5-01, D-M5-02)
@@ -318,7 +319,7 @@ Původní pole (verze 1) zůstávají se stejným významem; rozšíření D-M6-
              "buildings_hit_low": 0, "buildings_hit_high": 0, "buildings_likely_destroyed": 0,   // rozsah jisté–všechny
              "roads_blocked_km": 0, "roads_possibly_blocked_km": 0, "bridges_blocked": 0, "bridges_suspect": 0,
              "facilities_total": 0, "facilities_hit_by_kind": {"school": 1}} | null,
-  "access": {"settlements_total": 0, "cut_off": 0, "degraded": 0, "connected": 0,
+  "access": {"settlements_total": 0, "cut_off": 0, "degraded": 0, "connected": 0,   // D-X-16: sídla v oblasti + mimo ni jen odříznutá/s objížďkou; stejně `facilities.total`
              "possibly_cut_off": 0, "no_road_pre_event": 0,
              "by_impact": {"critical": 0, "severe": 0, "moderate": 0, "low": 0, "none": 0},
              "cut_off_list": [{"name": "...", "place": "...", "population": null,

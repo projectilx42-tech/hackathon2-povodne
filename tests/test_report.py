@@ -256,3 +256,21 @@ def test_long_content_still_one_page(tmp_path):
     st = run(d)
     assert len(st["access"]["urgent"]) == 10
     assert _pdf_pages(d / "report/sitrep_en.pdf") == 1
+
+
+def test_totals_count_only_the_area(tmp_path):
+    """Settlements and places come with a routing buffer; outside ones count only if they were hit or cut off."""
+    d = make_run(tmp_path)
+    p = d / "network/settlements_access.geojson"
+    fc = json.loads(p.read_text())
+    fc["features"] += [_pt(9000, 500, osm_id="node/4", name="Far", place="village", status="connected"),
+                       _pt(9000, 900, osm_id="node/5", name="Far cut", place="village", status="cut_off")]
+    p.write_text(json.dumps(fc))
+    p = d / "network/facilities_access.geojson"
+    fc = json.loads(p.read_text())
+    fc["features"] += [_pt(9000, 500, osm_id="node/9", name="Far clinic", kind="clinic", hit=False, access="connected")]
+    p.write_text(json.dumps(fc))
+    st = run(d)
+    ac = st["access"]
+    assert (ac["settlements_total"], ac["cut_off"], ac["connected"]) == (4, 2, 1)
+    assert st["facilities"]["total"] == 1

@@ -1596,3 +1596,11 @@ záznam ji drží jako trvalou, takže ji kontrola dál odstraní. Nic laděno (
 **Ověření:** Čad 0,000; nekruhové události (8 Kuro Siwo / Sen1Floods11 + Teesta) neutrální (F1 0,8649 → 0,8648); Káthmándú 0,34 → 0,43 jen
 kruhově (značka = tentýž snímek S2). Formálně na 12 povodních 0,807 → 0,814, kontrola 0,3278 → 0,3272 km². Doporučení: neškodí, přínos
 nezávisle neprokázaný — sloučit jen jako opravu zjevné chyby (ranvej), ne jako zlepšení přesnosti.
+
+## D-X-16 | 2026-10-14 | přijato (master) — Celkové počty v sitrepu a UI jen v analyzované oblasti
+**Problém:** OSM silnice, mosty, sídla a místa se stahují s pufrem 15 km (kvůli hledání objížďky k nemocnici).
+Souhrny je počítaly celé, takže živý běh Emilia-Romagna (oblast 96 km²) hlásil „74 km silnic zablokováno z 5 559 km“ a „1 odříznuté
+z 319 sídel“, i když v oblasti bylo jen ~521 km silnic a 12 sídel. **Rozhodnutí:** `damage_summary.json` počítá `roads_total_km`
+(délka oříznutá na mřížku), `bridges_total` a `facilities_total` jen v mřížce oblasti; report (`stats.access`, `stats.facilities`)
+bere sídla/místa v oblasti + ta mimo ni, která jsou odříznutá, s objížďkou nebo zasažená. Vrstvy (`*.geojson`) i klíče beze změny.
+Blokované km dál počítají celé zablokované úseky. Test `test_totals_count_only_the_area`.

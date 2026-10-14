@@ -196,10 +196,28 @@ def _rank_key(p: dict):
     return (r is None, r if r is not None else 0, -(p.get("population") or 0), -(p.get("buildings_total") or 0))
 
 
-def access_numbers(run_dir: Path, cfg: ReportConfig) -> dict | None:
-    rows = _features(run_dir / "network" / "settlements_access.geojson")
+def _in_area_flags(path: Path, geom) -> list[bool] | None:
+    """Per feature: does it intersect the area? None when the geometry or the area is unknown."""
+    fc = read_json(path)
+    if geom is None or not isinstance(fc, dict):
+        return None
+    from shapely.geometry import shape
+    try:
+        return [bool(f.get("geometry")) and shape(f["geometry"]).intersects(geom) for f in fc.get("features", [])]
+    except Exception:
+        return None
+
+
+def access_numbers(run_dir: Path, cfg: ReportConfig, geom=None) -> dict | None:
+    path = run_dir / "network" / "settlements_access.geojson"
+    rows = _features(path)
     if rows is None:
         return None
+    # Settlements come with a routing buffer around the area (to find the nearest town or hospital). The rows kept are
+    # those inside the area plus any outside it whose access changed, so "1 cut off of N" uses a meaningful N.
+    inside = _in_area_flags(path, geom)
+    if inside is not None and len(inside) == len(rows):
+        rows = [p for p, i in zip(rows, inside) if i or p.get("status") in ("cut_off", "possibly_cut_off", "degraded")]
     by_status = {k: 0 for k in STATUS_KEYS}
     by_impact = {k: 0 for k in IMPACT_ORDER}
     for p in rows:
@@ -248,12 +266,17 @@ def repair_numbers(run_dir: Path, cfg: ReportConfig) -> dict | None:
     return {"steps_total": len(p), "top": [{k: s.get(k) for k in keys} for s in p[:cfg.repair_max] if isinstance(s, dict)]}
 
 
-def facilities_numbers(run_dir: Path, cfg: ReportConfig) -> dict | None:
-    rows = _features(run_dir / "network" / "facilities_access.geojson")
+def facilities_numbers(run_dir: Path, cfg: ReportConfig, geom=None) -> dict | None:
+    path = run_dir / "network" / "facilities_access.geojson"
+    rows = _features(path)
     if rows is None:
-        rows = _features(run_dir / "damage" / "facilities_damage.geojson")
+        path = run_dir / "damage" / "facilities_damage.geojson"
+        rows = _features(path)
     if rows is None:
         return None
+    inside = _in_area_flags(path, geom)   # as for settlements: the area plus places outside it that were hit or cut off
+    if inside is not None and len(inside) == len(rows):
+        rows = [p for p, i in zip(rows, inside) if i or p.get("hit") or p.get("access") in ("cut_off", "possibly_cut_off")]
     rows = [p for p in rows if p.get("kind") != "town"]   # towns are destinations, not facilities that can be hit
     hit = [p for p in rows if p.get("hit")]
     cut = [p for p in rows if p.get("access") in ("cut_off", "possibly_cut_off")]
@@ -355,7 +378,7 @@ def build(run_dir: Path, rj: dict, cfg: ReportConfig) -> tuple[dict, list[dict]]
     conf = read_json(run_dir / "flood" / "confidence.json") if fl is not None else None
     damage = damage_numbers(run_dir) if (fl is not None and _ok(steps, "damage")) else None
     network_ok = fl is not None and _ok(steps, "network")
-    access = access_numbers(run_dir, cfg) if network_ok else None
+    access = access_numbers(run_dir, cfg, geom) if network_ok else None
     if fl is not None and damage is None:
         own.append(notice("report_damage_missing", "Damage to buildings, roads and bridges was not assessed in this run "
                           "(the damage step did not finish); the report shows the flood map only."))
@@ -372,7 +395,7 @@ def build(run_dir: Path, rj: dict, cfg: ReportConfig) -> tuple[dict, list[dict]]
         "coverage": coverage, "scenes": _scenes(acq), "post_image": post_image(acq, rj.get("event_date")),
         "steps": steps, "flood": flood, "confidence": conf if isinstance(conf, dict) else None, "damage": damage, "access": access,
         "repair": repair_numbers(run_dir, cfg) if network_ok else None,
-        "facilities": facilities_numbers(run_dir, cfg) if network_ok or damage is not None else None,
+        "facilities": facilities_numbers(run_dir, cfg, geom) if network_ok or damage is not None else None,
         "landing_zones": landing_numbers(run_dir) if network_ok else None,
     }
     return stats, own

@@ -266,7 +266,7 @@ def run(run_dir: Path, cfg: NetworkConfig | None = None) -> dict:
     _update_run_json(run_dir, done)
     c = section["settlements_by_status"]
     _progress(run_dir, "done", f"{c.get('cut_off', 0)} cut off, {c.get('possibly_cut_off', 0)} possibly cut off, "
-                               f"{c.get('degraded', 0)} long detour of {section['settlements_total']} settlements")
+                               f"{c.get('degraded', 0)} long detour of {section['settlements_total']} settlements in and around the area")
     return section
 
 
