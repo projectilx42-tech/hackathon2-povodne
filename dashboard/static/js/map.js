@@ -40,3 +40,8 @@ export function createTwinMap(container, main, basemap) {
 export function setBasemap(map, id) {
   for (const b of BASEMAPS) map.setLayoutProperty(`bm-${b.id}`, 'visibility', b.id === id ? 'visible' : 'none');
 }
+
+/** Padding for fitBounds that keeps the result inside the visible map: room for the layers card on wide screens,
+ *  small margins on a phone (a fixed 290 px would leave no space at all). */
+export const sidePad = map => (map.getContainer().clientWidth > 700 ? 290 : 30);
+export const fitPad = map => { const c = map.getContainer(); return Math.round(Math.min(120, Math.min(c.clientWidth, c.clientHeight) * 0.2)); };

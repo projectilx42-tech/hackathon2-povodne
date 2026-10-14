@@ -21,6 +21,15 @@ const bar = (label, v, none = 'n/a') => el('div', { class: 'bar-row' }, el('span
   el('span', { class: 'bar' }, el('i', { style: `width:${v == null ? 0 : Math.max(0, Math.min(100, v))}%` })), el('span', { class: 'bar-v', text: v == null ? none : pct(v) }));
 const badge = (text, cls = '') => el('span', { class: `badge ${cls}`, text });
 const pill = (text, color) => el('span', { class: 'pill', style: `--c:${color}`, text });
+const plural = (n, one, many = `${one}s`) => (n === 1 ? one : many);
+/** Long lists show the first `limit` rows; a button reveals the rest (keeps the panel short and fast). Returns the button or null. */
+function moreButton(items, limit, noun) {
+  if (items.length <= limit) return null;
+  const rest = items.slice(limit);
+  rest.forEach(n => { n.hidden = true; });
+  const btn = el('button', { type: 'button', class: 'linklike more', text: `Show all ${items.length} ${noun}`, onclick: () => { rest.forEach(n => { n.hidden = false; }); btn.remove(); } });
+  return btn;
+}
 const fmtArea = km2 => (km2 == null ? 'n/a' : km2 >= 1 ? `${num(km2, 2)} km²` : `${num(km2 * 100, 1)} ha`);
 
 // ---------- notices (run.json.notices, docs/NOTICES.md) ----------
@@ -213,10 +222,12 @@ export function createResults(root, api) {
     const urgent = settl.filter(f => f.properties.priority_rank != null).sort((a, b) => a.properties.priority_rank - b.properties.priority_rank);
     const legacyCut = settl.filter(f => f.properties.status === 'cut_off').sort((a, b) => (b.properties.population ?? 0) - (a.properties.population ?? 0));
     const listed = urgent.length ? urgent : legacyCut;
+    const listedRows = listed.map(f => settlementRow(f, urgent.length > 0));
+    const whoMore = moreButton(listedRows, 20, 'settlements');
     const who = sec('Who is cut off',
       listed.length ? el('p', { class: 'fine', style: 'margin:0 0 6px', text: urgent.length ? 'Most urgent first (cut off, or hit hard).' : 'Largest first.' }) : null,
       listed.length
-        ? el('ul', { class: 'plist' }, ...listed.map(f => settlementRow(f, urgent.length > 0)))
+        ? el('div', {}, el('ul', { class: 'plist' }, ...listedRows), whoMore)
         : el('p', { class: 'muted', text: ac.settlements_total || settl.length ? 'No settlement lost its road connection to the nearest town or hospital.' : 'The cut-off analysis could not be done: no settlements or no road network were found in the map data for this area.' }));
 
     // ----- what to fix first -----
@@ -225,21 +236,24 @@ export function createResults(root, api) {
       el('p', { class: 'fine', style: 'margin:0 0 6px', text: 'A step-by-step plan: each step reconnects the most buildings per repaired section.' }),
       el('ol', { class: 'repair' }, ...plan.map(p => el('li', {}, el('button', { type: 'button', onclick: () => api.layers.highlightCuts(p.osm_ids ?? [p.osm_id]) },
         el('span', { class: 'rk', text: String(p.rank) }),
-        el('span', { class: 'rt' }, el('b', { text: [...new Set(p.names ?? [p.name])].join(', ') + (p.n_cuts > 1 ? ` (${p.n_cuts} sections)` : '') + (p.is_bridge ? ' · bridge' : '') }),
-          el('small', { text: `Reconnects ${p.reconnects_settlements} settlement${p.reconnects_settlements === 1 ? '' : 's'}, ${p.reconnects_buildings} buildings (${p.cumulative_buildings} in total after this step)` }),
+        el('span', { class: 'rt' }, el('b', { text: ([...new Set((p.names ?? [p.name]).filter(Boolean))].join(', ') || (p.is_bridge ? 'Unnamed bridge' : 'Unnamed road')) + (p.n_cuts > 1 ? ` (${p.n_cuts} sections)` : '') + (p.is_bridge && p.names?.some(Boolean) ? ' · bridge' : '') }),
+          el('small', { text: `Reconnects ${p.reconnects_settlements} ${plural(p.reconnects_settlements, 'settlement')}, ${p.reconnects_buildings} ${plural(p.reconnects_buildings, 'building')} (${p.cumulative_buildings} in total after this step)` }),
           el('small', { class: 'muted', text: (p.settlements ?? []).join(', ') })))))),
       el('p', { class: 'fine', text: 'Sections only open the way if everything before them in the list is repaired too; the order is by usefulness, not by distance.' })) : null;
 
     // ----- key places -----
     const fac = (D.facilities?.features ?? []).slice().sort((a, b) => (a.properties.hit === b.properties.hit ? 0 : a.properties.hit ? -1 : 1) || String(a.properties.name).localeCompare(String(b.properties.name)));
+    const placeRows = fac.map(f => {
+      const p = f.properties, a = FACILITY_ACCESS[p.access] ?? FACILITY_ACCESS.connected, g = GRADE[p.grade] ?? GRADE.none;
+      return el('tr', { class: 'clickrow', tabindex: 0, onclick: () => api.layers.flyToFeature(f), onkeydown: e => { if (e.key === 'Enter') api.layers.flyToFeature(f); } },
+        el('td', {}, el('div', { text: p.name ?? `Unnamed ${kindLabel(p.kind).toLowerCase()}` }), el('small', { class: 'muted', text: kindLabel(p.kind) })),
+        el('td', {}, el('span', { class: `status ${a.cls}`, text: a.label })), el('td', { text: p.grade && p.grade !== 'none' ? g.label : '—' }));
+    });
+    const placesMore = moreButton(placeRows, 12, 'key places');
     const places = fac.length ? sec('Key places',
-      el('table', { class: 'kvt places' }, el('thead', {}, el('tr', {}, el('th', { text: 'Place' }), el('th', { text: 'Access' }), el('th', { text: 'Damage' }))),
-        el('tbody', {}, ...fac.map(f => {
-          const p = f.properties, a = FACILITY_ACCESS[p.access] ?? FACILITY_ACCESS.connected, g = GRADE[p.grade] ?? GRADE.none;
-          return el('tr', { class: 'clickrow', tabindex: 0, onclick: () => api.layers.flyToFeature(f), onkeydown: e => { if (e.key === 'Enter') api.layers.flyToFeature(f); } },
-            el('td', {}, el('div', { text: p.name ?? kindLabel(p.kind) }), el('small', { class: 'muted', text: kindLabel(p.kind) })),
-            el('td', {}, el('span', { class: `status ${a.cls}`, text: a.label })), el('td', { text: p.grade && p.grade !== 'none' ? g.label : '—' }));
-        })))) : null;
+      el('p', { class: 'fine', style: 'margin:0 0 6px', text: 'Places hit by the flood come first. Click a row to find it on the map.' }),
+      el('table', { class: 'kvt places' }, el('thead', {}, el('tr', {}, el('th', { text: 'Place' }), el('th', { text: 'Access' }), el('th', { text: 'Damage' }))), el('tbody', {}, ...placeRows)),
+      placesMore) : null;
 
     // ----- how sure is the system (flood/confidence.json via stats.confidence) -----
     const cf = stats.confidence;
@@ -277,8 +291,9 @@ export function createResults(root, api) {
     const present = (await Promise.all(exportDefs.map(async ([l, p]) => (await fileExists(runId, p)) ? [l, p] : null))).filter(Boolean);
     const sitrep = hasPdf ? 'report/sitrep_en.pdf' : hasMd ? 'report/sitrep_en.md' : null;
     const actions = sec('Report & export',
-      sitrep ? el('a', { class: 'btn primary block', style: 'margin-top:0', href: fileUrl(runId, sitrep, true) }, icon('download'), `Situation report (${sitrep.endsWith('pdf') ? 'PDF' : 'Markdown'})`)
-             : el('button', { class: 'btn block', style: 'margin-top:0', type: 'button', disabled: true, title: 'The situation report is generated by the report module (not available yet)' }, icon('download'), 'Situation report — not available yet'),
+      sitrep ? el('div', {}, el('a', { class: 'btn primary block', style: 'margin-top:0', href: fileUrl(runId, sitrep, true) }, icon('download'), `Situation report (${sitrep.endsWith('pdf') ? 'PDF' : 'Markdown'})`),
+               el('a', { class: 'more', href: fileUrl(runId, sitrep), target: '_blank', rel: 'noopener', text: 'Open in a new tab' }))
+             : el('button', { class: 'btn block', style: 'margin-top:0', type: 'button', disabled: true, title: 'No situation report was produced for this run' }, icon('download'), 'Situation report — not available'),
       el('details', { class: 'export' }, el('summary', { text: 'Export data' }),
         el('ul', { class: 'plist flat' }, ...present.map(([l, p]) => el('li', {}, el('a', { href: fileUrl(runId, p, true), text: l }))),
           el('li', {}, el('button', { type: 'button', class: 'linklike', onclick: api.exportPng, text: 'Map view (PNG)' })))));
@@ -294,7 +309,7 @@ export function createResults(root, api) {
     return el('li', {}, el('button', { type: 'button', onclick: () => api.openSettlement(p.osm_id) },
       withRank && p.priority_rank ? el('span', { class: 'rk', text: String(p.priority_rank) }) : null,
       el('span', { class: 'pl-main' }, el('span', { class: 'pl-n', text: p.name ?? `Unnamed ${p.place ?? 'place'}` }),
-        el('small', { class: 'muted', text: [acc.label, p.population ? `~${num(p.population, 0)} people` : null, p.buildings_hit != null ? `${p.buildings_hit} buildings hit` : null].filter(Boolean).join(' · ') })),
+        el('small', { class: 'muted', text: [acc.label, p.population ? `~${num(p.population, 0)} people` : null, p.buildings_hit != null ? `${p.buildings_hit} ${plural(p.buildings_hit, 'building')} hit` : null].filter(Boolean).join(' · ') })),
       imp && p.impact_level !== 'none' && p.impact_level !== 'low' ? pill(imp.label, imp.color) : null));
   }
 

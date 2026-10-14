@@ -9,6 +9,7 @@ export const SUBTYPE = {
   flooded_vegetation: { label: 'Flooded vegetation', color: '#3fa66a' },
   flooded_builtup: { label: 'Flooded buildings / town', color: '#a67cd8' },
   damaged_builtup: { label: 'Damaged buildings', color: '#e0457b' },
+  landslide: { label: 'Landslide (steep slope)', color: '#a3a32f' },
   unknown: { label: 'Other surface change', color: '#8e8d84' },
 };
 export const CONF_LABEL = { high: 'high', medium: 'medium', low: 'low' };
