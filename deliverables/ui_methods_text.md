@@ -2,7 +2,7 @@
 Same content as report sections 2–9; `dashboard/static/js/methods.js` should be updated to match. Suggested additions to the current text:
 
 **Under "How the answers are produced":**
-- Flood water: U-Net model on before/after radar + terrain slope (trained on Kuro Siwo and Sen1Floods11), plus an optical model when the sky is clear. Held-out test F1 for flood 0.78 (plains and hills, Kuro Siwo); 0.48 on mountain tiles.
+- Flood water: U-Net model on before/after radar + terrain slope (trained on Kuro Siwo and Sen1Floods11), plus an optical model when the sky is clear. Held-out test F1 for flood 0.79 (plains and hills, Kuro Siwo); 0.48 on mountain tiles (earlier model); whole pipeline: mean F1 0.81 on 12 independent floods.
 - Debris, mud, flooded vegetation and buildings: change test against each pixel's own history, both pass directions, with a confidence level and a flood-free self-test.
 - Damage per building/road/bridge, shown as a range (certain … including possible). Bridges over flooded channels are *suspect*, not destroyed.
 - Cut off: own road graph from the pre-event OpenStreetMap snapshot; blocked road pieces removed; footpaths not included.

@@ -144,7 +144,7 @@ valley were mapped by EMS.
 - **Clouds** (monsoon) limit optical use; then only radar is used.
 - **Debris vs wet soil.** Debris/mud detection is heuristic, with literature thresholds not measured on Himalayan debris flows;
   C-band does not penetrate dense forest; streets aligned with the radar look direction hide urban flooding.
-- **The model is a change detector** (see Bolivia result) and is weaker on mountain terrain than on plains (F1 0.48 vs 0.78).
+- **The model is a change detector** (see Bolivia result) and is weaker on mountain terrain than on plains (F1 0.48 vs 0.79).
   Differences between variants are within noise.
 - **OpenStreetMap is incomplete** in remote areas (roads, bridges, buildings missing) and its pre-event state is all we know.
   Footpaths and footbridges are not part of the road network, so a village reachable only by a path is "no road before the event".

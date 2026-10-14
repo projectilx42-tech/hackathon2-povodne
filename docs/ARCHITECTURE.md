@@ -348,10 +348,10 @@ Pipeline spouští jako podproces `python -m povodne run ...`; průběh čte z `
 |---|---|
 | `POST /api/runs` | tělo `{"aoi": <GeoJSON|bbox>, "event_date": "YYYY-MM-DD", "pre_window": [from,to]?, "post_window": [from,to]?, "sensitivity": "standard"|"sensitive"?, "event_time": "HH:MM"?}` → `{"run_id": "..."}` (D-M9-08; `event_time` = místní čas oblasti, D-M1-03) |
 | `GET /api/runs` | seznam běhů z `runs/`: `[{"run_id","event_date","created_utc","aoi_area_km2","verdict","state","mock"}]` |
-| `GET /api/runs/{run_id}` | `run.json` (+ `stats.json`, pokud existuje) |
+| `GET /api/runs/{run_id}` | `{"run": run.json, "stats": stats.json nebo null, "files": [...]}` — `files` = existující výsledkové soubory (`stats.json`, `flood/`, `damage/`, `network/`, `floodpath/`, `report/`, `overlays/`), stránka podle nich přeskočí chybějící |
 | `GET /api/runs/{run_id}/status` | `{"state","steps":[...],"log_tail":[...],"error"}` (z `run.json.progress`, `logs/pipeline.log`) |
 | `POST /api/runs/{run_id}/cancel` | zastaví běžící pipeline |
-| `GET /api/runs/{run_id}/files/{path}` | soubor z run adresáře (GeoJSON, `stats.json`, `report/sitrep_en.*`, GeoTIFF ke stažení) |
+| `GET`/`HEAD /api/runs/{run_id}/files/{path}` | soubor z run adresáře (GeoJSON, `stats.json`, `report/sitrep_en.*`, GeoTIFF ke stažení) |
 | `GET /api/runs/{run_id}/overlays` | `[{"name","url","bounds"}]` — PNG překryvy rastrů pro mapu (EPSG:4326 bounds `[w,s,e,n]`) |
 
 - **Překryvy** (`overlays/*.png` + `overlays/index.json` s `bounds`) jsou PNG pro mapu. `GET .../overlays` vrací jen ty, které v `index.json` jsou.

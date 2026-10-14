@@ -12,7 +12,7 @@ export const METHODS_HTML = `
 </ul>
 <h3>How the answers are produced</h3>
 <ul>
-  <li><b>Flood water</b>: a U-Net AI model on before/after radar plus terrain slope (trained on Kuro Siwo and Sen1Floods11), plus an optical model when the sky is clear. Held-out test F1 for flood: 0.78 on plains and hills (Kuro Siwo), 0.48 on mountain tiles.</li>
+  <li><b>Flood water</b>: a U-Net AI model on before/after radar plus terrain slope (trained on Kuro Siwo and Sen1Floods11), plus an optical model when the sky is clear. Held-out test F1 for flood: 0.79 on plains and hills (Kuro Siwo), 0.48 on mountain tiles (earlier model); whole pipeline: mean F1 0.81 on 12 independent floods.</li>
   <li><b>Debris, mud, flooded vegetation and buildings</b>: a change test against each pixel's own history, both pass directions, with a confidence level and a flood-free self-test (a false-alarm estimate).</li>
   <li><b>Damage</b> per building, road and bridge is shown as a range (certain … including possible). Bridges over flooded channels are marked <i>suspect</i>, not destroyed.</li>
   <li><b>Cut off</b>: own road graph from the pre-event OpenStreetMap snapshot; blocked road pieces are removed; a settlement is cut off when no road route to the nearest town or hospital remains, degraded when the detour is more than twice as long. Footpaths are not included.</li>
