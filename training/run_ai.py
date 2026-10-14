@@ -147,6 +147,10 @@ def s2_index_enabled() -> bool:
     return os.environ.get("POVODNE_S2_INDEX", "0") == "1"
 
 
+def perm_optical_enabled() -> bool:
+    return os.environ.get("POVODNE_PERM_OPTICAL", "1") == "1"
+
+
 def s2_mndwi(run: Path, when: str):
     """MNDWI of aligned/s2_<when>.tif (bands B02,B03,B04,B08,B11,B12 -> green = 1, SWIR1 = 4); None if missing."""
     refl, _ = _read_bands(run / "aligned" / f"s2_{when}.tif")
@@ -378,7 +382,7 @@ def main() -> None:
                 wet_post = clear_post & (p_post * w >= args.s2_water_thr)  # soft prior (w = 1 with --hard-rules)
                 # was the pixel dry before? optical pre image if clear there, else the radar's view of the pre image
                 dry_before = np.where(clear_pre, p_pre < args.s2_water_thr, radar_valid & (cls != 1))
-                index_px = 0
+                index_px = perm_dry_px = 0
                 if s2_index_enabled():
                     # shallow / turbid water the optical model misses: modified water index above 0 (D-M14-02)
                     mw_post, mw_pre = s2_mndwi(run, "post"), s2_mndwi(run, "pre")
@@ -396,13 +400,27 @@ def main() -> None:
                 opt_perm = wet_post & clear_pre & (p_pre >= args.s2_water_thr)
                 mask[opt_perm & (mask == 2)] = 4
                 mask[s2_flood] = 2
+                if perm_optical_enabled():
+                    # radar-only "permanent water" that both clear optical images see as dry is a smooth dry surface
+                    # (runway, asphalt, sand) that is dark in every radar pass, so the year-long record cannot catch it
+                    opt_dry = clear_pre & clear_post & (p_pre < args.s2_water_thr) & (p_post < args.s2_water_thr)
+                    for mw in (s2_mndwi(run, "pre"), s2_mndwi(run, "post")):
+                        if mw is not None:
+                            opt_dry &= np.isfinite(mw) & (mw <= MNDWI_WATER)
+                    dem_w = load_on_grid(run / "raw" / "dem" / "water.tif", profile)
+                    if dem_w is not None:
+                        opt_dry &= ~np.isin(dem_w, (1, 2))  # sea, lake
+                    perm_dry = (mask == 4) & opt_dry
+                    mask[perm_dry] = 1
+                    perm_dry_px = int(perm_dry.sum())
                 p_flood = np.where(clear_post, np.maximum(p_flood, p_post * dry_before * w), p_flood).astype(np.float32)
                 s2_info = {"used": True, "model": str(args.s2_model),
                            "post_clear_pct": round(100 * float(clear_post.mean()), 1),
                            "pre_clear_pct": round(100 * float(clear_pre.mean()), 1),
                            "optical_flood_km2": round(float(s2_flood.sum()) * 1e-4, 3),
                            "optical_water_unknown_before_km2": round(float((wet_post & ~known_before).sum()) * 1e-4, 3),
-                           "index_rule": s2_index_enabled(), "index_added_km2": round(index_px * 1e-4, 3)}
+                           "index_rule": s2_index_enabled(), "index_added_km2": round(index_px * 1e-4, 3),
+                           "perm_dry_by_optics_km2": round(perm_dry_px * 1e-4, 3) if perm_optical_enabled() else None}
     # Seasonal high water (D-M10-02): "permanent" by the model only because the before-image was already swollen.
     ref = load_on_grid(run / "raw" / "s1" / "perm_water.tif", profile)
     seasonal = seasonal_high_water(mask, ref, load_on_grid(run / "raw" / "dem" / "water.tif", profile), args.perm_min_freq)
