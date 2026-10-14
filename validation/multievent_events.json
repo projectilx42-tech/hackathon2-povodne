@@ -261,6 +261,66 @@
     "post_s1_date": "2018-03-27",
     "windows_file": "ks_windows_stage3.json"
    }
+  },
+  {
+   "id": "swat_2022",
+   "kind": "flood",
+   "dataset": "himalaya_s2",
+   "continent": "Asia (Hindu Kush / Himalaya)",
+   "note": "Swat river monsoon flood, Mingora area, Khyber Pakhtunkhwa, Pakistan, 26 Aug 2022; S2 label 2 days later",
+   "event_date": "2022-08-26",
+   "aoi_bbox": [
+    72.3,
+    34.72,
+    72.4,
+    34.81
+   ],
+   "label": {
+    "type": "s2",
+    "s2_date": "2022-08-28",
+    "mgrs_tile": "43SBU",
+    "label_max_elev_m": 2500
+   }
+  },
+  {
+   "id": "kathmandu_2024",
+   "kind": "flood",
+   "dataset": "himalaya_s2",
+   "continent": "Asia (Himalaya)",
+   "note": "Bagmati / Nakhu floods, Kathmandu valley, Nepal, 27-28 Sep 2024; S2 label 3 days later (water partly receded)",
+   "event_date": "2024-09-28",
+   "aoi_bbox": [
+    85.28,
+    27.64,
+    85.38,
+    27.73
+   ],
+   "label": {
+    "type": "s2",
+    "s2_date": "2024-10-01",
+    "mgrs_tile": "45RUL",
+    "label_max_elev_m": 2500
+   }
+  },
+  {
+   "id": "baghlan_2024",
+   "kind": "flood",
+   "dataset": "himalaya_s2",
+   "continent": "Asia (Hindu Kush)",
+   "note": "Baghlan flash floods, northern Afghanistan, 10 May 2024; S2 label 5 days later (flash flood water largely gone)",
+   "event_date": "2024-05-10",
+   "aoi_bbox": [
+    68.65,
+    36.05,
+    68.75,
+    36.14
+   ],
+   "label": {
+    "type": "s2",
+    "s2_date": "2024-05-15",
+    "mgrs_tile": "42SVE",
+    "label_max_elev_m": 2500
+   }
   }
  ]
 }
