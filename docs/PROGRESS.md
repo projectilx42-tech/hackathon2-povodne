@@ -54,9 +54,14 @@ Pipeline běží end-to-end ze surových dat (`python -m povodne run`) i z webov
 ## Blokery / známé problémy
 1. Cloud session nemá GPU (4 CPU, 15 GB RAM, ~30 GB disku) → trénink na Kaggle (D-010).
 2. Bez klíčů v prostředí nic neběží naostro; údaje nikdy do repa (D-011).
+3. **Váhy modelu jen v soukromých Kaggle datasetech** → porota nespustí vlastní běh. Hosting rozhodne uživatel (odloženo 14. 10.).
 
 ## Log sessions
 *(Nejnovější nahoře, ≤ 5 řádků na session. Starší: `docs/archive/PROGRESS_LOG.md`.)*
+### 2026-10-14 — master: příprava na odevzdání (ship) — `main`
+- Živý běh Emilia-Romagna 2023 (`runs/ship_emilia`) prošel celý; nalezena chyba celkových počtů s pufrem 15 km → D-X-16.
+- `ship/install`: čistá instalace (CPU torch napřed, disk 5 GB, pytest do README, ohsome 3 dotazy/běh). `ship/ui`: HEAD u souborů (prázdný sitrep), slider před/po, reset citlivosti, klikání při měření, mobil 390 px, `files` v `/api/runs/{id}`.
+- Plná sada testů 229 passed; F1 v Methods/reportu 0,79; PDF reportu přestavěno.
 ### 2026-10-13 — model v0.5 (doladění na těžké případy) — `feat/model-v05`
 - Doladění v0.4 s častějšími těžkými výřezy (`train.py --init/--hard-boost`), 8 variant na Kaggle; vítěz `r12_ft_hard5_eb1` prošel pravidlem sloučení na 11 událostech (`validation/model_compare.sh`).
 - Prahy na Kuro Siwo val (citlivý 0,25, okraj k=1 t=0,12). Průměr vah a TTA bez přínosu.
