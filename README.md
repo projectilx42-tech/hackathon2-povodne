@@ -112,11 +112,11 @@ Preview which satellite passes would be used, without downloading anything and w
 `python -m povodne.acquire.catalog --bbox 85.15 27.95 85.40 28.30 --event-date 2026-08-26`.
 
 ### Time and free-tier cost per run
-<!-- TODO (Tuesday): replace with measured numbers from the full Trishuli run -->
-| | 10 × 10 km | 30 × 30 km |
+Measured on a cloud CPU container (no GPU), whole pipeline from download to report:
+| | ~10 × 10 km (14 test events) | ~42 × 47 km (Trishuli case study) |
 |---|---|---|
-| Run time on a laptop CPU (estimate) | ~5 min | ~15 min |
-| Copernicus processing units (free: 10,000 / month) | ~80 | ~650 (≈ 15 runs / month) |
+| Run time | 2–7 min | 24 min (download 6, debris step 10) |
+| Copernicus processing units (free: 10,000 / month) | ~100–110 | ~2,200 (≈ 4 runs / month) |
 | ohsome requests (free: 250 / day) | 8 | 8 |
 
 A repeated run on the same area and date reuses downloaded images and costs almost nothing.
