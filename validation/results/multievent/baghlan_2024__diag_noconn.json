@@ -1,0 +1,194 @@
+{
+ "event": "baghlan_2024",
+ "tag": "diag_noconn",
+ "dataset": "himalaya_s2",
+ "continent": "Asia (Hindu Kush)",
+ "kind": "flood",
+ "event_date": "2024-05-10",
+ "aoi_bbox": [
+  68.65,
+  36.05,
+  68.75,
+  36.14
+ ],
+ "label_valid_pct": 100.0,
+ "scores": {
+  "a_seeds_water_2_4": {
+   "recall": 0.6804,
+   "precision": 0.5329,
+   "f1": 0.5977,
+   "truth_km2": 0.3523,
+   "pred_km2": 0.4498,
+   "tp_km2": 0.2397,
+   "fp_km2": 0.2101,
+   "region_km2": 90.571
+  },
+  "a_seeds_common_water_2_4": {
+   "recall": 0.6804,
+   "precision": 0.5329,
+   "f1": 0.5977,
+   "truth_km2": 0.3523,
+   "pred_km2": 0.4498,
+   "tp_km2": 0.2397,
+   "fp_km2": 0.2101,
+   "region_km2": 90.571
+  },
+  "b_envelope_water_2_4": {
+   "recall": 0.6804,
+   "precision": 0.5329,
+   "f1": 0.5977,
+   "truth_km2": 0.3523,
+   "pred_km2": 0.4498,
+   "tp_km2": 0.2397,
+   "fp_km2": 0.2101,
+   "region_km2": 90.571
+  },
+  "a_seeds_all_2_3_4": {
+   "recall": 0.713,
+   "precision": 0.1099,
+   "f1": 0.1904,
+   "truth_km2": 0.3523,
+   "pred_km2": 2.2866,
+   "tp_km2": 0.2512,
+   "fp_km2": 2.0354,
+   "region_km2": 90.571
+  },
+  "a_seeds_common_all_2_3_4": {
+   "recall": 0.713,
+   "precision": 0.1099,
+   "f1": 0.1904,
+   "truth_km2": 0.3523,
+   "pred_km2": 2.2866,
+   "tp_km2": 0.2512,
+   "fp_km2": 2.0354,
+   "region_km2": 90.571
+  },
+  "b_envelope_all_2_3_4": {
+   "recall": 0.713,
+   "precision": 0.1099,
+   "f1": 0.1904,
+   "truth_km2": 0.3523,
+   "pred_km2": 2.2866,
+   "tp_km2": 0.2512,
+   "fp_km2": 2.0354,
+   "region_km2": 90.571
+  }
+ },
+ "false_alarm_dry_label": {
+  "seeds": 0.02248,
+  "envelope": 0.02248
+ },
+ "seed_transitions_km2": {
+  "water": {
+   "water": 0.4185
+  },
+  "debris": {
+   "debris": 1.8368
+  },
+  "permanent": {
+   "permanent": 0.0313
+  }
+ },
+ "components": {
+  "seeds_ai_water(2)": {
+   "km2": 0.4185,
+   "km2_in_label_region": 0.4185,
+   "share_on_truth": 0.515
+  },
+  "seeds_debris_step:debris": {
+   "km2": 1.6228,
+   "km2_in_label_region": 1.6228,
+   "share_on_truth": 0.001
+  },
+  "seeds_debris_step:mud": {
+   "km2": 0.0424,
+   "km2_in_label_region": 0.0424,
+   "share_on_truth": 0.035
+  },
+  "seeds_debris_step:erosion": {
+   "km2": 0.0047,
+   "km2_in_label_region": 0.0047,
+   "share_on_truth": 0.0
+  },
+  "seeds_debris_step:flooded_vegetation": {
+   "km2": 0.0239,
+   "km2_in_label_region": 0.0239,
+   "share_on_truth": 0.0
+  },
+  "seeds_debris_step:flooded_builtup": {
+   "km2": 0.0009,
+   "km2_in_label_region": 0.0009,
+   "share_on_truth": 0.0
+  },
+  "seeds_debris_step:unknown": {
+   "km2": 0.0852,
+   "km2_in_label_region": 0.0852,
+   "share_on_truth": 0.001
+  },
+  "seeds_class3_not_debris_step(vhagree etc.)": {
+   "km2": 0.0569,
+   "km2_in_label_region": 0.0569,
+   "share_on_truth": 0.156
+  },
+  "seeds_permanent(4)": {
+   "km2": 0.0313,
+   "km2_in_label_region": 0.0313,
+   "share_on_truth": 0.77
+  }
+ },
+ "pred_total_km2": {
+  "seeds": 2.255,
+  "envelope": 2.255
+ },
+ "run": {
+  "timings_s": {
+   "acquire": 128.2,
+   "preprocess": 3.3,
+   "s1anomaly": 1.3,
+   "flood_ai": 31.9,
+   "debris": 11.8,
+   "envelope": 0.6,
+   "combine": 1.7,
+   "confidence": 0.4,
+   "damage": 1.8,
+   "network": 2.6,
+   "report": 5.5
+  },
+  "pu_spent": 97.4,
+  "pu_estimate": 112,
+  "envelope": {
+   "used": false,
+   "reason": "Water-level envelope is off (opt-in: set POVODNE_ENVELOPE=1 or pass --envelope); the flood map is unchanged.",
+   "placebo_groups": null,
+   "placebo_split": null,
+   "stat": null,
+   "persistence": null,
+   "reach_q": null,
+   "final_est_precision": null,
+   "final_placebo_false_km2": null,
+   "added_km2": null,
+   "added_by_stage_km2": null,
+   "optics": null,
+   "post_passes": null,
+   "optical_used": null
+  },
+  "main_track": {
+   "relative_orbit": 71,
+   "orbit_direction": "ASCENDING"
+  },
+  "alt_track": true,
+  "s2": {
+   "pre": 100.0,
+   "post": 100.0,
+   "extra": null
+  },
+  "warnings": [],
+  "verdict": "flood_detected",
+  "coverage": {
+   "s1_valid_pct": 99.0,
+   "s2_pre_clear_pct": 100.0,
+   "s2_post_clear_pct": 100.0,
+   "evaluated_pct": 100.0
+  }
+ }
+}

@@ -34,7 +34,7 @@ Výchozí model Sonnet, Opus jen na složitá rozhodnutí; u větších změn ne
 - Laťka uživatele: ≥ 90 % zachycené viditelné zaplavené plochy při ≥ 85 % správnosti, napříč regiony.
 
 ## Technologie a konvence
-- Python ≥ 3.11, balík `src/povodne/` (`python -m povodne run|serve`), trénink v `training/`, UI v `dashboard/`. Testy: `python -m pytest -q tests training/tests`.
+- Python ≥ 3.11, balík `src/povodne/` (`python -m povodne run|serve`), trénink v `training/`, UI v `dashboard/`. Testy: rychlá kontrola `python -m pytest -q -n auto tests training/tests` (~30 s, pomalé end-to-end testy přeskočí); plná sada `--full` jen před sloučením změny KÓDU do `main`. Pro změny jen v docs/výsledcích testy nespouštěj. Dlouhé příkazy (běhy pipeline, plné testy) pouštěj na pozadí a mezitím pracuj — nikdy nečekej nečinně (pravidlo uživatele).
 - Kód, komentáře, README, report, dashboard **anglicky**; interní docs (`CLAUDE.md`, `docs/`) česky.
 - Rozhraní mezi moduly = soubory v run adresáři (`docs/ARCHITECTURE.md`). Netriviální volby zapisuj do `docs/DECISIONS.md` (autor je vysvětluje porotě).
 - V gitu jen kód, konfigurace, docs a malé ukázky (< ~5 MB); `data/`, `runs/`, `models/` ne.
