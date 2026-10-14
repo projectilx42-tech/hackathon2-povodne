@@ -265,3 +265,20 @@ removed. Values fixed beforehand (not tuned on these events). Only 5 events have
 R 0.853 / P 0.785 / F1 0.798 → **R 0.853 / P 0.802 / F1 0.807**; Baghlan +0.102 (P 0.51 → 0.68), Bolivia +0.010, Chad −0.001, rest 0.000;
 control 0.3278 km² unchanged → merge rule passes. Caveat: Baghlan's label is water from the same optical image (partly circular);
 independent hand labels exist only for Bolivia and Chad. Kathmandu unchanged: its extra radar water is not "sure dry" for the optical model.
+Circularity check (master): S2-label events where the pipeline's S2 post image IS the label image — Swat (28 Aug), Kathmandu (1 Oct),
+Baghlan (15 May), Chamoli (10 Feb), Marsyangdi (20 Jan) — are **not verifiable without circularity** for any optics-based change; Teesta
+(pipeline 11 Oct, label 16 Oct) is independent. The veto acts only on Baghlan among them (Kathmandu / Chamoli 0 px; Swat, Marsyangdi gap > 1.5 d).
+Merge rule on the non-circular events only (8 Kuro Siwo / Sen1Floods11 floods + Teesta, control unchanged): Bolivia +0.010, Chad −0.001,
+the others 0.000 → mean F1 up by 0.001, precision up, worst −0.001 → still passes, but the real gain is small (one event).
+
+## Optical check of permanent water (master, `origin/fix/perm-optical` cb5e932 = main with veto + the check): tag `permopt` vs `veto1full`
+All 12 floods: F1 0.807 → 0.819 (Kathmandu 0.34 → 0.49, Chad −0.009, Honduras +0.001, Malawi −0.001, Marsyangdi +0.001), control 0.3278 → 0.3269 km²;
+formal rule passes. **Non-circular events only** (8 Kuro Siwo / Sen1Floods11 floods + Teesta; Kathmandu's label is the pipeline's own S2 post image):
+mean R 0.861 → 0.859, P 0.879 → 0.879, F1 0.865 → 0.864 (Chad R 0.668 → 0.654: 0.13 km² of real flood turned dry) → **mean F1 down, rule fails**
+on the independent labels. The Kathmandu gain cannot be confirmed without circularity.
+
+## Narrowed optical permanent-water check (D-M14-18): tag `permref` vs `veto1full`, branch `fix/perm-optical-ref` d6d848d
+Same as `permopt`, but pixels the year-long radar record would turn into seasonal flood (before-image already swollen) are left to the record.
+Chad back to 0.000 (was −0.009); Kathmandu 0.34 → 0.43 (circular, label = same S2 image); Bolivia −0.0003; Marsyangdi +0.001; rest 0.000;
+control 0.3278 → 0.3272 km². All 12 floods F1 0.807 → 0.814 (rule passes). **Non-circular only:** R 0.8606 → 0.8605, P 0.8791 → 0.8791,
+F1 0.8649 → 0.8648 — neutral (−0.0001 from Bolivia), i.e. harmless on independent labels, gain only where it cannot be checked independently.

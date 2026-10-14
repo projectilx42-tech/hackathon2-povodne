@@ -1578,7 +1578,7 @@ Ve výchozím stavu zapnuto, vypnutí `POVODNE_S2_VETO=0`; run.json `flood.param
 **Pozor (pro porotu):** u Baghlanu je zlepšení zčásti kruhové — referenční značka je voda z TÉHOŽ optického snímku. Nezávislé značky
 (ruční Kuro Siwo / Sen1Floods11) má jen Bolívie (+0,01) a Čad (−0,001), takže skutečný přínos je malý, ale nikde neškodí.
 
-## D-X-15 | 2026-10-14 | zamítnuto (master) — Optická kontrola „trvalé vody“ z radaru (větev `fix/perm-optical`)
+## D-X-15 | 2026-10-14 | zamítnuto, nahrazeno D-M14-18 (master) — Optická kontrola „trvalé vody“ z radaru (větev `fix/perm-optical`)
 - **Návrh:** radarová „trvalá voda“ (třída 4), kterou čistý S2 před i po vidí jako sucho (model S2 pod prahem, MNDWI ≤ 0) a není moře/jezero
   v DEM, → sucho. Motivace: ranvej letiště Káthmándú (hladký asfalt je tmavý v každém přeletu, roční záznam ho nechytí).
 - **Měření (signál, tag `permopt` vs `veto1full`, 14 událostí):** formálně průměr 12 povodní F1 0,807 → 0,819, nejhorší −0,009 (Čad),
@@ -1587,3 +1587,12 @@ Ve výchozím stavu zapnuto, vypnutí `POVODNE_S2_VETO=0`; run.json `flood.param
   optika vidí jako sucho, patrně zarostlá mělká voda).
 - **Rozhodnutí:** nesloučeno. Zúžení podle časového odstupu S2 by Čad nezachránilo (S2 do 1,5 dne) a další zužování by bylo ladění na
   testovacích událostech. Káthmándú zůstává slabé místo (report: horské bleskové povodně).
+## D-M14-18 | 2026-10-14 | přijato (master: sloučeno jako oprava zjevné chyby, ne zlepšení přesnosti) — Optická kontrola trvalé vody jen tam, kde ji potvrdí i roční záznam
+**Kontext:** masterova kontrola (větev `fix/perm-optical`): radarová „trvalá voda“, kterou oba čisté snímky S2 vidí jako sucho, se mění na sucho
+(ranvej letiště v Káthmándú). Na nezávislých značkách ubrala Čadu 0,13 km² skutečné povodně (F1 −0,009): byla to rozvodněná řeka, kterou
+model označil za trvalou a kterou by roční záznam radaru (D-M10-02) vrátil jako sezónní povodeň.
+**Rozhodnutí:** pixely, které by roční záznam převedl na sezónní povodeň, kontrola nemění (rozhodne záznam). Ranvej je tmavá v každém přeletu,
+záznam ji drží jako trvalou, takže ji kontrola dál odstraní. Nic laděno (žádný nový práh).
+**Ověření:** Čad 0,000; nekruhové události (8 Kuro Siwo / Sen1Floods11 + Teesta) neutrální (F1 0,8649 → 0,8648); Káthmándú 0,34 → 0,43 jen
+kruhově (značka = tentýž snímek S2). Formálně na 12 povodních 0,807 → 0,814, kontrola 0,3278 → 0,3272 km². Doporučení: neškodí, přínos
+nezávisle neprokázaný — sloučit jen jako opravu zjevné chyby (ranvej), ne jako zlepšení přesnosti.

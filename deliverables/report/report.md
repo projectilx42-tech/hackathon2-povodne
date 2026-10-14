@@ -71,12 +71,14 @@ accepted only if the mean improved, no event lost more than 0.01 F1 and the cont
 | 12 floods incl. 3 added mountain floods (mean) | 0.85 | 0.80 | **0.81** |
 | lowland/large rivers: Australia, Bihar, Bolivia, Evros, Malawi, Missouri, Swat | 0.85–0.99 | 0.81–0.99 | 0.87–0.94 |
 | Honduras / Teesta / Chad | 0.83 / 0.64 / 0.67 | 0.89 / 0.90 / 0.79 | 0.86 / 0.75 / 0.72 |
-| Baghlan / Kathmandu (flash floods, water already drained) | 0.68 / 0.86 | 0.68 / 0.21 | 0.68 / 0.34 |
+| Baghlan / Kathmandu (flash floods, water already drained) | 0.68 / 0.86 | 0.68 / 0.29 | 0.68 / 0.43 |
 | Chamoli 2021 (debris flow; 0.04 km² of water in label, not in the means) | 0.06 | 0.48 | 0.11 |
 
 Large river floods are found reliably; narrow mountain channels and flash floods are the weak point. Kathmandu and Baghlan had only
 0.10 / 0.35 km² of water left on the label date, so a fraction of a km² of extra water halves precision; their debris (1.5 km²) cannot
-be checked against a water label. A full run takes 2–7 min for a ~9 km window on a laptop CPU. Caveats: Sentinel-2 labels can share
+be checked against a water label. Kathmandu also showed a real error, fixed generically: an airport runway (smooth asphalt is dark
+in every radar pass) was called permanent water; it is now made dry where both clear Sentinel-2 images see dry land and the year-long
+radar record agrees. A full run takes 2–7 min for a ~9 km window on a laptop CPU. Caveats: Sentinel-2 labels can share
 the image the pipeline uses (Baghlan), and the method changes were chosen on this same set.
 
 # 5. Debris, mud and other surface change
