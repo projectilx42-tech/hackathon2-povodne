@@ -47,7 +47,7 @@ environment variables**; they are never typed into the app and never stored in t
 | What | Why | How to get it | Environment variables |
 |---|---|---|---|
 | **Copernicus Data Space** (ESA) | Sentinel-1 and Sentinel-2 images | see *Copernicus key* below | `CDSE_CLIENT_ID`, `CDSE_CLIENT_SECRET` |
-| **ohsome API** (HeiGIT) | OpenStreetMap as it was **before** the flood | sign up at https://account.heigit.org/signup → *API keys* → create | `OHSOME_API_KEY` |
+| **ohsome API** (HeiGIT) | OpenStreetMap as it was **before** the flood | sign up at https://account.heigit.org/signup → *API keys* → create | `OHSOME_API_KEY` (optional: a shared project key is built in; set your own if its daily quota runs out) |
 | **Model weights** | the trained flood segmentation model | see *Model weights* below | _see below_ |
 | CARTO (optional) | dark base map; without it an inverted OSM map is used | https://carto.com/basemaps/ | `CARTO_API_KEY` |
 

@@ -46,5 +46,6 @@ def test_every_code_is_documented_and_every_used_code_exists():
 def test_missing_ohsome_key_is_a_clear_error(monkeypatch):
     from povodne.acquire import osm
     monkeypatch.delenv("OHSOME_API_KEY", raising=False)
+    monkeypatch.setattr(osm, "BUILTIN_KEY", "")
     with pytest.raises(osm.MissingOhsomeKey, match="OHSOME_API_KEY"):
         osm._request("/metadata")

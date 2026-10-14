@@ -38,7 +38,7 @@ Výchozí model Sonnet, Opus jen na složitá rozhodnutí; u větších změn ne
 - Kód, komentáře, README, report, dashboard **anglicky**; interní docs (`CLAUDE.md`, `docs/`) česky.
 - Rozhraní mezi moduly = soubory v run adresáři (`docs/ARCHITECTURE.md`). Netriviální volby zapisuj do `docs/DECISIONS.md` (autor je vysvětluje porotě).
 - V gitu jen kód, konfigurace, docs a malé ukázky (< ~5 MB); `data/`, `runs/`, `models/` ne.
-- **Žádné secrets v repu** — klíče (CDSE, ohsome, Kaggle…) jen jako proměnné prostředí.
+- **Žádné secrets v repu** — klíče (CDSE, Kaggle…) jen jako proměnné prostředí. Výjimka: klíč ohsome v `acquire/osm.py` (rozhodnutí uživatele D-X-14).
 - **Přiznání AI (Devpost):** README má sekci *AI assistance* (co vzniklo s Claude Code) — při přidání modulu ji doplň.
 
 ## Koordinace sessions

@@ -53,8 +53,12 @@ class MissingOhsomeKey(RuntimeError):
     pass
 
 
+# Shared project key (user decision D-X-14): works out of the box; OHSOME_API_KEY overrides it.
+BUILTIN_KEY = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjU1MWIyOGYxMjM3ODQ2MzBhNjBlYjYyMjJhNDBjMGYxIiwiaCI6Im11cm11cjY0In0="
+
+
 def _key() -> str:
-    key = os.environ.get("OHSOME_API_KEY", "").strip()
+    key = os.environ.get("OHSOME_API_KEY", "").strip() or BUILTIN_KEY
     if not key:
         raise MissingOhsomeKey(KEY_HELP)
     return key

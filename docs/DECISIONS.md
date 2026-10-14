@@ -1557,3 +1557,9 @@ ohsome vrací jako bod, se zachovají). Mezipaměť OpenStreetMap podle (oblast,
 0 dotazů, `osm/*.gpkg` bajt po bajtu stejné. Starý způsob: `POVODNE_OSM_SPLIT_REQUESTS=1`. Test `test_osm_layers_one_request_per_bbox`.
 Naostro (živý dotaz) neověřeno — kvóta je dnes vyčerpaná.
 - **Živé ověření (master, 2026-10-14):** Lismore 2022-02-28 s novým klíčem — výchozí (3 dotazy) vs `POVODNE_OSM_SPLIT_REQUESTS=1` (8 dotazů): všech 7 vrstev shodné počty i množiny `osm_id`. Sloučeno do `main`.
+
+## D-X-14 | 2026-10-14 | přijato (rozhodnutí uživatele) — Klíč ohsome přímo v kódu
+Uživatel výslovně: „dej to do repa, je mi to jedno“. `src/povodne/acquire/osm.py` má `BUILTIN_KEY` (druhý klíč projektu), aby
+`python -m povodne run` fungoval bez nastavování; `OHSOME_API_KEY` z prostředí má přednost. Výjimka z pravidla „žádné secrets v repu“
+jen pro tento klíč (bezplatný, omezený denní kvótou, žádná osobní data). Riziko: když bude repo veřejné (Devpost), může klíč kdokoli
+vyčerpat → před zveřejněním / po hackathonu klíč zneplatnit nebo vyměnit. Ostatní klíče (CDSE, Kaggle) dál jen v proměnných prostředí.
