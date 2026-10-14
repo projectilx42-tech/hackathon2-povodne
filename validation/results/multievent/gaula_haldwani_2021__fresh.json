@@ -1,0 +1,188 @@
+{
+ "event": "gaula_haldwani_2021",
+ "tag": "fresh",
+ "dataset": "himalaya_s2",
+ "continent": "Asia (Himalayan foothills)",
+ "kind": "flood",
+ "event_date": "2021-10-19",
+ "aoi_bbox": [
+  79.47,
+  29.17,
+  79.57,
+  29.26
+ ],
+ "label_valid_pct": 100.0,
+ "scores": {
+  "a_seeds_water_2_4": {
+   "recall": 0.9505,
+   "precision": 0.7686,
+   "f1": 0.8499,
+   "truth_km2": 0.8295,
+   "pred_km2": 1.0257,
+   "tp_km2": 0.7884,
+   "fp_km2": 0.2373,
+   "region_km2": 99.663
+  },
+  "a_seeds_common_water_2_4": {
+   "recall": 0.9505,
+   "precision": 0.7686,
+   "f1": 0.8499,
+   "truth_km2": 0.8295,
+   "pred_km2": 1.0257,
+   "tp_km2": 0.7884,
+   "fp_km2": 0.2373,
+   "region_km2": 99.663
+  },
+  "b_envelope_water_2_4": {
+   "recall": 0.9505,
+   "precision": 0.7686,
+   "f1": 0.8499,
+   "truth_km2": 0.8295,
+   "pred_km2": 1.0257,
+   "tp_km2": 0.7884,
+   "fp_km2": 0.2373,
+   "region_km2": 99.663
+  },
+  "a_seeds_all_2_3_4": {
+   "recall": 0.9835,
+   "precision": 0.1376,
+   "f1": 0.2414,
+   "truth_km2": 0.8295,
+   "pred_km2": 5.93,
+   "tp_km2": 0.8158,
+   "fp_km2": 5.1142,
+   "region_km2": 99.663
+  },
+  "a_seeds_common_all_2_3_4": {
+   "recall": 0.9835,
+   "precision": 0.1376,
+   "f1": 0.2414,
+   "truth_km2": 0.8295,
+   "pred_km2": 5.93,
+   "tp_km2": 0.8158,
+   "fp_km2": 5.1142,
+   "region_km2": 99.663
+  },
+  "b_envelope_all_2_3_4": {
+   "recall": 0.9835,
+   "precision": 0.1376,
+   "f1": 0.2414,
+   "truth_km2": 0.8295,
+   "pred_km2": 5.93,
+   "tp_km2": 0.8158,
+   "fp_km2": 5.1142,
+   "region_km2": 99.663
+  }
+ },
+ "false_alarm_dry_label": {
+  "seeds": 0.05175,
+  "envelope": 0.05175
+ },
+ "seed_transitions_km2": {
+  "water": {
+   "water": 1.0257
+  },
+  "debris": {
+   "debris": 4.9043
+  }
+ },
+ "components": {
+  "seeds_ai_water(2)": {
+   "km2": 1.0257,
+   "km2_in_label_region": 1.0257,
+   "share_on_truth": 0.769
+  },
+  "seeds_debris_step:debris": {
+   "km2": 4.2133,
+   "km2_in_label_region": 4.2133,
+   "share_on_truth": 0.004
+  },
+  "seeds_debris_step:mud": {
+   "km2": 0.266,
+   "km2_in_label_region": 0.266,
+   "share_on_truth": 0.012
+  },
+  "seeds_debris_step:erosion": {
+   "km2": 0.3506,
+   "km2_in_label_region": 0.3502,
+   "share_on_truth": 0.017
+  },
+  "seeds_debris_step:flooded_vegetation": {
+   "km2": 0.0273,
+   "km2_in_label_region": 0.0273,
+   "share_on_truth": 0.0
+  },
+  "seeds_debris_step:landslide": {
+   "km2": 0.0019,
+   "km2_in_label_region": 0.0019,
+   "share_on_truth": 0.211
+  },
+  "seeds_debris_step:unknown": {
+   "km2": 0.0066,
+   "km2_in_label_region": 0.0066,
+   "share_on_truth": 0.015
+  },
+  "seeds_class3_not_debris_step(vhagree etc.)": {
+   "km2": 0.039,
+   "km2_in_label_region": 0.039,
+   "share_on_truth": 0.031
+  }
+ },
+ "pred_total_km2": {
+  "seeds": 5.93,
+  "envelope": 5.93
+ },
+ "run": {
+  "timings_s": {
+   "acquire": 67.1,
+   "preprocess": 5.9,
+   "s1anomaly": 2.4,
+   "flood_ai": 63.2,
+   "debris": 31.2,
+   "envelope": 0.6,
+   "combine": 2.1,
+   "confidence": 0.5,
+   "damage": 3.4,
+   "network": 4.1,
+   "report": 5.9
+  },
+  "pu_spent": 107.3,
+  "pu_estimate": 123,
+  "envelope": {
+   "used": false,
+   "reason": "Water-level envelope is off (opt-in: set POVODNE_ENVELOPE=1 or pass --envelope); the flood map is unchanged.",
+   "placebo_groups": null,
+   "placebo_split": null,
+   "stat": null,
+   "persistence": null,
+   "reach_q": null,
+   "final_est_precision": null,
+   "final_placebo_false_km2": null,
+   "added_km2": null,
+   "added_by_stage_km2": null,
+   "optics": null,
+   "post_passes": null,
+   "optical_used": null
+  },
+  "main_track": {
+   "relative_orbit": 63,
+   "orbit_direction": "DESCENDING"
+  },
+  "alt_track": true,
+  "s2": {
+   "pre": 100.0,
+   "post": 100.0,
+   "extra": null
+  },
+  "warnings": [
+   "The check for flooding before the given date sees almost no open water here (rivers narrower than the 60 m check pixels), so it cannot confirm that the before-image is flood-free."
+  ],
+  "verdict": "flood_detected",
+  "coverage": {
+   "s1_valid_pct": 98.9,
+   "s2_pre_clear_pct": 100.0,
+   "s2_post_clear_pct": 100.0,
+   "evaluated_pct": 100.0
+  }
+ }
+}
