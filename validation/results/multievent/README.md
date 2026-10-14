@@ -243,3 +243,18 @@ Pooled over the 9 labelled floods precision falls with the level as intended: **
 the exception is Chad (high 0.51, low 0.97: its "high" pixels are a small set the label calls dry). Australia is flat (0.98 / 0.99 / 0.96).
 "Low" covers only 3 % of the affected area, so it marks a small doubtful fringe rather than splitting the map evenly.
 Recall per level is not a quality ranking: a flooded pixel the model confidently called dry counts as a "high"-level miss.
+
+## Three more mountain floods (2026-10-14, main 9e3c9e7, tag `final1`)
+Same recipe as the Himalaya events: S2 L2A water label (MNDWI / scene class, below 2500 m, slope ≤ 20°) from the first clear image after the event,
+full pipeline end to end (`python -m povodne run ... --sensitivity sensitive`, no envelope). Candidates dropped: Melamchi 15 Jun 2021 (first usable
+S2 6–9 days later and ≥ 27 % cloud in the window), Roshi 2024 (57 % clear), Beas/Kullu Jul 2023 (≤ 25 % clear), Karnali Oct 2021 (no S2 item found).
+
+| event | S1 post (track) | S2 label | label water km² | water-only (2+4) R / P / F1 | all classes P | high / medium / low P (share) |
+|---|---|---|---|---|---|---|
+| Swat, Pakistan, 26 Aug 2022 | 31 Aug (asc 100) | 28 Aug | 4.94 | **0.95 / 0.81 / 0.87** | 0.63 | 0.96 (46 %) / 0.68 (49 %) / 0.70 (5 %) |
+| Kathmandu valley, Nepal, 28 Sep 2024 | 2 Oct (desc 19) | 1 Oct | 0.10 | 0.86 / 0.21 / 0.34 | 0.04 | 0.26 / 0.19 / 0.13 |
+| Baghlan, Afghanistan, 10 May 2024 | 14 May (asc 71) | 15 May | 0.35 | 0.68 / 0.51 / 0.58 | 0.11 | 0.56 / 0.49 / 0.56 |
+
+Kathmandu and Baghlan have very little water left in the label (0.10 / 0.35 km², the flash floods had drained by the S2 date), so like Chamoli
+their precision is dominated by a fraction of a km²: AI water off the label 0.17 / 0.23 km²; the debris step marks 1.5 / 1.6 km² of
+"debris" that a water label cannot confirm (it may be real deposits). Swat, a large river flood, behaves like the lowland events.

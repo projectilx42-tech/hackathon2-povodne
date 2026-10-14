@@ -91,7 +91,7 @@ def main() -> None:
     (RES / f"confidence__{a.tag}.json").write_text(json.dumps({"tag": a.tag, "events": res, "pooled_flood_events": pooled}, indent=1))
     f = lambda x: "–" if x is None else f"{x:.2f}"  # noqa: E731
     print("| event | high P / R / share | medium P / R / share | low P / R / share | overall |\n|---|---|---|---|---|")
-    for e, r in list(res.items()) + [("**pooled (9 flood events)**", {"levels": pooled, "overall": ""})]:
+    for e, r in list(res.items()) + [("**pooled (labelled flood events)**", {"levels": pooled, "overall": ""})]:
         cells = [f"{f(r['levels'][nm]['precision'])} / {f(r['levels'][nm]['recall'])} / {f(r['levels'][nm]['pred_share'])}" for nm in LEVELS.values()]
         print(f"| {e} | " + " | ".join(cells) + f" | {r.get('overall') or ''} |")
 

@@ -31,7 +31,7 @@
      "truth_share": 0.2238
     }
    },
-   "confidence_step_s": null,
+   "confidence_step_s": 1.0,
    "overall": "low",
    "levels_pct_of_affected": {
     "high": 1.9,
@@ -69,7 +69,7 @@
      "truth_share": 0.3116
     }
    },
-   "confidence_step_s": null,
+   "confidence_step_s": 0.7,
    "overall": "low",
    "levels_pct_of_affected": {
     "high": 0.6,
@@ -107,7 +107,7 @@
      "truth_share": 0.0016
     }
    },
-   "confidence_step_s": null,
+   "confidence_step_s": 0.6,
    "overall": "low",
    "levels_pct_of_affected": {
     "high": 1.0,
@@ -145,7 +145,7 @@
      "truth_share": 0.0094
     }
    },
-   "confidence_step_s": null,
+   "confidence_step_s": 1.0,
    "overall": "medium",
    "levels_pct_of_affected": {
     "high": 12.6,
@@ -183,7 +183,7 @@
      "truth_share": 0.0524
     }
    },
-   "confidence_step_s": null,
+   "confidence_step_s": 1.0,
    "overall": "medium",
    "levels_pct_of_affected": {
     "high": 25.9,
@@ -221,7 +221,7 @@
      "truth_share": 0.039
     }
    },
-   "confidence_step_s": null,
+   "confidence_step_s": 0.7,
    "overall": "medium",
    "levels_pct_of_affected": {
     "high": 19.2,
@@ -259,7 +259,7 @@
      "truth_share": 0.0165
     }
    },
-   "confidence_step_s": null,
+   "confidence_step_s": 1.0,
    "overall": "medium",
    "levels_pct_of_affected": {
     "high": 46.0,
@@ -297,7 +297,7 @@
      "truth_share": 0.0044
     }
    },
-   "confidence_step_s": null,
+   "confidence_step_s": 0.5,
    "overall": "high",
    "levels_pct_of_affected": {
     "high": 73.5,
@@ -335,7 +335,7 @@
      "truth_share": 0.0048
     }
    },
-   "confidence_step_s": null,
+   "confidence_step_s": 0.6,
    "overall": "high",
    "levels_pct_of_affected": {
     "high": 68.2,
@@ -373,7 +373,7 @@
      "truth_share": 0.1367
     }
    },
-   "confidence_step_s": null,
+   "confidence_step_s": 0.4,
    "overall": "medium",
    "levels_pct_of_affected": {
     "high": 10.2,
@@ -411,42 +411,156 @@
      "truth_share": 0.0035
     }
    },
-   "confidence_step_s": null,
+   "confidence_step_s": 0.5,
    "overall": "high",
    "levels_pct_of_affected": {
     "high": 78.1,
     "medium": 21.4,
     "low": 0.5
    }
+  },
+  "swat_2022": {
+   "levels": {
+    "high": {
+     "tp": 25785,
+     "pred": 26846,
+     "truth": 26248,
+     "precision": 0.9605,
+     "recall": 0.9824,
+     "pred_share": 0.4646,
+     "truth_share": 0.5311
+    },
+    "medium": {
+     "tp": 19248,
+     "pred": 28317,
+     "truth": 21121,
+     "precision": 0.6797,
+     "recall": 0.9113,
+     "pred_share": 0.4901,
+     "truth_share": 0.4274
+    },
+    "low": {
+     "tp": 1837,
+     "pred": 2616,
+     "truth": 2049,
+     "precision": 0.7022,
+     "recall": 0.8965,
+     "pred_share": 0.0453,
+     "truth_share": 0.0415
+    }
+   },
+   "confidence_step_s": 0.7,
+   "overall": "medium",
+   "levels_pct_of_affected": {
+    "high": 36.0,
+    "medium": 57.1,
+    "low": 6.9
+   }
+  },
+  "kathmandu_2024": {
+   "levels": {
+    "high": {
+     "tp": 382,
+     "pred": 1461,
+     "truth": 409,
+     "precision": 0.2615,
+     "recall": 0.934,
+     "pred_share": 0.3773,
+     "truth_share": 0.423
+    },
+    "medium": {
+     "tp": 426,
+     "pred": 2253,
+     "truth": 498,
+     "precision": 0.1891,
+     "recall": 0.8554,
+     "pred_share": 0.5819,
+     "truth_share": 0.515
+    },
+    "low": {
+     "tp": 20,
+     "pred": 158,
+     "truth": 60,
+     "precision": 0.1266,
+     "recall": 0.3333,
+     "pred_share": 0.0408,
+     "truth_share": 0.062
+    }
+   },
+   "confidence_step_s": 0.5,
+   "overall": "medium",
+   "levels_pct_of_affected": {
+    "high": 7.7,
+    "medium": 77.9,
+    "low": 14.4
+   }
+  },
+  "baghlan_2024": {
+   "levels": {
+    "high": {
+     "tp": 143,
+     "pred": 256,
+     "truth": 224,
+     "precision": 0.5586,
+     "recall": 0.6384,
+     "pred_share": 0.054,
+     "truth_share": 0.0636
+    },
+    "medium": {
+     "tp": 1907,
+     "pred": 3863,
+     "truth": 2785,
+     "precision": 0.4937,
+     "recall": 0.6847,
+     "pred_share": 0.8148,
+     "truth_share": 0.7905
+    },
+    "low": {
+     "tp": 350,
+     "pred": 622,
+     "truth": 514,
+     "precision": 0.5627,
+     "recall": 0.6809,
+     "pred_share": 0.1312,
+     "truth_share": 0.1459
+    }
+   },
+   "confidence_step_s": 0.5,
+   "overall": "medium",
+   "levels_pct_of_affected": {
+    "high": 7.3,
+    "medium": 89.4,
+    "low": 3.3
+   }
   }
  },
  "pooled_flood_events": {
   "high": {
-   "tp": 995180,
-   "pred": 1080955,
-   "truth": 1081581,
-   "precision": 0.9206,
-   "recall": 0.9201,
-   "pred_share": 0.515,
-   "truth_share": 0.5237
+   "tp": 1021490,
+   "pred": 1109518,
+   "truth": 1108462,
+   "precision": 0.9207,
+   "recall": 0.9215,
+   "pred_share": 0.5124,
+   "truth_share": 0.5231
   },
   "medium": {
-   "tp": 826329,
-   "pred": 953453,
-   "truth": 932585,
-   "precision": 0.8667,
-   "recall": 0.8861,
-   "pred_share": 0.4542,
+   "tp": 847910,
+   "pred": 987886,
+   "truth": 956989,
+   "precision": 0.8583,
+   "recall": 0.886,
+   "pred_share": 0.4562,
    "truth_share": 0.4516
   },
   "low": {
-   "tp": 48610,
-   "pred": 64596,
-   "truth": 50927,
-   "precision": 0.7525,
-   "recall": 0.9545,
-   "pred_share": 0.0308,
-   "truth_share": 0.0247
+   "tp": 50817,
+   "pred": 67992,
+   "truth": 53550,
+   "precision": 0.7474,
+   "recall": 0.949,
+   "pred_share": 0.0314,
+   "truth_share": 0.0253
   }
  }
 }
