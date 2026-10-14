@@ -1,0 +1,185 @@
+{
+ "event": "karnali_chisapani_2021",
+ "tag": "fresh_radar",
+ "dataset": "himalaya_s2",
+ "continent": "Asia (Himalaya)",
+ "kind": "flood",
+ "event_date": "2021-10-19",
+ "aoi_bbox": [
+  81.22,
+  28.6,
+  81.32,
+  28.69
+ ],
+ "label_valid_pct": 99.3,
+ "scores": {
+  "a_seeds_water_2_4": {
+   "recall": 0.7739,
+   "precision": 0.8479,
+   "f1": 0.8092,
+   "truth_km2": 6.1192,
+   "pred_km2": 5.5851,
+   "tp_km2": 4.7354,
+   "fp_km2": 0.8497,
+   "region_km2": 94.97
+  },
+  "a_seeds_common_water_2_4": {
+   "recall": 0.7739,
+   "precision": 0.8479,
+   "f1": 0.8092,
+   "truth_km2": 6.1192,
+   "pred_km2": 5.5851,
+   "tp_km2": 4.7354,
+   "fp_km2": 0.8497,
+   "region_km2": 94.97
+  },
+  "b_envelope_water_2_4": {
+   "recall": 0.7739,
+   "precision": 0.8479,
+   "f1": 0.8092,
+   "truth_km2": 6.1192,
+   "pred_km2": 5.5851,
+   "tp_km2": 4.7354,
+   "fp_km2": 0.8497,
+   "region_km2": 94.97
+  },
+  "a_seeds_all_2_3_4": {
+   "recall": 0.8327,
+   "precision": 0.6665,
+   "f1": 0.7404,
+   "truth_km2": 6.1192,
+   "pred_km2": 7.6451,
+   "tp_km2": 5.0955,
+   "fp_km2": 2.5496,
+   "region_km2": 94.97
+  },
+  "a_seeds_common_all_2_3_4": {
+   "recall": 0.8327,
+   "precision": 0.6665,
+   "f1": 0.7404,
+   "truth_km2": 6.1192,
+   "pred_km2": 7.6451,
+   "tp_km2": 5.0955,
+   "fp_km2": 2.5496,
+   "region_km2": 94.97
+  },
+  "b_envelope_all_2_3_4": {
+   "recall": 0.8327,
+   "precision": 0.6665,
+   "f1": 0.7404,
+   "truth_km2": 6.1192,
+   "pred_km2": 7.6451,
+   "tp_km2": 5.0955,
+   "fp_km2": 2.5496,
+   "region_km2": 94.97
+  }
+ },
+ "false_alarm_dry_label": {
+  "seeds": 0.02825,
+  "envelope": 0.02825
+ },
+ "seed_transitions_km2": {
+  "water": {
+   "water": 3.8737
+  },
+  "debris": {
+   "debris": 2.06
+  },
+  "permanent": {
+   "permanent": 1.7114
+  }
+ },
+ "components": {
+  "seeds_ai_water(2)": {
+   "km2": 3.8825,
+   "km2_in_label_region": 3.8737,
+   "share_on_truth": 0.791
+  },
+  "seeds_debris_step:debris": {
+   "km2": 1.5162,
+   "km2_in_label_region": 1.5144,
+   "share_on_truth": 0.12
+  },
+  "seeds_debris_step:mud": {
+   "km2": 0.0387,
+   "km2_in_label_region": 0.0387,
+   "share_on_truth": 0.382
+  },
+  "seeds_debris_step:erosion": {
+   "km2": 0.0156,
+   "km2_in_label_region": 0.0156,
+   "share_on_truth": 0.5
+  },
+  "seeds_debris_step:landslide": {
+   "km2": 0.3085,
+   "km2_in_label_region": 0.2782,
+   "share_on_truth": 0.005
+  },
+  "seeds_debris_step:unknown": {
+   "km2": 0.0001,
+   "km2_in_label_region": 0.0001,
+   "share_on_truth": 1.0
+  },
+  "seeds_class3_not_debris_step(vhagree etc.)": {
+   "km2": 0.2134,
+   "km2_in_label_region": 0.213,
+   "share_on_truth": 0.723
+  },
+  "seeds_permanent(4)": {
+   "km2": 1.7118,
+   "km2_in_label_region": 1.7114,
+   "share_on_truth": 0.977
+  }
+ },
+ "pred_total_km2": {
+  "seeds": 5.975,
+  "envelope": 5.975
+ },
+ "run": {
+  "timings_s": {
+   "acquire": 66.4,
+   "preprocess": 3.9,
+   "s1anomaly": 1.4,
+   "flood_ai": 52.0,
+   "debris": 236.3,
+   "envelope": 0.8,
+   "combine": 2.2,
+   "confidence": 0.8,
+   "damage": 3.0,
+   "network": 3.1,
+   "report": 8.1
+  },
+  "pu_spent": 105.4,
+  "pu_estimate": 121,
+  "envelope": {
+   "used": false,
+   "reason": "Water-level envelope is off (opt-in: set POVODNE_ENVELOPE=1 or pass --envelope); the flood map is unchanged.",
+   "placebo_groups": null,
+   "placebo_split": null,
+   "stat": null,
+   "persistence": null,
+   "reach_q": null,
+   "final_est_precision": null,
+   "final_placebo_false_km2": null,
+   "added_km2": null,
+   "added_by_stage_km2": null,
+   "optics": null,
+   "post_passes": null,
+   "optical_used": null
+  },
+  "main_track": {
+   "relative_orbit": 56,
+   "orbit_direction": "ASCENDING"
+  },
+  "alt_track": true,
+  "s2": {
+   "pre": 99.5,
+   "post": 99.3,
+   "extra": null
+  },
+  "warnings": [
+   "No pre-event OpenStreetMap buildings: flooded or damaged built-up areas cannot be told apart from other changes.",
+   "This area changes a lot even without a flood: 0.04 km\u00b2 changed between two earlier radar passes (fields, construction, rain). Similar changes unrelated to the flood may be among the surface changes found."
+  ]
+ }
+}
