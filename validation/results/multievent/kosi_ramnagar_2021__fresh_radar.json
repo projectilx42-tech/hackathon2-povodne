@@ -1,0 +1,182 @@
+{
+ "event": "kosi_ramnagar_2021",
+ "tag": "fresh_radar",
+ "dataset": "himalaya_s2",
+ "continent": "Asia (Himalayan foothills)",
+ "kind": "flood",
+ "event_date": "2021-10-19",
+ "aoi_bbox": [
+  79.08,
+  29.36,
+  79.18,
+  29.45
+ ],
+ "label_valid_pct": 99.9,
+ "scores": {
+  "a_seeds_water_2_4": {
+   "recall": 0.3284,
+   "precision": 0.5935,
+   "f1": 0.4228,
+   "truth_km2": 1.5296,
+   "pred_km2": 0.8464,
+   "tp_km2": 0.5023,
+   "fp_km2": 0.3441,
+   "region_km2": 98.883
+  },
+  "a_seeds_common_water_2_4": {
+   "recall": 0.3284,
+   "precision": 0.5935,
+   "f1": 0.4228,
+   "truth_km2": 1.5296,
+   "pred_km2": 0.8464,
+   "tp_km2": 0.5023,
+   "fp_km2": 0.3441,
+   "region_km2": 98.883
+  },
+  "b_envelope_water_2_4": {
+   "recall": 0.3284,
+   "precision": 0.5935,
+   "f1": 0.4228,
+   "truth_km2": 1.5296,
+   "pred_km2": 0.8464,
+   "tp_km2": 0.5023,
+   "fp_km2": 0.3441,
+   "region_km2": 98.883
+  },
+  "a_seeds_all_2_3_4": {
+   "recall": 0.8174,
+   "precision": 0.1305,
+   "f1": 0.225,
+   "truth_km2": 1.5296,
+   "pred_km2": 9.5843,
+   "tp_km2": 1.2503,
+   "fp_km2": 8.334,
+   "region_km2": 98.883
+  },
+  "a_seeds_common_all_2_3_4": {
+   "recall": 0.8174,
+   "precision": 0.1305,
+   "f1": 0.225,
+   "truth_km2": 1.5296,
+   "pred_km2": 9.5843,
+   "tp_km2": 1.2503,
+   "fp_km2": 8.334,
+   "region_km2": 98.883
+  },
+  "b_envelope_all_2_3_4": {
+   "recall": 0.8174,
+   "precision": 0.1305,
+   "f1": 0.225,
+   "truth_km2": 1.5296,
+   "pred_km2": 9.5843,
+   "tp_km2": 1.2503,
+   "fp_km2": 8.334,
+   "region_km2": 98.883
+  }
+ },
+ "false_alarm_dry_label": {
+  "seeds": 0.08561,
+  "envelope": 0.08561
+ },
+ "seed_transitions_km2": {
+  "water": {
+   "water": 0.8464
+  },
+  "debris": {
+   "debris": 8.7379
+  }
+ },
+ "components": {
+  "seeds_ai_water(2)": {
+   "km2": 0.8464,
+   "km2_in_label_region": 0.8464,
+   "share_on_truth": 0.593
+  },
+  "seeds_debris_step:debris": {
+   "km2": 7.9297,
+   "km2_in_label_region": 7.9297,
+   "share_on_truth": 0.046
+  },
+  "seeds_debris_step:mud": {
+   "km2": 0.1814,
+   "km2_in_label_region": 0.1808,
+   "share_on_truth": 0.658
+  },
+  "seeds_debris_step:erosion": {
+   "km2": 0.5112,
+   "km2_in_label_region": 0.5112,
+   "share_on_truth": 0.447
+  },
+  "seeds_debris_step:flooded_vegetation": {
+   "km2": 0.0003,
+   "km2_in_label_region": 0.0003,
+   "share_on_truth": 0.0
+  },
+  "seeds_debris_step:landslide": {
+   "km2": 0.0375,
+   "km2_in_label_region": 0.0375,
+   "share_on_truth": 0.037
+  },
+  "seeds_debris_step:unknown": {
+   "km2": 0.0118,
+   "km2_in_label_region": 0.0116,
+   "share_on_truth": 0.233
+  },
+  "seeds_class3_not_debris_step(vhagree etc.)": {
+   "km2": 0.0668,
+   "km2_in_label_region": 0.0668,
+   "share_on_truth": 0.428
+  }
+ },
+ "pred_total_km2": {
+  "seeds": 9.585,
+  "envelope": 9.585
+ },
+ "run": {
+  "timings_s": {
+   "acquire": 74.2,
+   "preprocess": 3.7,
+   "s1anomaly": 1.3,
+   "flood_ai": 25.8,
+   "debris": 28.2,
+   "envelope": 0.5,
+   "combine": 2.1,
+   "confidence": 0.7,
+   "damage": 2.0,
+   "network": 2.3,
+   "report": 8.6
+  },
+  "pu_spent": 107.7,
+  "pu_estimate": 123,
+  "envelope": {
+   "used": false,
+   "reason": "Water-level envelope is off (opt-in: set POVODNE_ENVELOPE=1 or pass --envelope); the flood map is unchanged.",
+   "placebo_groups": null,
+   "placebo_split": null,
+   "stat": null,
+   "persistence": null,
+   "reach_q": null,
+   "final_est_precision": null,
+   "final_placebo_false_km2": null,
+   "added_km2": null,
+   "added_by_stage_km2": null,
+   "optics": null,
+   "post_passes": null,
+   "optical_used": null
+  },
+  "main_track": {
+   "relative_orbit": 63,
+   "orbit_direction": "DESCENDING"
+  },
+  "alt_track": true,
+  "s2": {
+   "pre": 100.0,
+   "post": 99.9,
+   "extra": null
+  },
+  "warnings": [
+   "The check for flooding before the given date sees almost no open water here (rivers narrower than the 60 m check pixels), so it cannot confirm that the before-image is flood-free.",
+   "No pre-event OpenStreetMap buildings: flooded or damaged built-up areas cannot be told apart from other changes."
+  ]
+ }
+}
