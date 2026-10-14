@@ -44,10 +44,10 @@
 
       <div class="group" role="group" aria-label="Area selection">
         <div class="segmented" id="tool-group">
-          <button type="button" data-tool="pan" class="active" title="Move the map (default)"><svg class="i"><use href="#i-move"/></svg>Pan</button>
-          <button type="button" data-tool="rectangle" title="Draw a rectangle: press, drag and release (or click two corners)"><svg class="i"><use href="#i-rect"/></svg>Rectangle</button>
-          <button type="button" data-tool="shape" title="Draw a free shape: press, drag around the area and release"><svg class="i"><use href="#i-shape"/></svg>Shape</button>
-          <button type="button" data-tool="edit" title="Move or resize the selected area" disabled><svg class="i"><use href="#i-cursor"/></svg>Edit</button>
+          <button type="button" data-tool="pan" class="active" title="Move the map (default)"><svg class="i"><use href="#i-move"/></svg><span class="lbl">Pan</span></button>
+          <button type="button" data-tool="rectangle" title="Draw a rectangle: press, drag and release (or click two corners)"><svg class="i"><use href="#i-rect"/></svg><span class="lbl">Rectangle</span></button>
+          <button type="button" data-tool="shape" title="Draw a free shape: press, drag around the area and release"><svg class="i"><use href="#i-shape"/></svg><span class="lbl">Shape</span></button>
+          <button type="button" data-tool="edit" title="Move or resize the selected area" disabled><svg class="i"><use href="#i-cursor"/></svg><span class="lbl">Edit</span></button>
         </div>
         <button type="button" class="icon-btn" id="clear-aoi" title="Clear area" aria-label="Clear area" disabled><svg class="i"><use href="#i-x"/></svg></button>
         <span class="aoi-chip" id="aoi-chip" hidden></span>
@@ -160,7 +160,7 @@
       <span>Contains modified Copernicus Sentinel data 2026.</span>
       <span>Produced using Copernicus WorldDEM-30 &copy; DLR e.V. 2010&ndash;2014 and &copy; Airbus Defence and Space GmbH 2014&ndash;2018 provided under COPERNICUS by the European Union and ESA; all rights reserved.</span>
       <span>&copy; OpenStreetMap contributors.</span>
-      <span>Training data: Kuro Siwo (Bountos et al., 2024).</span>
+      <span>Training data: Kuro Siwo (Bountos et al., 2024); Sen1Floods11 (Bonafilia et al., 2020).</span>
       <span>Educational prototype &mdash; not an operational tool.</span>
       <button type="button" class="linklike" id="methods-btn">Methods &amp; Limitations</button>
     </footer>

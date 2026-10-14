@@ -1,4 +1,4 @@
-import { createMap, setBasemap } from './map.js';
+import { createMap, setBasemap, sidePad, fitPad } from './map.js';
 import { createAoi } from './aoi.js';
 import { createLayers } from './layers.js';
 import { createResults } from './results.js';
@@ -8,7 +8,7 @@ import { popover, renderExamples, renderHistory, setupSearch } from './menus.js'
 import { METHODS_HTML } from './methods.js';
 import { BASEMAPS, DEFAULT_BASEMAP, AREA_WARN_KM2, applyConfig } from './config.js';
 import { polygonAreaKm2, polygonBbox } from './geo.js';
-import { startRun, getRun, getStatus, cancelRun, postFloodpath } from './api.js';
+import { startRun, getRun, getStatus, cancelRun, postFloodpath, rememberFiles } from './api.js';
 import { $, el, safeStore, icon } from './util.js';
 
 try { applyConfig(await (await fetch('/api/config')).json()); } catch { /* keep the default base maps */ }
@@ -122,7 +122,7 @@ function setSensitivity(v) {
   validateWindows();
 }
 document.querySelectorAll('#sens-group button').forEach(b => b.addEventListener('click', () => setSensitivity(b.dataset.sens)));
-$('adv-reset').addEventListener('click', () => { winIds.forEach(i => { $(i).value = ''; }); $('event-time').value = ''; setSensitivity('standard'); });
+$('adv-reset').addEventListener('click', () => { winIds.forEach(i => { $(i).value = ''; }); $('event-time').value = ''; setSensitivity('sensitive'); });
 
 function updateRun() {
   const btn = $('run-btn');
@@ -184,20 +184,30 @@ function beginRunning(runId) {
   pollTimer = setInterval(tick, 1500);
 }
 
-async function showResults(runId) {
-  currentRunId = runId;
-  let detail;
-  try { detail = await getRun(runId); } catch (e) { toast(`Could not open the run: ${e.message}`); return; }
-  const { run, stats } = detail;
+/** Show the area and date of a run in the top bar (and fit the map to it). */
+function showRunArea(run) {
   $('tip-card').hidden = true;
   if (run.aoi) {
     const rect = run.aoi.coordinates[0].length === 5;
     areaTool.setPolygon(run.aoi, rect ? 'rectangle' : 'freehand');
     const [w, s, e, n] = polygonBbox(run.aoi);
-    map.fitBounds([[w, s], [e, n]], { padding: { top: 70, bottom: 70, left: 290, right: 70 }, duration: 800 });
+    map.fitBounds([[w, s], [e, n]], { padding: { top: 70, bottom: 70, left: sidePad(map), right: 70 }, duration: 800 });
   }
   if (run.event_date) { dateInput.value = run.event_date; updateRun(); }
-  await layers.load(runId);
+}
+
+async function showResults(runId) {
+  currentRunId = runId;
+  let detail;
+  try { detail = await getRun(runId); } catch (e) { toast(`Could not open the run: ${e.message}`); return; }
+  const { run, stats } = detail;
+  rememberFiles(runId, detail.files);
+  showRunArea(run);
+  $('state').replaceChildren(el('section', { class: 'sec loading' }, el('span', { class: 'spinner', 'aria-hidden': 'true' }),
+    el('div', {}, el('h2', { text: 'Loading results…' }), el('p', { class: 'fine', style: 'margin:0', text: 'Large areas have many buildings and roads; this can take up to a minute.' }))));
+  let loaded;
+  try { loaded = await layers.load(runId); } catch (e) { $('state').replaceChildren(); toast(`Could not load the results: ${e.message}`, 8000); return; }
+  if (!loaded || currentRunId !== runId) return; // another run was opened (or the view was reset) while this one was loading
   // keep drawing / measuring layers above the result layers
   for (const l of map.getStyle().layers) if (l.id.startsWith('td-') || l.id.startsWith('measure')) map.moveLayer(l.id);
   $('layers-card').hidden = false;
@@ -213,6 +223,9 @@ async function openRunSummary(r) {
   stopPolling(); running = false; resetResultView(); updateRun();
   try {
     const st = await getStatus(r.run_id);
+    if (['queued', 'running', 'failed', 'cancelled'].includes(st.state)) {
+      try { showRunArea((await getRun(r.run_id)).run); } catch { /* the status view still works without the area */ }
+    }
     if (st.state === 'queued' || st.state === 'running') return beginRunning(r.run_id);
     if (st.state === 'failed' || st.state === 'cancelled') { currentRunId = r.run_id; return results.renderError(st, {}); }
   } catch { /* fall through and try to show results */ }
@@ -274,12 +287,14 @@ function setFloodpathMode(on) {
 async function onFloodpathClick(e) {
   if (!fpOn || fpBusy) return;
   fpBusy = true;
+  if (overviewNodes) backToOverview(); // the result goes into the overview, not into a settlement view
   hint('Tracing the flood path…');
   try {
     const res = await postFloodpath(currentRunId, e.lngLat.lng, e.lngLat.lat);
     layers.setFloodpath(res);
     results.renderFloodpath(res);
-    toast(`Flood path: ${(res.settlements?.features ?? []).length} settlement(s) nearby.`);
+    const n = (res.settlements?.features ?? []).length;
+    toast(`Flood path: ${n} ${n === 1 ? 'settlement' : 'settlements'} nearby.`);
   } catch (err) { toast(`Could not trace the flood path: ${err.message}`, 7000); }
   finally { fpBusy = false; setFloodpathMode(false); }
 }
@@ -287,6 +302,7 @@ $('fp-btn').addEventListener('click', () => setFloodpathMode(!fpOn));
 window.addEventListener('keydown', e => { if (e.key === 'Escape' && fpOn) setFloodpathMode(false); });
 
 // ---------- panels & misc ----------
+if (matchMedia('(max-width: 900px)').matches) { $('layers-card').classList.add('collapsed'); $('layers-toggle').setAttribute('aria-expanded', 'false'); } // small screens: start folded
 $('layers-toggle').addEventListener('click', () => {
   const card = $('layers-card');
   card.classList.toggle('collapsed');
@@ -311,7 +327,7 @@ function pickExample(x) {
   areaTool.setPolygon({ type: 'Polygon', coordinates: [[[w, s], [e, s], [e, n], [w, n], [w, s]]] }, 'rectangle');
   dateInput.value = x.date;
   updateRun(); validateWindows();
-  map.fitBounds([[w, s], [e, n]], { padding: 90, duration: 800 });
+  map.fitBounds([[w, s], [e, n]], { padding: fitPad(map), duration: 800 });
 }
 
 // ---------- start once the style is ready ----------
@@ -320,6 +336,7 @@ map.on('load', () => {
   layers = createLayers(map, {
     panelEl: $('layers-panel'), legendEl: $('legend'),
     onSettlement: openSettlement,
+    toolActive: () => fpOn || !!measure?.active,
     onFeatureInfo: (layer, props) => results.featureInfo(layer, props),
   });
   results = createResults($('state'), { layers, openSettlement, onBack: backToOverview, exportPng, onFloodpathClear: () => layers.clearFloodpath() });

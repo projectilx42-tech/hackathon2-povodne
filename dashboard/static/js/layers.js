@@ -1,7 +1,7 @@
 // Result layers on the map: registry, layers panel (toggle / opacity), legend, popups, settlement selection, flood path.
-import { maplibregl } from './map.js';
+import { maplibregl, sidePad, fitPad } from './map.js';
 import { getFileJson, getOverlays } from './api.js';
-import { el } from './util.js';
+import { el, icon as svgIcon } from './util.js';
 import { C, SUBTYPE, GRADE, IMPACT, ROAD_STATUS } from './labels.js';
 
 const FILES = {
@@ -188,15 +188,16 @@ function addFloodpathLayers(map, path, pts) {
 const OPACITY_PROP = { fill: 'fill-opacity', line: 'line-opacity', raster: 'raster-opacity', circle: 'circle-opacity', symbol: 'icon-opacity' };
 const POPUP_LAYERS = ['bridges', 'cuts', 'roads', 'buildings', 'buildings-pt', 'debris', 'facilities', 'landing', 'landing-pt', 'areas'];
 
-export function createLayers(map, { panelEl, legendEl, onSettlement, onFeatureInfo }) {
+export function createLayers(map, { panelEl, legendEl, onSettlement, onFeatureInfo, toolActive }) {
   let current = null; // {runId, data, ov, state: {id: {on, opacity}}, ready, ownedLayers, ownedSources, hidden}
   let popup = null;
   const handlers = [];
+  legendEl.classList.toggle('collapsed', matchMedia('(max-width: 900px)').matches); // small screens: the legend starts folded
   for (const [name, img] of Object.entries(ICONS)) if (!map.hasImage(name)) map.addImage(name, img, { pixelRatio: 2 });
 
   const ids = def => [def.id, ...(def.extraIds ?? [])].filter(i => map.getLayer(i));
   function applyVisibility(def) {
-    const on = current.state[def.id].on && !current.hidden;
+    const on = current.state[def.id].on && !(current.hidden && !def.id.startsWith('imagery')); // the before/after slider hides vectors, never imagery
     for (const i of ids(def)) map.setLayoutProperty(i, 'visibility', on ? 'visible' : 'none');
   }
   function applyOpacity(def) {
@@ -207,7 +208,9 @@ export function createLayers(map, { panelEl, legendEl, onSettlement, onFeatureIn
     }
   }
 
+  let loadSeq = 0; // bumped by every load/clear: a slow load that was overtaken must not draw its layers
   function clear() {
+    loadSeq++;
     if (!current) return;
     popup?.remove();
     for (const [evt, layer, fn] of handlers.splice(0)) map.off(evt, layer, fn);
@@ -230,7 +233,9 @@ export function createLayers(map, { panelEl, legendEl, onSettlement, onFeatureIn
 
   async function load(runId) {
     clear();
+    const seq = loadSeq;
     const [ovList, ...loaded] = await Promise.all([getOverlays(runId).catch(() => []), ...Object.entries(FILES).map(([k, p]) => getFileJson(runId, p).then(v => [k, v]))]);
+    if (seq !== loadSeq) return null;
     const data = Object.fromEntries(loaded);
     const ov = Object.fromEntries(ovList.map(o => [o.name, o]));
     current = { runId, data, ov, state: {}, ownedLayers: [], ownedSources: [], hidden: false, ready: {} };
@@ -254,7 +259,7 @@ export function createLayers(map, { panelEl, legendEl, onSettlement, onFeatureIn
 
   function bindFloodpathClick() {
     if (!map.getLayer('floodpath-pts') || handlers.some(h => h[0] === 'click' && h[1] === 'floodpath-pts')) return;
-    const fn = e => onSettlement?.(e.features[0].properties.osm_id);
+    const fn = e => { if (!toolActive?.()) onSettlement?.(e.features[0].properties.osm_id); };
     map.on('click', 'floodpath-pts', fn); handlers.push(['click', 'floodpath-pts', fn]);
   }
 
@@ -267,7 +272,7 @@ export function createLayers(map, { panelEl, legendEl, onSettlement, onFeatureIn
       on('mouseleave', layer, () => { map.getCanvas().style.cursor = ''; });
     }
     if (map.getLayer('settlements')) {
-      on('click', 'settlements', e => { onSettlement?.(e.features[0].properties.osm_id); });
+      on('click', 'settlements', e => { if (!toolActive?.()) onSettlement?.(e.features[0].properties.osm_id); });
       on('mouseenter', 'settlements', e => {
         popup?.remove();
         const p = e.features[0].properties;
@@ -279,6 +284,7 @@ export function createLayers(map, { panelEl, legendEl, onSettlement, onFeatureIn
     for (const layer of POPUP_LAYERS) {
       if (!map.getLayer(layer)) continue;
       on('click', layer, e => {
+        if (toolActive?.()) return; // measuring / tracing a flood path: clicks belong to that tool
         const over = ['settlements', 'floodpath-pts', 'facilities'].filter(l => l !== layer && map.getLayer(l));
         if (over.length && map.queryRenderedFeatures(e.point, { layers: over }).length) return;
         popup?.remove();
@@ -363,9 +369,9 @@ export function createLayers(map, { panelEl, legendEl, onSettlement, onFeatureIn
     legendEl.replaceChildren();
     if (!current) { legendEl.hidden = true; return; }
     const items = [];
-    for (const def of DEFS) if (current.ready[def.id] && current.state[def.id].on) items.push(...(typeof def.legend === 'function' ? def.legend(current.data) : def.legend));
+    for (const def of DEFS) if (current.ready[def.id] && current.state[def.id].on && !(current.hidden && !def.id.startsWith('imagery'))) items.push(...(typeof def.legend === 'function' ? def.legend(current.data) : def.legend));
     legendEl.hidden = items.length === 0;
-    legendEl.append(el('div', { class: 'lg-title', text: 'Legend' }));
+    legendEl.append(el('button', { type: 'button', class: 'lg-title', 'aria-label': 'Show or hide the legend', onclick: () => legendEl.classList.toggle('collapsed') }, 'Legend', svgIcon('chev', 'i small')));
     for (const it of items) {
       if (it.t === 'text') { legendEl.append(el('div', { class: 'lg-note', text: it.l })); continue; }
       let sw;
@@ -396,6 +402,7 @@ export function createLayers(map, { panelEl, legendEl, onSettlement, onFeatureIn
       if (!current) return;
       current.hidden = hidden;
       for (const def of DEFS) if (current.ready[def.id] && !def.id.startsWith('imagery')) applyVisibility(def);
+      renderLegend();
     },
     setLayerOn(id, on) {
       const def = DEFS.find(d => d.id === id);
@@ -418,12 +425,12 @@ export function createLayers(map, { panelEl, legendEl, onSettlement, onFeatureIn
       map.setFilter('cuts-hl', ['in', ['get', 'osm_id'], ['literal', osmIds.length ? osmIds : ['']]]);
       this.setLayerOn('cuts', true);
       const feats = (current.data.cuts?.features ?? []).filter(f => osmIds.includes(f.properties.osm_id));
-      if (feats.length) map.fitBounds(boundsOf(feats.map(f => f.geometry.coordinates)), { padding: 120, maxZoom: 14, duration: 700 });
+      if (feats.length) map.fitBounds(boundsOf(feats.map(f => f.geometry.coordinates)), { padding: fitPad(map), maxZoom: 14, duration: 700 });
     },
     flyToPoint(lon, lat, zoom = 14) { map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), zoom), duration: 700 }); },
     flyToFeature(f) {
       if (f.geometry.type === 'Point') return this.flyToPoint(...f.geometry.coordinates);
-      map.fitBounds(boundsOf(f.geometry.coordinates), { padding: 120, maxZoom: 15, duration: 700 });
+      map.fitBounds(boundsOf(f.geometry.coordinates), { padding: fitPad(map), maxZoom: 15, duration: 700 });
     },
     /** Show a flood path result ({path, settlements}) on the map (replaces an earlier one). */
     setFloodpath(result) {
@@ -436,7 +443,7 @@ export function createLayers(map, { panelEl, legendEl, onSettlement, onFeatureIn
       current.ready.floodpath = true; current.state.floodpath.on = true;
       applyVisibility(def); renderPanel(); renderLegend();
       const line = (result.path?.features ?? []).find(f => f.properties.kind === 'path');
-      if (line) map.fitBounds(boundsOf(line.geometry.coordinates), { padding: { top: 90, bottom: 90, left: 300, right: 90 }, maxZoom: 14, duration: 800 });
+      if (line) map.fitBounds(boundsOf(line.geometry.coordinates), { padding: { top: fitPad(map), bottom: fitPad(map), left: sidePad(map) + 10, right: fitPad(map) }, maxZoom: 14, duration: 800 });
       bindFloodpathClick();
     },
     clearFloodpath() {

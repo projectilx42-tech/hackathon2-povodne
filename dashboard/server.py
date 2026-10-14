@@ -32,6 +32,7 @@ DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 STALE_MINUTES = 15  # a "running" run with no file activity for this long is reported as interrupted
 STEPS = ["acquire", "preprocess", "flood_ai", "s1anomaly", "debris", "envelope", "combine", "damage", "network", "report"]  # = povodne.config.STEPS
 
+RESULT_DIRS = ("flood", "damage", "network", "floodpath", "report", "overlays")
 FLOODPATH_TIMEOUT_S = 120
 _procs: dict[str, subprocess.Popen] = {}
 _floodpath_lock = threading.Lock()
@@ -79,7 +80,7 @@ def polygon_area_km2(coords: list) -> float:
     s = 0.0
     for (lon1, lat1), (lon2, lat2) in zip(ring, ring[1:]):
         s += math.radians(lon2 - lon1) * (2 + math.sin(math.radians(lat1)) + math.sin(math.radians(lat2)))
-    return abs(s * 6378137.0 ** 2 / 2) / 1e6
+    return abs(s * 6371007.2 ** 2 / 2) / 1e6  # authalic Earth radius: closest to the pipeline's projected area
 
 
 def normalize_aoi(aoi: Any) -> dict:
@@ -137,6 +138,16 @@ def run_status(run_id: str) -> dict:
     return {"run_id": run_id, "state": state or "unknown", "steps": steps, "log_tail": _log_tail(d), "error": error, "notices": notices}
 
 
+def result_files(d: Path) -> list[str]:
+    """Result files that exist in a run folder (relative paths). The page asks for many optional outputs; knowing
+    which exist spares it a 404 (and a console error) for each missing one."""
+    out = ["stats.json"] if (d / "stats.json").is_file() else []
+    for sub in RESULT_DIRS:
+        if (d / sub).is_dir():
+            out += [f"{sub}/{f.name}" for f in sorted((d / sub).iterdir()) if f.is_file()]
+    return out
+
+
 def list_runs() -> list[dict]:
     """Summaries of runs in ``runs/`` plus the bundled sample run."""
     dirs = [SAMPLE_RUN] if SAMPLE_RUN.is_dir() else []
@@ -147,8 +158,10 @@ def list_runs() -> list[dict]:
         meta = _read_json(d / "run.json")
         if not meta:
             continue
-        stats = _read_json(d / "stats.json")
         run_id = meta.get("run_id", d.name)
+        if d != SAMPLE_RUN and run_id != d.name:
+            continue  # a renamed / copied folder: its id would open a different folder, so it would be listed twice
+        stats = _read_json(d / "stats.json")
         state = run_status(run_id)["state"] if RUN_ID_RE.match(run_id) else (meta.get("progress") or {}).get("state")
         runs.append({
             "run_id": run_id, "event_date": meta.get("event_date"), "created_utc": meta.get("created_utc"),
@@ -232,7 +245,7 @@ def create_app() -> FastAPI:
     @app.get("/api/runs/{run_id}")
     def run_detail(run_id: str) -> dict:
         d = run_dir_of(run_id)
-        return {"run": _read_json(d / "run.json"), "stats": _read_json(d / "stats.json") or None}
+        return {"run": _read_json(d / "run.json"), "stats": _read_json(d / "stats.json") or None, "files": result_files(d)}
 
     @app.get("/api/runs/{run_id}/status")
     def status(run_id: str) -> dict:
@@ -288,7 +301,7 @@ def create_app() -> FastAPI:
             raise HTTPException(404, "No flood path result was produced.")
         return out
 
-    @app.get("/api/runs/{run_id}/files/{path:path}")
+    @app.api_route("/api/runs/{run_id}/files/{path:path}", methods=["GET", "HEAD"])  # HEAD: the page checks which files exist
     def files(run_id: str, path: str, download: bool = False) -> FileResponse:
         d = run_dir_of(run_id).resolve()
         f = (d / path).resolve()
