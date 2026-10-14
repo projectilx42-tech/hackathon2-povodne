@@ -18,7 +18,7 @@ path down the valley. Case study: the 26 August 2026 Trishuli flood (Nepal), com
 > been verified on the ground.
 
 - Report: [`deliverables/report/report.pdf`](deliverables/report/report.pdf) (Markdown source: [`report.md`](deliverables/report/report.md))
-- Demo video (3 min): linked on our Devpost submission page
+- Demo video (3 min): https://www.youtube.com/watch?v=f9a6ZAEo3pI
 - Devpost text: [`deliverables/devpost.md`](deliverables/devpost.md)
 
 **For judges, the fastest way in:**
@@ -172,7 +172,7 @@ not for training, thresholds or the pipeline; EMSR927 is used only in `validatio
 | `deliverables/` | Report (PDF + Markdown source), Devpost text, benchmark slide |
 | `tools/` | Small one-off checks behind design decisions (Sentinel-1 calibration, terrain, event-day pass) |
 | `tests/` | Unit and integration tests, no keys needed |
-| `docs/` | Internal design notes (Czech): task, module contracts, decisions with reasons, UI notices |
+| `docs/` | Internal design notes (Czech): task, module contracts, UI notices |
 
 ## Limitations
 - Satellites pass only every few days: the system cannot warn ahead of a sudden event.
@@ -185,7 +185,6 @@ Full list: report, section *Limitations*.
 
 ## For developers
 Tests (no keys needed): `pip install pytest pytest-xdist`, then `python -m pytest -q -n auto tests training/tests`.
-Design decisions with reasons: `docs/DECISIONS.md` (internal notes, in Czech).
 
 ## AI assistance
 This project was built with **Claude Code** (Anthropic) as a coding assistant. The team set the goals, the data rules and
@@ -212,6 +211,10 @@ The team is responsible for all submitted code and can explain how it works.
 - Dashboard base maps (display only, never an input): © OpenStreetMap contributors; OpenTopoMap (CC-BY-SA);
   EOxCloudless by EOX IT Services GmbH (contains modified Copernicus Sentinel data); © CARTO (if a key is set).
 - Validation only (never used as input): European Union, Copernicus Emergency Management Service data (EMSR927).
+
+## License
+The code in this repository is released under the [MIT License](LICENSE). The data it uses keeps its own licenses (see
+attributions above).
 
 ## Responsibility
 This disaster is recent and many families are still affected. This project uses no images of victims. It is an

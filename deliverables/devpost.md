@@ -30,7 +30,7 @@ Claude Code, Python, PyTorch, segmentation-models-pytorch, rasterio, geopandas, 
 
 ## Links
 - GitHub: https://github.com/projectilx42-tech/hackathon2-povodne
-- Video: _add link_
+- Video: https://www.youtube.com/watch?v=f9a6ZAEo3pI
 - Report: `deliverables/report/report.pdf`
 
 ## AI assistance disclosure
