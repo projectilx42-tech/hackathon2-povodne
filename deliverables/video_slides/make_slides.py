@@ -1,7 +1,6 @@
-"""Benchmark slides for the demo video (1920x1080 PNG, dark theme).
+"""Benchmark slide for the demo video (1920x1080 PNG, dark theme): unseen floods with radar and a clear optical image.
 
-Per-event numbers are read from validation/results/multievent/*.json (current tags), tile-level model numbers and the
-EMSR927 comparison are copied from deliverables/report/report.md (sections 4 and 8).
+Per-event numbers are read from validation/results/multievent/*.json (tags `permref` and the pre-registered `fresh`).
 Run:  python deliverables/video_slides/make_slides.py   (needs Node.js with the `playwright` package and Chromium)
 """
 import html
@@ -27,8 +26,8 @@ NAMES = {
     "kosi_khairna_2021": "Kosi, Khairna", "kosi_ramnagar_2021": "Kosi, Ramnagar", "seti_doti_2021": "Seti, Doti",
     "mohana_kailali_2021": "Mohana, Kailali", "gaula_haldwani_2021": "Gaula, Haldwani",
 }
-FLOODS12 = ["australia_2022", "bihar_2019", "bolivia_2018", "chad_2020", "evros_2018", "honduras_2018", "malawi_2022",
-            "missouri_2017", "teesta_2023_sub", "swat_2022", "baghlan_2024", "kathmandu_2024"]
+# Kuro Siwo test floods with a mostly clear (> 75 %) Sentinel-2 image after the event; Bolivia, Chad, Malawi were too cloudy
+LOWLAND = ["bihar_2019", "missouri_2017", "australia_2022", "evros_2018", "honduras_2018"]
 FRESH7 = ["karnali_chisapani_2021", "mahakali_banbasa_2021", "kosi_khairna_2021", "kosi_ramnagar_2021",
           "seti_doti_2021", "mohana_kailali_2021", "gaula_haldwani_2021"]
 
@@ -37,7 +36,8 @@ def score(event: str, tag: str) -> dict:
     d = json.loads((RES / f"{event}__{tag}.json").read_text(encoding="utf-8"))
     s = d["scores"]
     s = s.get("b_envelope_water_2_4") or s["b_envelope"]  # optical-label events: water only; Kuro Siwo: flood class
-    return {"r": s["recall"], "p": s["precision"], "f1": s["f1"] or 0.0}
+    return {"r": s["recall"], "p": s["precision"], "f1": s["f1"] or 0.0,
+            "tp": s["tp_km2"], "truth": s["truth_km2"], "pred": s["pred_km2"]}
 
 
 def esc(t) -> str:
@@ -98,6 +98,33 @@ def grouped(rows, *, width=1700, height=640, series=(("Full system (radar + opti
     return "".join(out)
 
 
+def f1chart(rows, *, width=1150, row_h=42, label_w=300):
+    """Horizontal F1 bars with recall / precision text; rows = [(label, score or None for a group header, tag)]."""
+    plot_w = width - label_w - 300
+    h = row_h * len(rows) + 44
+    sx = lambda v: label_w + plot_w * v
+    out = [f'<svg width="{width}" height="{h}" viewBox="0 0 {width} {h}" xmlns="http://www.w3.org/2000/svg">']
+    for t in (0, 0.25, 0.5, 0.75, 1.0):
+        out.append(f'<line x1="{sx(t)}" y1="0" x2="{sx(t)}" y2="{h - 34}" stroke="{GRID}" stroke-width="1"/>')
+        out.append(f'<text x="{sx(t)}" y="{h - 8}" fill="{MUTED}" font-size="20" text-anchor="middle">{t:.2f}</text>')
+    out.append(f'<text x="{width}" y="{h - 8}" fill="{MUTED}" font-size="20" text-anchor="end">F1 · recall · precision</text>')
+    for i, (lab, s, _) in enumerate(rows):
+        y = i * row_h + 4
+        if s is None:
+            out.append(f'<rect x="0" y="{y}" width="{width}" height="{row_h - 4}" fill="{CARD}"/>')
+            out.append(f'<text x="0" y="{y + row_h - 12}" fill="{BLUE}" font-size="21" font-weight="600">{esc(lab)}</text>')
+            continue
+        bh = row_h - 12
+        w = max(sx(s["f1"]) - label_w, 2)
+        out.append(f'<text x="{label_w - 16}" y="{y + bh / 2 + 8}" fill="{INK}" font-size="23" text-anchor="end">{esc(lab)}</text>')
+        out.append(f'<rect x="{label_w}" y="{y}" width="{w}" height="{bh}" rx="4" fill="{BLUE}"/>')
+        out.append(f'<text x="{label_w + w + 12}" y="{y + bh / 2 + 9}" fill="{INK}" font-size="24" font-weight="600">{s["f1"]:.2f}</text>')
+        out.append(f'<text x="{width}" y="{y + bh / 2 + 8}" fill="{MUTED}" font-size="20" text-anchor="end">'
+                   f'R {s["r"]:.2f} · P {s["p"]:.2f}</text>')
+    out.append("</svg>")
+    return "".join(out)
+
+
 def legend(series):
     return '<div class="legend">' + "".join(
         f'<span><i style="background:{c}"></i>{esc(n)}</span>' for n, c in series) + "</div>"
@@ -124,6 +151,9 @@ h1{{font-size:60px;font-weight:700;margin:10px 0 8px;letter-spacing:-.01em}}
 .tile .v{{font-size:76px;font-weight:700;letter-spacing:-.02em}}
 .tile .l{{font-size:26px;color:{INK};margin-top:6px;line-height:1.3}}
 .tile .s{{font-size:21px;color:{MUTED};margin-top:8px;line-height:1.35}}
+.row{{display:flex;gap:24px}}
+.side{{width:430px;display:flex;flex-direction:column;gap:20px}}
+.side .tile{{padding:24px 30px;flex:1}}\n.side .tile .v{{font-size:64px}}
 .note{{display:flex;gap:24px;margin-top:24px}}
 .note .card{{flex:1;font-size:25px;color:{INK2};line-height:1.4;padding:24px 32px}}
 .note b{{color:{INK}}}
@@ -136,86 +166,35 @@ def page(body: str, title: str) -> str:
 
 
 def build() -> list[Path]:
-    slides = {}
-    # 1. model on tiles of events never seen in training
-    rows = [("Kuro Siwo test: flood", 0.792, "10 unseen events, 15 896 tiles"),
-            ("Kuro Siwo test: all water", 0.832, "flood + permanent water"),
-            ("Optical model, Bolivia", 0.885, "Sen1Floods11, held out"),
-            ("Mountain tiles (relief > 200 m)", 0.52, "Kuro Siwo test subset"),
-            ("Radar, Bolivia, no 'before' image", 0.195, "not how the system runs")]
-    slides["01_model"] = page(
-        '<div class="kicker">AI component · flood segmentation model</div>'
-        "<h1>Tested on floods it never saw in training</h1>"
-        '<div class="sub">U-Net (ResNet34) on Sentinel-1 radar before/after, trained on Kuro Siwo + Sen1Floods11. '
-        "F1 score: 1.0 = perfect overlap with the reference water.</div>"
-        f'<div class="card">{hbars(rows, row_h=96, ref=0.801, ref_label="best model in the Kuro Siwo paper: 0.801")}</div>'
-        '<div class="foot">Weak spots shown on purpose: steep mountain valleys, and radar without a "before" image '
-        "(the model detects change, not water as such). Kuro Siwo: Bountos et al., 2024 · Sen1Floods11: Bonafilia et al., 2020.</div>",
-        "Model benchmark")
-
-    # 2. whole pipeline, 12 independent floods
-    sc = {e: score(e, "permref") for e in FLOODS12}
-    mean = sum(v["f1"] for v in sc.values()) / len(sc)
-    order = sorted(FLOODS12, key=lambda e: -sc[e]["f1"])
-    rows = [(NAMES[e], sc[e]["f1"], "") for e in order]
-    ctrl = json.loads((RES / "marsyangdi_2024_noflood_sub__permref.json").read_text(encoding="utf-8"))
-    slides["02_pipeline"] = page(
-        '<div class="kicker">Whole system · end to end from raw satellite data</div>'
-        "<h1>12 independent floods around the world</h1>"
-        f'<div class="sub">Africa, Americas, Asia, Australia, Europe — same code and settings everywhere. Mean F1 <b>{mean:.2f}</b>; '
-        "large river floods 0.86–0.94, mountain flash floods are the weak point.</div>"
-        f'<div class="card" style="padding:26px 40px">{hbars(rows, row_h=45, ref=mean, ref_label=f"mean {mean:.2f}")}</div>'
-        '<div class="foot">References are hand labels (Kuro Siwo, Sen1Floods11) or our own Sentinel-2 water labels — never Copernicus EMS '
-        "or UNOSAT. Not in the mean: Chamoli 2021 debris flow (F1 0.11, almost no water). Kathmandu / Baghlan: the water had drained "
-        "before the label image. Dry-season control: no false flood area added.</div>",
-        "Pipeline benchmark")
-
-    # 3. pre-registered fresh test
-    full = {e: score(e, "fresh") for e in FRESH7}
-    rad = {e: score(e, "fresh_radar") for e in FRESH7}
-    mf = sum(v["f1"] for v in full.values()) / 7
-    mr = sum(v["f1"] for v in rad.values()) / 7
-    ser = (("Full system (radar + optical)", BLUE), ("Radar only", ORANGE))
-    rows = [(NAMES[e], full[e]["f1"], rad[e]["f1"]) for e in FRESH7]
-    slides["03_fresh"] = page(
-        '<div class="kicker">Pre-registered test · never-seen Himalayan scenes</div>'
-        "<h1>7 new floods, chosen before running anything</h1>"
-        f'<div class="sub">Uttarakhand / West Nepal, Oct 2021 — events, dates and scoring rule fixed in advance, nothing changed afterwards. '
-        f"Mean F1: full system <b>{mf:.2f}</b>, radar only <b>{mr:.2f}</b>.</div>"
-        f'<div class="card" style="padding:26px 30px 10px">{legend(ser)}{grouped(rows, height=580, series=ser)}</div>'
-        '<div class="foot">Large rivers work with radar alone (Karnali 0.81, Mahakali 0.72); narrow or braided mountain channels need a '
-        "clear Sentinel-2 image. Full-system scores are partly circular (its optical image is the label image). "
-        "Dry control (Kali Gandaki, Feb 2023): false water on 0.28 % of dry land.</div>",
-        "Fresh test")
-
-    # 4. Trishuli vs EMSR927
-    slides["04_trishuli"] = page(
-        '<div class="kicker">Case study · Trishuli flood, 26 Aug 2026</div>'
-        "<h1>Compared with the official Copernicus EMS maps</h1>"
-        '<div class="sub">EMSR927 was used only to check the finished result — never as input or for tuning. '
-        "Scored inside the areas EMS analysed (40 km²).</div>"
-        '<div class="tiles">'
-        + tile("0.92", "precision of the affected area", "what we mark is really affected")
-        + tile("0.79", "recall of the affected area", "share of EMS affected area we found")
-        + tile("90 %", "EMS destroyed / damaged buildings", "inside our affected area")
-        + tile("93 %", "EMS damaged bridges", "we mark blocked or suspect")
-        + "</div>"
-        '<div class="tiles" style="margin-top:24px">'
-        + tile("0.85", "F1 of the affected area", "IoU 0.73")
-        + tile("85 %", "EMS damaged roads", "near roads we mark blocked")
-        + tile("45", "settlements cut off", "+ 73 possibly cut off (whole area)")
-        + tile("24 min", "for ~2 000 km² on a laptop", "free Sentinel Hub tier")
-        + "</div>"
-        '<div class="foot">Overall confidence reported as LOW: steep valley, radar shadow, debris thresholds from literature. '
-        "European Union, Copernicus Emergency Management Service data. Contains modified Copernicus Sentinel data 2026.</div>",
-        "Trishuli vs EMS")
-
-    paths = []
-    for name, doc in slides.items():
-        p = OUT / f"{name}.html"
-        p.write_text(doc, encoding="utf-8")
-        paths.append(p)
-    return paths
+    """One slide: floods the system never saw, each with radar and a clear Sentinel-2 image after the event."""
+    groups = [("Lowland river floods · official Kuro Siwo test events (AI never trained on them)", "permref", LOWLAND),
+              ("Himalayan floods, Oct 2021 · pre-registered test, nothing changed after the results", "fresh", FRESH7)]
+    rows, tp, truth, pred, f1s = [], 0.0, 0.0, 0.0, []
+    for head, tag, events in groups:
+        rows.append((head, None, None))
+        sc = {e: score(e, tag) for e in events}
+        for e in sorted(events, key=lambda e: -sc[e]["f1"]):
+            rows.append((NAMES[e], sc[e], tag))
+            tp += sc[e]["tp"]; truth += sc[e]["truth"]; pred += sc[e]["pred"]; f1s.append(sc[e]["f1"])
+    r, p = tp / truth, tp / pred
+    f1 = 2 * r * p / (r + p)
+    body = (
+        '<div class="kicker">Benchmark · unseen floods · radar + clear-sky optical</div>'
+        f"<h1>{len(f1s)} floods the system had never seen</h1>"
+        '<div class="sub">Radar before/after + a clear optical image after the event. Whole system, raw data to map, same settings.</div>'
+        '<div class="row">'
+        f'<div class="card" style="padding:22px 34px 8px;flex:1">{f1chart(rows)}</div>'
+        '<div class="side">'
+        + tile(f"{r * 100:.0f} %", "of the flooded area found", "recall, all events pooled")
+        + tile(f"{p * 100:.0f} %", "of what it marks is really flooded", "precision, all events pooled")
+        + tile(f"{f1:.2f}", "F1, pooled", f"mean of the {len(f1s)} events: {sum(f1s) / len(f1s):.2f}")
+        + "</div></div>"
+        '<div class="foot">F1 = recall and precision in one score (1.0 = perfect). References: Kuro Siwo expert labels (Bountos et al., 2024; '
+        "lowland events also used to check design choices); Himalaya: our own Sentinel-2 water labels, partly circular. "
+        "Never Copernicus EMS or UNOSAT. Contains modified Copernicus Sentinel data.</div>")
+    p_html = OUT / "benchmark.html"
+    p_html.write_text(page(body, "Flood benchmark"), encoding="utf-8")
+    return [p_html]
 
 
 SHOT = """
