@@ -5,13 +5,13 @@
 **Tagline:** Pick any valley and a flood date; get a flood map, damaged buildings, roads and bridges, and the villages cut off — from free satellite data.
 
 ## Inspiration
-After a flood, rescuers need to know three things fast: where the water went, what it destroyed and who is cut off. Free satellite images cover every valley every few days, so we wanted to turn them into those answers for any place on Earth.
+After a flood, rescuers need to know three things fast: where the water went, what it destroyed and who is cut off. Free satellite images cover every valley every few days, so I wanted to turn them into those answers for any place on Earth.
 
 ## What it does
 You draw an area on a map, enter the flood date and press Run. The system downloads the satellite images from before and after the flood, finds the flooded land and debris, marks damaged buildings, roads and bridges, and shows which villages lost their road to a town or hospital. The result is an interactive map and a one-page report for rescuers.
 
 ## How we built it
-We built it together with Claude Code. We trained our own flood-detection model, which matches the best published result on floods it had never seen, and built the rest of the system around it. We tested every change on a dozen floods worldwide, not just on Nepal, and only at the end compared our Trishuli map with the official Copernicus emergency maps: 92 % of what we marked was confirmed.
+I built it together with Claude Code. I trained my own flood-detection model, which matches the best published result on floods it had never seen, and built the rest of the system around it. I tested every change on a dozen floods worldwide, not just on Nepal, and only at the end compared my Trishuli map with the official Copernicus emergency maps: 92 % of what I marked was confirmed.
 
 ## Challenges we ran into
 Mountains: radar shadows look like water, and fast narrow rivers and mud are hard to see from space.
