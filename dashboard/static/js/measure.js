@@ -1,7 +1,7 @@
 // Distance / area measuring tool. Click to add points; double-click or Esc to finish; click the button to leave.
 import { km } from './util.js';
 
-const R = 6378137, rad = d => (d * Math.PI) / 180;
+const R = 6371008.8, rad = d => (d * Math.PI) / 180;
 const hav = (a, b) => {
   const dLat = rad(b[1] - a[1]), dLon = rad(b[0] - a[0]);
   const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a[1])) * Math.cos(rad(b[1])) * Math.sin(dLon / 2) ** 2;

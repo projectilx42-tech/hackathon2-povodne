@@ -19,14 +19,21 @@ export const getOverlays = id => json(`/api/runs/${encodeURIComponent(id)}/overl
 export const cancelRun = id => json(`/api/runs/${encodeURIComponent(id)}/cancel`, { method: 'POST' });
 export const startRun = body => json('/api/runs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 
+// Files the server listed for the run that is open: lets the page skip requests for optional outputs that do not exist.
+let known = null;
+export const rememberFiles = (runId, files) => { known = Array.isArray(files) ? { runId, set: new Set(files) } : null; };
+const knownMissing = (runId, path) => known?.runId === runId && !known.set.has(path);
+
 /** Fetch a run file as JSON; null when it does not exist (optional pipeline outputs). */
 export async function getFileJson(runId, path) {
+  if (knownMissing(runId, path)) return null;
   const res = await fetch(fileUrl(runId, path));
   if (!res.ok) return null;
   try { return await res.json(); } catch { return null; }
 }
 
 export async function fileExists(runId, path) {
+  if (known?.runId === runId) return known.set.has(path);
   try { return (await fetch(fileUrl(runId, path), { method: 'HEAD' })).ok; } catch { return false; }
 }
 

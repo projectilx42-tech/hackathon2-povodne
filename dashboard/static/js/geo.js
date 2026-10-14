@@ -1,5 +1,5 @@
 // Small geodesic helpers (no external dependencies).
-const R = 6378137; // WGS84 equatorial radius, m
+const R = 6371007.2; // authalic (equal-area) Earth radius, m: keeps the spherical area within ~0.2 % of the pipeline's projected area
 const rad = d => (d * Math.PI) / 180;
 
 /** Geodesic area of a GeoJSON Polygon (outer ring only; holes ignored), in km². */
