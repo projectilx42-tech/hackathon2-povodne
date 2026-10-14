@@ -56,7 +56,7 @@ Pipeline běží end-to-end ze surových dat (`python -m povodne run`) i z webov
 ## Blokery / známé problémy
 1. Cloud session nemá GPU (4 CPU, 15 GB RAM, ~30 GB disku) → trénink na Kaggle (D-010).
 2. Bez klíčů v prostředí nic neběží naostro; údaje nikdy do repa (D-011).
-3. ~~Váhy modelu jen v Kaggle~~ → vyřešeno 14. 10.: oba výchozí modely jsou přímo v gitu (D-X-18). Repo je ale **soukromé** — před odevzdáním ho uživatel musí zveřejnit.
+3. ~~Váhy modelu jen v Kaggle~~ → vyřešeno 14. 10.: oba výchozí modely jsou přímo v gitu (D-X-18). Repo je ale **soukromé** — před odevzdáním ho uživatel musí zveřejnit. Výchozí větev na GitHubu je stará `claude/gallant-keller-vftpi2` (klon bez `-b main` dá starý kód) → uživatel přepne na `main` (Settings → General → Default branch).
 
 ## Log sessions
 *(Nejnovější nahoře, ≤ 5 řádků na session. Starší: `docs/archive/PROGRESS_LOG.md`.)*
