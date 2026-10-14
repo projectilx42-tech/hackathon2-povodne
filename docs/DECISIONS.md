@@ -1577,3 +1577,13 @@ Ve výchozím stavu zapnuto, vypnutí `POVODNE_S2_VETO=0`; run.json `flood.param
 (P 0,51 → 0,68), Bolívie 0,88 → 0,89, Čad −0,001, Chamoli a Káthmándú beze změny (nic nezrušeno); kontrola bez povodně beze změny.
 **Pozor (pro porotu):** u Baghlanu je zlepšení zčásti kruhové — referenční značka je voda z TÉHOŽ optického snímku. Nezávislé značky
 (ruční Kuro Siwo / Sen1Floods11) má jen Bolívie (+0,01) a Čad (−0,001), takže skutečný přínos je malý, ale nikde neškodí.
+
+## D-X-15 | 2026-10-14 | zamítnuto (master) — Optická kontrola „trvalé vody“ z radaru (větev `fix/perm-optical`)
+- **Návrh:** radarová „trvalá voda“ (třída 4), kterou čistý S2 před i po vidí jako sucho (model S2 pod prahem, MNDWI ≤ 0) a není moře/jezero
+  v DEM, → sucho. Motivace: ranvej letiště Káthmándú (hladký asfalt je tmavý v každém přeletu, roční záznam ho nechytí).
+- **Měření (signál, tag `permopt` vs `veto1full`, 14 událostí):** formálně průměr 12 povodní F1 0,807 → 0,819, nejhorší −0,009 (Čad),
+  kontrola 0,3278 → 0,3269 km². Ale zisk je jen v Káthmándú (0,34 → 0,49), kde je značka ze stejného S2 snímku jako vstup (kruhové).
+  **Jen nezávislé značky** (8 Kuro Siwo / Sen1Floods11 + Teesta): F1 0,8649 → 0,8638 — klesá (Čad ztratí 0,13 km² skutečné povodně, kterou
+  optika vidí jako sucho, patrně zarostlá mělká voda).
+- **Rozhodnutí:** nesloučeno. Zúžení podle časového odstupu S2 by Čad nezachránilo (S2 do 1,5 dne) a další zužování by bylo ladění na
+  testovacích událostech. Káthmándú zůstává slabé místo (report: horské bleskové povodně).
