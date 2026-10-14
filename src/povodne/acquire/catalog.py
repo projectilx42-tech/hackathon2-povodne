@@ -6,7 +6,7 @@ groups them by relative orbit + flight direction (a "track") and picks, per trac
 acquisition after the event (post) plus the earlier acquisitions of the same track (pre candidates).
 
 Which pre scenes are finally used is decided later from the water-fraction series (D-M1-01);
-this module only provides the candidates. Pre and post always come from the same track (CLAUDE.md).
+this module only provides the candidates. Pre and post always come from the same track.
 
 Limitation: only VV+VH products are used (the model needs both). Polar regions with HH/HV are not covered.
 """

@@ -1,4 +1,4 @@
-# Data and runs are never committed (see CLAUDE.md). Models: only the two default models are in git (D-X-18)
+# Data and runs are never committed. Models: only the two default models are in git (D-X-18)
 data/
 runs/
 models/*
