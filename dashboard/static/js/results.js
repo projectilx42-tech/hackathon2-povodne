@@ -10,7 +10,7 @@ const VERDICT = {
   insufficient_data: { cls: 'warn', icon: 'info', title: 'Insufficient data' },
 };
 const STEP_LABEL = {
-  acquire: 'Acquire satellite data', preprocess: 'Preprocess & align', flood_ai: 'Flood detection (AI)', s1anomaly: 'Radar change vs. normal year',
+  acquire: 'Acquire satellite data', preprocess: 'Preprocess & align', flood_ai: 'Flood detection (AI)', confidence: 'Confidence map', s1anomaly: 'Radar change vs. normal year',
   debris: 'Debris, mud & surface change', envelope: 'Water-level envelope', combine: 'Combine water and debris maps', damage: 'Damage overlay',
   network: 'Cut-off analysis', report: 'Statistics & report',
 };
@@ -241,6 +241,15 @@ export function createResults(root, api) {
             el('td', {}, el('span', { class: `status ${a.cls}`, text: a.label })), el('td', { text: p.grade && p.grade !== 'none' ? g.label : '—' }));
         })))) : null;
 
+    // ----- how sure is the system (flood/confidence.json via stats.confidence) -----
+    const cf = stats.confidence;
+    const CONF_COL = { high: '#2ea043', medium: '#e3b341', low: '#f85149' };
+    const confSec = cf && cf.overall && cf.overall !== 'unknown' ? el('section', { class: 'sec', id: 'confidence-sec' }, el('h2', { text: 'How sure is the system' }),
+      el('p', { class: 'strong' }, 'Overall confidence: ', pill(cf.overall, CONF_COL[cf.overall] ?? '#8b949e')),
+      ...['high', 'medium', 'low'].map(k => bar(`${k[0].toUpperCase()}${k.slice(1)} confidence`, cf.levels_pct?.[k])),
+      el('p', { class: 'fine', text: `Share of the ${cf.focus === 'affected' ? 'affected' : 'evaluated'} area. Switch on the “Confidence map” layer to see where the map is unsure.` }),
+      ...(cf.reasons ?? []).map(r => el('p', { class: 'fine', text: `• ${r.text}.` }))) : null;
+
     // ----- data quality -----
     const optical = (label, v2) => bar(label, v2, 'none');
     const quality = el('section', { class: 'sec', id: 'quality-sec' }, el('h2', { text: 'Data quality' }),
@@ -275,7 +284,7 @@ export function createResults(root, api) {
           el('li', {}, el('button', { type: 'button', class: 'linklike', onclick: api.exportPng, text: 'Map view (PNG)' })))));
 
     const fp = el('div', { id: 'fp-slot' });
-    setView(...(detected ? [head, where, damaged, who, repair, places, fp, quality, how, actions] : none ? [head, quality, where, how, actions] : [head, quality, how, actions]));
+    setView(...(detected ? [head, where, confSec, damaged, who, repair, places, fp, quality, how, actions] : none ? [head, confSec, quality, where, how, actions] : [head, quality, how, actions]));
     if (D.floodpath) renderFloodpath({ path: D.floodpath, settlements: D.floodpathSettlements, along: D.floodpathAlong, restored: true });
   }
 

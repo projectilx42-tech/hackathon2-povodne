@@ -352,6 +352,7 @@ def build(run_dir: Path, rj: dict, cfg: ReportConfig) -> tuple[dict, list[dict]]
                  "debris_confidence_km2": deb.get("confidence_km2"),
                  "debris_false_share_est": placebo.get("estimated_false_share")}
 
+    conf = read_json(run_dir / "flood" / "confidence.json") if fl is not None else None
     damage = damage_numbers(run_dir) if (fl is not None and _ok(steps, "damage")) else None
     network_ok = fl is not None and _ok(steps, "network")
     access = access_numbers(run_dir, cfg) if network_ok else None
@@ -369,7 +370,7 @@ def build(run_dir: Path, rj: dict, cfg: ReportConfig) -> tuple[dict, list[dict]]
         "verdict": verdict, "verdict_reasons": reasons,
         "verdict_params": {"min_affected_km2": cfg.min_affected_km2, "min_evaluated_pct": cfg.min_evaluated_pct},
         "coverage": coverage, "scenes": _scenes(acq), "post_image": post_image(acq, rj.get("event_date")),
-        "steps": steps, "flood": flood, "damage": damage, "access": access,
+        "steps": steps, "flood": flood, "confidence": conf if isinstance(conf, dict) else None, "damage": damage, "access": access,
         "repair": repair_numbers(run_dir, cfg) if network_ok else None,
         "facilities": facilities_numbers(run_dir, cfg) if network_ok or damage is not None else None,
         "landing_zones": landing_numbers(run_dir) if network_ok else None,

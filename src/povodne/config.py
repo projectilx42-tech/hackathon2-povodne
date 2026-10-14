@@ -13,6 +13,7 @@ STEPS: list[tuple[str, str]] = [
     ("debris", "povodne.flood.debris"),
     ("envelope", "povodne.flood.envelope"),  # optional: water-level envelope + weak change evidence (D-X-09, D-M13-01); before combine, which reads it
     ("combine", "povodne.flood.combine"),
+    ("confidence", "povodne.flood.confidence"),  # confidence map; reads the finished flood map, never changes it (D-M16-01)
     ("damage", "povodne.damage"),
     ("network", "povodne.network"),
     ("report", "povodne.report"),

@@ -95,6 +95,10 @@ const DEFS = [
       map.addLayer({ id: 'debris', type: 'fill', source: 'debris', paint: { 'fill-color': subtypeColor, 'fill-opacity': confOpacity(1), 'fill-outline-color': 'rgba(255,255,255,.55)' } });
     },
     setOpacity(map, v) { map.setPaintProperty('debris', 'fill-opacity', confOpacity(v)); } },
+  { id: 'confidence', label: 'Confidence map', group: 'Flood', base: 0.9, off: true, ok: (d, ov) => !!ov.confidence, why: 'Not available in this run',
+    legend: [{ t: 'fill', c: '#2ea043', l: 'High confidence (affected area)' }, { t: 'fill', c: '#e3b341', l: 'Medium confidence' }, { t: 'fill', c: '#f85149', l: 'Low confidence' },
+      { t: 'fill', c: '#8b949e', l: 'Not evaluated' }, { t: 'text', l: 'Faint red outside the flood = unsure that it is dry' }],
+    add(map, d, ov) { addImage(map, 'confidence', ov.confidence); map.addLayer(imageLayer('confidence', 0.9)); } },
   { id: 'observability', label: 'What could be seen', group: 'Flood', base: 0.9, off: true, ok: (d, ov) => !!ov.debris_observability, why: 'Not available in this run',
     legend: [{ t: 'hatch', c: '#0b0f14', l: 'Cannot be seen (radar shadow, clouds)' }, { t: 'hatch', c: C.amber, l: 'Insensitive (dense forest or buildings)' }, { t: 'text', l: 'Unmarked = seen' }],
     add(map, d, ov) { addImage(map, 'observability', ov.debris_observability); map.addLayer(imageLayer('observability', 0.9)); } },

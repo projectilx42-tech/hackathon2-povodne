@@ -87,6 +87,8 @@ runs/<run_id>/
     debris_type.tif              # uint8 podtyp: 1 suť, 2 bahno, 3 eroze, 4 zaplavená vegetace, 5 zaplavená zástavba,
                                  #   6 poškozená zástavba, 7 sesuv / plocha změny na svahu nalezená fúzí důkazů (D-M11-05), 9 neznámá změna, 0 nic (D-M3d-01, D-M3d-02)
     debris_confidence.tif        # uint8 1 nízká, 2 střední, 3 vysoká, 0 nic
+    confidence.tif               # uint8 0 nevyhodnoceno, 1 nízká, 2 střední, 3 vysoká jistota (D-M16-01); krok `confidence` PO combine, flood_mask se nemění
+    confidence.json              # {focus, overall high|medium|low|unknown, levels_pct, levels_km2, reasons[{code,share_pct,text}], summary, post_gap_days}
     debris_observability.tif     # uint8 0 mimo oblast, 1 viděno, 2 nedá se vidět (stín, mraky), 3 necitlivé (hustý les/zástavba)
     s1_anomaly.tif               # float32, mřížka runu, NaN = nic: radarová anomálie proti ročnímu „normálu místa“ (D-M10-05). Pásma:
                                  #   1 z_vv, 2 z_vh (robustní z-skóre post vs medián/MAD roční řady téže dráhy, Stouffer přes platné dráhy;
@@ -296,6 +298,8 @@ Původní pole (verze 1) zůstávají se stejným významem; rozšíření D-M6-
   "run_id": "...", "event_date": "YYYY-MM-DD", "event_time": "HH:MM|null", "aoi_area_km2": 0, "sensitivity": "standard",
   "verdict": "flood_detected|no_significant_flooding|insufficient_data",   // D-013, pravidla D-M6-01
   "verdict_reasons": ["anglické věty s čísly"],
+  "confidence": {"focus": "affected|evaluated", "overall": "high|medium|low|unknown", "levels_pct": {"high": 0, "medium": 0, "low": 0},
+                 "reasons": [{"code": "...", "share_pct": 0, "text": "anglická věta"}]} | null,   // = flood/confidence.json (D-M16-01)
   "verdict_params": {"min_affected_km2": 0.1, "min_evaluated_pct": 20},
   "coverage": {"s1_valid_pct": 0, "s2_pre_clear_pct": null, "s2_post_clear_pct": null,
                "evaluated_pct": 0},          // evaluated = podíl oblasti s flood_mask ≠ 0 (radar nebo jasná optika)
@@ -351,7 +355,7 @@ Pipeline spouští jako podproces `python -m povodne run ...`; průběh čte z `
 
 - **Překryvy** (`overlays/*.png` + `overlays/index.json` s `bounds`) jsou PNG pro mapu. `GET .../overlays` vrací jen ty, které v `index.json` jsou.
   Vyrábí je krok report (`povodne.report`) na konci každého běhu (D-X-06); UI je jen čte (ukázkový run je má předrenderované).
-  Jména: `flood_prob` (R kanál = pravděpodobnost 0–255, A = 255), `s2_pre`, `s2_post` (před/po slider), `layover_shadow`, `debris_observability` (D-M6-01); vodu a suť UI kreslí
+  Jména: `flood_prob` (R kanál = pravděpodobnost 0–255, A = 255), `s2_pre`, `s2_post` (před/po slider), `layover_shadow`, `debris_observability` (D-M6-01), `confidence` (hotové barvy: zelená/žlutá/červená/šedá, D-M16-01); vodu a suť UI kreslí
   z `flood/flood_polygons.geojson` (třídy `water`, `debris`), ne z PNG.
 - **Spuštění z UI:** `POST /api/runs` založí `runs/run_<date>_<hash6>/` s `run.json` (`aoi`, `event_date`, `pre_window`, `post_window`,
   `progress.state=queued`) a `aoi.geojson`, pak spustí `python -m povodne run --aoi <run>/aoi.geojson --event-date D --out <run>

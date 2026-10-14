@@ -15,7 +15,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from povodne.cli import parse_aoi, prepare_run  # noqa: E402
 
-ALL = ["acquire", "preprocess", "s1anomaly", "flood_ai", "debris", "envelope", "combine", "damage", "network", "report"]
+ALL = ["acquire", "preprocess", "s1anomaly", "flood_ai", "debris", "envelope", "combine", "confidence", "damage", "network", "report"]
 FAKE = '''import json, sys, time
 from pathlib import Path
 run = Path(sys.argv[1])
@@ -78,7 +78,7 @@ def test_core_failure_skips_rest_but_report_runs(tmp_path):
     rj, steps, order = _state(tmp_path)
     assert order == ["acquire", "preprocess", "report"]
     assert steps == {"acquire": "done", "preprocess": "failed", "flood_ai": "skipped", "s1anomaly": "skipped", "debris": "skipped",
-                     "envelope": "skipped", "combine": "skipped", "damage": "skipped", "network": "skipped", "report": "done"}
+                     "envelope": "skipped", "combine": "skipped", "confidence": "skipped", "damage": "skipped", "network": "skipped", "report": "done"}
     assert rj["progress"]["state"] == "failed" and "preprocess" in rj["progress"]["error"]
     msg = next(s["message"] for s in rj["progress"]["steps"] if s["name"] == "preprocess")
     assert msg == "boom: something broke"

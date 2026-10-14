@@ -147,6 +147,17 @@ def quality_line(st: dict) -> str:
     return "Data quality: " + "; ".join(p for p in parts if p) + "."
 
 
+def confidence_line(st: dict) -> str | None:
+    c = st.get("confidence")
+    if not c or c.get("overall") in (None, "unknown"):
+        return None
+    lv = c.get("levels_pct") or {}
+    txt = (f"How sure is the system: overall {c['overall']} confidence — {_n(lv.get('high'), 0)} % of the {c.get('focus')} area high, "
+           f"{_n(lv.get('medium'), 0)} % medium, {_n(lv.get('low'), 0)} % low.")
+    why = "; ".join(r["text"] for r in (c.get("reasons") or [])[:2])
+    return txt + (f" Main doubts: {why}." if why else "")
+
+
 def main_warnings(st: dict) -> list[str]:
     """Errors and warnings with codes first, then plain-text warnings that have no coded notice."""
     top = (st.get("notices_summary") or {}).get("top", [])
@@ -176,6 +187,9 @@ def markdown(st: dict) -> str:
     if fr:
         L += ["", "## Important places hit or cut off", ""] + [f"- {r}" for r in fr]
     L += ["", "## Data quality and warnings", "", quality_line(st)]
+    cl = confidence_line(st)
+    if cl:
+        L += ["", cl]
     L += [f"- {w}" for w in main_warnings(st)]
     L += ["", "---", "", "**Attributions.** " + " ".join(ATTRIBUTIONS), "", f"*{DISCLAIMER}*", ""]
     return "\n".join(L)
@@ -370,7 +384,7 @@ def _build_pdf(st: dict, map_png: Path | None, n_urgent: int, n_list: int, n_not
 
     bullets("Repair first", repair_rows(st)[:n_list], mark="")
     bullets("Important places hit or cut off", facility_rows(st)[:n_list])
-    notes = [quality_line(st)] + main_warnings(st)[:n_notes]
+    notes = [quality_line(st)] + ([confidence_line(st)] if confidence_line(st) else []) + main_warnings(st)[:n_notes]
     bullets("Data quality and main warnings", notes)
 
     pdf.set_font("dv", "", 5.8)

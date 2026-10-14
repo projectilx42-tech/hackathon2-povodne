@@ -131,12 +131,39 @@ def debris_observability(run_dir: Path, max_px: int):
     return _class_png(src, max_px, {2: (UNSEEN_RGB, 200), 3: (INSENSITIVE_RGB, 200)})
 
 
+def confidence(run_dir: Path, max_px: int):
+    """Final colours: affected pixels red / yellow / green = low / medium / high confidence; unaffected pixels only when the
+    map is unsure there (faint red); not evaluated = grey; sure unaffected pixels stay transparent."""
+    import rasterio
+    cpath, mpath = run_dir / "flood/confidence.tif", run_dir / "flood/flood_mask.tif"
+    if not cpath.exists() or not mpath.exists():
+        return None
+    with rasterio.open(cpath) as c, rasterio.open(mpath) as m:
+        lv, mk = c.read(1), m.read(1)
+        prof = c.profile | {"dtype": "uint8", "count": 1, "nodata": None, "compress": "deflate"}
+    aff = (mk == 2) | (mk == 3)
+    code = np.zeros(lv.shape, np.uint8)
+    code[aff] = lv[aff]
+    code[~aff & (lv == 1)] = 4
+    code[lv == 0] = 5
+    tmp = run_dir / "overlays" / "_confidence_tmp.tif"
+    tmp.parent.mkdir(parents=True, exist_ok=True)
+    with rasterio.open(tmp, "w", **prof) as d:
+        d.write(code, 1)
+    try:
+        return _class_png(tmp, max_px, {1: ((248, 81, 73), 215), 2: ((227, 179, 65), 215), 3: ((46, 160, 67), 215),
+                                        4: ((248, 81, 73), 70), 5: ((139, 148, 158), 110)})
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
 RENDERERS = {
     "flood_prob": flood_prob,
     "s2_pre": lambda d, m: s2_rgb(d, "pre", m),
     "s2_post": lambda d, m: s2_rgb(d, "post", m),
     "layover_shadow": layover_shadow,
     "debris_observability": debris_observability,
+    "confidence": confidence,
 }
 
 
