@@ -1,0 +1,290 @@
+{
+ "arch": "Unet",
+ "encoder": "resnet34",
+ "in_channels": 7,
+ "inputs": [
+  "pre_vv",
+  "pre_vh",
+  "post_vv",
+  "post_vh",
+  "diff_vv",
+  "diff_vh",
+  "slope"
+ ],
+ "normalization": {
+  "pre_vv": [
+   -10.9572,
+   3.7908
+  ],
+  "pre_vh": [
+   -18.1633,
+   4.4356
+  ],
+  "post_vv": [
+   -10.6877,
+   4.347
+  ],
+  "post_vh": [
+   -17.6781,
+   4.8687
+  ],
+  "diff_vv": [
+   0.2236,
+   3.9804
+  ],
+  "diff_vh": [
+   0.4182,
+   3.837
+  ]
+ },
+ "db_clip": [
+  -35.0,
+  5.0
+ ],
+ "slope_scale_deg": 30.0,
+ "classes": {
+  "0": "no water",
+  "1": "permanent water",
+  "2": "flood"
+ },
+ "temperature": 0.9084,
+ "input_units": "dB of Sentinel-1 GRD sigma0 (linear -> 10*log10), Lee Sigma 3x3 speckle filter",
+ "tile_size": 224,
+ "trained_on": [
+  "KuroSiwo GRD (official train events)",
+  "Sen1Floods11 hand-labelled (without Sri Lanka = Kuro Siwo test event 205, and without Bolivia = Sen1Floods11 test)"
+ ],
+ "split_events": {
+  "train": [
+   130,
+   470,
+   555,
+   118,
+   174,
+   324,
+   421,
+   554,
+   427,
+   518,
+   502,
+   498,
+   497,
+   496,
+   492,
+   147,
+   267,
+   273,
+   275,
+   417,
+   567,
+   1111011,
+   1111004,
+   1111009,
+   1111010,
+   1111006,
+   1111005
+  ],
+  "val": [
+   514,
+   559,
+   279,
+   520,
+   437,
+   1111003,
+   1111008
+  ],
+  "test": [
+   321,
+   561,
+   445,
+   562,
+   411,
+   1111002,
+   277,
+   1111007,
+   205,
+   1111013
+  ]
+ },
+ "val_metrics": {
+  "no water": {
+   "iou": 0.9868877772225702,
+   "precision": 0.994806321492239,
+   "recall": 0.9919988902275374,
+   "f1": 0.9934006223563572,
+   "support": 132005438
+  },
+  "permanent water": {
+   "iou": 0.6325447615589148,
+   "precision": 0.7498977308330251,
+   "recall": 0.8016670713192944,
+   "f1": 0.7749187360166451,
+   "support": 2051142
+  },
+  "flood": {
+   "iou": 0.5086622360064983,
+   "precision": 0.6359824621357234,
+   "recall": 0.7175811000313355,
+   "f1": 0.674322222518079,
+   "support": 1799876
+  },
+  "water (perm+flood)": {
+   "iou": 0.6454503253173699,
+   "precision": 0.7499283185775754,
+   "recall": 0.8224731746255146,
+   "f1": 0.7845272693879437,
+   "support": 3851018
+  },
+  "mIoU": 0.7093649249293277,
+  "pixel_accuracy": 0.9854896995104893,
+  "n_pixels": 135856456
+ },
+ "created_utc": "2026-10-13T18:29:57+00:00",
+ "license_notes": "Kuro Siwo (Bountos et al., 2024, CC BY 4.0); Sen1Floods11 (Bonafilia et al., 2020). ImageNet-pretrained encoder.",
+ "test_metrics": {
+  "no water": {
+   "iou": 0.9753953378709576,
+   "precision": 0.9825452802899232,
+   "recall": 0.9925947238677945,
+   "f1": 0.9875444364693293,
+   "support": 729206974
+  },
+  "permanent water": {
+   "iou": 0.6441374518569408,
+   "precision": 0.8159563390692848,
+   "recall": 0.7536318019956333,
+   "f1": 0.7835566924522419,
+   "support": 19741302
+  },
+  "flood": {
+   "iou": 0.6558803354851493,
+   "precision": 0.8648375879667882,
+   "recall": 0.7307901403854864,
+   "f1": 0.7921832531370521,
+   "support": 38390507
+  },
+  "water (perm+flood)": {
+   "iou": 0.712612133629861,
+   "precision": 0.8934358434512776,
+   "recall": 0.7788080876684914,
+   "f1": 0.8321932557134091,
+   "support": 58131809
+  },
+  "mIoU": 0.7584710417376826,
+  "pixel_accuracy": 0.973837550690044,
+  "n_pixels": 787338783
+ },
+ "test_metrics_by_terrain": {
+  "flat (<50 m relief)": {
+   "no water": {
+    "iou": 0.9693769889930073,
+    "precision": 0.977561807694312,
+    "recall": 0.9914367788984129,
+    "f1": 0.9844504068148724,
+    "support": 541409587
+   },
+   "permanent water": {
+    "iou": 0.6403843814935221,
+    "precision": 0.8239379067218091,
+    "recall": 0.7419066659501564,
+    "f1": 0.7807735659010248,
+    "support": 17380538
+   },
+   "flood": {
+    "iou": 0.6532222506792262,
+    "precision": 0.8682945883059591,
+    "recall": 0.7250634380525142,
+    "f1": 0.7902413004795331,
+    "support": 36094661
+   },
+   "water (perm+flood)": {
+    "iou": 0.7082003638906776,
+    "precision": 0.8987522169060809,
+    "recall": 0.7696001467895426,
+    "f1": 0.8291771607841684,
+    "support": 53475199
+   },
+   "mIoU": 0.7543278737219185,
+   "pixel_accuracy": 0.9679841316365418,
+   "n_pixels": 594884786
+  },
+  "hilly (50-200 m)": {
+   "no water": {
+    "iou": 0.9933979181334084,
+    "precision": 0.9972044506290807,
+    "recall": 0.9961721361885486,
+    "f1": 0.9966880261053078,
+    "support": 177748748
+   },
+   "permanent water": {
+    "iou": 0.6878281680676097,
+    "precision": 0.7856671538603834,
+    "recall": 0.8467057404454796,
+    "f1": 0.8150452529241795,
+    "support": 2282349
+   },
+   "flood": {
+    "iou": 0.7033800687056805,
+    "precision": 0.8246405521628859,
+    "recall": 0.827090919022477,
+    "f1": 0.8258639180158381,
+    "support": 2251773
+   },
+   "water (perm+flood)": {
+    "iou": 0.7743245782929206,
+    "precision": 0.8557907170405896,
+    "recall": 0.8905210314146819,
+    "f1": 0.8728105192995737,
+    "support": 4534122
+   },
+   "mIoU": 0.7948687183022328,
+   "pixel_accuracy": 0.9922119889817403,
+   "n_pixels": 182282870
+  },
+  "mountainous (>200 m)": {
+   "no water": {
+    "iou": 0.9876521528156597,
+    "precision": 0.9958809711901832,
+    "recall": 0.9917032545402417,
+    "f1": 0.9937877222798522,
+    "support": 10048639
+   },
+   "permanent water": {
+    "iou": 0.33288471941838527,
+    "precision": 0.408166897210021,
+    "recall": 0.6434738251610024,
+    "f1": 0.49949513948009266,
+    "support": 78415
+   },
+   "flood": {
+    "iou": 0.3500555291131207,
+    "precision": 0.5378708466395261,
+    "recall": 0.5006239647856965,
+    "f1": 0.5185794533104566,
+    "support": 44073
+   },
+   "water (perm+flood)": {
+    "iou": 0.3947896375674612,
+    "precision": 0.49362252645133076,
+    "recall": 0.6635017307817909,
+    "f1": 0.5660920140702818,
+    "support": 122488
+   },
+   "mIoU": 0.5568641337823885,
+   "pixel_accuracy": 0.9868906366030038,
+   "n_pixels": 10171127
+  }
+ },
+ "test_metrics_sen1floods11": {
+  "dataset": "Sen1Floods11 hand-labelled, hold-out events Bolivia",
+  "metric": "water (permanent + flood) vs no water, pixels pooled; post image only (pre missing)",
+  "n_chips": 15,
+  "water": {
+   "iou": 0.10833894960333716,
+   "precision": 0.9583649930835623,
+   "recall": 0.10885127494738892,
+   "f1": 0.19549786577853379,
+   "support": 451901
+  }
+ }
+}

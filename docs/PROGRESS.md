@@ -6,6 +6,7 @@ Plán je orientační — rozhoduje, co uživatel zadá v dané session.
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Jeden řádek, ≤ ~250 znaků, odkaz na rozhodnutí. Vyřízené / starší než ~2 dny přesuň do archivu.)*
+- **2026-10-14 — váhy modelu v gitu (D-X-18):** `models/floodseg_v0.5/` a `models/floodseg_s2_v0.1/` (~150 MB) se stáhnou s `git clone`; `fetch_model.py` jen záloha. Jiné modely do `models/` dál negitovat.
 - **2026-10-14 — přibalená ukázka je skutečný run (D-X-17, změna kontraktu dashboardu):** `dashboard/sample_run/` = zmenšená Emilia-Romagna 2023 (`run.json.example`, štítek EXAMPLE, cesta vody předpočítaná); znovu `dashboard/tools/make_example_run.py`.
 - **2026-10-14 — celkové počty jen v oblasti (D-X-16, změna kontraktu):** `roads_total_km`, `bridges_total`, `facilities_total`, `access.settlements_total` a `facilities.total` už nepočítají pufr 15 km kolem oblasti (dřív např. „74 km z 5 559 km“). Klíče beze změny.
 - **2026-10-14 — rychlé testy:** výchozí `pytest` přeskočí 9 pomalých end-to-end testů (`conftest.py`), s `-n auto` (pip `pytest-xdist`) ~30 s; plná sada `--full` jen před sloučením kódu do `main`; pro docs/výsledky netestovat; dlouhé příkazy na pozadí (CLAUDE.md).
@@ -24,7 +25,7 @@ Plán je orientační — rozhoduje, co uživatel zadá v dané session.
 
 ## Aktuální stav (2026-10-13)
 Pipeline běží end-to-end ze surových dat (`python -m povodne run`) i z webové aplikace (`python -m povodne serve`); ověřeno naostro na Trishuli a na sadě 10 povodní + kontrole bez povodně.
-- **Spuštění:** README → *Quick start* (instalace `pip install -e .` + `pip install -r requirements.txt`, klíče, váhy `python training/fetch_model.py`).
+- **Spuštění:** README → *Quick start* (instalace `pip install -e .` + `pip install -r requirements.txt`, klíče, váhy jsou v gitu v `models/`, D-X-18).
   Klíče jen jako env: `CDSE_CLIENT_ID`, `CDSE_CLIENT_SECRET`, `OHSOME_API_KEY`, `KAGGLE_API_TOKEN` (váhy), volitelně `CARTO_API_KEY`.
   Mezipaměť stažených dat `data/cache/` (`POVODNE_CACHE`, `POVODNE_NO_CACHE=1`, D-M10-04).
 - **Testy:** `python -m pytest -q tests training/tests`; kontrola docs `python tools/check_docs.py`.
@@ -55,7 +56,7 @@ Pipeline běží end-to-end ze surových dat (`python -m povodne run`) i z webov
 ## Blokery / známé problémy
 1. Cloud session nemá GPU (4 CPU, 15 GB RAM, ~30 GB disku) → trénink na Kaggle (D-010).
 2. Bez klíčů v prostředí nic neběží naostro; údaje nikdy do repa (D-011).
-3. **Váhy modelu jen v soukromých Kaggle datasetech** → porota nespustí vlastní běh. Hosting rozhodne uživatel (odloženo 14. 10.).
+3. ~~Váhy modelu jen v Kaggle~~ → vyřešeno 14. 10.: oba výchozí modely jsou přímo v gitu (D-X-18). Repo je ale **soukromé** — před odevzdáním ho uživatel musí zveřejnit.
 
 ## Log sessions
 *(Nejnovější nahoře, ≤ 5 řádků na session. Starší: `docs/archive/PROGRESS_LOG.md`.)*

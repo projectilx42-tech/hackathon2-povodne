@@ -450,4 +450,4 @@ inference), `model.py`. M3 (`training/run_ai.py`) tento kód **používá, nerei
   `pre_clear_pct`, `optical_flood_km2`, `optical_water_unknown_before_km2`).
   `ai_prob` = P(flood).
 - Inference běží na CPU (pipeline musí jít spustit bez GPU), dlaždice 512 px s překryvem 64 px a váženým prolnutím.
-- Váhy nejsou v gitu; finální hosting pro porotu otevřený (O-011). Zatím v Kaggle datasetu `krataihalfmaster/floodseg-model` (`python training/fetch_model.py` → `models/floodseg_v0.4/`, model v0.4, D-M9-14).
+- Výchozí váhy jsou v gitu (D-X-18, řeší O-011): `models/floodseg_v0.5/` (radar) a `models/floodseg_s2_v0.1/` (optika), každá s `model_card.json`. Záloha a starší verze v soukromém Kaggle (`python training/fetch_model.py`).

@@ -54,7 +54,7 @@ environment variables**; they are never typed into the app and never stored in t
 |---|---|---|---|
 | **Copernicus Data Space** (ESA) | Sentinel-1 and Sentinel-2 images | see *Copernicus key* below | `CDSE_CLIENT_ID`, `CDSE_CLIENT_SECRET` |
 | **ohsome API** (HeiGIT) | OpenStreetMap as it was **before** the flood | sign up at https://account.heigit.org/signup → *API keys* → create | `OHSOME_API_KEY` (optional: a shared project key is built in; set your own if its daily quota runs out) |
-| **Model weights** | the trained flood segmentation model | see *Model weights* below | `KAGGLE_API_TOKEN` (see below) |
+| Model weights | the trained flood segmentation models | **already in the repository** (`models/`), nothing to do | — |
 | CARTO (optional) | dark base map; without it an inverted OSM map is used | https://carto.com/basemaps/ | `CARTO_API_KEY` |
 
 The Copernicus DEM is downloaded from the public AWS Open Data bucket and needs no account.
@@ -66,24 +66,20 @@ One run uses 3 ohsome requests; the free key allows 250 per day.
    and the secret (the secret is shown only once). If the login keeps redirecting, use a normal (not private) desktop
    browser window.
 
-**Model weights:**
-```bash
-python training/fetch_model.py      # -> models/floodseg_v0.5/ (radar model) and models/floodseg_s2_v0.1/ (optical model), about 150 MB
-```
-The weights are not stored in the repository (too large). **Hosting note:** they currently live in two **private** Kaggle
-datasets (`krataihalfmaster/floodseg-model-v05` and `krataihalfmaster/floodseg-model-s2`), so the command above works only
-with the Kaggle API token (environment variable `KAGGLE_API_TOKEN`) of an account that has been given access. A public
-download is **not set up yet**; this section is updated when the team decides where to host the weights. Without the weights
-the app starts and the sample run opens, but a real run stops at the *flood model* step.
+**Model weights:** included in the repository, so they arrive with `git clone` (about 150 MB):
+`models/floodseg_v0.5/` (Sentinel-1 radar model) and `models/floodseg_s2_v0.1/` (Sentinel-2 optical water model), each
+with a `model_card.json` (training data, thresholds, scores). They were trained only on Kuro Siwo and Sen1Floods11
+(credits below). `python training/fetch_model.py` re-downloads them from the team's private Kaggle backup (needs `KAGGLE_API_TOKEN` with access);
+normal use does not need it.
 
 **Set the keys** (in the same terminal you start the app from):
 ```bash
 export CDSE_CLIENT_ID=...  CDSE_CLIENT_SECRET=...
-# optional: OHSOME_API_KEY=...  CARTO_API_KEY=...  KAGGLE_API_TOKEN=... (the last one only to download the model weights)
+# optional: OHSOME_API_KEY=...  CARTO_API_KEY=...
 ```
 ```powershell
 $env:CDSE_CLIENT_ID="..."; $env:CDSE_CLIENT_SECRET="..."
-# optional: $env:OHSOME_API_KEY="..."; $env:CARTO_API_KEY="..."; $env:KAGGLE_API_TOKEN="..."
+# optional: $env:OHSOME_API_KEY="..."; $env:CARTO_API_KEY="..."
 ```
 
 ### 4. Run the web app
@@ -101,7 +97,7 @@ python -m povodne serve            # then open http://127.0.0.1:8000
    and bridges, settlements coloured by access, a before/after slider, and the one-page **situation report** to download.
    Click a settlement for its details; click a point on the map to trace the flood path downstream.
 
-**Try it without any account or model weights:** *History* contains a bundled **example run** marked **EXAMPLE**: a real
+**Try it without any account:** *History* contains a bundled **example run** marked **EXAMPLE**: a real
 finished analysis of the May 2023 Emilia-Romagna flood (Italy, 96 km² around Lugo), produced by this pipeline from
 Sentinel-1/2, Copernicus DEM and pre-event OpenStreetMap. It is slimmed to fit the repository (fewer image colours, only
 affected features outside the area, one precomputed flood path; `dashboard/tools/make_example_run.py`).
@@ -143,7 +139,7 @@ A repeated run on the same area and date reuses downloaded images and costs almo
 | *No significant flooding detected* | Nothing was found **in the data that could be seen**. Check the data-quality panel: how much of the valley floor was hidden by radar shadow or clouds. |
 | HTTP 429 / quota messages | Free-tier limit reached (per minute or per month). Wait a minute, or use a smaller area. |
 | `No module named povodne` | Run `pip install -e .` inside the activated virtual environment. |
-| The run stops at *flood model* | The model weights are missing — see *Model weights* above. |
+| The run stops at *flood model* | The model files in `models/` are missing or incomplete (e.g. the repository was downloaded without them). Clone it again with `git clone`, or run `python training/fetch_model.py`. |
 Full log of each run: `runs/<id>/logs/pipeline.log`. All warnings are also listed in the app (data-quality panel).
 
 ---

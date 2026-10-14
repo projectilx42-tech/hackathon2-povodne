@@ -1,7 +1,9 @@
-# Data, runs and models are never committed (see CLAUDE.md)
+# Data and runs are never committed (see CLAUDE.md). Models: only the two default models are in git (D-X-18)
 data/
 runs/
-models/
+models/*
+!models/floodseg_v0.5/
+!models/floodseg_s2_v0.1/
 validation/data/
 *.tif
 *.tiff
@@ -13,6 +15,8 @@ validation/data/
 *.pth
 *.onnx
 *.ckpt
+!models/floodseg_v0.5/model.pt
+!models/floodseg_s2_v0.1/model.pt
 
 # Python
 __pycache__/

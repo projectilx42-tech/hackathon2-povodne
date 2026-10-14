@@ -2,11 +2,12 @@
 
   python training/fetch_model.py                 # -> models/floodseg_v0.5/ (radar) and models/floodseg_s2_v0.1/ (optical)
 
-The weights are not in git (too large). Until the final hosting is decided (docs/DECISIONS.md, O-011) they live in the
-private Kaggle datasets `krataihalfmaster/floodseg-model-v05` (Sentinel-1 radar model v0.5, D-M15-01; v0.4 stays in
-`krataihalfmaster/floodseg-model`: `--dataset krataihalfmaster/floodseg-model --out models/floodseg_v0.4`) and `krataihalfmaster/floodseg-model-s2`
+The default weights are committed to git (models/floodseg_v0.5/, models/floodseg_s2_v0.1/, D-X-18), so this script is only
+a backup / for other versions. It downloads from the private Kaggle datasets `krataihalfmaster/floodseg-model-v05`
+(Sentinel-1 radar model v0.5, D-M15-01; v0.4 stays in `krataihalfmaster/floodseg-model`:
+`--dataset krataihalfmaster/floodseg-model --out models/floodseg_v0.4`) and `krataihalfmaster/floodseg-model-s2`
 (Sentinel-2 optical water model, D-M9-11); downloading needs the Kaggle API token in the environment
-(`KAGGLE_API_TOKEN`, set in the cloud environment settings, never in the repo).
+(`KAGGLE_API_TOKEN`, never in the repo).
 """
 
 import argparse

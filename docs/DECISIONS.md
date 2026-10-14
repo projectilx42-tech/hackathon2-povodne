@@ -1617,3 +1617,14 @@ předpočítaný výsledek (bod 11,866 E, 44,395 N) s `"example": true`. UI št�
 **Soulad s pravidly:** vstupy runu jen Sentinel-1/2, Copernicus DEM a OSM přes ohsome ke dni před událostí; žádná EMS ani jiná mapa
 škod. Nic se nekalibrovalo na této oblasti (jde jen o ukázku výstupu). Velikost < 5 MB (pravidlo pro git).
 **Proč Emilia, ne Trishuli:** Trishuli run má v 15km okolí 3800 km silnic a otevírá se ~30 s; Emilia je malá, rychlá, s odříznutou obcí.
+
+## D-X-18 | 2026-10-14 | přijato (rozhodnutí uživatele, master) — Výchozí váhy modelu přímo v gitu (řeší O-011)
+**Kontext:** váhy byly jen v soukromých Kaggle datasetech, takže porota (ani nikdo jiný) nemohla spustit vlastní analýzu. Možnosti:
+GitHub Release (stálý odkaz, ale nahrát ručně přes web), veřejný Kaggle (porotce potřebuje účet a klíč), přímo v gitu.
+**Rozhodnutí uživatele:** dát je přímo do repa („pravidlo o malých souborech neplatí, pokud se to vejde“). Do gitu jdou jen dva výchozí
+modely, které pipeline používá (`training/run_ai.py`): `models/floodseg_v0.5/` (radar, 94 MB) a `models/floodseg_s2_v0.1/` (optika,
+55 MB), každý s `model_card.json` a `README.md`. Oba pod limitem GitHubu 100 MB/soubor; repo ~10 MB → ~160 MB. `.gitignore` povoluje
+jen tyto dvě složky; ostatní modely (v0.4, experimenty) dál mimo git. `fetch_model.py` zůstává jako záloha.
+**Soulad:** modely trénované jen na Kuro Siwo (MIT / CC BY) a Sen1Floods11 (CC BY) + ImageNet enkodér (organizátoři potvrdili), citace
+v README a model cards. Žádná EMS data. Model cards neobsahují cesty ani klíče (ověřeno).
+**Důsledek:** historie gitu trvale +150 MB (odstranit jde jen přepsáním historie). Repo je soukromé — před odevzdáním zveřejnit.
