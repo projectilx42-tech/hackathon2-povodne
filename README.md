@@ -101,8 +101,10 @@ python -m povodne serve            # then open http://127.0.0.1:8000
    and bridges, settlements coloured by access, a before/after slider, and the one-page **situation report** to download.
    Click a settlement for its details; click a point on the map to trace the flood path downstream.
 
-**Try it without any account:** *History* contains a bundled **sample run** marked **SAMPLE DATA**. It is synthetic demo
-data (`dashboard/tools/make_sample_run.py`), not a real analysis — it only shows what the app looks like.
+**Try it without any account or model weights:** *History* contains a bundled **example run** marked **EXAMPLE**: a real
+finished analysis of the May 2023 Emilia-Romagna flood (Italy, 96 km² around Lugo), produced by this pipeline from
+Sentinel-1/2, Copernicus DEM and pre-event OpenStreetMap. It is slimmed to fit the repository (fewer image colours, only
+affected features outside the area, one precomputed flood path; `dashboard/tools/make_example_run.py`).
 
 ### 5. Or run from the command line
 ```bash
@@ -190,7 +192,7 @@ documentation and implementation. Per-module notes on which parts were AI-assist
 - **AI flood step edge growth (`training/eval_edge.py`, `training/floodseg/edge.py`, edge step in `training/run_ai.py`)**: written with Claude Code; the 1 px edge growth was calibrated on Kuro Siwo validation events only, with a selection rule fixed in advance (D-M9-15).
 - **Radar model v0.5 (`training/train.py --init/--hard-boost`, `training/floodseg/data.py`, `validation/model_compare.sh`)**: fine-tuning with hard-tile sampling, threshold calibration and the whole-system comparison were done with Claude Code (D-M15-01).
 - **Confidence map (`src/povodne/flood/confidence.py`, confidence layer and panel in `dashboard/`, `tests/test_confidence.py`)**: the rule-based "where is the system unsure" layer and its explanation were written with Claude Code (D-M16-01).
-- **Dashboard (`dashboard/`)**: backend, frontend, synthetic sample-run generator and UI design discussion were developed with Claude Code.
+- **Dashboard (`dashboard/`)**: backend, frontend, synthetic sample-run generator, bundled real-example builder and UI design discussion were developed with Claude Code.
 
 - **Scene selection (`src/povodne/acquire/`)** — Sentinel-1 catalogue search and track planning, Copernicus DEM download,
   HAND, radar layover/shadow geometry and the main-track rule were written with Claude Code; tests in `tests/test_acquire_*.py`.

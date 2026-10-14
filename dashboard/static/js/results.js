@@ -172,7 +172,7 @@ export function createResults(root, api) {
     // ----- headline -----
     const after = afterImageLine(run);
     const head = sec(null,
-      el('div', { class: `statusline ${v.cls}` }, icon(v.icon), el('span', { text: v.title }), run.mock ? el('span', { class: 'badge sample', text: 'SAMPLE DATA' }) : null),
+      el('div', { class: `statusline ${v.cls}` }, icon(v.icon), el('span', { text: v.title }), run.mock ? el('span', { class: 'badge sample', text: 'SAMPLE DATA' }) : run.example ? el('span', { class: 'badge example', text: 'EXAMPLE', title: 'Bundled example of a real finished analysis (slimmed)' }) : null),
       ...(stats.verdict_reasons ?? []).map(t => el('p', { class: 'reason', text: t })),
       none ? el('p', { class: 'fine', text: 'Nothing significant was found in the satellite data that was available (see Data quality below). This does not prove that no flooding happened: parts of the area may be hidden from radar or covered by clouds.' }) : null,
       short ? el('p', { class: 'fine', text: 'The analysis could not be done reliably with the data that was available, so no flood map or damage numbers are shown.' }) : null,
@@ -368,7 +368,7 @@ export function createResults(root, api) {
       ...(along.places ?? []).map(b => ({ d: b.dist_along_km, kind: 'place', b })),
     ].sort((a, b) => a.d - b.d);
     slot.replaceChildren(sec('Flood path from the chosen point',
-      res.mock ? el('p', { class: 'fine', text: 'SAMPLE DATA: the same example path is shown for any point.' }) : null,
+      res.mock ? el('p', { class: 'fine', text: 'SAMPLE DATA: the same example path is shown for any point.' }) : res.example ? el('p', { class: 'fine', text: 'Bundled example: this path was traced in advance from one point and is shown for any click. In your own runs it starts where you click.' }) : null,
       el('p', { class: 'fine', style: 'margin-top:0', text: `${num(line.length_km, 1)} km downstream · ${sett.length} settlement${sett.length === 1 ? '' : 's'} nearby · ordered by distance from the start (no travel times: there is no water-flow model).` }),
       items.length ? el('ol', { class: 'fp-list' }, ...items.map(it => {
         if (it.kind === 'settlement') {

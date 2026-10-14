@@ -1,0 +1,35 @@
+{
+  "focus": "affected",
+  "area_km2": 3.427,
+  "evaluated_km2": 102.573,
+  "overall": "medium",
+  "levels_pct": {
+    "high": 12.6,
+    "medium": 76.4,
+    "low": 11.1
+  },
+  "levels_km2": {
+    "high": 0.431,
+    "medium": 2.617,
+    "low": 0.379
+  },
+  "reasons": [
+    {
+      "code": "late_post",
+      "share_pct": 100.0,
+      "text": "100 % of the affected area: the first radar image after the event is 5.2 days late, so water may have receded"
+    },
+    {
+      "code": "undecided_model",
+      "share_pct": 50.1,
+      "text": "50 % of the affected area is close to the model's decision line (the model is not sure)"
+    },
+    {
+      "code": "one_pass_only",
+      "share_pct": 15.2,
+      "text": "15 % of the affected area was seen from one radar direction only (no second view to cross-check)"
+    }
+  ],
+  "summary": "Overall confidence is medium: 13 % of the affected area high, 76 % medium, 11 % low.",
+  "post_gap_days": 5.22
+}

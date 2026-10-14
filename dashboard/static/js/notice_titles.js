@@ -80,6 +80,11 @@ export const NOTICE_TITLES = {
   "severity": "warning",
   "title": "Optical image mostly cloudy"
  },
+ "s2_composite": {
+  "step": "acquire",
+  "severity": "info",
+  "title": "Optical view is a multi-date composite"
+ },
  "s2_failed": {
   "step": "acquire",
   "severity": "warning",
@@ -89,6 +94,21 @@ export const NOTICE_TITLES = {
   "step": "acquire",
   "severity": "info",
   "title": "After-image date"
+ },
+ "perm_water_ref_short": {
+  "step": "acquire",
+  "severity": "warning",
+  "title": "Permanent-water reference missing"
+ },
+ "pu_budget_high": {
+  "step": "acquire",
+  "severity": "warning",
+  "title": "High processing-unit use"
+ },
+ "year_normal_missing": {
+  "step": "acquire",
+  "severity": "warning",
+  "title": "Radar normal missing"
  },
  "pre_rise_detected": {
   "step": "acquire",
@@ -150,10 +170,60 @@ export const NOTICE_TITLES = {
   "severity": "info",
   "title": "Self-test: false-alarm estimate"
  },
+ "debris_fusion_false_share": {
+  "step": "debris",
+  "severity": "info",
+  "title": "Fusion false-alarm estimate"
+ },
  "debris_not_observable": {
   "step": "debris",
   "severity": "info",
   "title": "Parts of the area not visible"
+ },
+ "combine_no_water_map": {
+  "step": "combine",
+  "severity": "error",
+  "title": "No flood map"
+ },
+ "combine_no_debris": {
+  "step": "combine",
+  "severity": "warning",
+  "title": "Water only, no debris map"
+ },
+ "s1anomaly_no_reference": {
+  "step": "s1anomaly",
+  "severity": "warning",
+  "title": "Radar anomaly not available"
+ },
+ "s1anomaly_one_track": {
+  "step": "s1anomaly",
+  "severity": "info",
+  "title": "Radar anomaly from one track"
+ },
+ "combine_grid_mismatch": {
+  "step": "combine",
+  "severity": "warning",
+  "title": "Debris map not aligned"
+ },
+ "combine_debris_where_ai_blind": {
+  "step": "combine",
+  "severity": "info",
+  "title": "Debris where water model was blind"
+ },
+ "envelope_no_reference": {
+  "step": "envelope",
+  "severity": "info",
+  "title": "Water-level envelope not made"
+ },
+ "envelope_no_working_point": {
+  "step": "envelope",
+  "severity": "warning",
+  "title": "Envelope not applied (too noisy)"
+ },
+ "envelope_applied": {
+  "step": "envelope",
+  "severity": "info",
+  "title": "Weak detections added (water-level envelope)"
  },
  "damage_no_flood_mask": {
   "step": "damage",
@@ -245,6 +315,41 @@ export const NOTICE_TITLES = {
   "severity": "info",
   "title": "Possibly cut off settlements"
  },
+ "report_failed": {
+  "step": "report",
+  "severity": "error",
+  "title": "Summary failed"
+ },
+ "report_no_flood_map": {
+  "step": "report",
+  "severity": "error",
+  "title": "No flood map"
+ },
+ "report_low_coverage": {
+  "step": "report",
+  "severity": "error",
+  "title": "Too little of the area observed"
+ },
+ "report_damage_missing": {
+  "step": "report",
+  "severity": "warning",
+  "title": "Damage not assessed"
+ },
+ "report_network_missing": {
+  "step": "report",
+  "severity": "warning",
+  "title": "Cut-off analysis missing"
+ },
+ "report_pdf_failed": {
+  "step": "report",
+  "severity": "warning",
+  "title": "PDF report failed"
+ },
+ "report_overlay_failed": {
+  "step": "report",
+  "severity": "warning",
+  "title": "Map layer image failed"
+ },
  "preprocess_failed": {
   "step": "preprocess",
   "severity": "error",
@@ -269,5 +374,10 @@ export const NOTICE_TITLES = {
   "step": "preprocess",
   "severity": "info",
   "title": "Radar-only water map"
+ },
+ "bundled_example": {
+  "step": "dashboard",
+  "severity": "info",
+  "title": "Bundled example (slimmed)"
  }
 };

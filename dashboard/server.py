@@ -149,7 +149,7 @@ def result_files(d: Path) -> list[str]:
 
 
 def list_runs() -> list[dict]:
-    """Summaries of runs in ``runs/`` plus the bundled sample run."""
+    """Summaries of runs in ``runs/`` plus the bundled example run."""
     dirs = [SAMPLE_RUN] if SAMPLE_RUN.is_dir() else []
     if RUNS_DIR.is_dir():
         dirs += sorted((d for d in RUNS_DIR.iterdir() if d.is_dir()), key=lambda p: p.stat().st_mtime, reverse=True)
@@ -167,6 +167,7 @@ def list_runs() -> list[dict]:
             "run_id": run_id, "event_date": meta.get("event_date"), "created_utc": meta.get("created_utc"),
             "aoi_area_km2": stats.get("aoi_area_km2") or (round(polygon_area_km2(meta["aoi"]["coordinates"]), 1) if meta.get("aoi") else None),
             "verdict": stats.get("verdict"), "state": state, "mock": bool(meta.get("mock", False)),
+            "example": bool(meta.get("example", False)),
         })
     return runs
 
@@ -280,8 +281,8 @@ def create_app() -> FastAPI:
             raise HTTPException(422, "lon and lat must be numbers") from None
         if not (-180 <= lon <= 180 and -90 <= lat <= 90):
             raise HTTPException(422, "lon/lat out of range")
-        mock = d == SAMPLE_RUN
-        if not mock:
+        bundled = d == SAMPLE_RUN  # read-only: show its precomputed path instead of writing into the app folder
+        if not bundled:
             cmd = [sys.executable, "-m", "povodne.floodpath", str(d), "--lon", str(lon), "--lat", str(lat)]
             with _floodpath_lock:
                 try:
@@ -294,7 +295,8 @@ def create_app() -> FastAPI:
                 if "No module named" in msg and "povodne" in msg:
                     msg = "The flood-path module is not available in this installation yet."
                 raise HTTPException(422, msg.removeprefix("floodpath: "))
-        out = {"mock": mock}
+        meta = _read_json(d / "run.json") if bundled else {}
+        out = {"mock": bool(meta.get("mock")), "example": bool(meta.get("example"))}
         for key, name in (("path", "path.geojson"), ("settlements", "settlements_on_path.geojson"), ("along", "along_path.json")):
             out[key] = _read_json(d / "floodpath" / name) or None
         if not out["path"]:

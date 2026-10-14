@@ -83,8 +83,9 @@ What was damaged / Who is cut off). Ikony jsou inline SVG sprite v `index.html`,
 - **Zrušený běh**: „Run cancelled“, nic nevzniklo.
 
 ## Ukázkový (mock) režim
-Ukázkový run adresář podle kontraktu (bez klíčů a pro rychlou ukázku) (`dashboard/sample_run/`, < 5 MB, v gitu), `run.json.mock = true`.
-V UI je vždy viditelný štítek **SAMPLE DATA**. Kontrakt se kvůli mocku nemění — UI čte stejné soubory jako u reálného běhu.
+Ukázkový run adresář podle kontraktu (bez klíčů a pro rychlou ukázku) (`dashboard/sample_run/`, < 5 MB, v gitu). Od 14. 10. je to
+skutečný zmenšený run (povodeň Emilia-Romagna 2023, `run.json.example = true`, štítek **EXAMPLE**, D-X-17); syntetická data
+(`run.json.mock = true`, štítek **SAMPLE DATA**) zůstávají jen pro vývoj. Kontrakt se kvůli mocku nemění — UI čte stejné soubory jako u reálného běhu.
 
 ## Patička a modály
 - **Atribuce** (doslovně z TASK.md): „Contains modified Copernicus Sentinel data 2026.“ · WorldDEM-30 věta · „© OpenStreetMap contributors.“ ·

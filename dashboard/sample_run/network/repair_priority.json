@@ -1,1 +1,23 @@
-[{"rank":1,"osm_ids":["way/9002","way/9005","way/9506"],"names":["Sample Valley Road","Sample Valley Road","Sample Bridge"],"n_cuts":3,"is_bridge":true,"reconnects_settlements":6,"reconnects_buildings":127,"settlements":["Sample village D","Sample village E","Sample village F","Sample village G","Sample village H","Sample village I"],"cumulative_buildings":127,"osm_id":"way/9002","name":"Sample Valley Road"},{"rank":2,"osm_ids":["way/9001","way/9502"],"names":["Sample Valley Road","Sample Bridge"],"n_cuts":2,"is_bridge":true,"reconnects_settlements":3,"reconnects_buildings":56,"settlements":["Sample village A","Sample village B","Sample village C"],"cumulative_buildings":183,"osm_id":"way/9001","name":"Sample Valley Road"}]
+[
+  {
+    "rank": 1,
+    "osm_id": "way/138489849",
+    "name": "Via 4 Novembre",
+    "osm_ids": [
+      "way/138489849",
+      "way/851559299"
+    ],
+    "names": [
+      "Via 4 Novembre",
+      "Via San Vitale"
+    ],
+    "n_cuts": 2,
+    "is_bridge": false,
+    "reconnects_settlements": 1,
+    "reconnects_buildings": 623,
+    "settlements": [
+      "Sant'Agata sul Santerno"
+    ],
+    "cumulative_buildings": 623
+  }
+]

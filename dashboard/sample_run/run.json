@@ -1,1 +1,1364 @@
-{"run_id":"sample_synthetic","mock":true,"aoi":{"type":"Polygon","coordinates":[[[85.22,28.02],[85.38,28.02],[85.38,28.22],[85.22,28.22],[85.22,28.02]]]},"event_date":"2026-08-26","sensitivity":"standard","osm_snapshot_date":"2026-08-25","crs":"EPSG:32645","created_utc":"2026-10-08T00:00:00Z","code_version":"sample","acquire":{"s1":{"relative_orbit":0,"orbit_direction":"SAMPLE","primary_reason":"SAMPLE: earliest post-event pass","pre_selection":{"method":"water_fraction_series","lookback_days":60,"resolution_m":60,"series":[{"date":"2026-07-04","water_frac":0.03},{"date":"2026-07-16","water_frac":0.04},{"date":"2026-07-28","water_frac":0.03},{"date":"2026-08-09","water_frac":0.05},{"date":"2026-08-15","water_frac":0.06},{"date":"2026-08-21","water_frac":0.19},{"date":"2026-08-27","water_frac":0.31}],"onset_date":"2026-08-20","chosen_pre":["2026-08-15"],"reason":"SAMPLE: last pass before the rise in water","user_window":false},"pre":[{"id":"SAMPLE","datetime":"2026-08-15T00:00:00Z"}],"post":[{"id":"SAMPLE","datetime":"2026-08-28T03:27:00Z"}],"source":"synthetic"},"s1_alt":null,"s2":{"pre":null,"post":null},"dem":{"source":"synthetic","product":"synthetic"}},"flood":{"method":"ai","model":"synthetic","params":{"sensitivity":"standard","flood_threshold":null}},"debris":{"method":"synthetic","areas_km2":{"debris":1.584,"mud":1.861,"erosion":1.636,"flooded_vegetation":1.636,"damaged_builtup":1.179},"total_km2":7.896,"confidence_km2":{"high":3.22,"medium":3.497,"low":1.179},"observability":{"observed_pct":78.0,"not_observable_pct":14.0,"insensitive_pct":8.0},"placebo":{"available":true,"rate":0.004,"flagged_km2":0.2,"estimated_false_share":0.03}},"warnings":["There is no second radar viewing direction for this date, so places hidden behind mountains for the main direction stay unmapped.","The area was wetter at the start of the checked period and has been drying out since, so the before-image may already contain water and the flooded area may be smaller than it was.","No usable optical (Sentinel-2) image after the flood because of clouds; the after state relies on radar only.","At least 20 % of the buildings lie mostly where the satellites could not see (radar shadow), so their state is unknown."],"notices":[{"step":"acquire","code":"s1_alt_missing","severity":"warning","message":"There is no second radar viewing direction for this date, so places hidden behind mountains for the main direction stay unmapped.","details":{"reason":"no_opposite_track"}},{"step":"acquire","code":"pre_may_be_flooded","severity":"warning","message":"The area was wetter at the start of the checked period and has been drying out since, so the before-image may already contain water and the flooded area may be smaller than it was.","details":{"start_water_frac":0.19,"min_water_frac":0.03}},{"step":"acquire","code":"s2_none","severity":"warning","message":"No usable optical (Sentinel-2) image after the flood because of clouds; the after state relies on radar only.","details":{"phase":"post"}},{"step":"debris","code":"debris_not_observable","severity":"info","message":"More than 10 % of the area cannot be seen (mountain shadow, clouds) or is insensitive (dense forest or buildings): 'nothing' there does not mean 'no damage'.","details":{"observed_pct":78.0,"not_observable_pct":14.0,"insensitive_pct":8.0}},{"step":"debris","code":"debris_false_alarm_estimate","severity":"info","message":"Self-test on a day without flood: about 0.2 km\u00b2 would be reported by mistake, which could be 3 % of the surface-change area found here.","details":{"rate":0.004,"flagged_km2":0.2,"searchable_km2":48.0,"estimated_false_share":0.03}},{"step":"damage","code":"damage_unobserved","severity":"warning","message":"At least 20 % of the buildings lie mostly where the satellites could not see (radar shadow), so their state is unknown.","details":{"share":0.21}},{"step":"acquire","code":"post_image_date","severity":"info","message":"The after-image is from 2026-08-28 09:12 local time, 2 days after the event. Changes after that are not visible.","details":{"datetime_local":"2026-08-28T09:12","days_after_event":2}},{"step":"acquire","code":"pre_rise_detected","severity":"info","message":"Radar shows water rising before the entered date, so an older before-image from before the rise was used.","details":{"rise_date":"2026-08-20","chosen_pre":["2026-08-15"]}}],"progress":{"state":"done","steps":[{"name":"acquire","state":"done","message":""},{"name":"preprocess","state":"done","message":""},{"name":"flood_ai","state":"done","message":""},{"name":"debris","state":"done","message":""},{"name":"combine","state":"done","message":""},{"name":"damage","state":"done","message":""},{"name":"network","state":"done","message":""},{"name":"report","state":"done","message":""}]}}
+{
+ "run_id": "example_emilia_romagna_2023",
+ "aoi": {
+  "type": "Polygon",
+  "coordinates": [
+   [
+    [
+     11.97,
+     44.37
+    ],
+    [
+     11.97,
+     44.46
+    ],
+    [
+     11.85,
+     44.46
+    ],
+    [
+     11.85,
+     44.37
+    ],
+    [
+     11.97,
+     44.37
+    ]
+   ]
+  ]
+ },
+ "event_date": "2023-05-17",
+ "event_time": null,
+ "pre_window": null,
+ "post_window": null,
+ "sensitivity": "sensitive",
+ "created_utc": "2026-10-14T08:13:57Z",
+ "code_version": "8a1972f",
+ "progress": {
+  "state": "done",
+  "steps": [
+   {
+    "name": "acquire",
+    "state": "done",
+    "message": "acquired: main track 95 descending (earliest post (valley-floor visibility 89% vs 90% for the other track)); 110 processing units"
+   },
+   {
+    "name": "preprocess",
+    "state": "done",
+    "message": "radar usable on 99 % of the area"
+   },
+   {
+    "name": "s1anomaly",
+    "state": "done",
+    "message": "radar anomaly from 2 track(s), 98.8 % of the area covered"
+   },
+   {
+    "name": "flood_ai",
+    "state": "done",
+    "message": ""
+   },
+   {
+    "name": "debris",
+    "state": "done",
+    "message": "surface changes: 3.27 km\u00b2"
+   },
+   {
+    "name": "envelope",
+    "state": "skipped",
+    "message": "Water-level envelope is off (opt-in: set POVODNE_ENVELOPE=1 or pass --envelope); the flood map is unchanged."
+   },
+   {
+    "name": "combine",
+    "state": "done",
+    "message": "flood map: water 0.13 km\u00b2, debris 3.30 km\u00b2"
+   },
+   {
+    "name": "confidence",
+    "state": "done",
+    "message": "Overall confidence is medium: 13 % of the affected area high, 76 % medium, 11 % low."
+   },
+   {
+    "name": "damage",
+    "state": "done",
+    "message": "buildings hit 232\u2013397, roads blocked 74.43 km, bridges blocked 1 / suspect 4"
+   },
+   {
+    "name": "network",
+    "state": "done",
+    "message": "1 cut off, 0 possibly cut off, 0 long detour of 319 settlements"
+   },
+   {
+    "name": "report",
+    "state": "done",
+    "message": "verdict: flood detected; one-page sitrep; 6 map layers"
+   }
+  ],
+  "finished_utc": "2026-10-14T08:18:34Z"
+ },
+ "warnings": [
+  "This area changes a lot even without a flood: 23.15 km\u00b2 changed between two earlier radar passes (fields, construction, rain). Similar changes unrelated to the flood may be among the surface changes found."
+ ],
+ "notices": [
+  {
+   "step": "dashboard",
+   "code": "bundled_example",
+   "severity": "info",
+   "message": "This is a bundled example of a finished analysis, slimmed to fit the download: the satellite images use fewer colours, and roads, buildings and places outside the area are kept only where the flood affected them. The flood path shows one precomputed trace.",
+   "details": {}
+  },
+  {
+   "step": "acquire",
+   "code": "post_image_date",
+   "severity": "info",
+   "message": "The after-image is from 2023-05-22 07:19 local time, 5 day(s) after the given flood date; changes after that are not visible.",
+   "details": {
+    "datetime_local": "2023-05-22T07:19",
+    "days_after_event": 5
+   }
+  },
+  {
+   "step": "acquire",
+   "code": "s2_composite",
+   "severity": "info",
+   "message": "Optical before/after views are per-pixel composites of several clear Sentinel-2 dates (2023-03-21, 2023-03-29, 2023-04-03, 2023-04-08, 2023-04-10, 2023-05-23, 2023-06-02, 2023-06-12, 2023-06-17, 2023-06-27).",
+   "details": {
+    "dates": [
+     "2023-03-21",
+     "2023-03-29",
+     "2023-04-03",
+     "2023-04-08",
+     "2023-04-10",
+     "2023-05-23",
+     "2023-06-02",
+     "2023-06-12",
+     "2023-06-17",
+     "2023-06-27"
+    ]
+   }
+  },
+  {
+   "step": "debris",
+   "code": "debris_false_alarm_estimate",
+   "severity": "info",
+   "message": "Self-test on a flood-free date: 23.15 km\u00b2 (25.55 % of the searchable valley floor) would be flagged by mistake; up to about 100 % of the 3.27 km\u00b2 of surface change found may be false.",
+   "details": {
+    "available": true,
+    "fake_after_image": {
+     "s1": "2023-05-10",
+     "s1_alt": "2023-05-11"
+    },
+    "rate": 0.25546,
+    "flagged_km2": 23.152,
+    "searchable_km2": 90.63,
+    "tightened_steps": 0,
+    "target_rate": 0.001,
+    "estimated_false_share": 1.0
+   }
+  },
+  {
+   "step": "debris",
+   "code": "debris_placebo_high",
+   "severity": "warning",
+   "message": "This area changes a lot even without a flood: 23.15 km\u00b2 changed between two earlier radar passes (fields, construction, rain). Similar changes unrelated to the flood may be among the surface changes found.",
+   "details": {
+    "rate": 0.25546,
+    "target": 0.001
+   }
+  },
+  {
+   "step": "debris",
+   "code": "debris_fusion_false_share",
+   "severity": "info",
+   "message": "Self-test of the combined radar + optical change map on dates before the flood: 2.7 km\u00b2 flagged although nothing happened, i.e. up to about 100 % of the 1.7 km\u00b2 found by it may be a false alarm (harvest, haze, cloud shadow, seasonal change).",
+   "details": {
+    "available": true,
+    "composite_a": [
+     "20230321",
+     "20230403",
+     "20230410"
+    ],
+    "composite_b": [
+     "20230329",
+     "20230408"
+    ],
+    "flagged_km2": 2.663,
+    "estimated_false_share": 1.0
+   }
+  },
+  {
+   "step": "network",
+   "code": "network_edge_destinations",
+   "severity": "info",
+   "message": "For 139 settlements the nearest destination before the flood is the edge of mapped area (a road leaving the downloaded area), not a hospital or town.",
+   "details": {
+    "count": 139
+   }
+  }
+ ],
+ "crs": "EPSG:32632",
+ "acquire": {
+  "dem": {
+   "source": "AWS Open Data (copernicus-dem-30m)",
+   "product": "COP-DEM GLO-30",
+   "crs": "EPSG:32632",
+   "res_m": 30.0,
+   "water_mask": true,
+   "hand_stream_cells": 100
+  },
+  "pu_estimate": {
+   "total": 126,
+   "parts": {
+    "pre_post_10m": 69,
+    "history_20m": 23,
+    "permanent_water_ref": 14,
+    "year_normal": 14,
+    "post_series": 6
+   },
+   "monthly_allowance": 10000
+  },
+  "s1": {
+   "relative_orbit": 95,
+   "orbit_direction": "DESCENDING",
+   "pre": [
+    {
+     "id": "S1A_IW_GRDH_1SDV_20230428T051944_20230428T052009_048292_05CEBB_C2DC",
+     "datetime": "2023-04-28T05:19:44Z",
+     "coverage": 1.0,
+     "file": "pre_20230428.tif",
+     "valid_pct": 100.0
+    },
+    {
+     "id": "S1A_IW_GRDH_1SDV_20230510T051945_20230510T052010_048467_05D488_5F72",
+     "datetime": "2023-05-10T05:19:45Z",
+     "coverage": 1.0,
+     "file": "pre_20230510.tif",
+     "valid_pct": 100.0
+    }
+   ],
+   "post": [
+    {
+     "id": "S1A_IW_GRDH_1SDV_20230522T051946_20230522T052011_048642_05D9B6_20B9",
+     "datetime": "2023-05-22T05:19:46Z",
+     "coverage": 1.0,
+     "file": "post_20230522.tif",
+     "valid_pct": 100.0
+    }
+   ],
+   "source": "CDSE",
+   "valley_visibility": 0.8871234065840748,
+   "primary_reason": "earliest post (valley-floor visibility 89% vs 90% for the other track)",
+   "hist": [
+    {
+     "id": "S1A_IW_GRDH_1SDV_20230323T051943_20230323T052008_047767_05BD0A_CD20",
+     "datetime": "2023-03-23T05:19:43Z",
+     "file": "hist_20230323.tif",
+     "valid_pct": 100.0
+    },
+    {
+     "id": "S1A_IW_GRDH_1SDV_20230404T051943_20230404T052008_047942_05C2F3_319E",
+     "datetime": "2023-04-04T05:19:43Z",
+     "file": "hist_20230404.tif",
+     "valid_pct": 100.0
+    },
+    {
+     "id": "S1A_IW_GRDH_1SDV_20230416T051944_20230416T052009_048117_05C8DF_91E5",
+     "datetime": "2023-04-16T05:19:44Z",
+     "file": "hist_20230416.tif",
+     "valid_pct": 100.0
+    }
+   ],
+   "processing": {
+    "backCoeff": "SIGMA0_ELLIPSOID",
+    "orthorectify": true,
+    "dem": "COPERNICUS_30",
+    "speckle": "LEE 7x7 + 3x3 mean (linear)",
+    "encoding": "UINT16, dB = value*0.001-50, 0 = nodata"
+   },
+   "perm_ref": {
+    "file": "perm_water.tif",
+    "lookback_days": 365,
+    "resolution_m": 20.0,
+    "water_db": -15.0,
+    "n_passes": 10,
+    "dates": [
+     "2022-05-27",
+     "2022-07-02",
+     "2022-08-31",
+     "2022-10-06",
+     "2022-11-11",
+     "2022-12-17",
+     "2023-01-22",
+     "2023-02-27",
+     "2023-04-04",
+     "2023-05-10"
+    ],
+    "min_obs": 4
+   },
+   "post_series": {
+    "file": "post_series.tif",
+    "horizon_days": 24,
+    "resolution_m": 40.0,
+    "post": [
+     {
+      "date": "2023-05-22",
+      "bands": [
+       0,
+       1
+      ]
+     },
+     {
+      "date": "2023-06-03",
+      "bands": [
+       2,
+       3
+      ]
+     }
+    ],
+    "placebo": [
+     {
+      "date": "2023-04-16",
+      "bands": [
+       4,
+       5
+      ]
+     },
+     {
+      "date": "2023-04-28",
+      "bands": [
+       6,
+       7
+      ]
+     }
+    ]
+   },
+   "norm": {
+    "file": "norm.tif",
+    "lookback_days": 365,
+    "resolution_m": 40.0,
+    "n_passes": 10,
+    "dates": [
+     "2022-05-27",
+     "2022-07-02",
+     "2022-08-31",
+     "2022-10-06",
+     "2022-11-11",
+     "2022-12-17",
+     "2023-01-22",
+     "2023-02-27",
+     "2023-04-04",
+     "2023-05-10"
+    ],
+    "min_obs": 5,
+    "bands": [
+     "median_vv_db",
+     "mad_vv_db",
+     "median_vh_db",
+     "mad_vh_db",
+     "n_valid"
+    ]
+   },
+   "same_day": null,
+   "geometry": {
+    "heading_deg": 185.17,
+    "look_azimuth_deg": 275.17,
+    "incidence_deg": 38.4
+   },
+   "pre_selection": {
+    "method": "water_fraction_series",
+    "lookback_days": 60,
+    "resolution_m": 60.0,
+    "water_threshold_db": -15.0,
+    "series": [
+     {
+      "date": "2023-03-23",
+      "water_frac": 0.0008
+     },
+     {
+      "date": "2023-04-04",
+      "water_frac": 0.0111
+     },
+     {
+      "date": "2023-04-16",
+      "water_frac": 0.0069
+     },
+     {
+      "date": "2023-04-28",
+      "water_frac": 0.0034
+     },
+     {
+      "date": "2023-05-10",
+      "water_frac": 0.0
+     }
+    ],
+    "onset_date": null,
+    "chosen_pre": [
+     "2023-04-28",
+     "2023-05-10"
+    ],
+    "reason": "latest passes before the event; no clear rise of the water share before the event",
+    "user_window": false
+   }
+  },
+  "s1_alt": {
+   "relative_orbit": 117,
+   "orbit_direction": "ASCENDING",
+   "pre": [
+    {
+     "id": "S1A_IW_GRDH_1SDV_20230429T170653_20230429T170718_048314_05CF81_FDF6",
+     "datetime": "2023-04-29T17:06:53Z",
+     "coverage": 1.0,
+     "file": "pre_20230429.tif",
+     "valid_pct": 100.0
+    },
+    {
+     "id": "S1A_IW_GRDH_1SDV_20230511T170654_20230511T170719_048489_05D52B_2999",
+     "datetime": "2023-05-11T17:06:54Z",
+     "coverage": 1.0,
+     "file": "pre_20230511.tif",
+     "valid_pct": 100.0
+    }
+   ],
+   "post": [
+    {
+     "id": "S1A_IW_GRDH_1SDV_20230523T170654_20230523T170719_048664_05DA5B_0063",
+     "datetime": "2023-05-23T17:06:54Z",
+     "coverage": 1.0,
+     "file": "post_20230523.tif",
+     "valid_pct": 100.0
+    }
+   ],
+   "source": "CDSE",
+   "valley_visibility": 0.8983799288565147,
+   "hist": [
+    {
+     "id": "S1A_IW_GRDH_1SDV_20230324T170652_20230324T170717_047789_05BDCF_0ABD",
+     "datetime": "2023-03-24T17:06:52Z",
+     "file": "hist_20230324.tif",
+     "valid_pct": 100.0
+    },
+    {
+     "id": "S1A_IW_GRDH_1SDV_20230405T170652_20230405T170717_047964_05C3B7_9317",
+     "datetime": "2023-04-05T17:06:52Z",
+     "file": "hist_20230405.tif",
+     "valid_pct": 100.0
+    },
+    {
+     "id": "S1A_IW_GRDH_1SDV_20230417T170653_20230417T170718_048139_05C9A1_E756",
+     "datetime": "2023-04-17T17:06:53Z",
+     "file": "hist_20230417.tif",
+     "valid_pct": 100.0
+    }
+   ],
+   "processing": {
+    "backCoeff": "SIGMA0_ELLIPSOID",
+    "orthorectify": true,
+    "dem": "COPERNICUS_30",
+    "speckle": "LEE 7x7 + 3x3 mean (linear)",
+    "encoding": "UINT16, dB = value*0.001-50, 0 = nodata"
+   },
+   "post_series": {
+    "file": "post_series.tif",
+    "horizon_days": 24,
+    "resolution_m": 40.0,
+    "post": [
+     {
+      "date": "2023-05-23",
+      "bands": [
+       0,
+       1
+      ]
+     },
+     {
+      "date": "2023-06-04",
+      "bands": [
+       2,
+       3
+      ]
+     }
+    ],
+    "placebo": [
+     {
+      "date": "2023-04-17",
+      "bands": [
+       4,
+       5
+      ]
+     },
+     {
+      "date": "2023-04-29",
+      "bands": [
+       6,
+       7
+      ]
+     }
+    ]
+   },
+   "norm": {
+    "file": "norm.tif",
+    "lookback_days": 365,
+    "resolution_m": 40.0,
+    "n_passes": 10,
+    "dates": [
+     "2022-05-28",
+     "2022-07-15",
+     "2022-08-20",
+     "2022-09-25",
+     "2022-10-31",
+     "2022-12-18",
+     "2023-01-23",
+     "2023-02-28",
+     "2023-04-05",
+     "2023-05-11"
+    ],
+    "min_obs": 5,
+    "bands": [
+     "median_vv_db",
+     "mad_vv_db",
+     "median_vh_db",
+     "mad_vh_db",
+     "n_valid"
+    ]
+   },
+   "same_day": null,
+   "geometry": {
+    "heading_deg": 354.89,
+    "look_azimuth_deg": 84.89,
+    "incidence_deg": 38.15
+   }
+  },
+  "grid": {
+   "crs": "EPSG:32632",
+   "x0": 726720.0,
+   "y1": 4927260.0,
+   "width": 992,
+   "height": 1034,
+   "res": 10.0
+  },
+  "hist_grid": {
+   "x0": 726720.0,
+   "y1": 4927260.0,
+   "res": 20.0
+  },
+  "s2": {
+   "source": "AWS Open Data (earth-search sentinel-2-l2a)",
+   "pre": {
+    "date": "2023-03-29",
+    "ids": [
+     "S2B_32TQQ_20230329_0_L2A"
+    ],
+    "clear_pct": 88.4,
+    "scale": [
+     0.0001,
+     0.0001,
+     0.0001,
+     0.0001,
+     0.0001,
+     0.0001
+    ],
+    "offset": [
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "boa_offset_applied": true
+   },
+   "post": {
+    "date": "2023-05-23",
+    "ids": [
+     "S2A_32TQQ_20230523_0_L2A"
+    ],
+    "clear_pct": 100.0,
+    "scale": [
+     0.0001,
+     0.0001,
+     0.0001,
+     0.0001,
+     0.0001,
+     0.0001
+    ],
+    "offset": [
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "boa_offset_applied": true
+   },
+   "bands": [
+    "B02",
+    "B03",
+    "B04",
+    "B08",
+    "B11",
+    "B12",
+    "SCL"
+   ],
+   "extra": {
+    "pre": [
+     {
+      "date": "2023-03-21",
+      "ids": [
+       "S2A_32TQQ_20230321_0_L2A"
+      ],
+      "clear_pct": 27.2,
+      "scale": [
+       0.0001,
+       0.0001,
+       0.0001,
+       0.0001,
+       0.0001,
+       0.0001
+      ],
+      "offset": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "boa_offset_applied": true
+     },
+     {
+      "date": "2023-04-03",
+      "ids": [
+       "S2A_32TQQ_20230403_0_L2A"
+      ],
+      "clear_pct": 83.4,
+      "scale": [
+       0.0001,
+       0.0001,
+       0.0001,
+       0.0001,
+       0.0001,
+       0.0001
+      ],
+      "offset": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "boa_offset_applied": true
+     },
+     {
+      "date": "2023-04-08",
+      "ids": [
+       "S2B_32TQQ_20230408_0_L2A"
+      ],
+      "clear_pct": 27.2,
+      "scale": [
+       0.0001,
+       0.0001,
+       0.0001,
+       0.0001,
+       0.0001,
+       0.0001
+      ],
+      "offset": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "boa_offset_applied": true
+     },
+     {
+      "date": "2023-04-10",
+      "ids": [
+       "S2A_32TQQ_20230410_0_L2A"
+      ],
+      "clear_pct": 34.3,
+      "scale": [
+       0.0001,
+       0.0001,
+       0.0001,
+       0.0001,
+       0.0001,
+       0.0001
+      ],
+      "offset": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "boa_offset_applied": true
+     }
+    ],
+    "post": [
+     {
+      "date": "2023-06-02",
+      "ids": [
+       "S2A_32TQQ_20230602_0_L2A"
+      ],
+      "clear_pct": 96.9,
+      "scale": [
+       0.0001,
+       0.0001,
+       0.0001,
+       0.0001,
+       0.0001,
+       0.0001
+      ],
+      "offset": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "boa_offset_applied": true
+     },
+     {
+      "date": "2023-06-12",
+      "ids": [
+       "S2A_32TQQ_20230612_0_L2A"
+      ],
+      "clear_pct": 85.8,
+      "scale": [
+       0.0001,
+       0.0001,
+       0.0001,
+       0.0001,
+       0.0001,
+       0.0001
+      ],
+      "offset": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "boa_offset_applied": true
+     },
+     {
+      "date": "2023-06-17",
+      "ids": [
+       "S2B_32TQQ_20230617_0_L2A"
+      ],
+      "clear_pct": 100.0,
+      "scale": [
+       0.0001,
+       0.0001,
+       0.0001,
+       0.0001,
+       0.0001,
+       0.0001
+      ],
+      "offset": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "boa_offset_applied": true
+     },
+     {
+      "date": "2023-06-27",
+      "ids": [
+       "S2B_32TQQ_20230627_0_L2A"
+      ],
+      "clear_pct": 100.0,
+      "scale": [
+       0.0001,
+       0.0001,
+       0.0001,
+       0.0001,
+       0.0001,
+       0.0001
+      ],
+      "offset": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "boa_offset_applied": true
+     }
+    ]
+   }
+  },
+  "osm": {
+   "osm_snapshot_date": "2023-05-16",
+   "source": "ohsome API v2",
+   "buffer_m": 15000,
+   "counts": {
+    "buildings": 12010,
+    "landuse": 71,
+    "pois": 540,
+    "roads": 18865,
+    "bridges": 641,
+    "settlements": 319,
+    "facilities": 55
+   }
+  },
+  "pu_spent": 110.3,
+  "timings_s": {
+   "checking credentials": 0.0,
+   "searching the Sentinel-1 catalogue": 4.8,
+   "downloading the Copernicus DEM, computing terrain": 19.2,
+   "checking 5 earlier passes for flooding before the event date": 8.1,
+   "downloading Sentinel-1 descending track 95": 0.0,
+   "downloading 3 older passes of track 95 (pixel history)": 21.1,
+   "downloading Sentinel-1 ascending track 117": 0.0,
+   "downloading 3 older passes of track 117 (pixel history)": 12.4,
+   "waiting for the permanent-water reference": 0.0,
+   "waiting for the year-long normal of s1": 0.0,
+   "waiting for the year-long normal of s1_alt": 4.3,
+   "waiting for Sentinel-2": 7.4,
+   "waiting for OpenStreetMap": 0.0
+  },
+  "warnings": []
+ },
+ "osm_snapshot_date": "2023-05-16",
+ "preprocess": {
+  "grid": {
+   "crs": "EPSG:32632",
+   "transform": [
+    10.0,
+    0.0,
+    726720.0,
+    0.0,
+    -10.0,
+    4927260.0
+   ],
+   "width": 992,
+   "height": 1034,
+   "res": 10.0
+  },
+  "s1_valid_pct": 98.9,
+  "tracks": {
+   "s1": {
+    "pre_files": [
+     "pre_20230428.tif",
+     "pre_20230510.tif"
+    ],
+    "post_file": "post_20230522.tif",
+    "geometry": {
+     "look_azimuth_deg": 275.2,
+     "incidence_deg": 38.4,
+     "from_run_json": true
+    },
+    "data_pct": 100.0,
+    "layover_shadow_pct": 11.3,
+    "usable_pct": 88.7
+   },
+   "s1_alt": {
+    "pre_files": [
+     "pre_20230429.tif",
+     "pre_20230511.tif"
+    ],
+    "post_file": "post_20230523.tif",
+    "geometry": {
+     "look_azimuth_deg": 84.9,
+     "incidence_deg": 38.1,
+     "from_run_json": true
+    },
+    "data_pct": 100.0,
+    "layover_shadow_pct": 10.2,
+    "usable_pct": 89.8
+   }
+  },
+  "s2": {
+   "pre": {
+    "file": "pre_20230329.tif",
+    "clear_pct": 87.8
+   },
+   "post": {
+    "file": "post_20230523.tif",
+    "clear_pct": 99.9
+   }
+  },
+  "dem": {
+   "source": "raw/dem/dem.tif",
+   "res_m": 30.0,
+   "hand_stream_cells": 100
+  },
+  "method": "UINT16 dB -> linear sigma0, before-images averaged in linear power; S2 DN -> reflectance + SCL clear mask; DEM bilinear to 10 m, slope as in training, HAND (acquire recipe), layover/shadow from DEM + track geometry",
+  "runtime_s": 4.1
+ },
+ "s1anomaly": {
+  "used": true,
+  "tracks": [
+   "main",
+   "alt"
+  ],
+  "sigma_floor_db": 0.7,
+  "bands": [
+   "z_vv",
+   "z_vh",
+   "z_comb",
+   "n_tracks"
+  ],
+  "coarse_resolution_m": 40.0,
+  "valid_pct": 98.8,
+  "abs_z_comb_gt3_pct": 1.94,
+  "placebo": {
+   "main": {
+    "n_passes": 2,
+    "dates": [
+     "2023-04-16",
+     "2023-04-28"
+    ],
+    "vv_abs_z_gt3_pct": 2.58,
+    "vh_abs_z_gt3_pct": 2.92,
+    "post_passes": 2,
+    "post_dates": [
+     "2023-05-22",
+     "2023-06-03"
+    ],
+    "scene_offset_db": [
+     {
+      "vv": 0.26,
+      "vh": 0.67
+     },
+     {
+      "vv": -0.63,
+      "vh": -0.12
+     }
+    ],
+    "post_vv_abs_z_gt3_pct": 1.35,
+    "post_vh_abs_z_gt3_pct": 1.39
+   },
+   "alt": {
+    "n_passes": 2,
+    "dates": [
+     "2023-04-17",
+     "2023-04-29"
+    ],
+    "vv_abs_z_gt3_pct": 3.8,
+    "vh_abs_z_gt3_pct": 3.72,
+    "post_passes": 2,
+    "post_dates": [
+     "2023-05-23",
+     "2023-06-04"
+    ],
+    "scene_offset_db": [
+     {
+      "vv": 0.12,
+      "vh": 0.51
+     },
+     {
+      "vv": 0.93,
+      "vh": 1.34
+     }
+    ],
+    "post_vv_abs_z_gt3_pct": 0.89,
+    "post_vh_abs_z_gt3_pct": 1.02
+   }
+  },
+  "placebo_false_pct": 0.5,
+  "threshold_z_comb": -5.415642414093018,
+  "threshold_z_vv_bright": 4.549323737480108
+ },
+ "flood": {
+  "method": "ai",
+  "model": "models/floodseg_v0.5/model.pt",
+  "params": {
+   "tracks": [
+    "s1",
+    "s1_alt"
+   ],
+   "sensitivity": "sensitive",
+   "flood_threshold": 0.25,
+   "edge": {
+    "k": 1,
+    "t": 0.12,
+    "source": "D-M15-01, Kuro Siwo validation (same selection rule as D-M9-15)"
+   },
+   "edge_added_px": 623,
+   "cross_shadow_px": 287,
+   "min_flood_px": 10,
+   "small_patches_removed_px": 20,
+   "s2": {
+    "used": true,
+    "model": "models/floodseg_s2_v0.1/model.pt",
+    "post_clear_pct": 99.9,
+    "pre_clear_pct": 85.8,
+    "optical_flood_km2": 0.083,
+    "optical_water_unknown_before_km2": 0.004,
+    "index_rule": false,
+    "index_added_km2": 0.0,
+    "perm_dry_by_optics_km2": 0.002,
+    "s1_s2_gap_days": 1,
+    "optical_veto_km2": 0.228
+   },
+   "max_water_slope_deg": 15.0,
+   "max_water_hand_m": 30.0,
+   "perm_ref": {
+    "used": true,
+    "min_freq": 70,
+    "seasonal_high_water_km2": 0.011
+   },
+   "temperature": 0.9084
+  }
+ },
+ "debris": {
+  "method": "pixel-history change test + two-pass consensus + seeds/growth + physics rules (D-M3d-01)",
+  "params": {
+   "seed_score": 4.0,
+   "grow_score": 2.0,
+   "seed_db": 3.0,
+   "grow_db": 1.5,
+   "mmu_px": 10,
+   "agree_p": 0.01,
+   "debris_hand_m": 40.0,
+   "debris_slope_deg": 25.0,
+   "flat_hand_m": 15.0,
+   "flat_slope_deg": 15.0,
+   "corridor_hand_m": 10.0,
+   "water_radius_m": 2000.0,
+   "water_level_tol_m": 2.0,
+   "ratio_db": 1.0,
+   "vh_extra_drop_db": 1.5,
+   "hist_dark_db": -15.0,
+   "ndvi_veg": 0.4,
+   "ndvi_bare_post": 0.15,
+   "dndvi_loss": 0.15,
+   "dndvi_strong": 0.3,
+   "ndvi_still_green": 0.5,
+   "mndwi_water": 0.2,
+   "vh_veg_db": -16.0,
+   "vh_bare_db": -20.0,
+   "dense_ndvi": 0.8,
+   "dense_built": 0.5,
+   "weather_rate": 0.05,
+   "min_background_px": 1000,
+   "slide_slope_min_deg": 15.0,
+   "slide_mmu_px": 30
+  },
+  "inputs": {
+   "terrain": "masks/hand.tif, masks/slope.tif",
+   "tracks": {
+    "s1": {
+     "direction": "DESCENDING",
+     "post": "2023-05-22",
+     "history": [
+      "2023-03-23",
+      "2023-04-04",
+      "2023-04-16",
+      "2023-04-28",
+      "2023-05-10"
+     ]
+    },
+    "s1_alt": {
+     "direction": "ASCENDING",
+     "post": "2023-05-23",
+     "history": [
+      "2023-03-24",
+      "2023-04-05",
+      "2023-04-17",
+      "2023-04-29",
+      "2023-05-11"
+     ]
+    }
+   },
+   "s2_pre": [
+    "pre_20230329.tif",
+    "prex_20230321.tif",
+    "prex_20230403.tif",
+    "prex_20230408.tif",
+    "prex_20230410.tif"
+   ],
+   "s2_post": [
+    "post_20230523.tif",
+    "postx_20230602.tif",
+    "postx_20230612.tif",
+    "postx_20230617.tif",
+    "postx_20230627.tif"
+   ],
+   "osm_buildings": 12010,
+   "osm_landuse": 71,
+   "ai_mask": true
+  },
+  "placebo": {
+   "available": true,
+   "fake_after_image": {
+    "s1": "2023-05-10",
+    "s1_alt": "2023-05-11"
+   },
+   "rate": 0.25546,
+   "flagged_km2": 23.152,
+   "searchable_km2": 90.63,
+   "tightened_steps": 0,
+   "target_rate": 0.001,
+   "estimated_false_share": 1.0
+  },
+  "areas_km2": {
+   "debris": 2.534,
+   "mud": 0.0265,
+   "erosion": 0.0069,
+   "flooded_vegetation": 0.2709,
+   "flooded_builtup": 0.1592,
+   "damaged_builtup": 0.0169,
+   "landslide": 0.0,
+   "unknown": 0.2605
+  },
+  "total_km2": 3.2749,
+  "confidence_km2": {
+   "low": 1.6678,
+   "medium": 1.1887,
+   "high": 0.4184
+  },
+  "observability": {
+   "observed_pct": 99.7,
+   "not_observable_pct": 0.1,
+   "insensitive_pct": 0.2
+  },
+  "background_change": {
+   "brighter": null,
+   "darker": null
+  },
+  "weather": {
+   "rain_like": false,
+   "snow_or_frost_like": false
+  },
+  "optical_only": {
+   "background_rate": 0.00892,
+   "px": 566
+  },
+  "fusion": {
+   "enabled": true,
+   "pseudo_changed_km2": 0.339,
+   "pseudo_unchanged_km2": 76.1,
+   "trained_on_px": 153387,
+   "candidate_km2": 2.71,
+   "flagged_before_cleanup_km2": 1.991,
+   "flagged_km2": 1.738,
+   "landslide_km2": 0.0,
+   "source_km2": {
+    "radar": 0.002,
+    "optics": 1.131,
+    "both": 0.515,
+    "context_only": 0.089
+   },
+   "placebo": {
+    "available": true,
+    "composite_a": [
+     "20230321",
+     "20230403",
+     "20230410"
+    ],
+    "composite_b": [
+     "20230329",
+     "20230408"
+    ],
+    "flagged_km2": 2.663,
+    "estimated_false_share": 1.0
+   }
+  },
+  "runtime_s": 50.2
+ },
+ "envelope": {
+  "used": false,
+  "enabled": false,
+  "reason": "Water-level envelope is off (opt-in: set POVODNE_ENVELOPE=1 or pass --envelope); the flood map is unchanged."
+ },
+ "combine": {
+  "method": "AI water (classes 2, 4) has priority; debris step class 3 elsewhere, also where the AI step was blind (D-M0-01)",
+  "debris_used": true,
+  "vh_agreement": {
+   "used": true,
+   "k_sigma": 1.5,
+   "sigma_main_db": 1.317,
+   "sigma_alt_db": 1.303,
+   "grown_km2": 0.0202
+  },
+  "brightening": {
+   "used": false,
+   "reason": "off (POVODNE_BRIGHTEN=1 turns it on)",
+   "added_km2": 0.0
+  },
+  "selftrain_fusion": {
+   "used": false,
+   "reason": "off (POVODNE_SELFTRAIN_FUSE=1 turns it on)",
+   "added_km2": 0.0
+  },
+  "channel_fill": {
+   "used": false,
+   "added_km2": 0.0
+  },
+  "not_dark_water": {
+   "used": false
+  },
+  "envelope_added_km2": 0.0,
+  "debris_prob_by_confidence": {
+   "low": 0.35,
+   "medium": 0.65,
+   "high": 0.85
+  },
+  "areas_km2": {
+   "flood_water": 0.1322,
+   "debris": 3.2951,
+   "permanent_water": 0.1171,
+   "seasonal_high_water": 0.0105,
+   "debris_where_ai_blind": 0.0
+  },
+  "nodata_pct": 0.0,
+  "n_polygons": {
+   "water": 76,
+   "debris": 2253
+  }
+ },
+ "confidence": {
+  "overall": "medium",
+  "levels_pct": {
+   "high": 12.6,
+   "medium": 76.4,
+   "low": 11.1
+  }
+ },
+ "damage": {
+  "method": "per-feature overlay with flood_mask classes 2/3 (D-M4-01)",
+  "params": {
+   "building_buffer_m": 10.0,
+   "building_hit_fraction": 0.25,
+   "building_min_prob": 0.5,
+   "high_prob": 0.8,
+   "confident_share": 0.5,
+   "road_buffer_m": 10.0,
+   "road_step_m": 5.0,
+   "road_block_fraction": 0.17,
+   "road_block_run_m": 30.0,
+   "bridge_approach_m": 30.0,
+   "bridge_buffer_m": 30.0,
+   "bridge_approach_block_fraction": 0.5,
+   "bridge_debris_min_pixels": 1,
+   "tunnel_counts": false,
+   "settlement_radius_m": {
+    "hamlet": 500.0,
+    "locality": 500.0,
+    "isolated_dwelling": 500.0,
+    "neighbourhood": 500.0,
+    "village": 1000.0,
+    "suburb": 1000.0,
+    "town": 2000.0,
+    "city": 3000.0
+   },
+   "settlement_default_radius_m": 500.0,
+   "territory_buffer_m": 50.0,
+   "territory_empty_radius_m": 200.0,
+   "territory_hull_ratio": 0.4,
+   "unobserved_warn_share": 0.2
+  },
+  "summary": {
+   "buildings_total": 12010,
+   "buildings_hit_low": 232,
+   "buildings_hit_high": 397,
+   "buildings_likely_destroyed": 116,
+   "roads_total_km": 521.05,
+   "roads_blocked_km": 74.43,
+   "roads_possibly_blocked_km": 65.04,
+   "roads_hit_km": 20.93,
+   "bridges_total": 59,
+   "bridges_blocked": 1,
+   "bridges_suspect": 4,
+   "facilities_total": 40,
+   "facilities_hit": {
+    "school": 2,
+    "airfield": 1
+   },
+   "settlements_total": 319,
+   "settlements_with_hit_buildings": 11,
+   "buildings_unassigned": 3490
+  },
+  "debris_detail": true,
+  "runtime_s": 7.3
+ },
+ "network": {
+  "settlements_total": 319,
+  "settlements_by_status": {
+   "connected": 318,
+   "cut_off": 1
+  },
+  "settlements_by_impact": {
+   "none": 305,
+   "low": 10,
+   "moderate": 2,
+   "critical": 1,
+   "severe": 1
+  },
+  "road_cuts": 132,
+  "facilities_by_access": {
+   "connected": 538,
+   "cut_off": 4,
+   "no_road_pre_event": 4,
+   "possibly_cut_off": 1
+  },
+  "landing_zones": 3,
+  "runtime_s": 14.7,
+  "nodes": 27686,
+  "edges": 34751,
+  "method": "pre-event OSM road graph (shared vertices), multi-source Dijkstra pre/post/possibly (D-M5-01)",
+  "repair_top": [
+   [
+    "way/138489849",
+    "way/851559299"
+   ]
+  ]
+ },
+ "report": {
+  "verdict": "flood_detected",
+  "overlays": [
+   "confidence",
+   "debris_observability",
+   "flood_prob",
+   "layover_shadow",
+   "s2_post",
+   "s2_pre"
+  ],
+  "sitrep": {
+   "md": "report/sitrep_en.md",
+   "pdf": "report/sitrep_en.pdf",
+   "pages": 1,
+   "map": true
+  },
+  "params": {
+   "min_affected_km2": 0.1,
+   "min_evaluated_pct": 20.0,
+   "urgent_max": 10,
+   "repair_max": 5,
+   "facilities_max": 20,
+   "notices_max": 8,
+   "overlay_max_px": 2048
+  },
+  "runtime_s": 8.5
+ },
+ "floodpath": {
+  "start_lon": 11.866,
+  "start_lat": 44.395,
+  "snapped_lon": 11.865798,
+  "snapped_lat": 44.395035,
+  "length_km": 18.488,
+  "stop_reason": "nodata",
+  "max_km": 50.0,
+  "hand_max_m": 20.0,
+  "near_m": 1500.0,
+  "n_settlements": 3,
+  "n_settlements_in_corridor": 3,
+  "n_bridges": 22,
+  "n_places": 14,
+  "updated_utc": "2026-10-14T09:37:49.630169+00:00"
+ },
+ "example": true,
+ "mock": false
+}

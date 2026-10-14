@@ -37,7 +37,7 @@ export async function renderHistory(pop, onOpen) {
     const stateBadge = r.state && r.state !== 'done' ? el('span', { class: `badge ${r.state === 'failed' ? 'bad' : 'warn'}`, text: r.state }) : null;
     return el('li', {}, el('button', { type: 'button', onclick: () => onOpen(r) },
       el('span', { class: 'row' }, el('span', {}, `${r.event_date ?? '?'} · ${r.aoi_area_km2 != null ? num(r.aoi_area_km2, 0) + ' km²' : ''}`),
-        el('span', {}, r.mock ? el('span', { class: 'badge sample', text: 'SAMPLE' }) : null, ' ', vb ? el('span', { class: `badge ${vb[0]}`, text: vb[1] }) : null, stateBadge)),
+        el('span', {}, r.mock ? el('span', { class: 'badge sample', text: 'SAMPLE' }) : r.example ? el('span', { class: 'badge example', text: 'EXAMPLE' }) : null, ' ', vb ? el('span', { class: `badge ${vb[0]}`, text: vb[1] }) : null, stateBadge)),
       el('span', { class: 'sub mono', text: r.run_id })));
   });
   pop.replaceChildren(el('h3', { text: 'Earlier runs' }), items.length ? el('ul', { class: 'menu-list' }, ...items) : el('p', { class: 'muted', text: 'No runs yet.' }));

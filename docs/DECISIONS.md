@@ -1604,3 +1604,16 @@ z 319 sídel“, i když v oblasti bylo jen ~521 km silnic a 12 sídel. **Rozhod
 (délka oříznutá na mřížku), `bridges_total` a `facilities_total` jen v mřížce oblasti; report (`stats.access`, `stats.facilities`)
 bere sídla/místa v oblasti + ta mimo ni, která jsou odříznutá, s objížďkou nebo zasažená. Vrstvy (`*.geojson`) i klíče beze změny.
 Blokované km dál počítají celé zablokované úseky. Test `test_totals_count_only_the_area`.
+
+## D-X-17 | 2026-10-14 | přijato (master) — Přibalená ukázka v dashboardu = skutečný zmenšený run místo syntetických dat
+**Kontext:** porota bez účtu Copernicus a bez vah modelu (ty jsou zatím jen na soukromém Kaggle) viděla v dashboardu jen vymyšlená
+data (`sample_synthetic`, Trishuli). Neukazovalo to, co program skutečně umí.
+**Rozhodnutí:** `dashboard/sample_run/` je skutečný doběhnutý run (povodeň Emilia-Romagna 17. 5. 2023, oblast 11,85–11,97 E,
+44,37–44,46 N, 96 km², citlivost „sensitive“) zmenšený skriptem `dashboard/tools/make_example_run.py` na 4,4 MB: satelitní PNG
+na 256 barev, souřadnice na ~1 m, budovy jen zasažené, silnice zablokované + hlavní v oblasti, mosty/místa/obce v oblasti nebo
+zasažené; rastry, surová data a logy pryč; absolutní cesty odstraněny; `run.json.example = true`, `run_id = example_emilia_romagna_2023`,
+info notice `bundled_example`. Celkové počty v `stats.json` zůstávají z plného běhu. Server ukázku nepřepisuje: cesta vody vrací
+předpočítaný výsledek (bod 11,866 E, 44,395 N) s `"example": true`. UI štítek **EXAMPLE**. `make_sample_run.py` zůstává pro vývoj.
+**Soulad s pravidly:** vstupy runu jen Sentinel-1/2, Copernicus DEM a OSM přes ohsome ke dni před událostí; žádná EMS ani jiná mapa
+škod. Nic se nekalibrovalo na této oblasti (jde jen o ukázku výstupu). Velikost < 5 MB (pravidlo pro git).
+**Proč Emilia, ne Trishuli:** Trishuli run má v 15km okolí 3800 km silnic a otevírá se ~30 s; Emilia je malá, rychlá, s odříznutou obcí.

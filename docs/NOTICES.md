@@ -161,3 +161,10 @@ Kódy definuje `src/povodne/preprocess/pipeline.py` (`SEVERITY`), test `tests/te
 | preprocess | `preprocess_no_s2` | info | Chybí optický snímek „po“: voda jen z radaru. | Radar-only water map | `available` |
 
 Pro UI dál: `run.json.preprocess.s1_valid_pct` (kolik oblasti radar vidí aspoň jednou dráhou), `tracks.<dráha>.layover_shadow_pct`, `s2.<pre|post>.clear_pct`.
+
+### Přibalená ukázka v dashboardu (`step = "dashboard"`, D-X-17)
+Kód přidává jen `dashboard/tools/make_example_run.py` do `dashboard/sample_run/run.json` (skutečný doběhnutý run, zmenšený pro git).
+
+| step | kód | závažnost | kdy nastane (česky) | titulek pro UI (EN) | `details` |
+|---|---|---|---|---|---|
+| dashboard | `bundled_example` | info | Otevřená přibalená ukázka: skutečný výsledek, ale satelitní snímky mají méně barev, silnice/budovy/místa mimo oblast jsou jen tam, kde je povodeň zasáhla, a cesta vody je jedna předpočítaná. | Bundled example (slimmed) | — |

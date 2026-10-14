@@ -1,112 +1,345 @@
 {
-  "run_id": "sample_synthetic",
-  "event_date": "2026-08-26",
-  "aoi_area_km2": 347.5,
-  "verdict": "flood_detected",
-  "verdict_reasons": [
-    "16.3 km\u00b2 of new water and debris detected (SYNTHETIC sample)"
+ "schema_version": 2,
+ "generated_utc": "2026-10-14T08:22:44Z",
+ "run_id": "example_emilia_romagna_2023",
+ "event_date": "2023-05-17",
+ "event_time": null,
+ "aoi_area_km2": 95.6,
+ "sensitivity": "sensitive",
+ "verdict": "flood_detected",
+ "verdict_reasons": [
+  "3.43 km\u00b2 affected: 0.13 km\u00b2 of new flood water and 3.30 km\u00b2 of debris, mud or other surface change, in the 100 % of the area that the satellites could observe."
+ ],
+ "verdict_params": {
+  "min_affected_km2": 0.1,
+  "min_evaluated_pct": 20.0
+ },
+ "coverage": {
+  "s1_valid_pct": 98.9,
+  "s2_pre_clear_pct": 88.4,
+  "s2_post_clear_pct": 100.0,
+  "evaluated_pct": 100.0
+ },
+ "scenes": {
+  "s1_pre": "S1A_IW_GRDH_1SDV_20230428T051944_20230428T052009_048292_05CEBB_C2DC, S1A_IW_GRDH_1SDV_20230510T051945_20230510T052010_048467_05D488_5F72",
+  "s1_post": "S1A_IW_GRDH_1SDV_20230522T051946_20230522T052011_048642_05D9B6_20B9",
+  "s2_pre": "S2B_32TQQ_20230329_0_L2A",
+  "s2_post": "S2A_32TQQ_20230523_0_L2A"
+ },
+ "post_image": {
+  "sensor": "Sentinel-1",
+  "datetime_utc": "2023-05-22T05:19:46Z",
+  "date": "2023-05-22",
+  "days_after_event": 5,
+  "track": "95 DESCENDING",
+  "s2_post_date": "2023-05-23"
+ },
+ "steps": {
+  "acquire": "done",
+  "preprocess": "done",
+  "s1anomaly": "done",
+  "flood_ai": "done",
+  "debris": "done",
+  "envelope": "skipped",
+  "combine": "done",
+  "confidence": "done",
+  "damage": "done",
+  "network": "done"
+ },
+ "flood": {
+  "flooded_water_km2": 0.132,
+  "debris_km2": 3.295,
+  "affected_km2": 3.427,
+  "nodata_pct": 0.0,
+  "method": "ai",
+  "permanent_water_km2": 0.117,
+  "seasonal_high_water_km2": 0.011,
+  "model": "models/floodseg_v0.5/model.pt",
+  "debris_by_type_km2": {
+   "debris": 2.534,
+   "mud": 0.0265,
+   "erosion": 0.0069,
+   "flooded_vegetation": 0.2709,
+   "flooded_builtup": 0.1592,
+   "damaged_builtup": 0.0169,
+   "landslide": 0.0,
+   "unknown": 0.2605
+  },
+  "debris_confidence_km2": {
+   "low": 1.6678,
+   "medium": 1.1887,
+   "high": 0.4184
+  },
+  "debris_false_share_est": 1.0
+ },
+ "confidence": {
+  "focus": "affected",
+  "area_km2": 3.427,
+  "evaluated_km2": 102.573,
+  "overall": "medium",
+  "levels_pct": {
+   "high": 12.6,
+   "medium": 76.4,
+   "low": 11.1
+  },
+  "levels_km2": {
+   "high": 0.431,
+   "medium": 2.617,
+   "low": 0.379
+  },
+  "reasons": [
+   {
+    "code": "late_post",
+    "share_pct": 100.0,
+    "text": "100 % of the affected area: the first radar image after the event is 5.2 days late, so water may have receded"
+   },
+   {
+    "code": "undecided_model",
+    "share_pct": 50.1,
+    "text": "50 % of the affected area is close to the model's decision line (the model is not sure)"
+   },
+   {
+    "code": "one_pass_only",
+    "share_pct": 15.2,
+    "text": "15 % of the affected area was seen from one radar direction only (no second view to cross-check)"
+   }
   ],
-  "coverage": {
-    "s1_valid_pct": 91.4,
-    "s2_pre_clear_pct": 88.0,
-    "s2_post_clear_pct": 12.5
-  },
-  "scenes": {
-    "s1_pre": "SAMPLE_S1_pre",
-    "s1_post": "SAMPLE_S1_post",
-    "s2_pre": "SAMPLE_S2_pre",
-    "s2_post": null
-  },
-  "flood": {
-    "flooded_water_km2": 8.4,
-    "debris_km2": 7.896,
-    "affected_km2": 16.296,
-    "nodata_pct": 8.6,
-    "method": "ai"
-  },
-  "damage": {
-    "buildings_total": 260,
-    "buildings_hit": 24,
-    "roads_total_km": 30.3,
-    "roads_hit_km": 10.7,
-    "bridges_total": 3,
-    "bridges_hit": 3
-  },
-  "access": {
-    "settlements_total": 13,
-    "cut_off": 9,
-    "degraded": 1,
-    "connected": 1,
-    "cut_off_list": [
-      {
-        "name": "Sample village A",
-        "place": "hamlet",
-        "population": 783
-      },
-      {
-        "name": "Sample village B",
-        "place": "village",
-        "population": 1711
-      },
-      {
-        "name": "Sample village C",
-        "place": "village",
-        "population": 1371
-      },
-      {
-        "name": "Sample village D",
-        "place": "village",
-        "population": 1055
-      },
-      {
-        "name": "Sample village E",
-        "place": "hamlet",
-        "population": 610
-      },
-      {
-        "name": "Sample village F",
-        "place": "village",
-        "population": 1771
-      },
-      {
-        "name": "Sample village G",
-        "place": "village",
-        "population": 1270
-      },
-      {
-        "name": "Sample village H",
-        "place": "village",
-        "population": 1077
-      },
-      {
-        "name": "Sample village I",
-        "place": "hamlet",
-        "population": 691
-      }
-    ]
-  },
-  "warnings": [],
-  "confidence": {
-    "focus": "affected",
-    "overall": "high",
-    "levels_pct": {
-      "high": 60.4,
-      "medium": 39.6,
-      "low": 0.0
-    },
-    "area_km2": 16.296,
-    "reasons": [
-      {
-        "code": "hidden",
-        "share_pct": 16.5,
-        "text": "16 % of the affected area is hard to observe (radar shadow, clouds, dense forest or buildings)"
-      },
-      {
-        "code": "one_pass_only",
-        "share_pct": 100.0,
-        "text": "100 % of the affected area was seen from one radar direction only (no second view to cross-check)"
-      }
-    ],
-    "summary": "Sample data."
+  "summary": "Overall confidence is medium: 13 % of the affected area high, 76 % medium, 11 % low.",
+  "post_gap_days": 5.22
+ },
+ "damage": {
+  "buildings_total": 12010,
+  "buildings_hit": 232,
+  "roads_total_km": 521.05,
+  "roads_hit_km": 20.93,
+  "bridges_total": 59,
+  "bridges_hit": 5,
+  "buildings_hit_low": 232,
+  "buildings_hit_high": 397,
+  "buildings_likely_destroyed": 116,
+  "roads_blocked_km": 74.43,
+  "roads_possibly_blocked_km": 65.04,
+  "bridges_blocked": 1,
+  "bridges_suspect": 4,
+  "facilities_total": 40,
+  "facilities_hit_by_kind": {
+   "school": 2,
+   "airfield": 1
   }
+ },
+ "access": {
+  "settlements_total": 12,
+  "cut_off": 1,
+  "degraded": 0,
+  "connected": 11,
+  "possibly_cut_off": 0,
+  "no_road_pre_event": 0,
+  "by_status": {
+   "connected": 11,
+   "degraded": 0,
+   "possibly_cut_off": 0,
+   "cut_off": 1,
+   "no_road_pre_event": 0
+  },
+  "by_impact": {
+   "critical": 1,
+   "severe": 1,
+   "moderate": 2,
+   "low": 7,
+   "none": 1
+  },
+  "cut_off_list": [
+   {
+    "name": "Sant'Agata sul Santerno",
+    "place": "village",
+    "population": 2131.0,
+    "osm_id": "node/69301460",
+    "impact_level": "critical",
+    "priority_rank": 1
+   }
+  ],
+  "possibly_cut_off_list": [],
+  "urgent": [
+   {
+    "priority_rank": 1,
+    "osm_id": "node/69301460",
+    "name": "Sant'Agata sul Santerno",
+    "place": "village",
+    "population": 2131.0,
+    "status": "cut_off",
+    "impact_level": "critical",
+    "buildings_total": 623,
+    "buildings_hit": 139,
+    "buildings_hit_pct": 22.3,
+    "time_pre_s": 256.6,
+    "time_post_s": null,
+    "nearest_dest_post": null,
+    "impact_reasons": [
+     "Cut off: no road connection to a hospital or town",
+     "78 buildings likely destroyed (debris or erosion under the footprint)",
+     "22% of buildings hit (139 of 623)",
+     "83 buildings possibly affected (low confidence)",
+     "66 of 118 roads in the area blocked",
+     "Facility hit: school",
+     "18% of the settlement area flooded or covered by debris"
+    ]
+   },
+   {
+    "priority_rank": 2,
+    "osm_id": "node/69301419",
+    "name": "Lugo",
+    "place": "town",
+    "population": 32390.0,
+    "status": "connected",
+    "impact_level": "severe",
+    "buildings_total": 4455,
+    "buildings_hit": 24,
+    "buildings_hit_pct": 0.5,
+    "time_pre_s": 159.0,
+    "time_post_s": 159.0,
+    "nearest_dest_post": "Pronto Soccorso",
+    "impact_reasons": [
+     "15 buildings likely destroyed (debris or erosion under the footprint)",
+     "0.5% of buildings hit (24 of 4455)",
+     "8 buildings possibly affected (low confidence)",
+     "12 of 761 roads in the area blocked",
+     "3% of the settlement area flooded or covered by debris"
+    ]
+   },
+   {
+    "priority_rank": 3,
+    "osm_id": "node/4586139440",
+    "name": "Budrio",
+    "place": "hamlet",
+    "population": null,
+    "status": "connected",
+    "impact_level": "moderate",
+    "buildings_total": 66,
+    "buildings_hit": 4,
+    "buildings_hit_pct": 6.1,
+    "time_pre_s": 477.1,
+    "time_post_s": 477.1,
+    "nearest_dest_post": "Pronto Soccorso",
+    "impact_reasons": [
+     "2 buildings likely destroyed (debris or erosion under the footprint)",
+     "6% of buildings hit (4 of 66)",
+     "1 building possibly affected (low confidence)",
+     "4 of 10 roads in the area blocked",
+     "1% of the settlement area flooded or covered by debris"
+    ]
+   },
+   {
+    "priority_rank": 4,
+    "osm_id": "node/1541464137",
+    "name": "Chilometro 54",
+    "place": "hamlet",
+    "population": 18.0,
+    "status": "connected",
+    "impact_level": "moderate",
+    "buildings_total": 35,
+    "buildings_hit": 2,
+    "buildings_hit_pct": 5.7,
+    "time_pre_s": 447.0,
+    "time_post_s": 794.8,
+    "nearest_dest_post": "Lugo",
+    "impact_reasons": [
+     "2 buildings likely destroyed (debris or erosion under the footprint)",
+     "6% of buildings hit (2 of 35)",
+     "1 building possibly affected (low confidence)",
+     "1 of 3 roads in the area blocked",
+     "6% of the settlement area flooded or covered by debris"
+    ]
+   }
+  ]
+ },
+ "repair": {
+  "steps_total": 1,
+  "top": [
+   {
+    "rank": 1,
+    "osm_ids": [
+     "way/138489849",
+     "way/851559299"
+    ],
+    "names": [
+     "Via 4 Novembre",
+     "Via San Vitale"
+    ],
+    "n_cuts": 2,
+    "is_bridge": false,
+    "reconnects_settlements": 1,
+    "reconnects_buildings": 623,
+    "settlements": [
+     "Sant'Agata sul Santerno"
+    ],
+    "cumulative_buildings": 623
+   }
+  ]
+ },
+ "facilities": {
+  "total": 38,
+  "hit": 3,
+  "cut_off": 4,
+  "list": [
+   {
+    "osm_id": "way/1026774838",
+    "name": null,
+    "kind": "school",
+    "grade": "likely_destroyed",
+    "access": "cut_off"
+   },
+   {
+    "osm_id": "way/1026774839",
+    "name": null,
+    "kind": "school",
+    "grade": "affected",
+    "access": "cut_off"
+   },
+   {
+    "osm_id": "way/151150944",
+    "name": "Aeroporto Francesco Baracca",
+    "kind": "airfield",
+    "grade": "likely_destroyed",
+    "access": "cut_off"
+   },
+   {
+    "osm_id": "way/322915732",
+    "name": null,
+    "kind": "helipad",
+    "grade": "none",
+    "access": "cut_off"
+   },
+   {
+    "osm_id": "way/322915731",
+    "name": null,
+    "kind": "helipad",
+    "grade": "none",
+    "access": "possibly_cut_off"
+   }
+  ]
+ },
+ "landing_zones": {
+  "total": 3,
+  "by_class": {
+   "suitable": 3,
+   "caution": 0,
+   "known_helipad": 0
+  }
+ },
+ "notices_summary": {
+  "error": 0,
+  "warning": 1,
+  "info": 5,
+  "top": [
+   {
+    "step": "debris",
+    "code": "debris_placebo_high",
+    "severity": "warning",
+    "message": "This area changes a lot even without a flood: 23.15 km\u00b2 changed between two earlier radar passes (fields, construction, rain). Similar changes unrelated to the flood may be among the surface changes found."
+   }
+  ]
+ },
+ "warnings": [
+  "This area changes a lot even without a flood: 23.15 km\u00b2 changed between two earlier radar passes (fields, construction, rain). Similar changes unrelated to the flood may be among the surface changes found."
+ ]
 }

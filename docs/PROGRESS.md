@@ -6,6 +6,7 @@ Plán je orientační — rozhoduje, co uživatel zadá v dané session.
 
 ## 📢 Oznámení pro všechny sessions
 *(Nejnovější nahoře. Jeden řádek, ≤ ~250 znaků, odkaz na rozhodnutí. Vyřízené / starší než ~2 dny přesuň do archivu.)*
+- **2026-10-14 — přibalená ukázka je skutečný run (D-X-17, změna kontraktu dashboardu):** `dashboard/sample_run/` = zmenšená Emilia-Romagna 2023 (`run.json.example`, štítek EXAMPLE, cesta vody předpočítaná); znovu `dashboard/tools/make_example_run.py`.
 - **2026-10-14 — celkové počty jen v oblasti (D-X-16, změna kontraktu):** `roads_total_km`, `bridges_total`, `facilities_total`, `access.settlements_total` a `facilities.total` už nepočítají pufr 15 km kolem oblasti (dřív např. „74 km z 5 559 km“). Klíče beze změny.
 - **2026-10-14 — rychlé testy:** výchozí `pytest` přeskočí 9 pomalých end-to-end testů (`conftest.py`), s `-n auto` (pip `pytest-xdist`) ~30 s; plná sada `--full` jen před sloučením kódu do `main`; pro docs/výsledky netestovat; dlouhé příkazy na pozadí (CLAUDE.md).
 - **2026-10-14 — mapa jistoty (D-M16-01, změna kontraktu):** nový krok `confidence` po `combine` → `flood/confidence.tif` + `confidence.json`, `stats.confidence`, překryv `confidence.png`, panel „How sure is the system“ v UI a věta v sitrepu. `flood_mask.tif` beze změny. Větev `feat/confidence`.
@@ -62,6 +63,7 @@ Pipeline běží end-to-end ze surových dat (`python -m povodne run`) i z webov
 - Živý běh Emilia-Romagna 2023 (`runs/ship_emilia`) prošel celý; nalezena chyba celkových počtů s pufrem 15 km → D-X-16.
 - `ship/install`: čistá instalace (CPU torch napřed, disk 5 GB, pytest do README, ohsome 3 dotazy/běh). `ship/ui`: HEAD u souborů (prázdný sitrep), slider před/po, reset citlivosti, klikání při měření, mobil 390 px, `files` v `/api/runs/{id}`.
 - Plná sada testů 229 passed; F1 v Methods/reportu 0,79; PDF reportu přestavěno.
+- Přibalená ukázka v dashboardu nahrazena skutečným zmenšeným runem Emilia-Romagna (4,4 MB, D-X-17); `notice_titles.js` přegenerován (chybělo 21 titulků kroků combine/report/envelope…); nový test `tests/test_dashboard_example.py`.
 ### 2026-10-13 — model v0.5 (doladění na těžké případy) — `feat/model-v05`
 - Doladění v0.4 s častějšími těžkými výřezy (`train.py --init/--hard-boost`), 8 variant na Kaggle; vítěz `r12_ft_hard5_eb1` prošel pravidlem sloučení na 11 událostech (`validation/model_compare.sh`).
 - Prahy na Kuro Siwo val (citlivý 0,25, okraj k=1 t=0,12). Průměr vah a TTA bez přínosu.

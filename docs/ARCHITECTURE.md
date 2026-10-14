@@ -366,7 +366,10 @@ Pipeline spouští jako podproces `python -m povodne run ...`; průběh čte z `
 - **`run.json.progress`** (píše pipeline/CLI, čte dashboard):
   `{"state": "queued|running|done|failed|cancelled", "steps": [{"name": "acquire|preprocess|flood_ai|s1anomaly|debris|envelope|combine|damage|network|report",
   "state": "pending|running|done|skipped|failed", "message": "..."}]}`.
-- **Ukázkový run:** `dashboard/sample_run/` (v gitu, < 5 MB), `run.json.mock = true`; API ho vrací v seznamu s `"mock": true`.
+- **Přibalená ukázka:** `dashboard/sample_run/` (v gitu, < 5 MB) = skutečný doběhnutý run zmenšený `dashboard/tools/make_example_run.py`
+  (D-X-17): `run.json.example = true`, `run_id` začíná `example_`, notice `bundled_example`; API ho vrací v seznamu s `"example": true`
+  (a `"mock": true` jen u syntetických dat z `make_sample_run.py`, jen pro vývoj). Je jen ke čtení: `POST …/floodpath` na něm nic nepočítá
+  a vrací předpočítaný `floodpath/` s `"example": true`.
 - Backend poslouchá jen na `127.0.0.1` (D-016, lokální spuštění); CORS není potřeba.
 
 ## Orchestrátor `python -m povodne run` (D-X-06)

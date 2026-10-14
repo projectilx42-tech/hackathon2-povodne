@@ -1,1 +1,103 @@
-{"settlements_by_status":{"connected":1,"degraded":1,"possibly_cut_off":2,"cut_off":9,"no_road_pre_event":0},"settlements_by_impact":{"critical":3,"severe":6,"moderate":3,"low":0,"none":1},"components_pre":1,"components_post":3}
+{
+  "nodes": 27686,
+  "edges": 34751,
+  "nodes_before_snapping": 26952,
+  "edges_before_snapping": 34017,
+  "components_pre": 72,
+  "components_post": 162,
+  "components_possibly": 253,
+  "roads_km": 5530.59,
+  "roads_blocked_km": 49.29,
+  "roads_possibly_blocked_km": 48.2,
+  "road_cuts": 132,
+  "destinations": {
+    "hospital": 13,
+    "town": 7,
+    "edge": 1504
+  },
+  "settlements_total": 319,
+  "settlements_by_status": {
+    "connected": 318,
+    "cut_off": 1
+  },
+  "settlements_by_impact": {
+    "none": 305,
+    "low": 10,
+    "moderate": 2,
+    "critical": 1,
+    "severe": 1
+  },
+  "facilities_by_access": {
+    "connected": 538,
+    "cut_off": 4,
+    "no_road_pre_event": 4,
+    "possibly_cut_off": 1
+  },
+  "landing_zones": 3,
+  "per_edge_damage": true,
+  "damage_inputs": {
+    "roads_damage": true,
+    "bridges_damage": true,
+    "settlement_areas": true,
+    "facilities_damage": true
+  },
+  "params": {
+    "speeds_kmh": {
+      "motorway": 80,
+      "motorway_link": 80,
+      "trunk": 60,
+      "trunk_link": 60,
+      "primary": 50,
+      "primary_link": 50,
+      "secondary": 40,
+      "secondary_link": 40,
+      "tertiary": 30,
+      "tertiary_link": 30,
+      "unclassified": 25,
+      "residential": 25,
+      "living_street": 25,
+      "road": 25,
+      "service": 15,
+      "track": 10
+    },
+    "default_speed_kmh": 20.0,
+    "walk_speed_kmh": 5.0,
+    "vertex_round_m": 0.01,
+    "snap_max_m": 500.0,
+    "snap_endpoint_m": 5.0,
+    "dest_kinds": [
+      "hospital",
+      "town"
+    ],
+    "edge_destinations": true,
+    "edge_dest_m": 500.0,
+    "osm_buffer_m": 15000.0,
+    "edge_dest_name": "edge of mapped area",
+    "degraded_factor": 2.0,
+    "max_routes": 3,
+    "territory_fallback_m": 200.0,
+    "repair_top_n": 10,
+    "hit_pct_severe": 25.0,
+    "hit_pct_moderate": 5.0,
+    "destroyed_severe": 10,
+    "health_kinds": [
+      "hospital",
+      "clinic",
+      "health_post"
+    ],
+    "impact_weights": {
+      "critical": 4,
+      "severe": 3,
+      "moderate": 2,
+      "low": 1,
+      "none": 0
+    },
+    "lz_max_dist_m": 3000.0,
+    "lz_slope_suitable": 7.0,
+    "lz_slope_caution": 15.0,
+    "lz_min_px": 3,
+    "lz_clear_m": 30.0,
+    "lz_max_per_settlement": 3
+  },
+  "runtime_s": 14.7
+}

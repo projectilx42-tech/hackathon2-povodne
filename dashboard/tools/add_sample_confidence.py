@@ -7,6 +7,8 @@ import numpy as np
 from PIL import Image
 
 OUT = Path(__file__).resolve().parents[1] / "sample_run"
+if not json.loads((OUT / "run.json").read_text()).get("mock"):
+    raise SystemExit("sample_run is the real bundled example, not synthetic data: nothing to do")
 p = np.array(Image.open(OUT / "overlays/flood_prob.png"))[..., 0] / 255.0
 o = np.array(Image.open(OUT / "overlays/debris_observability.png"))[..., 0]
 aff = p >= 0.5

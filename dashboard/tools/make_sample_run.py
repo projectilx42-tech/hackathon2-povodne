@@ -1,4 +1,5 @@
-"""Generate the SYNTHETIC sample run in dashboard/sample_run/ (run.json.mock = true).
+"""Generate the SYNTHETIC sample run in dashboard/sample_run/ (run.json.mock = true). Development only: it replaces the
+bundled real example built by make_example_run.py (D-X-17), so do not commit its output.
 
 Everything here is made up so the UI can be developed and demoed before the pipeline exists.
 It follows the run-directory contract in docs/ARCHITECTURE.md. Not real data, not a real place.
