@@ -1,0 +1,452 @@
+{
+ "tag": "final1",
+ "events": {
+  "teesta_2023_sub": {
+   "levels": {
+    "high": {
+     "tp": 184,
+     "pred": 187,
+     "truth": 184,
+     "precision": 0.984,
+     "recall": 1.0,
+     "pred_share": 0.0225,
+     "truth_share": 0.0158
+    },
+    "medium": {
+     "tp": 5521,
+     "pred": 6196,
+     "truth": 8829,
+     "precision": 0.8911,
+     "recall": 0.6253,
+     "pred_share": 0.7461,
+     "truth_share": 0.7604
+    },
+    "low": {
+     "tp": 1741,
+     "pred": 1921,
+     "truth": 2598,
+     "precision": 0.9063,
+     "recall": 0.6701,
+     "pred_share": 0.2313,
+     "truth_share": 0.2238
+    }
+   },
+   "confidence_step_s": null,
+   "overall": "low",
+   "levels_pct_of_affected": {
+    "high": 1.9,
+    "medium": 20.2,
+    "low": 77.9
+   }
+  },
+  "chamoli_2021_sub": {
+   "levels": {
+    "high": {
+     "tp": 6,
+     "pred": 6,
+     "truth": 12,
+     "precision": 1.0,
+     "recall": 0.5,
+     "pred_share": 0.1154,
+     "truth_share": 0.0302
+    },
+    "medium": {
+     "tp": 14,
+     "pred": 34,
+     "truth": 262,
+     "precision": 0.4118,
+     "recall": 0.0534,
+     "pred_share": 0.6538,
+     "truth_share": 0.6583
+    },
+    "low": {
+     "tp": 5,
+     "pred": 12,
+     "truth": 124,
+     "precision": 0.4167,
+     "recall": 0.0403,
+     "pred_share": 0.2308,
+     "truth_share": 0.3116
+    }
+   },
+   "confidence_step_s": null,
+   "overall": "low",
+   "levels_pct_of_affected": {
+    "high": 0.6,
+    "medium": 14.4,
+    "low": 85.0
+   }
+  },
+  "marsyangdi_2024_noflood_sub": {
+   "levels": {
+    "high": {
+     "tp": 1375,
+     "pred": 2054,
+     "truth": 1489,
+     "precision": 0.6694,
+     "recall": 0.9234,
+     "pred_share": 0.6266,
+     "truth_share": 0.795
+    },
+    "medium": {
+     "tp": 300,
+     "pred": 1217,
+     "truth": 381,
+     "precision": 0.2465,
+     "recall": 0.7874,
+     "pred_share": 0.3713,
+     "truth_share": 0.2034
+    },
+    "low": {
+     "tp": 1,
+     "pred": 7,
+     "truth": 3,
+     "precision": 0.1429,
+     "recall": 0.3333,
+     "pred_share": 0.0021,
+     "truth_share": 0.0016
+    }
+   },
+   "confidence_step_s": null,
+   "overall": "low",
+   "levels_pct_of_affected": {
+    "high": 1.0,
+    "medium": 23.4,
+    "low": 75.6
+   }
+  },
+  "honduras_2018": {
+   "levels": {
+    "high": {
+     "tp": 22645,
+     "pred": 23933,
+     "truth": 40084,
+     "precision": 0.9462,
+     "recall": 0.5649,
+     "pred_share": 0.1332,
+     "truth_share": 0.2081
+    },
+    "medium": {
+     "tp": 136189,
+     "pred": 152668,
+     "truth": 150765,
+     "precision": 0.8921,
+     "recall": 0.9033,
+     "pred_share": 0.85,
+     "truth_share": 0.7826
+    },
+    "low": {
+     "tp": 1805,
+     "pred": 3011,
+     "truth": 1808,
+     "precision": 0.5995,
+     "recall": 0.9983,
+     "pred_share": 0.0168,
+     "truth_share": 0.0094
+    }
+   },
+   "confidence_step_s": null,
+   "overall": "medium",
+   "levels_pct_of_affected": {
+    "high": 12.6,
+    "medium": 85.4,
+    "low": 2.0
+   }
+  },
+  "malawi_2022": {
+   "levels": {
+    "high": {
+     "tp": 32871,
+     "pred": 33659,
+     "truth": 37938,
+     "precision": 0.9766,
+     "recall": 0.8664,
+     "pred_share": 0.2537,
+     "truth_share": 0.2868
+    },
+    "medium": {
+     "tp": 83538,
+     "pred": 89179,
+     "truth": 87402,
+     "precision": 0.9367,
+     "recall": 0.9558,
+     "pred_share": 0.6721,
+     "truth_share": 0.6608
+    },
+    "low": {
+     "tp": 6915,
+     "pred": 9840,
+     "truth": 6934,
+     "precision": 0.7027,
+     "recall": 0.9973,
+     "pred_share": 0.0742,
+     "truth_share": 0.0524
+    }
+   },
+   "confidence_step_s": null,
+   "overall": "medium",
+   "levels_pct_of_affected": {
+    "high": 25.9,
+    "medium": 65.8,
+    "low": 8.4
+   }
+  },
+  "australia_2022": {
+   "levels": {
+    "high": {
+     "tp": 81029,
+     "pred": 82776,
+     "truth": 103998,
+     "precision": 0.9789,
+     "recall": 0.7791,
+     "pred_share": 0.1874,
+     "truth_share": 0.2018
+    },
+    "medium": {
+     "tp": 334978,
+     "pred": 338323,
+     "truth": 391180,
+     "precision": 0.9901,
+     "recall": 0.8563,
+     "pred_share": 0.766,
+     "truth_share": 0.7591
+    },
+    "low": {
+     "tp": 19871,
+     "pred": 20599,
+     "truth": 20113,
+     "precision": 0.9647,
+     "recall": 0.988,
+     "pred_share": 0.0466,
+     "truth_share": 0.039
+    }
+   },
+   "confidence_step_s": null,
+   "overall": "medium",
+   "levels_pct_of_affected": {
+    "high": 19.2,
+    "medium": 76.0,
+    "low": 4.8
+   }
+  },
+  "bolivia_2018": {
+   "levels": {
+    "high": {
+     "tp": 106453,
+     "pred": 117103,
+     "truth": 107776,
+     "precision": 0.9091,
+     "recall": 0.9877,
+     "pred_share": 0.6862,
+     "truth_share": 0.7248
+    },
+    "medium": {
+     "tp": 32390,
+     "pred": 50512,
+     "truth": 38469,
+     "precision": 0.6412,
+     "recall": 0.842,
+     "pred_share": 0.296,
+     "truth_share": 0.2587
+    },
+    "low": {
+     "tp": 1354,
+     "pred": 3044,
+     "truth": 2461,
+     "precision": 0.4448,
+     "recall": 0.5502,
+     "pred_share": 0.0178,
+     "truth_share": 0.0165
+    }
+   },
+   "confidence_step_s": null,
+   "overall": "medium",
+   "levels_pct_of_affected": {
+    "high": 46.0,
+    "medium": 48.9,
+    "low": 5.1
+   }
+  },
+  "bihar_2019": {
+   "levels": {
+    "high": {
+     "tp": 367699,
+     "pred": 395675,
+     "truth": 372861,
+     "precision": 0.9293,
+     "recall": 0.9862,
+     "pred_share": 0.7681,
+     "truth_share": 0.794
+    },
+    "medium": {
+     "tp": 91414,
+     "pred": 116789,
+     "truth": 94696,
+     "precision": 0.7827,
+     "recall": 0.9653,
+     "pred_share": 0.2267,
+     "truth_share": 0.2016
+    },
+    "low": {
+     "tp": 2047,
+     "pred": 2657,
+     "truth": 2054,
+     "precision": 0.7704,
+     "recall": 0.9966,
+     "pred_share": 0.0052,
+     "truth_share": 0.0044
+    }
+   },
+   "confidence_step_s": null,
+   "overall": "high",
+   "levels_pct_of_affected": {
+    "high": 73.5,
+    "medium": 25.0,
+    "low": 1.5
+   }
+  },
+  "missouri_2017": {
+   "levels": {
+    "high": {
+     "tp": 204149,
+     "pred": 214561,
+     "truth": 206692,
+     "precision": 0.9515,
+     "recall": 0.9877,
+     "pred_share": 0.6908,
+     "truth_share": 0.7767
+    },
+    "medium": {
+     "tp": 56952,
+     "pred": 87054,
+     "truth": 58126,
+     "precision": 0.6542,
+     "recall": 0.9798,
+     "pred_share": 0.2803,
+     "truth_share": 0.2184
+    },
+    "low": {
+     "tp": 1224,
+     "pred": 9003,
+     "truth": 1285,
+     "precision": 0.136,
+     "recall": 0.9525,
+     "pred_share": 0.029,
+     "truth_share": 0.0048
+    }
+   },
+   "confidence_step_s": null,
+   "overall": "high",
+   "levels_pct_of_affected": {
+    "high": 68.2,
+    "medium": 28.7,
+    "low": 3.1
+   }
+  },
+  "chad_2020": {
+   "levels": {
+    "high": {
+     "tp": 4150,
+     "pred": 8085,
+     "truth": 27445,
+     "precision": 0.5133,
+     "recall": 0.1512,
+     "pred_share": 0.1012,
+     "truth_share": 0.2917
+    },
+    "medium": {
+     "tp": 45978,
+     "pred": 58606,
+     "truth": 53780,
+     "precision": 0.7845,
+     "recall": 0.8549,
+     "pred_share": 0.7338,
+     "truth_share": 0.5716
+    },
+    "low": {
+     "tp": 12847,
+     "pred": 13176,
+     "truth": 12861,
+     "precision": 0.975,
+     "recall": 0.9989,
+     "pred_share": 0.165,
+     "truth_share": 0.1367
+    }
+   },
+   "confidence_step_s": null,
+   "overall": "medium",
+   "levels_pct_of_affected": {
+    "high": 10.2,
+    "medium": 73.4,
+    "low": 16.4
+   }
+  },
+  "evros_2018": {
+   "levels": {
+    "high": {
+     "tp": 176000,
+     "pred": 204976,
+     "truth": 184603,
+     "precision": 0.8586,
+     "recall": 0.9534,
+     "pred_share": 0.787,
+     "truth_share": 0.7864
+    },
+    "medium": {
+     "tp": 39369,
+     "pred": 54126,
+     "truth": 49338,
+     "precision": 0.7274,
+     "recall": 0.7979,
+     "pred_share": 0.2078,
+     "truth_share": 0.2102
+    },
+    "low": {
+     "tp": 806,
+     "pred": 1345,
+     "truth": 813,
+     "precision": 0.5993,
+     "recall": 0.9914,
+     "pred_share": 0.0052,
+     "truth_share": 0.0035
+    }
+   },
+   "confidence_step_s": null,
+   "overall": "high",
+   "levels_pct_of_affected": {
+    "high": 78.1,
+    "medium": 21.4,
+    "low": 0.5
+   }
+  }
+ },
+ "pooled_flood_events": {
+  "high": {
+   "tp": 995180,
+   "pred": 1080955,
+   "truth": 1081581,
+   "precision": 0.9206,
+   "recall": 0.9201,
+   "pred_share": 0.515,
+   "truth_share": 0.5237
+  },
+  "medium": {
+   "tp": 826329,
+   "pred": 953453,
+   "truth": 932585,
+   "precision": 0.8667,
+   "recall": 0.8861,
+   "pred_share": 0.4542,
+   "truth_share": 0.4516
+  },
+  "low": {
+   "tp": 48610,
+   "pred": 64596,
+   "truth": 50927,
+   "precision": 0.7525,
+   "recall": 0.9545,
+   "pred_share": 0.0308,
+   "truth_share": 0.0247
+  }
+ }
+}
