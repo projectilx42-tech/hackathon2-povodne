@@ -22,8 +22,6 @@ path down the valley. Case study: the 26 August 2026 Trishuli flood (Nepal), com
 - Devpost text: [`deliverables/devpost.md`](deliverables/devpost.md)
 
 **For judges, the fastest way in:**
-- **No account, ~5 min:** install (`./install.sh`, press Enter at the key questions), start the app, open *History* → a finished
-  example analysis with every layer and the situation report ([details](#4-run-the-web-app)).
 - **Your own area and date:** create the free Copernicus key (step 3, ~10 min), then draw an area and press *Run*.
 - **Just the numbers:** [Results at a glance](#results-at-a-glance) below, details in the [report](deliverables/report/report.md).
 - **Where is what in the repo:** [Repository map](#repository-map).
@@ -95,9 +93,6 @@ It opens http://127.0.0.1:8000 (stop with Ctrl+C). Port 8000 busy? Use `./start.
    a before/after slider, and the **situation report** to download. Click a settlement for details; click a point to
    trace the flood path.
 
-**Try it without an account:** *History* contains a finished **example run** of the May 2023 Emilia-Romagna flood (Italy),
-produced by this pipeline.
-
 ### 5. Or from the command line
 ```bash
 .venv/bin/python -m povodne run --aoi 85.15,27.95,85.23,28.03 --event-date 2026-08-26 --out runs/trishuli_small
@@ -165,7 +160,7 @@ not for training, thresholds or the pipeline; EMSR927 is used only in `validatio
 | Folder | What is in it |
 |---|---|
 | `src/povodne/` | The pipeline: `acquire/` (download) → `preprocess/` → `flood/` (+ `debris/`) → `damage/` → `network/` (cut-off analysis) → `floodpath/` → `report/`; `cli.py` is the entry point |
-| `dashboard/` | Web app: `server.py` (FastAPI) + `static/` (MapLibre front end, vendored, works offline apart from base maps); `sample_run/` is the bundled example shown under *History* |
+| `dashboard/` | Web app: `server.py` (FastAPI) + `static/` (MapLibre front end, vendored, works offline apart from base maps); `sample_run/` is a bundled example run |
 | `models/` | The two trained flood models used by default (radar `floodseg_v0.5`, optical `floodseg_s2_v0.1`) with their model cards |
 | `training/` | How the flood model was trained and evaluated (Kuro Siwo, Sen1Floods11), see [`training/README.md`](training/README.md) |
 | `validation/` | Whole-system checks on independent floods and the Trishuli comparison with EMSR927 (check only), see [`validation/README.md`](validation/README.md) |
