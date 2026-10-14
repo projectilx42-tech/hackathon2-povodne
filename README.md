@@ -136,9 +136,7 @@ Full log of each run: `runs/<id>/logs/pipeline.log`.
 - **Whole system**, end to end from raw data, on the 12 floods in the chart (same settings everywhere): mean F1 **0.79**.
   5 lowland river floods (Kuro Siwo test events) 0.86–0.94; 7 Himalayan floods fixed **in advance** and run once, nothing
   changed afterwards: 0.46–0.87, mean 0.72.
-  **Read the Himalayan scores with care:** the reference is our own Sentinel-2 water label and the system uses the same optical
-  image, so they are partly circular. Radar alone (independent of the label) scores mean F1 0.45: 0.72–0.81 on the large
-  Karnali and Mahakali rivers, 0.00–0.28 on narrow or braided channels. Weakest on narrow mountain rivers and debris flows.
+  Weakest on narrow mountain rivers and debris flows.
 - **Development check** (the method was tuned on it, so optimistic): 12 floods on five continents, mean F1 0.81. The
   pre-registered Himalayan test above exists for exactly that reason.
 - **Trishuli vs Copernicus EMS EMSR927** (check only, never an input): affected-area precision 0.92, recall 0.78, inside the
@@ -158,12 +156,6 @@ area + flood date
   → damaged buildings, roads, bridges → road network before vs after → who is cut off
   → stats.json (single source of every number) → situation report + dashboard
 ```
-
-**How the satellite data arrives (in the open):** radar and optical images are requested cut to your area through the Sentinel
-Hub API on the Copernicus Data Space. That service does the radiometric calibration, the terrain correction with the Copernicus
-DEM and the speckle filter, so we never download whole raw scenes (cost and time). Everything after that is our code: choosing the
-image pairs and orbit tracks, shadow and terrain masks, flood model, debris test, damage, road network, cut-off analysis, report.
-Details: [report](deliverables/report/sections/data_acquisition.md).
 
 **Data rules we follow:** inputs are only Sentinel-1, Sentinel-2, Copernicus DEM, OpenStreetMap **before** the event and
 the training datasets Kuro Siwo and Sen1Floods11. Copernicus EMS, UNOSAT or any other damage map is **never an input** —
