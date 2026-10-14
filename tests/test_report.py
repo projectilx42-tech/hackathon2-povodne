@@ -37,7 +37,7 @@ def _tif(path, arr, nodata=None):
 
 def _fc(path, feats):
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({"type": "FeatureCollection", "features": feats}))
+    path.write_text(json.dumps({"type": "FeatureCollection", "features": feats}), encoding="utf-8")
 
 
 def _pt(x, y, **props):
@@ -93,7 +93,7 @@ def make_run(tmp_path, *, flood=True, damage=True, network=True, affected=True, 
             "buildings_total": 120, "buildings_hit_low": 10, "buildings_hit_high": 15, "buildings_likely_destroyed": 2,
             "roads_total_km": 12.5, "roads_blocked_km": 1.2, "roads_possibly_blocked_km": 0.4, "roads_hit_km": 1.8,
             "bridges_total": 3, "bridges_blocked": 1, "bridges_suspect": 1, "facilities_total": 4,
-            "facilities_hit": {"school": 1}}))
+            "facilities_hit": {"school": 1}}), encoding="utf-8")
     else:
         for s in steps:
             if s["name"] in ("damage", "network"):
@@ -112,13 +112,13 @@ def make_run(tmp_path, *, flood=True, damage=True, network=True, affected=True, 
              "coordinates": [_ll(500, 600), _ll(800, 650)]}, "properties": {"osm_id": "way/9", "status": "blocked"}}])
         (d / "network/repair_priority.json").write_text(json.dumps([
             {"rank": 1, "osm_ids": ["way/9"], "names": ["Main road"], "n_cuts": 1, "is_bridge": False,
-             "reconnects_settlements": 1, "reconnects_buildings": 40, "settlements": ["Alpha"], "cumulative_buildings": 40}]))
+             "reconnects_settlements": 1, "reconnects_buildings": 40, "settlements": ["Alpha"], "cumulative_buildings": 40}]), encoding="utf-8")
         _fc(d / "network/facilities_access.geojson", [
             _pt(620, 710, osm_id="node/7", name="Alpha school", kind="school", hit=True, grade="affected", access="cut_off"),
             _pt(2500, 1500, osm_id="node/8", name="Gamma", kind="town", hit=False, grade="none", access="connected")])
         _fc(d / "network/landing_zones.geojson", [_pt(700, 800, **{"class": "suitable"})])
     d.mkdir(parents=True, exist_ok=True)
-    (d / "run.json").write_text(json.dumps(rj))
+    (d / "run.json").write_text(json.dumps(rj), encoding="utf-8")
     return d
 
 
@@ -127,7 +127,7 @@ def _pdf_pages(path):
 
 
 def _check_common(d, st):
-    assert json.loads((d / "stats.json").read_text()) == json.loads(json.dumps(st))
+    assert json.loads((d / "stats.json").read_text(encoding="utf-8")) == json.loads(json.dumps(st))
     for k in ("run_id", "event_date", "aoi_area_km2", "verdict", "verdict_reasons", "coverage", "scenes", "warnings"):
         assert k in st
     assert all(isinstance(w, str) for w in st["warnings"])
@@ -135,10 +135,10 @@ def _check_common(d, st):
     assert abs(st["aoi_area_km2"] - 6.0) < 0.1
     pdf = d / "report/sitrep_en.pdf"
     assert pdf.exists() and _pdf_pages(pdf) == 1
-    md = (d / "report/sitrep_en.md").read_text()
+    md = (d / "report/sitrep_en.md").read_text(encoding="utf-8")
     for a in ATTRIBUTIONS[:3]:
         assert a in md
-    rj = json.loads((d / "run.json").read_text())
+    rj = json.loads((d / "run.json").read_text(encoding="utf-8"))
     step = next(s for s in rj["progress"]["steps"] if s["name"] == "report")
     assert step["state"] == "done"
     return rj
@@ -173,7 +173,7 @@ def test_all_done(tmp_path):
 def test_overlays_bounds(tmp_path):
     d = make_run(tmp_path)
     run(d)
-    idx = json.loads((d / "overlays/index.json").read_text())
+    idx = json.loads((d / "overlays/index.json").read_text(encoding="utf-8"))
     assert set(idx) == {"flood_prob", "s2_pre", "layover_shadow", "debris_observability"}   # no s2_post input
     lons, lats = zip(*[_ll(0, 0), _ll(W * RES, 0), _ll(W * RES, H * RES), _ll(0, H * RES)])
     from PIL import Image
@@ -202,7 +202,7 @@ def test_no_flood_map(tmp_path):
 def test_missing_damage_and_network(tmp_path):
     d = make_run(tmp_path, damage=False, network=False)
     (d / "network").mkdir()
-    (d / "network/settlements_access.geojson").write_text('{"type":"FeatureCollection","features":[]}')  # stale file
+    (d / "network/settlements_access.geojson").write_text('{"type":"FeatureCollection","features":[]}', encoding="utf-8")  # stale file
     st = run(d)
     rj = _check_common(d, st)
     assert st["verdict"] == "flood_detected"
@@ -234,25 +234,25 @@ def test_threshold_is_configurable(tmp_path):
 
 
 def test_codes_documented():
-    doc = (ROOT / "docs/NOTICES.md").read_text()
+    doc = (ROOT / "docs/NOTICES.md").read_text(encoding="utf-8")
     documented = set(re.findall(r"^\| report \| `([a-z0-9_]+)` \|", doc, re.M))
     assert documented == set(SEVERITY)
-    used = set(re.findall(r'notice\(\s*"([a-z0-9_]+)"', "".join(p.read_text() for p in (ROOT / "src/povodne/report").glob("*.py"))))
+    used = set(re.findall(r'notice\(\s*"([a-z0-9_]+)"', "".join(p.read_text(encoding="utf-8") for p in (ROOT / "src/povodne/report").glob("*.py"))))
     assert used == set(SEVERITY)
 
 
 def test_long_content_still_one_page(tmp_path):
     d = make_run(tmp_path)
-    rj = json.loads((d / "run.json").read_text())
+    rj = json.loads((d / "run.json").read_text(encoding="utf-8"))
     rj["warnings"] = [f"Long warning number {i}: " + "radar shadow covers part of the valley floor. " * 4 for i in range(15)]
-    (d / "run.json").write_text(json.dumps(rj))
+    (d / "run.json").write_text(json.dumps(rj), encoding="utf-8")
     many = [_pt(100 + 9 * i, 100 + 9 * i, osm_id=f"node/{i}", name=f"Settlement with a rather long name {i}", place="village",
                 status="cut_off", impact_level="severe", priority_rank=i + 1, buildings_total=50, buildings_hit=5,
                 impact_reasons=["Cut off from the nearest hospital; " * 5]) for i in range(40)]
     _fc(d / "network/settlements_access.geojson", many)
     (d / "network/repair_priority.json").write_text(json.dumps([
         {"rank": i + 1, "osm_ids": [f"way/{i}"], "names": [f"Road {i} " * 6], "n_cuts": 3, "is_bridge": i % 2 == 0,
-         "reconnects_settlements": 3, "reconnects_buildings": 90} for i in range(10)]))
+         "reconnects_settlements": 3, "reconnects_buildings": 90} for i in range(10)]), encoding="utf-8")
     st = run(d)
     assert len(st["access"]["urgent"]) == 10
     assert _pdf_pages(d / "report/sitrep_en.pdf") == 1
@@ -262,14 +262,14 @@ def test_totals_count_only_the_area(tmp_path):
     """Settlements and places come with a routing buffer; outside ones count only if they were hit or cut off."""
     d = make_run(tmp_path)
     p = d / "network/settlements_access.geojson"
-    fc = json.loads(p.read_text())
+    fc = json.loads(p.read_text(encoding="utf-8"))
     fc["features"] += [_pt(9000, 500, osm_id="node/4", name="Far", place="village", status="connected"),
                        _pt(9000, 900, osm_id="node/5", name="Far cut", place="village", status="cut_off")]
-    p.write_text(json.dumps(fc))
+    p.write_text(json.dumps(fc), encoding="utf-8")
     p = d / "network/facilities_access.geojson"
-    fc = json.loads(p.read_text())
+    fc = json.loads(p.read_text(encoding="utf-8"))
     fc["features"] += [_pt(9000, 500, osm_id="node/9", name="Far clinic", kind="clinic", hit=False, access="connected")]
-    p.write_text(json.dumps(fc))
+    p.write_text(json.dumps(fc), encoding="utf-8")
     st = run(d)
     ac = st["access"]
     assert (ac["settlements_total"], ac["cut_off"], ac["connected"]) == (4, 2, 1)

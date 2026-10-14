@@ -45,8 +45,8 @@ def _write_run(tmp_path, roads, settlements, facilities, status=None, buildings=
                                                      "buildings_hit_pct": 0.0, "flooded_area_pct": 0.0, "facilities_hit": []},
                   "geometry": gpd.GeoSeries([Point(P(s[2], s[3])).buffer(100)], crs=CRS).to_crs(4326).iloc[0].__geo_interface__}
                  for s in settlements]
-        (tmp_path / "damage/settlement_areas.geojson").write_text(json.dumps({"type": "FeatureCollection", "features": feats}))
-    (tmp_path / "run.json").write_text(json.dumps({"run_id": "test"}))
+        (tmp_path / "damage/settlement_areas.geojson").write_text(json.dumps({"type": "FeatureCollection", "features": feats}), encoding="utf-8")
+    (tmp_path / "run.json").write_text(json.dumps({"run_id": "test"}), encoding="utf-8")
     return tmp_path
 
 
@@ -54,7 +54,7 @@ CFG = NetworkConfig(edge_destinations=False)
 
 
 def _status(tmp_path):
-    fc = json.loads((tmp_path / "network/settlements_access.geojson").read_text())
+    fc = json.loads((tmp_path / "network/settlements_access.geojson").read_text(encoding="utf-8"))
     return {f["properties"]["osm_id"]: f["properties"] for f in fc["features"]}
 
 
@@ -97,10 +97,10 @@ def test_village_behind_blocked_bridge_is_cut_off_and_repair_picks_it(tmp_path):
     assert st["node/v"]["blocking_cuts"] == ["way/2"]
     assert st["node/v"]["routes_pre"] == 1 and st["node/v"]["routes_post"] == 0
     assert st["node/w"]["status"] == "connected" and st["node/w"]["nearest_dest_pre"] == "H"
-    prio = json.loads((tmp_path / "network/repair_priority.json").read_text())
+    prio = json.loads((tmp_path / "network/repair_priority.json").read_text(encoding="utf-8"))
     assert prio[0]["osm_id"] == "way/2" and prio[0]["reconnects_buildings"] == 40
     assert prio[0]["osm_ids"] == ["way/2"] and prio[0]["n_cuts"] == 1 and prio[0]["is_bridge"] is True
-    cuts = json.loads((tmp_path / "network/road_cuts.geojson").read_text())["features"]
+    cuts = json.loads((tmp_path / "network/road_cuts.geojson").read_text(encoding="utf-8"))["features"]
     assert [c["properties"]["osm_id"] for c in cuts] == ["way/2"]
     assert cuts[0]["properties"]["repair_rank"] == 1 and cuts[0]["properties"]["is_bridge"] is True
 
@@ -132,11 +132,11 @@ def test_repair_priority_prefers_more_buildings(tmp_path):
                [("node/h", "H", "hospital", 0, 0)], status={"way/x": "blocked", "way/y": "blocked"},
                buildings={"node/1": 10, "node/2": 30, "node/3": 20})
     run(tmp_path, CFG)
-    prio = json.loads((tmp_path / "network/repair_priority.json").read_text())
+    prio = json.loads((tmp_path / "network/repair_priority.json").read_text(encoding="utf-8"))
     assert [p["osm_ids"] for p in prio] == [["way/y"], ["way/x"]]
     assert prio[0]["reconnects_settlements"] == 2 and prio[0]["reconnects_buildings"] == 50
     assert [p["cumulative_buildings"] for p in prio] == [50, 60]
-    stats = json.loads((tmp_path / "network/graph_stats.json").read_text())
+    stats = json.loads((tmp_path / "network/graph_stats.json").read_text(encoding="utf-8"))
     assert stats["settlements_by_status"]["cut_off"] == 3
 
 
@@ -171,7 +171,7 @@ def test_washout_closes_only_the_hit_part_of_a_long_line(tmp_path):
     st = _status(tmp_path)
     assert st["node/1"]["status"] == "connected"
     assert st["node/2"]["status"] == "cut_off" and st["node/2"]["blocking_cuts"] == ["way/long"]
-    stats = json.loads((tmp_path / "network/graph_stats.json").read_text())
+    stats = json.loads((tmp_path / "network/graph_stats.json").read_text(encoding="utf-8"))
     assert stats["per_edge_damage"] is True and stats["roads_blocked_km"] < 5
 
 
@@ -190,13 +190,13 @@ def test_cuts_in_series_become_one_grouped_repair(tmp_path):
                [("node/h", "H", "hospital", 0, 0)], status={"way/c1": "blocked", "way/c2": "blocked", "way/c3": "blocked"},
                buildings={"node/v": 100, "node/w": 5})
     run(tmp_path, CFG)
-    prio = json.loads((tmp_path / "network/repair_priority.json").read_text())
+    prio = json.loads((tmp_path / "network/repair_priority.json").read_text(encoding="utf-8"))
     # W's single cut is found first (a single repair that reconnects something always wins the step)
     assert sorted(prio[0]["osm_ids"]) == ["way/c1", "way/c2"] and prio[0]["n_cuts"] == 2
     assert prio[1]["osm_ids"] == ["way/c3"] and prio[1]["n_cuts"] == 1
     assert prio[0]["settlements"] == ["V"] and prio[0]["reconnects_buildings"] == 100
     assert prio[1]["cumulative_buildings"] == 105
     cuts = {c["properties"]["osm_id"]: c["properties"]
-            for c in json.loads((tmp_path / "network/road_cuts.geojson").read_text())["features"]}
+            for c in json.loads((tmp_path / "network/road_cuts.geojson").read_text(encoding="utf-8"))["features"]}
     assert cuts["way/c1"]["repair_rank"] == 1 and cuts["way/c2"]["repair_rank"] == 1 and cuts["way/c3"]["repair_rank"] == 2
     assert cuts["way/c1"]["reconnects_settlements"] == 0  # alone it reconnects nothing
